@@ -2,9 +2,12 @@
 
 ## Signaler une vulnérabilité
 
-<Adresse ou canal privé. Ne jamais ouvrir d'issue publique pour une vulnérabilité.>
+**Ne jamais ouvrir d'issue publique pour une vulnérabilité.**
 
-Délai de première réponse visé : <X jours ouvrés>.
+Utiliser le signalement privé de la forge : sur GitHub, onglet **Security**, puis
+**Report a vulnerability**. Le rapport n'est visible que des mainteneurs.
+
+Délai de première réponse visé : **7 jours**.
 
 ## Règles absolues du projet
 

@@ -3,11 +3,17 @@ name: Modules
 # Exécute les verbes standards sur les seuls modules touchés.
 # Le niveau de validation est proportionnel à la criticité déclarée dans le MANIFEST
 # (docs/os/07-gouvernance.md §6).
+#
+# Les noms de modules viennent des chemins modifiés par la PR : ils ne sont jamais
+# insérés dans un script, seulement lus depuis une variable d'environnement.
 
 on:
   pull_request:
   push:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   discover:
@@ -17,13 +23,15 @@ jobs:
       modules: ${{ steps.list.outputs.modules }}
       any: ${{ steps.list.outputs.any }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - id: list
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
             BASE=$(git rev-list --max-parents=0 HEAD | tail -1)
           fi
@@ -45,34 +53,38 @@ jobs:
       fail-fast: false
       matrix:
         module: ${{ fromJson(needs.discover.outputs.modules) }}
+    env:
+      MODULE: ${{ matrix.module }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Criticité déclarée
         id: crit
         run: |
-          LEVEL=$(grep -E '^\s*criticality:' "modules/${{ matrix.module }}/MANIFEST.yaml" \
+          LEVEL=$(grep -E '^\s*criticality:' "modules/$MODULE/MANIFEST.yaml" \
                   | head -1 | awk '{print $2}')
           echo "level=${LEVEL:-standard}" >> "$GITHUB_OUTPUT"
           echo "Criticité : ${LEVEL:-standard}"
 
       - name: bootstrap
-        run: make -C "modules/${{ matrix.module }}" bootstrap
+        run: make -C "modules/$MODULE" bootstrap
 
       # Tous niveaux — docs/os/05-workflow.md §7
       - name: check
-        run: make -C "modules/${{ matrix.module }}" check
+        run: make -C "modules/$MODULE" check
 
       - name: test
-        run: make -C "modules/${{ matrix.module }}" test
+        run: make -C "modules/$MODULE" test
 
       # Niveaux élevé et critique — à brancher quand les cibles existent
       - name: Tests d'intégration
         if: steps.crit.outputs.level == 'eleve' || steps.crit.outputs.level == 'critique'
         run: |
-          echo "TODO — make -C modules/${{ matrix.module }} test-integration"
+          echo "TODO — make -C modules/$MODULE test-integration"
 
       - name: E2E parcours critiques
         if: steps.crit.outputs.level == 'critique'
         run: |
-          echo "TODO — make -C modules/${{ matrix.module }} test-e2e"
+          echo "TODO — make -C modules/$MODULE test-e2e"

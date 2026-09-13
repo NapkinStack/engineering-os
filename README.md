@@ -47,7 +47,17 @@ Settings → Rules → Rulesets → sur la branche principale :
 - [ ] Revue des CODEOWNERS obligatoire
 - [ ] Pas de push direct
 
-Settings → Advanced Security : activer **Secret Protection** et la **protection au push**.
+Settings → Advanced Security :
+
+- [ ] Secret Protection et protection au push
+- [ ] Signalement privé de vulnérabilités (canal de `SECURITY.md`)
+
+Settings → Actions → General :
+
+- [ ] Actions autorisées : celles de GitHub, plus celles explicitement listées
+- [ ] Actions épinglées par SHA obligatoires
+- [ ] Approbation des workflows pour tout contributeur externe
+- [ ] Jeton des workflows en lecture seule ; Actions ne crée ni n'approuve de PR
 
 Créer aussi les labels `cross-module` et `hors-budget` : ils rendent les exceptions
 visibles **et comptables** (`docs/os/10-mesure.md` §3).

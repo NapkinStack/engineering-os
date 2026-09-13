@@ -11,7 +11,7 @@
 flowchart LR
     S0["Étape 0<br/>réglages GitHub"]:::fait --> C0["C0<br/>CI verte sur<br/>clone vierge"]:::fait
     C0 --> C01["C0.1<br/>hooks et secrets"]:::fait
-    C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::afaire
+    C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::fait
     C02 --> C03["C0.3<br/>formats stricts"]:::afaire
     C03 --> PDR["PDR-0001<br/>modèle framework<br/>+ prototype"]:::afaire
     PDR --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
@@ -29,7 +29,7 @@ flowchart LR
 | 0 | Réglages GitHub (hors dépôt) | Fait, 2 réglages différés |
 | C0 | CI verte sur clone vierge | Fait |
 | C0.1 | Hooks et secrets | Fait |
-| C0.2 | Sécurité des workflows | À faire |
+| C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | À faire |
 | PDR-0001 | NapkinStack comme framework | À faire |
 | C1 | Point d'entrée unique `nstack` | À replanifier après PDR-0001 |
@@ -54,7 +54,7 @@ Ils ne se versionnent pas : chaque dépôt doit les refaire.
 | Wiki désactivé | Vérifié par l'API |
 | Ruleset `main` : PR obligatoire, force-push et suppression interdits, squash seul | Vérifié par l'API |
 | Required checks `Fitness functions` et `Périmètre et budget de revue` | Vérifié par l'API |
-| Required check `Hooks et secrets` | Après merge de C0.1 |
+| Required check `Hooks et secrets` | Vérifié par l'API |
 | Actions épinglées par SHA obligatoires | Après merge de C0.2 |
 
 ## C0 — CI verte sur clone vierge
@@ -94,6 +94,12 @@ d'agent non ignorés.
 **Cible.** zizmor et actionlint ; `permissions: contents: read` ; actions épinglées par SHA
 et tenues à jour par Dependabot ; `persist-credentials: false` ; expressions passées par
 `env:` ; `SECURITY.md` renvoyant au signalement privé ; `.gitignore` complété.
+
+**Mesuré.** zizmor : 32 constats avant, 0 après. Points retenus : le `git fetch` du job de
+périmètre est retiré (redondant avec `fetch-depth: 0`, et il échouerait sur un dépôt
+privé sans jeton) ; zizmor tourne hors ligne et actionlint sans shellcheck, pour des
+résultats identiques en local et en CI ; Dependabot contourne la politique Actions, donc
+l'épinglage SHA obligatoire ne le bloque pas.
 
 ## C0.3 — Formats stricts
 
@@ -137,6 +143,9 @@ versionnée, le projet choisit quand monter de version.
   version installée (à jour, non éditables).
 - Réglages GitHub : appliqués par l'API après confirmation, ou checklist vérifiée.
 - Nom du paquet : `napkinstack` (`nstack` est déjà pris sur PyPI).
+- Cadrage et découpage guidés : à partir de l'idée ou des specs de l'utilisateur, une
+  procédure suivie par son agent propose règles, PDR, ADR, modules et contrats ;
+  l'humain valide, le CLI génère. À comparer à GitHub Spec Kit et BMAD-METHOD.
 - Révision de P1 et du §6 de `PRODUCT.md`.
 
 **Oracle.** Prototype jetable : `init`, création d'un module, puis montée de version
