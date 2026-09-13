@@ -25,8 +25,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}
+
       - name: Dépendances
-        run: pip install -r platform/fitness/requirements.txt
+        run: pip install -r platform/fitness/requirements.txt -r requirements-dev.txt
 
       - name: Manifests, cycles de vie, dates de dépréciation
         run: python3 platform/fitness/manifests.py .
@@ -56,17 +61,33 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=50
           ./platform/fitness/pr_scope.sh origin/${{ github.base_ref }}
 
-  secrets:
-    name: Détection de secrets
+  hooks:
+    name: Hooks et secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Remplacer par l'outil retenu (gitleaks, trufflehog, scanner natif…).
-      # Règle S1 : aucun secret dans le repository, sous aucune forme.
-      - name: Placeholder
-        run: |
-          echo "TODO — brancher un détecteur de secrets (playbooks/securite.md, règle S1)."
-          echo "Tant que ce job est un placeholder, la règle repose sur la vigilance."
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}
+
+      - name: Dépendances
+        run: pip install -r requirements-dev.txt
+
+      # Même configuration que les hooks locaux. Le hook « gitleaks » ne scanne que
+      # les changements indexés, vides en CI : l'étape suivante couvre les secrets.
+      - name: Hooks sur tous les fichiers
+        env:
+          SKIP: gitleaks
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
+      - name: Secrets dans tout l'historique git
+        run: pre-commit run gitleaks-historique --hook-stage manual --all-files

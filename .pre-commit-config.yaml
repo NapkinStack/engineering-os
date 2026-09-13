@@ -1,0 +1,36 @@
+# Hooks du dépôt : un retour immédiat avant chaque commit.
+# Contournables (--no-verify), donc jamais une garantie : la CI exécute la même
+# configuration (job « Hooks et secrets »). Installation : pre-commit install
+#
+# Mise à jour : pre-commit autoupdate --freeze, puis aligner la version de
+# gitleaks-historique sur celle du hook gitleaks (un test le vérifie).
+
+minimum_pre_commit_version: "3.0.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Au commit : ne scanne que les changements indexés.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      # En CI : tout l'historique git. --redact, car les logs de CI sont publics.
+      - id: gitleaks-historique
+        name: Secrets dans tout l'historique git
+        language: golang
+        additional_dependencies: [github.com/zricethezav/gitleaks/v8@v8.30.0]
+        entry: gitleaks git --redact --verbose
+        pass_filenames: false
+        always_run: true
+        stages: [manual]

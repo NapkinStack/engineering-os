@@ -27,8 +27,8 @@ Thumbs.db
 Desktop.ini
 
 # Matériel sensible — voir SECURITY.md S1
-# Ceci RÉDUIT les accidents, ne PROTÈGE de rien : la vraie barrière
-# est le détecteur de secrets en CI (chantier C5).
+# Ceci RÉDUIT les accidents, ne PROTÈGE de rien : les vraies barrières sont
+# gitleaks (hook et CI) et la protection au push (CONTRIBUTING.md).
 *.pem
 *.key
 id_rsa*
