@@ -1,3 +1,7 @@
+> **État : en refonte.** NapkinStack évolue vers un modèle *framework* : une commande
+> créera chaque projet, qui vivra de façon indépendante. Le mode d'emploi ci-dessous
+> décrit le socle actuel et va changer. Suivi : [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+
 # <NOM DU PROJET>
 
 <Une phrase : ce que fait ce projet.>
@@ -97,7 +101,8 @@ make skills-check    # vérifie la synchronisation (tourne en CI)
 
 **`playbooks/` reste la source de vérité.** Les skills sont générées, gitignorées, et
 jamais éditées à la main — on modifie le playbook, puis on régénère. Un playbook sans
-entrée dans `platform/skills.yaml`, ou une skill désynchronisée, fait échouer la CI.
+entrée dans `platform/skills.yaml` fait échouer la CI ; une skill générée puis
+désynchronisée fait échouer `make skills-check` en local.
 
 Cette indirection a une raison : un outil est un **adaptateur**, jamais une fondation
 (`platform/tooling-profile.md`). Si les règles n'existaient que sous forme de skills,

@@ -37,6 +37,9 @@ jobs:
       - name: Skills synchronisées avec les playbooks
         run: python3 platform/sync_skills.py --check
 
+      - name: Tests de la plateforme — chaque garde-fou prouve qu'il sait échouer
+        run: bash platform/tests/run.sh
+
   scope:
     name: Périmètre et budget de revue
     if: github.event_name == 'pull_request'
