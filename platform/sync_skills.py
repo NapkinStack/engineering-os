@@ -16,6 +16,9 @@ Contrôles (mode --check, exécuté en CI) :
   S2  chaque entrée pointe vers un playbook existant
   S3  les skills générées correspondent aux playbooks actuels
 
+S3 ne s'applique que si .claude/skills/ existe. Les skills sont gitignorées : un clone
+vierge, donc la CI, n'en a aucune, et aucune ne peut y être désynchronisée.
+
 Usage :
     python3 platform/sync_skills.py            # génère .claude/skills/
     python3 platform/sync_skills.py --check    # vérifie sans écrire
@@ -101,6 +104,11 @@ def main() -> int:
         return 1
 
     # S3 — génération ou comparaison
+    if check_only and not SKILL_DIR.is_dir():
+        print(f"Skills : S1–S2 conformes. S3 non applicable : "
+              f"{SKILL_DIR.relative_to(ROOT)}/ absent, aucune skill générée ici.")
+        return 0
+
     stale: list[str] = []
     written = 0
     for name, entry in sorted(mapping.items()):

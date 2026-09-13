@@ -32,14 +32,14 @@ make fitness      # manifests + frontières
 
 ```bash
 make skills          # génère .claude/skills/
-make skills-check    # S1–S3, bloquant en CI
+make skills-check    # S1–S2 bloquants en CI ; S3 dès que des skills sont générées
 ```
 
 | Check | Vérifie |
 |---|---|
 | S1 | Chaque playbook a une entrée dans `skills.yaml` |
 | S2 | Chaque entrée pointe vers un playbook existant, avec description non vide |
-| S3 | Les skills générées correspondent aux playbooks actuels |
+| S3 | Les skills générées correspondent aux playbooks actuels. Non applicable sans `.claude/skills/` : un clone vierge, et donc la CI, n'en a pas |
 
 La `description` est ce qui déclenche la skill : elle dit **quoi** et **quand**, à la
 troisième personne, sans instruction comportementale — celles-ci vivent dans le corps

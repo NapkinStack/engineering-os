@@ -117,8 +117,11 @@ Ne construis pas, ne propose pas :
 
 ## 7. État actuel
 
-Le socle est complet côté règles et fonctionnel côté garde-fous. Les défauts identifiés
-et leur ordre de traitement sont dans `docs/governance/chantiers.md`.
+Le socle est complet côté règles. Côté garde-fous, les checks existent mais plusieurs
+sont défaillants ou n'ont aucun test qui prouve qu'ils échouent (P5), et le manuel promet
+des contrôles qui ne sont pas implémentés. Le produit évolue vers un modèle *framework*,
+décision à formaliser dans le PDR-0001. Défauts, décisions et ordre de traitement :
+`docs/governance/chantiers.md`.
 
 La roadmap au-delà : ouvrir un premier module réel, et laisser l'usage dicter les
 fitness functions suivantes. Rien ne se construit avant d'avoir servi une fois.
