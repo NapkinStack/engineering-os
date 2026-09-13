@@ -81,8 +81,9 @@ protection au push. Remplace C3, car pre-commit refuse de s'installer si
 
 **Pièges traités.** Le hook gitleaks officiel ne scanne que les changements indexés,
 vides en CI : la CI l'ignore et lance un hook local qui scanne tout l'historique. Sortie
-masquée (`--redact`), car les logs de CI sont publics. gitleaks épinglé en v8.30.0 :
-le tag v8.30.1 n'est pas sur `master`, et `pre-commit autoupdate` ne le voit pas.
+masquée (`--redact`), car les logs de CI sont publics. Dependabot met à jour le
+hook gitleaks mais pas le scan d'historique : un test bloque la PR tant que les deux
+versions divergent (éprouvé sur la PR #5, v8.30.0 → v8.30.1).
 
 ## C0.2 — Sécurité des workflows
 
