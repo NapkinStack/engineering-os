@@ -1,0 +1,26 @@
+module:
+  name: contracts
+  responsibility: >
+    Définit et versionne les contrats d'interface entre modules.
+  owner: equipe-plateforme
+  contact: "#equipe-plateforme"
+  lifecycle: Actif
+  criticality: eleve
+
+provides: []
+consumes: []
+data:
+  owns: []
+  shared: []
+dependencies: []
+
+commands:
+  bootstrap: make bootstrap
+  check: make check
+  test: make test
+  run: "echo 'non applicable'"
+
+docs:
+  readme: README.md
+  agents: AGENTS.md
+  runbook: docs/runbook.md

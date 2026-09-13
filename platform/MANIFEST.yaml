@@ -1,0 +1,31 @@
+module:
+  name: platform
+  responsibility: >
+    Fournit les verbes standards, les fitness functions et le scaffold de module.
+  owner: equipe-plateforme
+  contact: "#equipe-plateforme"
+  lifecycle: Actif
+  criticality: eleve
+
+provides: []
+consumes: []
+data:
+  owns: []
+  shared: []
+dependencies:
+  - name: PyYAML
+    purpose: "Lecture des manifests par les fitness functions"
+    exit_strategy: >
+      Usage limité à la lecture YAML. Remplaçable par tout autre parseur
+      en quelques heures.
+
+commands:
+  bootstrap: pip install -r fitness/requirements.txt
+  check: python3 -m py_compile fitness/manifests.py fitness/boundaries.py
+  test: bash tests/run.sh
+  run: "echo 'non applicable'"
+
+docs:
+  readme: README.md
+  agents: AGENTS.md
+  runbook: docs/runbook.md

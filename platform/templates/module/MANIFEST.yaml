@@ -1,0 +1,75 @@
+# Source de vérité machine-lisible du module.
+# Lu par : les humains (onboarding), les agents (scoping), la CI (fitness functions).
+# Toute divergence entre ce fichier et le code fait échouer la CI.
+
+module:
+  name: {{MODULE_NAME}}
+
+  # UNE phrase. Si elle nécessite un "et", le module fait probablement deux choses.
+  responsibility: >
+    TODO — décrire la capacité métier de ce module en une phrase.
+
+  owner: {{OWNER}}            # une ÉQUIPE, jamais un individu
+  contact: "#{{OWNER}}"
+
+  # Proposé | Actif | Maintenance | Déprécié | Retiré   (docs/os/02-modules.md §6)
+  lifecycle: Proposé
+
+  # prototype | standard | eleve | critique             (docs/os/07-gouvernance.md §6)
+  criticality: {{CRITICALITY}}
+
+  # Nom du module dans le code, s'il diffère du dossier (package, namespace).
+  # Utilisé par la détection de frontières.
+  # code_name: {{MODULE_NAME}}
+
+  # Uniquement si lifecycle = Déprécié. Check rouge si la date est dépassée.
+  # deprecation:
+  #   replaced_by:
+  #   removal_date: AAAA-MM-JJ
+
+# Contrats PRODUITS par ce module.
+provides: []
+#  - contract: {{MODULE_NAME}}-api
+#    version: v1
+#    path: contracts/{{MODULE_NAME}}-api/v1
+#    stability: experimental      # experimental | stable | deprecated
+#    # removal_date: AAAA-MM-JJ   # obligatoire si stability = deprecated
+
+# Contrats CONSOMMÉS — c'est le graphe DÉCLARÉ.
+# La CI le compare au graphe RÉEL extrait du code : tout écart = violation.
+consumes: []
+#  - contract: identity-api
+#    version: v1
+#    module: identity
+
+# Données possédées. Personne d'autre n'y accède directement.
+data:
+  owns: []
+  shared: []                     # toute exception exige un ADR nommé
+
+# Dépendances externes significatives.
+# Chacune déclare sa stratégie de sortie (docs/os/06-decisions.md §3).
+dependencies: []
+#  - name:
+#    purpose:
+#    adr:
+#    exit_strategy:
+
+# Verbes standards — mêmes noms partout (docs/os/09-plateforme.md §2).
+commands:
+  bootstrap: make bootstrap
+  check: make check              # < 2 min : format, lint, types
+  test: make test                # ne doit JAMAIS démarrer un autre module
+  run: make run
+
+# Budget de revue. Hérite du projet si absent (docs/os/05-workflow.md §4).
+review_budget:
+  max_lines: 400
+  max_files: 15
+  max_modules: 1                 # non ajustable
+
+docs:
+  readme: README.md
+  agents: AGENTS.md
+  adr: docs/adr/
+  # runbook: docs/runbook.md     # obligatoire si criticality >= eleve

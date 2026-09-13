@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+dist/
+build/
+target/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Skills générées depuis playbooks/ — source de vérité = playbooks/
+.claude/skills/
+
+# Éditeurs et IDE
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# Bruit système
+Thumbs.db
+Desktop.ini
+
+# Matériel sensible — voir SECURITY.md S1
+# Ceci RÉDUIT les accidents, ne PROTÈGE de rien : la vraie barrière
+# est le détecteur de secrets en CI (chantier C5).
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+.envrc
+secrets.*

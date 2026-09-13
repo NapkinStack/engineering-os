@@ -1,0 +1,69 @@
+name: Gouvernance
+
+# Fitness functions d'architecture + périmètre de PR.
+# Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
+# (docs/os/07-gouvernance.md).
+#
+# À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
+# principale. Sans cela, la CI informe mais ne garantit rien.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  architecture:
+    name: Fitness functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances
+        run: pip install -r platform/fitness/requirements.txt
+
+      - name: Manifests, cycles de vie, dates de dépréciation
+        run: python3 platform/fitness/manifests.py .
+
+      - name: Frontières — graphe déclaré vs réel, cycles, accès données
+        run: python3 platform/fitness/boundaries.py .
+
+      - name: Skills synchronisées avec les playbooks
+        run: python3 platform/sync_skills.py --check
+
+  scope:
+    name: Périmètre et budget de revue
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Une PR = un module
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=50
+          ./platform/fitness/pr_scope.sh origin/${{ github.base_ref }}
+
+  secrets:
+    name: Détection de secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Remplacer par l'outil retenu (gitleaks, trufflehog, scanner natif…).
+      # Règle S1 : aucun secret dans le repository, sous aucune forme.
+      - name: Placeholder
+        run: |
+          echo "TODO — brancher un détecteur de secrets (playbooks/securite.md, règle S1)."
+          echo "Tant que ce job est un placeholder, la règle repose sur la vigilance."
