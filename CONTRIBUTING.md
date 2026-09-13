@@ -6,6 +6,32 @@
 2. Identifier **le** module cible — un seul.
 3. Lire son `MANIFEST.yaml` puis son `AGENTS.md`.
 4. `make -C modules/<nom> bootstrap && make -C modules/<nom> check`
+5. `pre-commit install` — une fois par clone ([installer pre-commit](https://pre-commit.com/#install)).
+
+## Les barrières contre les fuites
+
+```mermaid
+flowchart LR
+    C["git commit"] --> H{"1 · Hook pre-commit<br/>gitleaks + contrôles"}
+    H -->|refus| X1["Commit bloqué"]
+    H -->|ok| P["git push"] --> PP{"2 · Protection<br/>au push GitHub"}
+    PP -->|refus| X2["Push bloqué"]
+    PP -->|ok| PR["Pull request"] --> CI{"3 · CI « Hooks et secrets »<br/>mêmes hooks + historique"}
+    CI -->|rouge| X3["Merge impossible"]
+    CI -->|vert| M["main"]
+
+    classDef local fill:#374151,color:#fff
+    classDef serveur fill:#065f46,color:#fff
+    classDef arret fill:#7c2d12,color:#fff
+    class H local
+    class PP,CI serveur
+    class X1,X2,X3 arret
+```
+
+**Légende** — gris : sur le poste, contournable · vert : côté GitHub · rouge : arrêt.
+
+Seules les barrières 1 et 2 agissent **avant** publication. Un secret arrêté par la CI est
+déjà public : c'est un incident, il se révoque immédiatement (`SECURITY.md`).
 
 ## Pendant
 

@@ -14,7 +14,8 @@
 | Exécution de commandes et de tests | Rendre l'oracle réellement exécutable | | |
 | Interaction Git, issues, PR | Traçabilité, petits lots | | |
 | Inspection UI et captures | Validation UX au-delà du « ça compile » | | |
-| Analyse de sécurité | Contrôles automatisés intégrés | | |
+| Analyse de sécurité | Contrôles automatisés intégrés | gitleaks (hook et CI), protection au push GitHub | Chantier C0.1 |
+| Contrôles avant commit | Retour immédiat, même configuration qu'en CI | pre-commit | Chantier C0.1 |
 | Analyse d'architecture | Support des fitness functions | `platform/fitness/` | — |
 | Chargement de règles à la demande | Playbooks déclenchés par contexte | Skills Claude Code, générées par `sync_skills.py` | — |
 | Agents spécialisés | Revue indépendante, investigation isolée | | |

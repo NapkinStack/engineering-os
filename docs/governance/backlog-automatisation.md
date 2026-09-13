@@ -19,6 +19,7 @@
 | Graphe déclaré = graphe réel | `platform/fitness/boundaries.py` | |
 | Dates de dépréciation non dépassées | `platform/fitness/manifests.py` | |
 | Runbook obligatoire si criticité élevée | `platform/fitness/manifests.py` | |
+| Aucun secret dans le dépôt | gitleaks (hook et CI), protection au push | 2026-09-13 |
 
 ## Revue
 

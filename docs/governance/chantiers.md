@@ -10,7 +10,7 @@
 ```mermaid
 flowchart LR
     S0["Étape 0<br/>réglages GitHub"]:::fait --> C0["C0<br/>CI verte sur<br/>clone vierge"]:::fait
-    C0 --> C01["C0.1<br/>hooks et secrets"]:::afaire
+    C0 --> C01["C0.1<br/>hooks et secrets"]:::fait
     C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::afaire
     C02 --> C03["C0.3<br/>formats stricts"]:::afaire
     C03 --> PDR["PDR-0001<br/>modèle framework<br/>+ prototype"]:::afaire
@@ -28,7 +28,7 @@ flowchart LR
 |---|---|---|
 | 0 | Réglages GitHub (hors dépôt) | Fait, 2 réglages différés |
 | C0 | CI verte sur clone vierge | Fait |
-| C0.1 | Hooks et secrets | À faire |
+| C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | À faire |
 | C0.3 | Formats stricts | À faire |
 | PDR-0001 | NapkinStack comme framework | À faire |
@@ -53,7 +53,8 @@ Ils ne se versionnent pas : chaque dépôt doit les refaire.
 | Actions autorisées : celles de GitHub uniquement | Confirmé |
 | Wiki désactivé | Vérifié par l'API |
 | Ruleset `main` : PR obligatoire, force-push et suppression interdits, squash seul | Vérifié par l'API |
-| Required checks `Fitness functions` et `Périmètre et budget de revue` | Après merge de C0 |
+| Required checks `Fitness functions` et `Périmètre et budget de revue` | Vérifié par l'API |
+| Required check `Hooks et secrets` | Après merge de C0.1 |
 | Actions épinglées par SHA obligatoires | Après merge de C0.2 |
 
 ## C0 — CI verte sur clone vierge
@@ -77,6 +78,11 @@ configuration tourne en CI (P3), plus gitleaks sur les commits poussés.
 Le test d'échec génère le faux secret à l'exécution : écrit en dur, il déclencherait la
 protection au push. Remplace C3, car pre-commit refuse de s'installer si
 `core.hooksPath` est défini.
+
+**Pièges traités.** Le hook gitleaks officiel ne scanne que les changements indexés,
+vides en CI : la CI l'ignore et lance un hook local qui scanne tout l'historique. Sortie
+masquée (`--redact`), car les logs de CI sont publics. gitleaks épinglé en v8.30.0 :
+le tag v8.30.1 n'est pas sur `master`, et `pre-commit autoupdate` ne le voit pas.
 
 ## C0.2 — Sécurité des workflows
 

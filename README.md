@@ -18,8 +18,9 @@
 # 1. Copier ce dossier comme racine du nouveau projet
 cp -r starter/ mon-projet && cd mon-projet && git init
 
-# 2. Préparer l'outillage de gouvernance
+# 2. Préparer l'outillage de gouvernance et les hooks (prérequis : pre-commit)
 make bootstrap
+pre-commit install
 
 # 3. Remplacer les marqueurs
 #    .github/CODEOWNERS      → @equipe-plateforme = ton équipe socle
@@ -42,9 +43,11 @@ Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette
 Settings → Rules → Rulesets → sur la branche principale :
 
 - [ ] Pull request obligatoire, ≥ 1 relecture
-- [ ] Required checks : `Fitness functions`, `Périmètre et budget de revue`
+- [ ] Required checks : `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
 - [ ] Revue des CODEOWNERS obligatoire
 - [ ] Pas de push direct
+
+Settings → Advanced Security : activer **Secret Protection** et la **protection au push**.
 
 Créer aussi les labels `cross-module` et `hors-budget` : ils rendent les exceptions
 visibles **et comptables** (`docs/os/10-mesure.md` §3).
@@ -139,7 +142,6 @@ le **contenu** t'appartient.
 ## Ce qui reste à câbler après l'installation
 
 - [ ] Contenu des verbes dans les `Makefile` de module
-- [ ] Détecteur de secrets dans `.github/workflows/governance.yml` (job `secrets`)
 - [ ] Format de contrat retenu, et les contract tests associés
 - [ ] Calibrage de `SOURCE_SUFFIXES` et `IMPORT_HINTS` dans
       `platform/fitness/boundaries.py` pour ton langage
