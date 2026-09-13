@@ -1,31 +1,39 @@
 name: Gouvernance
 
-# Fitness functions d'architecture + périmètre de PR.
+# Fitness functions d'architecture, périmètre de PR, hooks et secrets.
 # Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
 # (docs/os/07-gouvernance.md).
 #
 # À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
 # principale. Sans cela, la CI informe mais ne garantit rien.
+#
+# Sécurité, vérifiée par zizmor : jeton en lecture seule, actions épinglées par SHA et
+# tenues à jour par Dependabot, aucun jeton laissé dans .git/config, et les valeurs
+# issues du contexte passent par env: au lieu d'être insérées dans les scripts.
 
 on:
   pull_request:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   architecture:
     name: Fitness functions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}
@@ -50,30 +58,32 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0 récupère toutes les branches : pas de git fetch authentifié à faire.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Une PR = un module
         env:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: |
-          git fetch origin ${{ github.base_ref }} --depth=50
-          ./platform/fitness/pr_scope.sh origin/${{ github.base_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: ./platform/fitness/pr_scope.sh "origin/$BASE_REF"
 
   hooks:
     name: Hooks et secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}

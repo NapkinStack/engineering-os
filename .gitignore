@@ -22,6 +22,9 @@ coverage/
 *.swo
 *~
 
+# Réglages locaux d'agent : chemins et permissions propres à la machine
+.claude/settings.local.json
+
 # Bruit système
 Thumbs.db
 Desktop.ini

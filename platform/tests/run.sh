@@ -124,4 +124,37 @@ V_HISTO=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 
 [ -n "$V_HOOK" ] && [ "$V_HOOK" = "$V_HISTO" ] \
   || { echo "ÉCHEC : versions de gitleaks divergentes (hook : '$V_HOOK', historique : '$V_HISTO')."; exit 1; }
 
+echo "→ workflows : injection, action non épinglée, permissions et token persistant DOIVENT échouer"
+depot_avec_hooks zizmor
+mkdir -p "$HK/zizmor/.github/workflows"
+cat > "$HK/zizmor/.github/workflows/faille.yml" <<'EOF'
+name: faille
+on: pull_request
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "${{ github.event.pull_request.title }}"
+EOF
+git -C "$HK/zizmor" add .github
+if OUT=$(cd "$HK/zizmor" && pre-commit run zizmor --files .github/workflows/faille.yml 2>&1); then
+  echo "ÉCHEC : un workflow vulnérable est passé."; exit 1
+fi
+for audit in template-injection unpinned-uses excessive-permissions artipacked; do
+  echo "$OUT" | grep -qF "[$audit]" \
+    || { echo "ÉCHEC : zizmor ne signale pas $audit."; echo "$OUT"; exit 1; }
+done
+
+echo "→ workflows : un workflow invalide DOIT échouer"
+depot_avec_hooks actionlint
+mkdir -p "$HK/actionlint/.github/workflows"
+printf 'on: push\njobs:\n  j:\n    steps:\n      - run: echo ok\n' > "$HK/actionlint/.github/workflows/invalide.yml"
+git -C "$HK/actionlint" add .github
+if OUT=$(cd "$HK/actionlint" && pre-commit run actionlint --files .github/workflows/invalide.yml 2>&1); then
+  echo "ÉCHEC : un workflow invalide est passé."; exit 1
+fi
+echo "$OUT" | grep -qF '"runs-on" section is missing' \
+  || { echo "ÉCHEC : actionlint ne signale pas l'erreur attendue."; echo "$OUT"; exit 1; }
+
 echo "Tests plateforme : OK"
