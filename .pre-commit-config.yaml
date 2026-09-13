@@ -2,8 +2,9 @@
 # Contournables (--no-verify), donc jamais une garantie : la CI exécute la même
 # configuration (job « Hooks et secrets »). Installation : pre-commit install
 #
-# Mise à jour : pre-commit autoupdate --freeze, puis aligner la version de
-# gitleaks-historique sur celle du hook gitleaks (un test le vérifie).
+# Mise à jour : Dependabot (.github/dependabot.yml). Il ne connaît pas la version de
+# gitleaks-historique : l'aligner sur celle du hook gitleaks, un test bloque sinon.
+# pre-commit autoupdate ne voit que les tags de la branche principale : ne pas l'utiliser.
 
 minimum_pre_commit_version: "3.0.0"
 
@@ -44,7 +45,7 @@ repos:
       - id: gitleaks-historique
         name: Secrets dans tout l'historique git
         language: golang
-        additional_dependencies: [github.com/zricethezav/gitleaks/v8@v8.30.0]
+        additional_dependencies: [github.com/zricethezav/gitleaks/v8@v8.30.1]
         entry: gitleaks git --redact --verbose
         pass_filenames: false
         always_run: true
