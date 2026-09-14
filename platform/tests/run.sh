@@ -53,18 +53,99 @@ fi
 echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
+echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
+cp playbooks/tests.md "$SK/playbooks/"
+python3 "$SK/platform/sync_skills.py" >/dev/null
+python3 - "$SK" <<'EOF' || exit 1
+import sys, yaml
+from pathlib import Path
+root = Path(sys.argv[1])
+skills = yaml.safe_load((root / "platform/skills.yaml").read_text(encoding="utf-8"))["skills"]
+for name, entry in skills.items():
+    _, front, _ = (root / ".claude/skills" / name / "SKILL.md").read_text(encoding="utf-8").split("---\n", 2)
+    try:
+        meta = yaml.safe_load(front)
+    except yaml.YAMLError as exc:
+        sys.exit(f"ÉCHEC : frontmatter de '{name}' invalide : {exc}")
+    if meta != {"name": name, "description": " ".join(entry["description"].split())}:
+        sys.exit(f"ÉCHEC : le frontmatter de '{name}' ne restitue pas nom et description : {meta!r}")
+EOF
+
+# S4 : la skill « tests » est renommée, ou sa description remplacée, dans une copie de
+# skills.yaml. Sans .claude/skills/, S3 ne s'applique pas : seul S4 peut échouer.
+skill_tests_modifiee() {  # $1 = nom, $2 = longueur de description (facultatif)
+  cp platform/skills.yaml "$SK/platform/"
+  python3 - "$SK/platform/skills.yaml" "$@" <<'EOF'
+import sys, yaml
+path, name, *size = sys.argv[1:]
+with open(path, encoding="utf-8") as f:
+    data = yaml.safe_load(f)
+entry = data["skills"].pop("tests")
+if size:
+    entry["description"] = "x" * int(size[0])
+data["skills"][name] = entry
+with open(path, "w", encoding="utf-8") as f:
+    yaml.safe_dump(data, f, allow_unicode=True)
+EOF
+}
+rm -rf "$SK/.claude"
+A64=$(printf 'a%.0s' {1..64})
+
+echo "→ skills : un nom hors spécification Agent Skills DOIT échouer (S4)"
+for nom in Majuscule -debut fin- double--tiret nom_souligne "${A64}a"; do
+  skill_tests_modifiee "$nom"
+  if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+    echo "ÉCHEC : nom de skill invalide accepté : '$nom'."; exit 1
+  fi
+  echo "$OUT" | grep -qF "[S4] skill '$nom'" \
+    || { echo "ÉCHEC : message S4 attendu absent pour '$nom'."; echo "$OUT"; exit 1; }
+done
+
+echo "→ skills : une description de plus de 1024 caractères DOIT échouer (S4)"
+skill_tests_modifiee tests 1025
+if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+  echo "ÉCHEC : description de 1025 caractères acceptée."; exit 1
+fi
+echo "$OUT" | grep -qF "[S4] skill 'tests'" \
+  || { echo "ÉCHEC : message S4 attendu absent."; echo "$OUT"; exit 1; }
+
+echo "→ skills : nom de 64 caractères et description de 1024 caractères acceptés"
+skill_tests_modifiee "$A64" 1024
+python3 "$SK/platform/sync_skills.py" --check >/dev/null \
+  || { echo "ÉCHEC : limites de la spécification refusées."; exit 1; }
+
+# Scaffold : copie jetable, le vrai dépôt n'est jamais touché.
+SC=$(mktemp -d)
+trap 'rm -rf "$SK" "$SC"' EXIT
+
+echo "→ scaffold : le module généré a un MANIFEST.yaml valide, aux valeurs substituées"
+mkdir -p "$SC/.github" "$SC/modules"
+cp -r platform "$SC/"
+cp .github/CODEOWNERS "$SC/.github/"
+bash "$SC/platform/scaffold/new-module.sh" demo equipe-demo standard >/dev/null
+python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
+import sys, yaml
+module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
+attendu = {"name": "demo", "owner": "equipe-demo", "criticality": "standard"}
+if {k: module.get(k) for k in attendu} != attendu:
+    sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
+EOF
+python3 platform/fitness/manifests.py "$SC" >/dev/null \
+  || { echo "ÉCHEC : le module généré ne passe pas manifests.py."; exit 1; }
+
 # Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
 # l'exécution : écrits en dur, ils déclencheraient la protection au push.
 command -v pre-commit >/dev/null \
   || { echo "ÉCHEC : pre-commit requis (https://pre-commit.com/#install)."; exit 1; }
 HK=$(mktemp -d)
-trap 'rm -rf "$SK" "$HK"' EXIT
+trap 'rm -rf "$SK" "$SC" "$HK"' EXIT
 GIT_ID=(-c user.name=test -c user.email=test@example.invalid -c init.defaultBranch=main)
 
 depot_avec_hooks() {
   local d="$HK/$1"
   git "${GIT_ID[@]}" init -q "$d"
   [ -f .pre-commit-config.yaml ] && cp .pre-commit-config.yaml "$d/"
+  [ -f .yamllint.yaml ] && cp .yamllint.yaml "$d/"
   git -C "$d" add -A
   git "${GIT_ID[@]}" -C "$d" commit -q --no-verify --allow-empty -m init
   (cd "$d" && pre-commit install >/dev/null)
@@ -156,5 +237,54 @@ if OUT=$(cd "$HK/actionlint" && pre-commit run actionlint --files .github/workfl
 fi
 echo "$OUT" | grep -qF '"runs-on" section is missing' \
   || { echo "ÉCHEC : actionlint ne signale pas l'erreur attendue."; echo "$OUT"; exit 1; }
+
+echo "→ YAML : une clé dupliquée DOIT échouer (check-yaml)"
+depot_avec_hooks doublon
+printf 'module:\n  name: a\n  name: b\n' > "$HK/doublon/doublon.yaml"
+git -C "$HK/doublon" add doublon.yaml
+if OUT=$(cd "$HK/doublon" && pre-commit run check-yaml --files doublon.yaml 2>&1); then
+  echo "ÉCHEC : une clé dupliquée est passée."; exit 1
+fi
+echo "$OUT" | grep -qF 'found duplicate key "name"' \
+  || { echo "ÉCHEC : check-yaml ne signale pas la clé dupliquée."; echo "$OUT"; exit 1; }
+
+echo "→ YAML : un placeholder non quoté DOIT échouer (check-yaml)"
+depot_avec_hooks gabarit
+printf 'module:\n  name: {{MODULE_NAME}}\n' > "$HK/gabarit/gabarit.yaml"
+git -C "$HK/gabarit" add gabarit.yaml
+if OUT=$(cd "$HK/gabarit" && pre-commit run check-yaml --files gabarit.yaml 2>&1); then
+  echo "ÉCHEC : un placeholder non quoté est passé."; exit 1
+fi
+echo "$OUT" | grep -qF 'found unhashable key' \
+  || { echo "ÉCHEC : check-yaml ne signale pas le placeholder."; echo "$OUT"; exit 1; }
+
+echo "→ YAML : une valeur booléenne ambiguë DOIT échouer (yamllint, configuration du dépôt)"
+depot_avec_hooks truthy
+printf 'actif: yes\n' > "$HK/truthy/regle.yaml"
+git -C "$HK/truthy" add regle.yaml
+if OUT=$(cd "$HK/truthy" && pre-commit run yamllint --files regle.yaml 2>&1); then
+  echo "ÉCHEC : la valeur 'yes' est passée."; exit 1
+fi
+# Texte du message, pas « (truthy) » : sur GitHub Actions, yamllint passe au format d'annotations.
+echo "$OUT" | grep -qF 'truthy value should be one of' \
+  || { echo "ÉCHEC : yamllint ne signale pas la règle truthy."; echo "$OUT"; exit 1; }
+
+echo "→ GitHub : dependabot.yml, formulaire et configuration d'issues invalides DOIVENT échouer"
+depot_avec_hooks schemas
+mkdir -p "$HK/schemas/.github/ISSUE_TEMPLATE"
+printf 'version: 2\nupdates:\n  - package-ecosystem: pip\n    directory: /\n' > "$HK/schemas/.github/dependabot.yml"
+printf 'name: x\ndescription: y\nbody:\n  - type: input\n' > "$HK/schemas/.github/ISSUE_TEMPLATE/formulaire.yml"
+printf 'blank_issues_enabled: "non"\n' > "$HK/schemas/.github/ISSUE_TEMPLATE/config.yml"
+git -C "$HK/schemas" add .github
+for cas in check-dependabot:.github/dependabot.yml \
+           check-github-issue-forms:.github/ISSUE_TEMPLATE/formulaire.yml \
+           check-github-issue-config:.github/ISSUE_TEMPLATE/config.yml; do
+  hook=${cas%%:*}; fichier=${cas#*:}
+  if OUT=$(cd "$HK/schemas" && pre-commit run "$hook" --files "$fichier" 2>&1); then
+    echo "ÉCHEC : $fichier invalide accepté par $hook."; exit 1
+  fi
+  echo "$OUT" | grep -qF "Schema validation errors" \
+    || { echo "ÉCHEC : $hook ne signale pas d'erreur de schéma."; echo "$OUT"; exit 1; }
+done
 
 echo "Tests plateforme : OK"

@@ -1,0 +1,16 @@
+# Règles yamllint du dépôt : la configuration par défaut, avec 5 assouplissements de
+# style seulement. Les pièges de fond restent bloquants (clés dupliquées, valeurs
+# « yes »/« on », indentation). Lancé en --strict par pre-commit.
+
+extends: default
+
+rules:
+  line-length:
+    max: 120                    # prose en français dans les commentaires et les formulaires
+  braces:
+    max-spaces-inside: 1        # `{ required: true }`, convention des formulaires GitHub
+  document-start: disable       # `---` absent des fichiers GitHub et Dependabot
+  comments:
+    min-spaces-from-content: 1  # commentaires alignés des gabarits
+  truthy:
+    check-keys: false           # la clé `on:` des workflows GitHub ; les valeurs restent contrôlées
