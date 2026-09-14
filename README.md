@@ -23,7 +23,7 @@ make bootstrap
 pre-commit install
 
 # 3. Remplacer les marqueurs
-#    .github/CODEOWNERS      → @equipe-plateforme = ton équipe socle
+#    .github/CODEOWNERS      → @NapkinStack/maintainers = ton équipe socle
 #    .github/ISSUE_TEMPLATE/config.yml → URL du dépôt
 #    ce README               → le tien
 

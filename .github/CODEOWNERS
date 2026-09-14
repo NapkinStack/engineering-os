@@ -2,13 +2,13 @@
 # Mis à jour automatiquement par platform/scaffold/new-module.sh.
 
 # Socle : toute modification de l'OS lui-même passe par un ADR.
-/AGENTS.md                     @equipe-plateforme
-/playbooks/                    @equipe-plateforme
-/docs/os/                      @equipe-plateforme
-/platform/                     @equipe-plateforme
-/.github/                      @equipe-plateforme
+/AGENTS.md                     @NapkinStack/maintainers
+/playbooks/                    @NapkinStack/maintainers
+/docs/os/                      @NapkinStack/maintainers
+/platform/                     @NapkinStack/maintainers
+/.github/                      @NapkinStack/maintainers
 
 # Contrats : frontière la plus critique du système, jamais orpheline.
-/contracts/                    @equipe-plateforme
+/contracts/                    @NapkinStack/maintainers
 
 # Modules — une ligne par module, ajoutée par le scaffold.

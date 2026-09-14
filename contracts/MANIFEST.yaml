@@ -2,8 +2,8 @@ module:
   name: contracts
   responsibility: >
     Définit et versionne les contrats d'interface entre modules.
-  owner: equipe-plateforme
-  contact: "#equipe-plateforme"
+  owner: NapkinStack/maintainers
+  contact: "https://github.com/NapkinStack/engineering-os/discussions"
   lifecycle: Actif
   criticality: eleve
 

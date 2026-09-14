@@ -2,8 +2,8 @@ module:
   name: platform
   responsibility: >
     Fournit les verbes standards, les fitness functions et le scaffold de module.
-  owner: equipe-plateforme
-  contact: "#equipe-plateforme"
+  owner: NapkinStack/maintainers
+  contact: "https://github.com/NapkinStack/engineering-os/discussions"
   lifecycle: Actif
   criticality: eleve
 
