@@ -15,6 +15,7 @@ Contrôles (mode --check, exécuté en CI) :
   S1  chaque playbook a une entrée dans platform/skills.yaml
   S2  chaque entrée pointe vers un playbook existant
   S3  les skills générées correspondent aux playbooks actuels
+  S4  nom et description conformes à la spécification Agent Skills
 
 S3 ne s'applique que si .claude/skills/ existe. Les skills sont gitignorées : un clone
 vierge, donc la CI, n'en a aucune, et aucune ne peut y être désynchronisée.
@@ -26,6 +27,7 @@ Usage :
 
 from __future__ import annotations
 import hashlib
+import re
 import sys
 from pathlib import Path
 
@@ -38,6 +40,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MAP_FILE = ROOT / "platform" / "skills.yaml"
 PLAYBOOK_DIR = ROOT / "playbooks"
 SKILL_DIR = ROOT / ".claude" / "skills"
+SKILL_NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 
 BANNER = (
     "<!-- GÉNÉRÉ depuis {source} par platform/sync_skills.py — NE PAS ÉDITER.\n"
@@ -53,12 +56,15 @@ def normalise(text: str) -> str:
 def build(name: str, entry: dict) -> tuple[Path, str]:
     source = ROOT / entry["source"]
     body = source.read_text(encoding="utf-8")
-    description = normalise(entry["description"])
+    # Sérialisé, jamais concaténé : « : » ou « # » dans une description casserait le YAML.
+    frontmatter = yaml.safe_dump(
+        {"name": name, "description": normalise(entry["description"])},
+        allow_unicode=True, sort_keys=False, width=float("inf"),
+    )
     content = (
         "---\n"
-        f"name: {name}\n"
-        f"description: {description}\n"
-        "---\n\n"
+        + frontmatter
+        + "---\n\n"
         + BANNER.format(source=entry["source"])
         + "\n\n"
         + body
@@ -98,6 +104,16 @@ def main() -> int:
         if not normalise(entry.get("description", "")):
             failures.append(f"[S2] skill '{name}' : description vide")
 
+    # S4 — spécification Agent Skills (https://agentskills.io/specification)
+    for name, entry in mapping.items():
+        if len(name) > 64 or not SKILL_NAME.fullmatch(name):
+            failures.append(
+                f"[S4] skill '{name}' : nom invalide. 1 à 64 caractères, a-z, 0-9 et "
+                "tirets simples, sans tiret au début ni à la fin."
+            )
+        if len(normalise(entry.get("description", ""))) > 1024:
+            failures.append(f"[S4] skill '{name}' : description de plus de 1024 caractères")
+
     if failures:
         for f in failures:
             print(f"  ÉCHEC {f}")
@@ -105,7 +121,7 @@ def main() -> int:
 
     # S3 — génération ou comparaison
     if check_only and not SKILL_DIR.is_dir():
-        print(f"Skills : S1–S2 conformes. S3 non applicable : "
+        print(f"Skills : S1, S2 et S4 conformes. S3 non applicable : "
               f"{SKILL_DIR.relative_to(ROOT)}/ absent, aucune skill générée ici.")
         return 0
 

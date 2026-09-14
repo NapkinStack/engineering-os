@@ -12,7 +12,7 @@ flowchart LR
     S0["Étape 0<br/>réglages GitHub"]:::fait --> C0["C0<br/>CI verte sur<br/>clone vierge"]:::fait
     C0 --> C01["C0.1<br/>hooks et secrets"]:::fait
     C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::fait
-    C02 --> C03["C0.3<br/>formats stricts"]:::afaire
+    C02 --> C03["C0.3<br/>formats stricts"]:::fait
     C03 --> PDR["PDR-0001<br/>modèle framework<br/>+ prototype"]:::afaire
     PDR --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
 
@@ -26,11 +26,11 @@ flowchart LR
 
 | # | Chantier | Statut |
 |---|---|---|
-| 0 | Réglages GitHub (hors dépôt) | Fait, 2 réglages différés |
+| 0 | Réglages GitHub (hors dépôt) | Fait |
 | C0 | CI verte sur clone vierge | Fait |
 | C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | Fait |
-| C0.3 | Formats stricts | À faire |
+| C0.3 | Formats stricts | Fait |
 | PDR-0001 | NapkinStack comme framework | À faire |
 | C1 | Point d'entrée unique `nstack` | À replanifier après PDR-0001 |
 | C2 | Check anti-placeholder | À replanifier après PDR-0001 |
@@ -55,7 +55,7 @@ Ils ne se versionnent pas : chaque dépôt doit les refaire.
 | Ruleset `main` : PR obligatoire, force-push et suppression interdits, squash seul | Vérifié par l'API |
 | Required checks `Fitness functions` et `Périmètre et budget de revue` | Vérifié par l'API |
 | Required check `Hooks et secrets` | Vérifié par l'API |
-| Actions épinglées par SHA obligatoires | Après merge de C0.2 |
+| Actions épinglées par SHA obligatoires | Vérifié par l'API |
 
 ## C0 — CI verte sur clone vierge
 
@@ -110,6 +110,18 @@ accepte les clés dupliquées sans rien dire.
 
 **Cible.** `check-yaml`, yamllint, check-jsonschema (schémas GitHub). Frontmatter sérialisé
 par `yaml.safe_dump`, conforme à la spécification Agent Skills.
+
+**Pièges traités.** yamllint ne fait qu'analyser la syntaxe : il laisse passer
+`{{MODULE_NAME}}`, que seul le chargement réel de `check-yaml` refuse. Par défaut, la
+règle `truthy` n'est qu'un avertissement : `--strict` la rend bloquante. La clé `on:` des
+workflows reste permise, les valeurs `yes`/`on` non. Les workflows ne passent pas par
+check-jsonschema, actionlint les couvre déjà. Aucun outil maintenu ne valide les skills
+(`skills-ref` n'est qu'une démonstration) : d'où le contrôle S4 dans `sync_skills.py`.
+
+**Mesuré.** `check-yaml` : un seul fichier en échec, le gabarit. yamllint : 127 constats de
+style avec la configuration par défaut, 0 avec 5 assouplissements (`.yamllint.yaml`), aucun
+sur le fond. Les 3 schémas GitHub passaient déjà. Mutations : 12 défauts réintroduits, 12
+détectés par `platform/tests/run.sh`.
 
 ## PDR-0001 — NapkinStack comme framework
 

@@ -17,6 +17,25 @@ repos:
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
+      # Chargement réel du YAML : refuse les clés dupliquées, que PyYAML accepte sans rien dire.
+      - id: check-yaml
+
+  # Style et pièges du YAML (valeurs « yes »/« on », indentation). --strict : les
+  # avertissements bloquent aussi. Règles : .yamllint.yaml
+  - repo: https://github.com/adrienverge/yamllint
+    rev: cba56bcde1fdd01c1deb3f945e69764c291a6530  # frozen: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [--strict]
+
+  # Fichiers GitHub validés contre leurs schémas, embarqués dans l'outil : hors ligne.
+  # Les workflows sont couverts par actionlint.
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 12e63946db2c5cfcc9030fac21c3883ba88c6ed8  # frozen: 0.38.0
+    hooks:
+      - id: check-dependabot
+      - id: check-github-issue-forms
+      - id: check-github-issue-config
 
   # Sécurité des workflows. Hors ligne, pour des résultats identiques en local et en CI.
   - repo: https://github.com/zizmorcore/zizmor-pre-commit

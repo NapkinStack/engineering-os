@@ -3,20 +3,20 @@
 # Toute divergence entre ce fichier et le code fait échouer la CI.
 
 module:
-  name: {{MODULE_NAME}}
+  name: "{{MODULE_NAME}}"
 
   # UNE phrase. Si elle nécessite un "et", le module fait probablement deux choses.
   responsibility: >
     TODO — décrire la capacité métier de ce module en une phrase.
 
-  owner: {{OWNER}}            # une ÉQUIPE, jamais un individu
+  owner: "{{OWNER}}"          # une ÉQUIPE, jamais un individu
   contact: "#{{OWNER}}"
 
   # Proposé | Actif | Maintenance | Déprécié | Retiré   (docs/os/02-modules.md §6)
   lifecycle: Proposé
 
   # prototype | standard | eleve | critique             (docs/os/07-gouvernance.md §6)
-  criticality: {{CRITICALITY}}
+  criticality: "{{CRITICALITY}}"
 
   # Nom du module dans le code, s'il diffère du dossier (package, namespace).
   # Utilisé par la détection de frontières.

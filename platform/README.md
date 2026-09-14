@@ -32,7 +32,7 @@ make fitness      # manifests + frontières
 
 ```bash
 make skills          # génère .claude/skills/
-make skills-check    # S1–S2 bloquants en CI ; S3 dès que des skills sont générées
+make skills-check    # S1, S2, S4 bloquants en CI ; S3 dès que des skills sont générées
 ```
 
 | Check | Vérifie |
@@ -40,6 +40,7 @@ make skills-check    # S1–S2 bloquants en CI ; S3 dès que des skills sont gé
 | S1 | Chaque playbook a une entrée dans `skills.yaml` |
 | S2 | Chaque entrée pointe vers un playbook existant, avec description non vide |
 | S3 | Les skills générées correspondent aux playbooks actuels. Non applicable sans `.claude/skills/` : un clone vierge, et donc la CI, n'en a pas |
+| S4 | Nom et description conformes à la [spécification Agent Skills](https://agentskills.io/specification) : nom de 1 à 64 caractères `a-z0-9` et tirets simples, description d'au plus 1024 caractères. Bloque aussi la génération |
 
 La `description` est ce qui déclenche la skill : elle dit **quoi** et **quand**, à la
 troisième personne, sans instruction comportementale — celles-ci vivent dans le corps
