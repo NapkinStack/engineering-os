@@ -265,7 +265,8 @@ git -C "$HK/truthy" add regle.yaml
 if OUT=$(cd "$HK/truthy" && pre-commit run yamllint --files regle.yaml 2>&1); then
   echo "ÉCHEC : la valeur 'yes' est passée."; exit 1
 fi
-echo "$OUT" | grep -qF '(truthy)' \
+# Texte du message, pas « (truthy) » : sur GitHub Actions, yamllint passe au format d'annotations.
+echo "$OUT" | grep -qF 'truthy value should be one of' \
   || { echo "ÉCHEC : yamllint ne signale pas la règle truthy."; echo "$OUT"; exit 1; }
 
 echo "→ GitHub : dependabot.yml, formulaire et configuration d'issues invalides DOIVENT échouer"
