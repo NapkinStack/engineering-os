@@ -42,11 +42,17 @@ flowchart LR
 
 ## Étape 0 — Réglages GitHub
 
-Ils ne se versionnent pas : chaque dépôt doit les refaire.
+Ils ne se versionnent pas : chaque dépôt doit les refaire. Depuis le passage en
+organisation, les politiques Actions, la 2FA et les droits de base se règlent une fois
+pour toute l'organisation `NapkinStack`.
 
 | Réglage | État |
 |---|---|
-| Secret Protection et protection au push | Confirmé |
+| Secret Protection et protection au push | Vérifié par l'API (désactivées par le transfert, réactivées) |
+| Graphe de dépendances et alertes Dependabot | Vérifié par l'API |
+| Discussions activées (canal des questions du formulaire d'issues) | Vérifié par l'API |
+| Organisation : Actions de GitHub seules, SHA obligatoire, jeton en lecture seule, approbation des contributeurs externes | Vérifié par l'API sur le dépôt |
+| Organisation : 2FA obligatoire, aucun droit de base, équipe `maintainers` en écriture | Confirmé ; équipe vérifiée par l'API |
 | Signalement privé de vulnérabilités | Vérifié par l'API |
 | Approbation des workflows pour tout contributeur externe | Confirmé |
 | Token Actions en lecture seule ; Actions ne crée ni n'approuve de PR | Confirmé |
@@ -148,10 +154,15 @@ versionnée, le projet choisit quand monter de version.
   Il n'existe qu'après avoir servi à un vrai projet.
 - GitHub seul au départ.
 
+**Décidé (2026-09-14).** Organisation GitHub `NapkinStack`, par la voie documentée par
+GitHub : compte personnel renommé, organisation créée sous le nom libéré, dépôt transféré.
+La conversion automatique, irréversible, aurait supprimé le compte. L'équipe
+`maintainers` possède le socle (CODEOWNERS, manifests de `platform/` et `contracts/`).
+
 **À trancher.**
 
-- Compte utilisateur ou organisation : les équipes CODEOWNERS n'existent que dans une
-  organisation.
+- Identité de l'agent (GitHub App ou compte machine), condition pour exiger une
+  approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
 - Kernel et playbooks : copiés dans le projet (modifiables, figés) ou générés depuis la
   version installée (à jour, non éditables).
 - Réglages GitHub : appliqués par l'API après confirmation, ou checklist vérifiée.
@@ -263,7 +274,8 @@ une gate qui bloque à tort sera contournée. Documenter cette limite dans
 ## C5 — Amorçage, `doctor` et marque
 
 > **À replanifier après PDR-0001.** `gh repo create --template` sera remplacé par
-> `nstack init`, et `@napkinstack/platform` exige une organisation GitHub.
+> `nstack init`. Le marquage de CODEOWNERS et des manifests est fait (organisation,
+> 2026-09-14).
 
 **Défaut.** Le socle suppose aujourd'hui un `unzip`, et porte encore des marqueurs
 génériques.
@@ -276,8 +288,9 @@ génériques.
   marqueurs de personnalisation restants, présence de `PRODUCT.md` dans un projet client
   (erreur d'installation). Il rappelle en sortie que les required checks GitHub sont la
   seule vraie barrière et qu'ils **ne se copient pas** avec le template.
-- Remplacer `@equipe-plateforme` par `@napkinstack/platform` dans `.github/CODEOWNERS`
-  et dans les manifests de `platform/` et `contracts/`. Adapter le scaffold.
+- ~~Remplacer `@equipe-plateforme` dans `.github/CODEOWNERS` et dans les manifests de
+  `platform/` et `contracts/`~~ : fait, `@NapkinStack/maintainers`. Reste à adapter le
+  scaffold à un owner de la forme `org/équipe` (D19).
 - **Ne rien brander dans `docs/os/`, `playbooks/` ni `AGENTS.md`** (invariant P7). En
   cas d'hésitation sur un fichier : laisser générique.
 
@@ -304,8 +317,8 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D13 | Workflows : injection, permissions, épinglage, token persistant | C0.2 |
 | D14 | `SECURITY.md` sans canal ; fichiers locaux d'agent non ignorés | C0.2 |
 | D15 | Manuel : contrôles promis mais absents (prior art des ADR/PDR, transitions de cycle de vie, issue de contraction, matrice des consommateurs, échéances) | PDR-0001 |
-| D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | PDR-0001 |
-| D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | PDR-0001 |
+| D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | Organisation (2026-09-14) |
+| D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | PDR-0001 |
 | D19 | Scaffold : `sed` casse sur un owner contenant `/` | Replanification |
 
