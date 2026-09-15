@@ -330,6 +330,7 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | PDR-0001 |
 | D19 | Scaffold : `sed` casse sur un owner contenant `/` | Replanification |
+| D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
 
 ---
 

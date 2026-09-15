@@ -14,7 +14,10 @@ repos:
     hooks:
       - id: detect-private-key
       - id: check-added-large-files
+      # Aussi hors merge git : Copier écrit ses conflits de mise à jour directement dans
+      # les fichiers (ADR-0001). Configuration recommandée par sa documentation.
       - id: check-merge-conflict
+        args: [--assume-in-merge]
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
       # Chargement réel du YAML : refuse les clés dupliquées, que PyYAML accepte sans rien dire.
