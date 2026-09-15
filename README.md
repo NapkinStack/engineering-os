@@ -5,11 +5,74 @@ dépôt : modules, contrats, garde-fous en CI. Sur le modèle de Django ou Rails
 crée le projet, qui reçoit ensuite les nouvelles versions à sa demande ; aucune stack
 applicative n'est imposée. Positionnement et vocabulaire : [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **État : en construction (v0.1.0).** `nstack init`, `nstack update` et `nstack doctor`
-> fonctionnent depuis ce dépôt ; la première version publiée arrive au chantier M5, le mode
-> d'emploi complet au chantier M6.
-> Suivi : [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
+> **État : en construction (v0.1.0).** Toutes les commandes fonctionnent depuis ce dépôt ;
+> la première version publiée sur PyPI arrive au chantier M5, avant un premier projet
+> pilote. Suivi : [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
 > [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+
+## Le parcours d'un projet
+
+```mermaid
+flowchart LR
+    I["Installer<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
+    N --> G["Publier sur GitHub<br/>appliquer la checklist"]:::humain
+    G --> D["nstack doctor<br/>lecture seule"]:::cmd
+    D --> M["nstack new-module"]:::cmd
+    M --> W["Travail en PR<br/>l'équipe et son agent"]:::humain
+    W --> U["nstack update<br/>branche fusionnée"]:::cmd
+    U --> P["PR relue<br/>validée par la CI"]:::humain
+    P -->|"version suivante"| U
+
+    classDef cmd fill:#1f2937,color:#fff
+    classDef humain fill:#065f46,color:#fff
+```
+
+**Légende** — gris : commande NapkinStack · vert : action de l'équipe. Décision :
+[PDR-0001](docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
+
+Le projet possède son squelette et l'adapte librement. Chaque nouvelle version lui arrive
+à sa demande, fusionnée avec ses adaptations ; les conflits restent à l'équipe.
+
+```mermaid
+flowchart LR
+    V1["Squelette v0.1<br/>base commune"]:::ref --> F{"Fusion<br/>à 3 voies"}
+    V2["Squelette v0.2<br/>correctifs NapkinStack"]:::ns --> F
+    PR["Projet<br/>adaptations de l'équipe"]:::equipe --> F
+    F -->|"lignes différentes"| B["Branche de mise à jour<br/>correctifs + adaptations"]:::ok
+    F -->|"même ligne modifiée"| X["Conflit marqué<br/>commit refusé"]:::ko
+
+    classDef ref fill:#374151,color:#fff
+    classDef ns fill:#1e3a8a,color:#fff
+    classDef equipe fill:#065f46,color:#fff
+    classDef ok fill:#065f46,color:#fff
+    classDef ko fill:#7c2d12,color:#fff
+```
+
+**Légende** — gris : version dont le projet est issu · bleu : nouvelle version · vert :
+travail de l'équipe et résultat accepté · rouge : conflit laissé à l'équipe.
+
+## Les commandes
+
+| Commande | Rôle |
+|---|---|
+| `nstack init <dossier>` | Crée le projet : squelette, dépôt git, commit initial, checklist GitHub |
+| `nstack doctor` | Vérifie le poste et les réglages GitHub, en lecture seule |
+| `nstack new-module <nom> <organisation>/<équipe> <criticité>` | Crée un module, sans stack imposée |
+| `nstack check`, `test`, `bootstrap` `[module]` ; `nstack run <module>` | Exécutent les commandes déclarées dans le manifest du module |
+| `nstack fitness` | Manifests, frontières entre modules, skills |
+| `nstack pr-scope` | Une PR = un module, budget de revue |
+| `nstack skills` | Expose les playbooks en skills pour l'agent |
+| `nstack update` | Pose la nouvelle version sur une branche à relire |
+
+**Prérequis** : uv et git. Les garde-fous bloquent vraiment sur un dépôt GitHub public, ou
+privé sous l'offre Team ou Pro ; sur un dépôt privé de l'offre Free, la CI informe sans
+bloquer ([précision de PDR-0001](docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md)).
+
+**IA** : NapkinStack n'en embarque aucune. L'agent de l'équipe (Claude Code, Codex,
+Copilot…) lit le kernel et les playbooks, lance les commandes, et la CI accepte ou refuse
+ses propositions comme celles de n'importe quel contributeur.
+
+## Ce dépôt
 
 ```mermaid
 flowchart LR
@@ -46,4 +109,4 @@ uv run nstack init /tmp/essai --source . --ref HEAD   # projet d'essai depuis l'
 uv run nstack doctor --root /tmp/essai                # poste et réglages GitHub, en lecture seule
 ```
 
-Avant toute contribution : [`PRODUCT.md`](PRODUCT.md).
+Contribuer : [`CONTRIBUTING.md`](CONTRIBUTING.md), après [`PRODUCT.md`](PRODUCT.md).
