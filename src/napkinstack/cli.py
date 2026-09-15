@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from napkinstack import __version__
+from napkinstack.fitness import boundaries, manifests
 
 
 def _root(value: str) -> Path:
@@ -15,10 +16,22 @@ def _root(value: str) -> Path:
     return root
 
 
+def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
+    parser = sub.add_parser(name, help=help_)
+    parser.add_argument("--root", type=_root, default=Path.cwd(),
+                        help="racine du projet (défaut : dossier courant)")
+    parser.set_defaults(func=func)
+    return parser
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="Moteur NapkinStack.")
     parser.add_argument("--version", action="version", version=f"nstack {__version__}")
-    parser.add_subparsers(dest="command", required=True, metavar="commande")
+    sub = parser.add_subparsers(dest="command", required=True, metavar="commande")
+    _add(sub, "manifests", "manifests, cycles de vie, dépréciations (M1–M9)",
+         lambda a: manifests.run(a.root))
+    _add(sub, "boundaries", "graphe déclaré contre graphe réel (B1–B5)",
+         lambda a: boundaries.run(a.root))
     return parser
 
 

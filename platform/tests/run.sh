@@ -9,18 +9,20 @@ uv run nstack --version | grep -qE '^nstack [0-9]+\.[0-9]+' \
   || { echo "ÉCHEC : nstack --version ne répond pas."; exit 1; }
 
 echo "→ manifests du dépôt conformes"
-python3 platform/fitness/manifests.py .
+uv run nstack manifests --root .
 
 echo "→ frontières du dépôt conformes"
-python3 platform/fitness/boundaries.py .
+uv run nstack boundaries --root .
 
 echo "→ un manifest invalide DOIT échouer"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/cassé"
 printf 'module:\n  name: cassé\n' > "$TMP/modules/cassé/MANIFEST.yaml"
-if python3 platform/fitness/manifests.py "$TMP" >/dev/null 2>&1; then
+if OUT=$(cd / && uv run --project "$REPO" nstack manifests --root "$TMP" 2>&1); then
   echo "ÉCHEC : un manifest incomplet est passé au vert."; rm -rf "$TMP"; exit 1
 fi
+echo "$OUT" | grep -qF "[M2] cassé" \
+  || { echo "ÉCHEC : message M2 attendu absent."; echo "$OUT"; rm -rf "$TMP"; exit 1; }
 rm -rf "$TMP"
 
 # Skills : chaque fixture est une copie jetable, le vrai .claude/ n'est jamais touché.
@@ -132,8 +134,8 @@ attendu = {"name": "demo", "owner": "equipe-demo", "criticality": "standard"}
 if {k: module.get(k) for k in attendu} != attendu:
     sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
 EOF
-python3 platform/fitness/manifests.py "$SC" >/dev/null \
-  || { echo "ÉCHEC : le module généré ne passe pas manifests.py."; exit 1; }
+uv run nstack manifests --root "$SC" >/dev/null \
+  || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
 
 # Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
 # l'exécution : écrits en dur, ils déclencheraient la protection au push.
