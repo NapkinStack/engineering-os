@@ -561,4 +561,161 @@ fi
 echo "$OUT" | grep -qF "Merge conflict string" \
   || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
 
+# Doctor : API GitHub simulée, jamais la vraie. Réponses recopiées de celles du dépôt
+# NapkinStack, puis dégradées : dépôt nu, jeton sans permission Administration.
+API="$GN/api"
+mkdir -p "$API"
+python3 - "$API/routes.json" <<'EOF'
+import json, sys
+regles = [
+    {"type": "pull_request", "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
+    {"type": "required_status_checks", "parameters": {"required_status_checks": [
+        {"context": "Fitness functions"}, {"context": "Périmètre et budget de revue"}, {"context": "Hooks et secrets"}]}},
+]
+labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/hors-budget": {"name": "hors-budget"}}
+active = {"status": "enabled"}
+conforme = {
+    "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active}},
+    "/rules/branches/main": regles,
+    "/private-vulnerability-reporting": {"enabled": True},
+    "/actions/permissions": {"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True},
+    "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
+    "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "all_external_contributors"},
+    "/actions/permissions/workflow": {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": False},
+    **labels,
+}
+inactive = {"status": "disabled"}
+nu = {
+    "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
+    "/rules/branches/main": [],
+    "/private-vulnerability-reporting": {"enabled": False},
+    "/actions/permissions": {"enabled": True, "allowed_actions": "all", "sha_pinning_required": False},
+    "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "first_time_contributors"},
+    "/actions/permissions/workflow": {"default_workflow_permissions": "write", "can_approve_pull_request_reviews": True},
+}
+restreint = {"": {}, "/rules/branches/main": regles, **labels}
+json.dump({"acme/conforme": conforme, "acme/nu": nu, "acme/restreint": restreint}, open(sys.argv[1], "w"))
+EOF
+cat > "$API/serveur.py" <<'EOF'
+import http.server, json, pathlib, sys
+routes = json.loads(pathlib.Path(sys.argv[1]).read_text())
+class API(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        statut, corps = 404, {"message": "Not Found"}
+        if not self.headers.get("Authorization", "").startswith("Bearer "):
+            statut, corps = 401, {"message": "Requires authentication"}
+        elif self.path.startswith("/repos/"):
+            owner, name, *reste = self.path.removeprefix("/repos/").split("/")
+            depot, chemin = f"{owner}/{name}", ("/" + "/".join(reste)) if reste else ""
+            if chemin in routes.get(depot, {}):
+                statut, corps = 200, routes[depot][chemin]
+            elif depot == "acme/restreint" and not chemin.startswith("/labels/"):
+                statut, corps = 403, {"message": "Resource not accessible by personal access token"}
+        self.send_response(statut)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(corps).encode())
+    def log_message(self, *args):
+        pass
+serveur = http.server.HTTPServer(("127.0.0.1", 0), API)
+pathlib.Path(sys.argv[2]).write_text(str(serveur.server_port))
+serveur.serve_forever()
+EOF
+python3 "$API/serveur.py" "$API/routes.json" "$API/port" &
+API_PID=$!
+trap 'kill "$API_PID" 2>/dev/null; rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
+for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
+export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
+
+V=$(nstack --version | cut -d' ' -f2)
+git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
+git -C "$TPL" tag "v$V"
+C="$GN/projet-c"
+INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Projet C" \
+  --github-repo acme/conforme --owner-team acme/plateforme 2>&1) \
+  || { echo "ÉCHEC : nstack init du projet C."; echo "$INIT_OUT"; exit 1; }
+depot_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
+
+echo "→ init : checklist GitHub affichée, identique au README du squelette et aux jobs de la CI"
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 11 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+  || { echo "ÉCHEC : checklist absente de la sortie d'init."; echo "$INIT_OUT"; exit 1; }
+echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r ligne; do
+  grep -qF -- "$ligne" skeleton/README.md.jinja \
+    || { echo "ÉCHEC : « $ligne » absent du README du squelette."; exit 1; }
+done
+python3 - "$(echo "$INIT_OUT" | grep -F 'Checks obligatoires')" <<'EOF' || exit 1
+import sys, yaml
+jobs = yaml.safe_load(open("skeleton/.github/workflows/governance.yml", encoding="utf-8"))["jobs"]
+absents = [job["name"] for job in jobs.values() if f"`{job['name']}`" not in sys.argv[1]]
+if absents:
+    sys.exit(f"ÉCHEC : jobs de la CI du squelette absents de la checklist (G4) : {absents}")
+EOF
+
+echo "→ doctor : écarts du poste listés avec leur action (L1, L3, L4, L5)"
+echo "# Produit" > "$A/PRODUCT.md"
+if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$A" 2>&1); then
+  echo "ÉCHEC : poste non conforme accepté."; echo "$OUT"; exit 1
+fi
+for regle in L1 L3 L4 L5; do
+  echo "$OUT" | grep -qE "ÉCHEC +\[$regle\]" \
+    || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
+done
+echo "$OUT" | grep -qF "Action : pre-commit install" \
+  || { echo "ÉCHEC : action de L3 absente."; echo "$OUT"; exit 1; }
+rm "$A/PRODUCT.md"
+
+(cd "$C" && pre-commit install >/dev/null)
+sed -i 's#<Une phrase : ce que fait ce projet.>#Projet de démonstration.#' "$C/README.md"
+
+echo "→ doctor : dépôt GitHub sans réglages, chaque écart listé avec son action (critère 2)"
+depot_c acme/nu
+if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : dépôt sans réglages accepté."; echo "$OUT"; exit 1
+fi
+for regle in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11; do
+  echo "$OUT" | grep -qE "ÉCHEC +\[$regle\]" \
+    || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
+done
+[ "$(echo "$OUT" | grep -cF 'Action : Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
+  || { echo "ÉCHEC : actions ou poste incorrects."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : checklist appliquée, la commande sort en succès (critère 2)"
+depot_c acme/conforme
+if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : projet conforme refusé."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "nstack doctor : conforme." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
+  || { echo "ÉCHEC : conformité mal rapportée."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : sans jeton, la partie GitHub est non vérifiée, jamais conforme"
+if OUT=$(env -u GH_TOKEN -u GITHUB_TOKEN nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : conforme sans jeton."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
+  && echo "$OUT" | grep -qF "GH_TOKEN" \
+  || { echo "ÉCHEC : absence de jeton mal traitée."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : jeton sans permission Administration, les réglages illisibles sont non vérifiés"
+depot_c acme/restreint
+if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : conforme sans permission Administration."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G5\]" \
+  && echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G8\]" && echo "$OUT" | grep -qF "Administration : lecture" \
+  || { echo "ÉCHEC : permission manquante mal traitée."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : API injoignable, rien n'est déclaré conforme"
+if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : conforme sans API."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G1\]" && echo "$OUT" | grep -qF "injoignable" \
+  || { echo "ÉCHEC : API injoignable mal traitée."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : hors d'un projet, la commande DOIT l'expliquer"
+if OUT=$(nstack doctor --root "$GN/occupe" 2>&1); then
+  echo "ÉCHEC : doctor accepté hors d'un projet."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [doctor] .copier-answers.yml introuvable" \
+  || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
+
 echo "Tests plateforme : OK"

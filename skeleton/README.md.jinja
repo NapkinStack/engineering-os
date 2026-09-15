@@ -47,10 +47,10 @@ Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette
 
 Settings → Rules → Rulesets → sur la branche principale :
 
-- [ ] Pull request obligatoire, ≥ 1 relecture
-- [ ] Required checks : `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
+- [ ] Pull request obligatoire : aucun push direct sur main
+- [ ] Au moins 1 relecture approuvée
 - [ ] Revue des CODEOWNERS obligatoire
-- [ ] Pas de push direct
+- [ ] Checks obligatoires : `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
 
 Settings → Advanced Security :
 
@@ -59,13 +59,25 @@ Settings → Advanced Security :
 
 Settings → Actions → General :
 
-- [ ] Actions autorisées : celles de GitHub, plus celles explicitement listées
+- [ ] Actions autorisées : celles de GitHub, plus `astral-sh/setup-uv`
 - [ ] Actions épinglées par SHA obligatoires
 - [ ] Approbation des workflows pour tout contributeur externe
 - [ ] Jeton des workflows en lecture seule ; Actions ne crée ni n'approuve de PR
 
-Créer aussi les labels `cross-module` et `hors-budget` : ils rendent les exceptions
-visibles **et comptables** (`docs/os/10-mesure.md` §3).
+Issues → Labels :
+
+- [ ] Labels `cross-module` et `hors-budget` : ils rendent les exceptions visibles **et
+  comptables** (`docs/os/10-mesure.md` §3)
+
+Puis vérifier, en lecture seule :
+
+```bash
+nstack doctor
+```
+
+`nstack doctor` lit le jeton dans `GH_TOKEN`, sinon `GITHUB_TOKEN` : un jeton à grain fin,
+limité au dépôt, permission **Administration : lecture**. Sans jeton, la partie GitHub reste
+« non vérifiée », jamais conforme.
 
 ---
 
