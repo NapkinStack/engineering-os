@@ -1,0 +1,62 @@
+name: Publication
+
+# Publie napkinstack sur PyPI à chaque tag vX.Y.Z (ADR-0002), selon le guide d'uv et de PyPA :
+# construction sans droit, puis publication par Trusted Publishing, seule à recevoir
+# id-token: write, dans l'environnement pypi qui exige l'approbation d'un mainteneur.
+# Aucun secret stocké ; attestations de provenance générées par l'action PyPA.
+# Ce nom de fichier et l'environnement pypi sont déclarés sur PyPI : ne pas les renommer.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions: {}
+
+jobs:
+  construction:
+    name: Construction
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: false
+
+      - name: Tag et version identiques
+        run: |
+          VERSION=$(uv version --short)
+          if [ "${GITHUB_REF_NAME#v}" != "$VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME et version $VERSION de pyproject.toml différents (ADR-0002)." \
+              "Action : aligner la version par une PR, puis poser le tag v$VERSION."
+            exit 1
+          fi
+
+      - name: Paquet
+        run: uv build
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distributions
+          path: dist/
+
+  publication:
+    name: Publication sur PyPI
+    needs: construction
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/napkinstack/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
