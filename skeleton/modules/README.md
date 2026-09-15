@@ -9,7 +9,7 @@ Une unité de contexte autonome et de parallélisme par dossier.
 ## Créer un module
 
 ```bash
-uv run nstack new-module billing team-revenue standard
+nstack new-module billing team-revenue standard
 ```
 
 Le scaffold produit le manifest, l'`AGENTS.md` local, les verbes standards, la ligne

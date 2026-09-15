@@ -338,4 +338,72 @@ for cas in check-dependabot:.github/dependabot.yml \
     || { echo "ÉCHEC : $hook ne signale pas d'erreur de schéma."; echo "$OUT"; exit 1; }
 done
 
+# Squelette : projets générés depuis l'arbre de travail, modifications non commitées
+# comprises, jamais depuis GitHub.
+GN=$(mktemp -d)
+trap 'rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
+generer() {  # $1 = gabarit, $2 = destination, puis les options -d de Copier
+  local gabarit=$1 destination=$2; shift 2
+  copier copy --quiet --defaults --vcs-ref HEAD "$@" "$gabarit" "$destination"
+}
+REPONSES=(-d "project_name=Projet démo" -d github_repo=acme/demo -d owner_team=acme/plateforme)
+PROJET="$GN/projet"
+
+echo "→ squelette : le projet généré porte les réponses, sans fichier de gabarit résiduel"
+if ! OUT=$(generer "$REPO" "$PROJET" "${REPONSES[@]}" 2>&1); then
+  echo "ÉCHEC : la génération du projet a échoué."; echo "$OUT"; exit 1
+fi
+RESIDUS=$(find "$PROJET" -name '*.jinja')
+[ -z "$RESIDUS" ] || { echo "ÉCHEC : fichiers de gabarit copiés tels quels :"; echo "$RESIDUS"; exit 1; }
+for attendu in ".github/CODEOWNERS|@acme/plateforme" \
+               ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
+               "contracts/MANIFEST.yaml|owner: acme/plateforme" \
+               "README.md|# Projet démo" \
+               ".copier-answers.yml|owner_team: acme/plateforme"; do
+  fichier=${attendu%%|*}; texte=${attendu#*|}
+  grep -qF -- "$texte" "$PROJET/$fichier" 2>/dev/null \
+    || { echo "ÉCHEC : $fichier ne contient pas « $texte »."; exit 1; }
+done
+
+echo "→ squelette : le contexte de développement de NapkinStack n'est jamais copié (R6)"
+for absent in PRODUCT.md docs/governance platform src pyproject.toml uv.lock copier.yml skeleton; do
+  [ ! -e "$PROJET/$absent" ] \
+    || { echo "ÉCHEC : $absent copié dans le projet généré (PDR-0001 R6). Le retirer de skeleton/."; exit 1; }
+done
+
+echo "→ squelette : le projet généré passe nstack fitness, playbooks compris"
+if ! OUT=$(cd / && uv run --project "$REPO" nstack fitness --root "$PROJET" 2>&1); then
+  echo "ÉCHEC : le projet généré ne passe pas nstack fitness."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "Skills : S1, S2 et S4 conformes" \
+  || { echo "ÉCHEC : skills non vérifiées dans le projet généré."; echo "$OUT"; exit 1; }
+
+echo "→ squelette : un dépôt ou une équipe sans organisation DOIT être refusé"
+for question in github_repo owner_team; do
+  if [ "$question" = github_repo ]; then
+    reponses=(-d project_name=x -d github_repo=demo -d owner_team=acme/plateforme)
+  else
+    reponses=(-d project_name=x -d github_repo=acme/demo -d owner_team=plateforme)
+  fi
+  if OUT=$(generer "$REPO" "$GN/refus-$question" "${reponses[@]}" 2>&1); then
+    echo "ÉCHEC : $question sans « / » accepté."; exit 1
+  fi
+  echo "$OUT" | grep -qF "Validation error for question '$question'" \
+    || { echo "ÉCHEC : refus de $question sans le message du validateur."; echo "$OUT"; exit 1; }
+done
+
+echo "→ squelette : un gabarit à fonction « unsafe » DOIT être refusé, sans rien créer (ADR-0001)"
+UNSAFE="$GN/gabarit-unsafe"
+mkdir -p "$UNSAFE" && cp -r copier.yml skeleton "$UNSAFE/"
+printf '\n_tasks:\n  - "touch execute"\n' >> "$UNSAFE/copier.yml"
+git "${GIT_ID[@]}" init -q "$UNSAFE"
+git -C "$UNSAFE" add -A
+git "${GIT_ID[@]}" -C "$UNSAFE" commit -q --no-verify -m unsafe
+CODE=0
+OUT=$(generer "$UNSAFE" "$GN/unsafe" "${REPONSES[@]}" 2>&1) || CODE=$?
+[ "$CODE" -eq 4 ] || { echo "ÉCHEC : gabarit unsafe non refusé (code $CODE, 4 attendu)."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "potentially unsafe feature: tasks" \
+  || { echo "ÉCHEC : refus sans le message de Copier."; echo "$OUT"; exit 1; }
+[ ! -e "$GN/unsafe" ] || { echo "ÉCHEC : le gabarit refusé a créé des fichiers."; exit 1; }
+
 echo "Tests plateforme : OK"

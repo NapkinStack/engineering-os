@@ -3,7 +3,7 @@ name = "napkinstack"
 version = "0.1.0.dev0"
 description = "Cadre de travail pour faire travailler plusieurs équipes et leurs agents sur un même dépôt : modules, contrats, garde-fous en CI."
 requires-python = ">=3.12"
-dependencies = ["PyYAML>=6.0"]
+dependencies = ["PyYAML>=6.0", "copier==9.18.2"]
 
 [project.scripts]
 nstack = "napkinstack.cli:main"
