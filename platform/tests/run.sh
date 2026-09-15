@@ -346,7 +346,10 @@ generer() {  # $1 = gabarit, $2 = destination, puis les options -d de Copier
   local gabarit=$1 destination=$2; shift 2
   copier copy --quiet --defaults --vcs-ref HEAD "$@" "$gabarit" "$destination"
 }
-REPONSES=(-d "project_name=Projet démo" -d github_repo=acme/demo -d owner_team=acme/plateforme)
+# Nom long : Copier écrit .copier-answers.yml sans limite de ligne (nom, chemin du gabarit).
+# Le rejeu sur clone vierge l'a montré avec un chemin long ; le nom rend le cas déterministe.
+NOM_LONG="Projet démo $(printf 'long%.0s' {1..30})"
+REPONSES=(-d "project_name=$NOM_LONG" -d github_repo=acme/demo -d owner_team=acme/plateforme)
 PROJET="$GN/projet"
 
 echo "→ squelette : le projet généré porte les réponses, sans fichier de gabarit résiduel"
