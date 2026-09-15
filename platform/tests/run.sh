@@ -2,9 +2,11 @@
 # Tests des fitness functions. L'oracle des garde-fous eux-mêmes.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+REPO=$(pwd)
 
-echo "→ les scripts compilent"
-python3 -m py_compile platform/fitness/manifests.py platform/fitness/boundaries.py
+echo "→ nstack : la commande répond et affiche sa version"
+uv run nstack --version | grep -qE '^nstack [0-9]+\.[0-9]+' \
+  || { echo "ÉCHEC : nstack --version ne répond pas."; exit 1; }
 
 echo "→ manifests du dépôt conformes"
 python3 platform/fitness/manifests.py .
