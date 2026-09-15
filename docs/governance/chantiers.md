@@ -14,7 +14,7 @@ flowchart LR
     C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::fait
     C02 --> C03["C0.3<br/>formats stricts"]:::fait
     C03 --> PDR["PDR-0001<br/>proposé"]:::partiel
-    PDR --> A1["ADR-0001<br/>outil de gabarit"]:::afaire
+    PDR --> A1["ADR-0001<br/>Copier, proposé"]:::partiel
     A1 --> A2["ADR-0002<br/>distribution et nom"]:::afaire
     A2 --> PT["Prototype<br/>PDR-0001 accepté"]:::afaire
     PT --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
@@ -37,7 +37,7 @@ flowchart LR
 | C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | Fait |
 | PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Proposé ; acceptation après prototype |
-| ADR-0001 | Outil de gabarit et de mise à jour | À faire |
+| ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Proposé ; acceptation au prototype |
 | ADR-0002 | Distribution et nom | À faire |
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | À faire |
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
@@ -171,7 +171,8 @@ générés », « réglages GitHub » et la révision de P1 et du §6, appliqué
 
 **À trancher, dans l'ordre.**
 
-- ADR-0001 — outil de gabarit et de mise à jour (Copier est la référence du PDR).
+- ~~ADR-0001 — outil de gabarit~~ : Copier, proposé (2026-09-15). Un seul gabarit dans
+  ce dépôt, le squelette ; versions = tags ; aucune fonction « unsafe ».
 - ADR-0002 — distribution et nom (`napkinstack` ; `nstack` est pris sur PyPI).
 - ADR-0003 — identité de l'agent (GitHub App ou compte machine), condition pour exiger
   une approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
