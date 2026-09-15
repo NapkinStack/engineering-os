@@ -13,8 +13,13 @@ flowchart LR
     C0 --> C01["C0.1<br/>hooks et secrets"]:::fait
     C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::fait
     C02 --> C03["C0.3<br/>formats stricts"]:::fait
-    C03 --> PDR["PDR-0001<br/>modèle framework<br/>+ prototype"]:::afaire
-    PDR --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
+    C03 --> PDR["PDR-0001<br/>proposé"]:::partiel
+    PDR --> A1["ADR-0001<br/>outil de gabarit"]:::afaire
+    A1 --> A2["ADR-0002<br/>distribution et nom"]:::afaire
+    A2 --> PT["Prototype<br/>PDR-0001 accepté"]:::afaire
+    PT --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
+    PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
+    A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
     classDef fait fill:#065f46,color:#fff
     classDef partiel fill:#92400e,color:#fff
@@ -31,7 +36,12 @@ flowchart LR
 | C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | Fait |
-| PDR-0001 | NapkinStack comme framework | À faire |
+| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Proposé ; acceptation après prototype |
+| ADR-0001 | Outil de gabarit et de mise à jour | À faire |
+| ADR-0002 | Distribution et nom | À faire |
+| Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | À faire |
+| ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
+| PDR-0002 | Cadrage et découpage guidés | À faire |
 | C1 | Point d'entrée unique `nstack` | À replanifier après PDR-0001 |
 | C2 | Check anti-placeholder | À replanifier après PDR-0001 |
 | C3 | Hook git versionné | Absorbé par C0.1 |
@@ -129,7 +139,7 @@ style avec la configuration par défaut, 0 avec 5 assouplissements (`.yamllint.y
 sur le fond. Les 3 schémas GitHub passaient déjà. Mutations : 12 défauts réintroduits, 12
 détectés par `platform/tests/run.sh`.
 
-## PDR-0001 — NapkinStack comme framework
+## PDR-0001 — Créer un projet et recevoir les évolutions
 
 ```mermaid
 flowchart LR
@@ -145,36 +155,33 @@ flowchart LR
 **Légende** — trait plein : génération, une seule fois · pointillé : dépendance
 versionnée, le projet choisit quand monter de version.
 
-**Décidé (2026-09-13).**
+**Proposé (2026-09-15)** : [`docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md`](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
+Le projet possède son squelette et l'adapte ; chaque version lui arrive à sa demande, en
+PR fusionnée avec ses adaptations (fusion à 3 voies) ; réglages GitHub en checklist
+vérifiée en lecture seule ; uv seul prérequis. Il remplace les points « copiés ou
+générés », « réglages GitHub » et la révision de P1 et du §6, appliquée à l'acceptation.
 
-- Modèle Django : le projet généré vit seul, avec son dépôt et sa CI. Seul le moteur
-  est une dépendance versionnée. Aucune CI partagée entre dépôts.
-- Aucune techno imposée. La stack se choisit **par module**, à `nstack new-module`.
-- Un preset de stack est une donnée qui délègue au générateur officiel de l'écosystème.
-  Il n'existe qu'après avoir servi à un vrai projet.
-- GitHub seul au départ.
+**Décidé avant le PDR.**
 
-**Décidé (2026-09-14).** Organisation GitHub `NapkinStack`, par la voie documentée par
-GitHub : compte personnel renommé, organisation créée sous le nom libéré, dépôt transféré.
-La conversion automatique, irréversible, aurait supprimé le compte. L'équipe
-`maintainers` possède le socle (CODEOWNERS, manifests de `platform/` et `contracts/`).
+- 2026-09-13 : modèle Django, projet indépendant sans CI partagée ; stack choisie par
+  module ; preset = donnée déléguant au générateur officiel, créé pour un vrai projet ;
+  GitHub seul au départ.
+- 2026-09-14 : organisation GitHub `NapkinStack`, par renommage du compte, création de
+  l'organisation et transfert du dépôt ; l'équipe `maintainers` possède le socle.
 
-**À trancher.**
+**À trancher, dans l'ordre.**
 
-- Identité de l'agent (GitHub App ou compte machine), condition pour exiger une
-  approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
-- Kernel et playbooks : copiés dans le projet (modifiables, figés) ou générés depuis la
-  version installée (à jour, non éditables).
-- Réglages GitHub : appliqués par l'API après confirmation, ou checklist vérifiée.
-- Nom du paquet : `napkinstack` (`nstack` est déjà pris sur PyPI).
-- Cadrage et découpage guidés : à partir de l'idée ou des specs de l'utilisateur, une
-  procédure suivie par son agent propose règles, PDR, ADR, modules et contrats ;
-  l'humain valide, le CLI génère. À comparer à GitHub Spec Kit et BMAD-METHOD.
-- Révision de P1 et du §6 de `PRODUCT.md`.
+- ADR-0001 — outil de gabarit et de mise à jour (Copier est la référence du PDR).
+- ADR-0002 — distribution et nom (`napkinstack` ; `nstack` est pris sur PyPI).
+- ADR-0003 — identité de l'agent (GitHub App ou compte machine), condition pour exiger
+  une approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
+- PDR-0002 — cadrage et découpage guidés : à partir de l'idée ou des specs, une procédure
+  suivie par l'agent propose règles, PDR, ADR, modules et contrats ; l'humain valide, le
+  CLI génère. À comparer à GitHub Spec Kit et BMAD-METHOD.
 
-**Oracle.** Prototype jetable : `init`, création d'un module, puis montée de version
-v0.1 → v0.2 sur le projet généré. Le README produit, avec schémas, est réécrit une fois
-le PDR accepté.
+**Oracle.** Prototype jetable : les 7 critères d'acceptation du PDR (init, doctor,
+module sans preset, fusion sans conflit, conflit bloquant, fichier supprimé, `modules/`
+intact). Le README produit, avec schémas, est réécrit à l'acceptation.
 
 ---
 
