@@ -27,6 +27,18 @@ nstack fitness
 Cette version est celle de `.copier-answers.yml` ; elle ne change que par `nstack update`,
 en PR relue.
 
+## Recevoir une nouvelle version de NapkinStack
+
+```bash
+uv tool install "napkinstack==X.Y.Z" --with-executables-from pre-commit  # la version voulue
+nstack update                            # branche nstack/update-vX.Y.Z, fusionnée et commitée
+git push -u origin nstack/update-vX.Y.Z  # puis la PR, validée par la CI
+```
+
+La fusion garde les adaptations du projet et ne touche jamais au code des modules. Un
+conflit reste marqué dans le fichier, sans commit : l'équipe arbitre, et le hook comme la CI
+refusent tout marqueur restant.
+
 ## À faire une fois sur GitHub — sinon rien n'est garanti
 
 Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette

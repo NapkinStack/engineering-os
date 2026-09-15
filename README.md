@@ -3,8 +3,9 @@
 Cadre de travail pour faire travailler plusieurs équipes et leurs agents sur un même
 dépôt : modules, contrats, garde-fous en CI.
 
-> **État : en construction (v0.1.0).** `nstack init` et `nstack update` arrivent au
-> chantier M2b ; le mode d'emploi complet, au chantier M6.
+> **État : en construction (v0.1.0).** `nstack init` et `nstack update` fonctionnent depuis
+> ce dépôt ; la première version publiée arrive au chantier M5, le mode d'emploi complet au
+> chantier M6.
 > Suivi : [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
 ```mermaid
@@ -38,6 +39,7 @@ uv sync                               # prérequis : uv
 uv run pre-commit install
 uv run nstack fitness                 # garde-fous du dépôt
 uv run bash platform/tests/run.sh     # oracle : chaque garde-fou prouve qu'il sait échouer
+uv run nstack init /tmp/essai --source . --ref HEAD   # projet d'essai depuis l'arbre de travail
 ```
 
 Avant toute contribution : [`PRODUCT.md`](PRODUCT.md).
