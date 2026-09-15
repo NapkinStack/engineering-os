@@ -8,6 +8,21 @@
 > d'emploi du socle. Remplace-la par le README de ton projet une fois l'installation
 > terminée — les instructions restent dans `docs/os/`.
 
+## Prérequis
+
+- **Poste** : uv et git ; accès en lecture à GitHub (squelette NapkinStack) et à PyPI.
+- **Dépôt GitHub.** Les workflows informent ; seuls les rulesets et la protection au push
+  bloquent. Ce que chaque cas permet :
+
+| Réglage | Dépôt public | Privé, offre Free | Privé, Team ou Pro |
+|---|---|---|---|
+| Rulesets : PR, relecture, CODEOWNERS, checks requis | Oui | **Non : rien ne bloque la fusion** | Oui |
+| Scan de secrets et protection au push | Oui | Non | Option payante Secret Protection |
+| Signalement privé de vulnérabilités | Oui | N'existe pas | N'existe pas |
+| Minutes de CI | Illimitées | 2 000 par mois | Selon l'offre |
+
+`nstack doctor` suit la visibilité du dépôt et nomme l'offre requise pour chaque réglage absent.
+
 ## Installation
 
 ```bash
@@ -45,14 +60,14 @@ Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette
 étape, tout l'édifice repose sur la bonne volonté, ce que l'OS interdit
 (`docs/os/07-gouvernance.md`).
 
-Settings → Rules → Rulesets → sur la branche principale :
+Settings → Rules → Rulesets → sur la branche principale (dépôt privé : offre Team ou Pro) :
 
 - [ ] Pull request obligatoire : aucun push direct sur main
 - [ ] Au moins 1 relecture approuvée
 - [ ] Revue des CODEOWNERS obligatoire
 - [ ] Checks obligatoires : `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
 
-Settings → Advanced Security :
+Settings → Advanced Security (dépôt privé : option Secret Protection) :
 
 - [ ] Secret Protection et protection au push
 - [ ] Signalement privé de vulnérabilités, dépôt public (canal de `SECURITY.md`)

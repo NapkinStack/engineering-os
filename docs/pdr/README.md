@@ -24,4 +24,4 @@ Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son impléme
 
 | N° | Titre | Statut | Critère à vérifier le |
 |---|---|---|---|
-| [0001](./0001-creer-un-projet-et-recevoir-les-evolutions.md) | Créer un projet et recevoir les évolutions de NapkinStack | Accepté | 2026-12-31 |
+| [0001](./0001-creer-un-projet-et-recevoir-les-evolutions.md) | Créer un projet et recevoir les évolutions de NapkinStack | Accepté, précisé (dépôts privés) | 2026-12-31 |

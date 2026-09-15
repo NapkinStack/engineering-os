@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M2b fait, M3 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M3 fait, M3.1 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -36,7 +36,7 @@ flowchart LR
 | C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | Fait |
-| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Accepté (2026-09-15) |
+| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Accepté (2026-09-15), précisé : dépôts privés |
 | ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Accepté (2026-09-15) |
 | ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Proposé ; vérifié à la première publication |
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
