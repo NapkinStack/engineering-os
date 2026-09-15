@@ -9,7 +9,7 @@
 #   - aucune instruction comportementale : elles vont dans le corps du playbook
 #   - reprend les mots-clés que l'agent rencontrera réellement dans une tâche
 #
-# Un playbook sans entrée ici fait échouer `make skills-check`.
+# Un playbook sans entrée ici fait échouer `nstack skills --check`.
 
 skills:
   securite:

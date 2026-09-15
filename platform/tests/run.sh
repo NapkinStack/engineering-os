@@ -29,29 +29,36 @@ rm -rf "$TMP"
 SK=$(mktemp -d)
 trap 'rm -rf "$SK"' EXIT
 mkdir -p "$SK/platform"
-cp platform/sync_skills.py platform/skills.yaml "$SK/platform/"
+cp platform/skills.yaml "$SK/platform/"
 cp -r playbooks "$SK/"
+nstack_sk() { (cd / && uv run --project "$REPO" nstack skills --root "$SK" "$@"); }
+
+echo "→ skills : la racine donnée est analysée, quel que soit le dossier courant (D21)"
+if (cd / && uv run --project "$REPO" nstack skills --check --root / >/dev/null 2>&1); then
+  echo "ÉCHEC : racine sans skills.yaml acceptée."; exit 1
+fi
+nstack_sk --check >/dev/null || { echo "ÉCHEC : la racine donnée n'est pas analysée."; exit 1; }
 
 echo "→ skills : sur un clone vierge, S3 est non applicable et le check passe"
-if ! OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if ! OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : --check échoue alors qu'aucune skill n'a été générée."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "S3 non applicable" \
   || { echo "ÉCHEC : S3 ignoré sans le dire."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill désynchronisée DOIT échouer"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 echo "ajout" >> "$SK/playbooks/tests.md"
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill désynchronisée est passée au vert."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'tests' désynchronisée" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill supprimée DOIT échouer"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 rm "$SK/.claude/skills/ux/SKILL.md"
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill supprimée est passée au vert."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
@@ -59,7 +66,7 @@ echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
 
 echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
 cp playbooks/tests.md "$SK/playbooks/"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 python3 - "$SK" <<'EOF' || exit 1
 import sys, yaml
 from pathlib import Path
@@ -98,7 +105,7 @@ A64=$(printf 'a%.0s' {1..64})
 echo "→ skills : un nom hors spécification Agent Skills DOIT échouer (S4)"
 for nom in Majuscule -debut fin- double--tiret nom_souligne "${A64}a"; do
   skill_tests_modifiee "$nom"
-  if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+  if OUT=$(nstack_sk --check 2>&1); then
     echo "ÉCHEC : nom de skill invalide accepté : '$nom'."; exit 1
   fi
   echo "$OUT" | grep -qF "[S4] skill '$nom'" \
@@ -107,7 +114,7 @@ done
 
 echo "→ skills : une description de plus de 1024 caractères DOIT échouer (S4)"
 skill_tests_modifiee tests 1025
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : description de 1025 caractères acceptée."; exit 1
 fi
 echo "$OUT" | grep -qF "[S4] skill 'tests'" \
@@ -115,7 +122,7 @@ echo "$OUT" | grep -qF "[S4] skill 'tests'" \
 
 echo "→ skills : nom de 64 caractères et description de 1024 caractères acceptés"
 skill_tests_modifiee "$A64" 1024
-python3 "$SK/platform/sync_skills.py" --check >/dev/null \
+nstack_sk --check >/dev/null \
   || { echo "ÉCHEC : limites de la spécification refusées."; exit 1; }
 
 # Scaffold : copie jetable, le vrai dépôt n'est jamais touché.

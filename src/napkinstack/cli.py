@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from napkinstack import __version__
+from napkinstack import __version__, skills
 from napkinstack.fitness import boundaries, manifests
 
 
@@ -32,6 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "graphe déclaré contre graphe réel (B1–B5)",
          lambda a: boundaries.run(a.root))
+    sk = _add(sub, "skills", "génère ou vérifie les skills (S1–S4)",
+              lambda a: skills.run(a.root, check_only=a.check))
+    sk.add_argument("--check", action="store_true", help="vérifier sans écrire")
     return parser
 
 
