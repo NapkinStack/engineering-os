@@ -94,3 +94,50 @@ def test_manifests(tmp_path, capsys, preparer, regle, echec):
     preparer(tmp_path)
     code = manifests.run(tmp_path)
     verifier(code, capsys.readouterr().out, regle, echec)
+
+
+CLIENTS = degrade(module__name="clients", module__owner="acme/clients")
+
+
+def consomme(manifest, module):
+    return {**manifest, "consumes": [{"contract": f"{module}-api", "version": "v1", "module": module}]}
+
+
+def test_frontieres_conformes(tmp_path, capsys):
+    ecrire_module(tmp_path, "facturation")
+    ecrire_module(tmp_path, "clients", CLIENTS)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+CAS_FRONTIERES = {
+    "B1 référence non déclarée": ({
+        "facturation": (CONFORME, {"src/app.py": "from modules.clients.api import client\n"}),
+        "clients": (CLIENTS, {})}, "B1", True),
+    "B2 implémentation interne": ({
+        "facturation": (consomme(CONFORME, "clients"), {"src/app.js": 'import { db } from "../clients/src/db";\n'}),
+        "clients": (CLIENTS, {})}, "B2", True),
+    "B3 dépendance circulaire": ({
+        "facturation": (consomme(CONFORME, "clients"), {"src/app.py": "from modules.clients.api import client\n"}),
+        "clients": (consomme(CLIENTS, "facturation"), {"src/app.py": "from modules.facturation.api import facture\n"})},
+        "B3", True),
+    "B4 dépendance inutilisée": ({
+        "facturation": (consomme(CONFORME, "clients"), {}), "clients": (CLIENTS, {})}, "B4", False),
+    "B5 table d'un autre module": ({
+        "facturation": (degrade(data={"owns": ["factures"], "shared": []}), {}),
+        "clients": (CLIENTS, {"src/requete.py": 'SQL = "SELECT * FROM factures"\n'})}, "B5", True),
+}
+
+
+@pytest.mark.parametrize(("modules_", "regle", "echec"), CAS_FRONTIERES.values(), ids=CAS_FRONTIERES.keys())
+def test_frontieres(tmp_path, capsys, modules_, regle, echec):
+    for nom, (manifest, sources) in modules_.items():
+        ecrire_module(tmp_path, nom, manifest, sources)
+    code = boundaries.run(tmp_path)
+    verifier(code, capsys.readouterr().out, regle, echec)
+
+
+def test_frontieres_manifest_illisible_sans_trace(tmp_path, capsys):
+    ecrire_module(tmp_path, "facturation")
+    ecrire_module(tmp_path, "clients", "- une\n- liste\n")
+    ecrire_module(tmp_path, "stock", degrade(module__name="stock", consumes="clients"))
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
