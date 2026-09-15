@@ -9,8 +9,8 @@ module:
   responsibility: >
     TODO — décrire la capacité métier de ce module en une phrase.
 
-  owner: "{{OWNER}}"          # une ÉQUIPE, jamais un individu
-  contact: "#{{OWNER}}"
+  owner: "{{OWNER}}"          # une ÉQUIPE GitHub organisation/équipe, jamais un individu
+  contact: "@{{OWNER}}"
 
   # Proposé | Actif | Maintenance | Déprécié | Retiré   (docs/os/02-modules.md §6)
   lifecycle: Proposé
@@ -55,12 +55,14 @@ dependencies: []
 #    adr:
 #    exit_strategy:
 
-# Verbes standards — mêmes noms partout (docs/os/09-plateforme.md §2).
+# Verbes standards : mêmes noms partout, commandes de la stack du module
+# (docs/os/09-plateforme.md §2). `nstack <verbe> <module>` les exécute depuis ce dossier.
+# Aucune stack n'est imposée : remplacer chaque commande « à déclarer ».
 commands:
-  bootstrap: make bootstrap
-  check: make check              # < 2 min : format, lint, types
-  test: make test                # ne doit JAMAIS démarrer un autre module
-  run: make run
+  check: "echo 'commands.check à déclarer dans MANIFEST.yaml' >&2; exit 1"  # < 2 min : format, lint, types
+  test: "echo 'commands.test à déclarer dans MANIFEST.yaml' >&2; exit 1"    # ne démarre JAMAIS un autre module
+  # bootstrap:                   # facultatif : rendre le module exploitable depuis un clone vierge
+  # run:                         # facultatif : démarrage local, avec doublures pour les dépendances
 
 # Budget de revue. Hérite du projet si absent (docs/os/05-workflow.md §4).
 review_budget:

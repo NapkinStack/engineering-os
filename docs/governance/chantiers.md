@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M3.1 fait, M3.2 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M3.2 fait, M4 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -42,7 +42,7 @@ flowchart LR
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
-| C1 | Point d'entrée unique `nstack` | Partiel (M1) : commande `nstack`, Makefile racine supprimé ; verbes de module à M4 |
+| C1 | Point d'entrée unique `nstack` | Traité par M1 et M4 : commande `nstack`, verbes des modules lus dans le MANIFEST |
 | C2 | Check anti-placeholder | À replanifier au plan d'implémentation |
 | C3 | Hook git versionné | Absorbé par C0.1 |
 | C4 | Proxy d'oracle | À replanifier au plan d'implémentation |
@@ -190,9 +190,10 @@ et la replanification de C1, C2, C4 et C5.
 
 ## C1 — Point d'entrée unique `nstack`
 
-> **Partiellement traité par M1** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) : commande
-> `nstack`, Makefile racine supprimé. Le reste suit le plan d'implémentation, où le modèle
-> framework change sa portée : CLI publié, commande `init`, dépendance à pre-commit.
+> **Traité par M1 et M4** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) : commande `nstack`
+> publiée comme paquet, Makefile racine supprimé (M1) ; verbes `check`, `test`, `bootstrap`,
+> `run` lus dans le MANIFEST, gabarit de module sans Makefile (M4). Le choix suit les
+> conventions de Nx et moon, consigné dans le plan : pas d'ADR dédié.
 
 **Défaut.** Quatre styles d'invocation coexistent (`make`, `python3 platform/…`,
 `bash platform/…`, `./platform/…`). Pire : le `Makefile` racine suppose que chaque
@@ -331,10 +332,10 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | Organisation (2026-09-14) |
 | D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | M1 : uv seul prérequis |
-| D19 | Scaffold : `sed` casse sur un owner contenant `/` | M4 |
+| D19 | Scaffold : `sed` casse sur un owner contenant `/` | M4 : scaffold en Python, owner organisation/équipe |
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
 | D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | M1 : `--root` |
-| D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | M4 |
+| D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | M4 : gabarit sans Makefile, commandes à déclarer |
 | D23 | Moteur installé : `SOURCE_SUFFIXES` et `IMPORT_HINTS` de `boundaries.py` ne se calibrent plus depuis un projet (trouvé par M2a) | À ordonnancer |
 
 ---

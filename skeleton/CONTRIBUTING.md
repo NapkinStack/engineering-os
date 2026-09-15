@@ -5,7 +5,7 @@
 1. Prendre une issue **Ready** (les formulaires garantissent le DoR).
 2. Identifier **le** module cible — un seul.
 3. Lire son `MANIFEST.yaml` puis son `AGENTS.md`.
-4. `make -C modules/<nom> bootstrap && make -C modules/<nom> check`
+4. `nstack bootstrap <nom> && nstack check <nom>`
 5. `pre-commit install` — une fois par clone ([installer pre-commit](https://pre-commit.com/#install)).
 
 ## Les barrières contre les fuites

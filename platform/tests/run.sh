@@ -160,19 +160,70 @@ nstack_sk --check >/dev/null \
 SC=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC"' EXIT
 
-echo "→ scaffold : le module généré a un MANIFEST.yaml valide, aux valeurs substituées"
+echo "→ scaffold : module créé sans Makefile, owner org/équipe dans le manifest et CODEOWNERS (D19)"
 mkdir -p "$SC/.github" "$SC/modules"
 cp .github/CODEOWNERS "$SC/.github/"
-uv run nstack new-module demo equipe-demo standard --root "$SC" >/dev/null
+uv run nstack new-module demo acme/equipe-demo standard --root "$SC" >/dev/null
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
 import sys, yaml
 module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
-attendu = {"name": "demo", "owner": "equipe-demo", "criticality": "standard"}
+attendu = {"name": "demo", "owner": "acme/equipe-demo", "criticality": "standard"}
 if {k: module.get(k) for k in attendu} != attendu:
     sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
 EOF
+[ ! -e "$SC/modules/demo/Makefile" ] || { echo "ÉCHEC : le gabarit impose encore un Makefile (D22)."; exit 1; }
+grep -qE '^/modules/demo/ +@acme/equipe-demo$' "$SC/.github/CODEOWNERS" \
+  || { echo "ÉCHEC : ligne CODEOWNERS du module absente ou invalide."; exit 1; }
 uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
+
+echo "→ scaffold : un owner sans organisation ou un nom invalide DOIVENT être refusés (P6)"
+for cas in "demo2|equipe-demo|owner 'equipe-demo' invalide" "Demo|acme/equipe|nom 'Demo' invalide"; do
+  IFS='|' read -r nom owner message <<<"$cas"
+  if OUT=$(uv run nstack new-module "$nom" "$owner" standard --root "$SC" 2>&1); then
+    echo "ÉCHEC : new-module $nom $owner accepté."; exit 1
+  fi
+  echo "$OUT" | grep -qF "ÉCHEC [new-module] $message" \
+    || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
+done
+
+echo "→ verbes : une commande à déclarer DOIT échouer en nommant le module (P1, D22)"
+if OUT=$(uv run nstack check demo --root "$SC" 2>&1); then
+  echo "ÉCHEC : une commande à déclarer est passée au vert."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "commands.check à déclarer" && echo "$OUT" | grep -qF "ÉCHEC [check] module 'demo'" \
+  || { echo "ÉCHEC : échec sans le module ni la commande."; echo "$OUT"; exit 1; }
+
+echo "→ verbes : la commande déclarée s'exécute depuis le dossier du module, quelle que soit la stack"
+python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF'
+import sys, yaml
+chemin = sys.argv[1]
+data = yaml.safe_load(open(chemin, encoding="utf-8"))
+data["commands"] = {"check": "test -f MANIFEST.yaml && echo stack-libre", "test": "true"}
+yaml.safe_dump(data, open(chemin, "w", encoding="utf-8"), allow_unicode=True)
+EOF
+OUT=$(uv run nstack check demo --root "$SC" 2>&1) && echo "$OUT" | grep -qx "stack-libre" \
+  || { echo "ÉCHEC : la commande déclarée ne s'exécute pas depuis le module."; echo "$OUT"; exit 1; }
+
+echo "→ verbes : sans module, tous les modules, premier échec nommé"
+uv run nstack new-module zeta acme/equipe-zeta standard --root "$SC" >/dev/null
+if OUT=$(uv run nstack check --root "$SC" 2>&1); then
+  echo "ÉCHEC : un module non déclaré est passé au vert."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qx "stack-libre" && echo "$OUT" | grep -qF "ÉCHEC [check] module 'zeta'" \
+  || { echo "ÉCHEC : modules non parcourus ou échec non nommé."; echo "$OUT"; exit 1; }
+
+echo "→ verbes : bootstrap facultatif ; run non déclaré et module inconnu DOIVENT échouer"
+uv run nstack bootstrap demo --root "$SC" | grep -qF "rien à préparer" \
+  || { echo "ÉCHEC : bootstrap absent mal traité."; exit 1; }
+for cas in "run demo|commands.run non déclarée" "test inconnu|module 'inconnu' introuvable"; do
+  IFS='|' read -r arguments message <<<"$cas"
+  # shellcheck disable=SC2086
+  if OUT=$(uv run nstack $arguments --root "$SC" 2>&1); then
+    echo "ÉCHEC : nstack $arguments accepté."; exit 1
+  fi
+  echo "$OUT" | grep -qF "$message" || { echo "ÉCHEC : message « $message » absent."; echo "$OUT"; exit 1; }
+done
 
 echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
 FT=$(mktemp -d)
@@ -465,6 +516,16 @@ fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "Aucun fichier modifié" \
   || { echo "ÉCHEC : nstack pr-scope ne répond pas dans le projet."; exit 1; }
 
+echo "→ new-module : dans le projet, le module passe fitness et hooks sans stack imposée (critère 3)"
+nstack new-module demo acme/equipe-demo standard --root "$CLONE" >/dev/null
+if ! OUT=$(nstack fitness --root "$CLONE" 2>&1); then
+  echo "ÉCHEC : le module sans stack ne passe pas les fitness functions."; echo "$OUT"; exit 1
+fi
+git -C "$CLONE" add -A
+if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run 2>&1); then
+  echo "ÉCHEC : le module généré ne passe pas les hooks du projet."; echo "$OUT"; exit 1
+fi
+
 # Mises à jour : gabarit jetable à trois versions, construit depuis l'arbre de travail.
 TPL="$GN/gabarit"
 mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"
@@ -491,7 +552,7 @@ A="$GN/projet-a"
 projet_v01 "$A"
 sed -i '1s/.*/# Tests — adaptation locale/' "$A/playbooks/tests.md"
 rm "$A/docs/pdr/_TEMPLATE.md"
-nstack new-module demo equipe-demo standard --root "$A" >/dev/null
+nstack new-module demo acme/equipe-demo standard --root "$A" >/dev/null
 commit_projet "$A" "Adaptations et premier module"
 MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
 

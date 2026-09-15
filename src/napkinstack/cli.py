@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from napkinstack import __version__, doctor, skills
+from napkinstack import __version__, doctor, modules, skills
 from napkinstack.fitness import boundaries, manifests
 
 PACKAGE = Path(__file__).resolve().parent
@@ -68,11 +68,19 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: _fitness(a.root))
     _add(sub, "doctor", "diagnostique le poste et les réglages GitHub, en lecture seule (PDR-0001)",
          lambda a: doctor.run(a.root))
-    nm = _add(sub, "new-module", "crée un module et ses garde-fous",
-              lambda a: _script("scaffold/new-module.sh", a.name, a.owner, a.criticality, root=a.root))
-    nm.add_argument("name")
-    nm.add_argument("owner")
+    nm = _add(sub, "new-module", "crée un module et ses garde-fous, sans stack imposée",
+              lambda a: modules.nouveau(a.root, a.name, a.owner, a.criticality))
+    nm.add_argument("name", help="nom du module, kebab-case")
+    nm.add_argument("owner", help="équipe GitHub, organisation/équipe")
     nm.add_argument("criticality", choices=["prototype", "standard", "eleve", "critique"])
+    for nom_verbe, aide in (("bootstrap", "prépare un module, ou tous (commands.bootstrap)"),
+                            ("check", "format, lint, types d'un module, ou de tous (commands.check)"),
+                            ("test", "tests d'un module, ou de tous (commands.test)")):
+        vb = _add(sub, nom_verbe, aide, lambda a, v=nom_verbe: modules.verbe(a.root, v, a.module))
+        vb.add_argument("module", nargs="?", help="nom du module (défaut : tous)")
+    rn = _add(sub, "run", "démarre un module en local (commands.run)",
+              lambda a: modules.verbe(a.root, "run", a.module))
+    rn.add_argument("module")
     ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
