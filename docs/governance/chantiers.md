@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M3 fait, M3.1 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M3.1 fait, M3.2 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -318,7 +318,7 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D3 | Tests des garde-fous absents de la CI | C0 |
 | D4 | Checks sans test d'échec (P5) : M1, M3–M9, B1–B5, S1–S2, P1–P2 | À ordonnancer |
 | D5 | M1 documenté mais non implémenté | À ordonnancer |
-| D6 | ~34 références mortes `docs/0X-….md`, dont 3 dans le kernel | À ordonnancer |
+| D6 | ~34 références mortes `docs/0X-….md`, dont 3 dans le kernel | M3.2 : renvois corrigés, gardés par un test |
 | D7 | « Module » défini 5 fois, différemment (fitness, `pr_scope.sh`, workflow, scaffold) | À ordonnancer |
 | D8 | Manifest malformé : traceback au lieu d'un message (P6) | À ordonnancer |
 | D9 | Déclarations sans effet : `review_budget` jamais lu, étapes par criticité en `echo TODO` | À ordonnancer |
@@ -331,10 +331,10 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | Organisation (2026-09-14) |
 | D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | M1 : uv seul prérequis |
-| D19 | Scaffold : `sed` casse sur un owner contenant `/` | Replanification |
+| D19 | Scaffold : `sed` casse sur un owner contenant `/` | M4 |
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
 | D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | M1 : `--root` |
-| D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | C1, plan d'implémentation |
+| D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | M4 |
 | D23 | Moteur installé : `SOURCE_SUFFIXES` et `IMPORT_HINTS` de `boundaries.py` ne se calibrent plus depuis un projet (trouvé par M2a) | À ordonnancer |
 
 ---

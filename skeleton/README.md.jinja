@@ -4,9 +4,26 @@
 
 ---
 
-> **Ce dépôt est né d'un starter AI Engineering OS.** Cette section est le mode
-> d'emploi du socle. Remplace-la par le README de ton projet une fois l'installation
-> terminée — les instructions restent dans `docs/os/`.
+> **Ce projet a été créé par `nstack init`**, la commande du framework de travail
+> NapkinStack. Cette section est le mode d'emploi du socle. Remplace-la par le README de
+> ton projet une fois l'installation terminée — la méthode reste dans `docs/os/`.
+
+```mermaid
+flowchart LR
+    I["nstack init<br/>projet créé et commité"]:::cmd --> G["Dépôt GitHub<br/>checklist appliquée"]:::equipe
+    G --> D["nstack doctor<br/>poste et réglages"]:::cmd
+    D --> M["nstack new-module<br/>premier module"]:::cmd
+    M --> W["Travail en PR<br/>CI : fitness, hooks, secrets"]:::equipe
+    W --> U["nstack update<br/>nouvelle version, branche relue"]:::cmd
+    U --> W
+
+    classDef cmd fill:#1f2937,color:#fff
+    classDef equipe fill:#065f46,color:#fff
+```
+
+**Légende** — gris : commande `nstack` · vert : travail de l'équipe et de son agent.
+La CI tranche dès que les rulesets l'exigent : ce qui n'y passe pas ne fusionne pas
+(voir « Prérequis »).
 
 ## Prérequis
 
@@ -171,7 +188,7 @@ feedback rapide, pas une garantie : les checks bloquants restent en CI
 
 ## Ce qui n'est pas fourni — et pourquoi
 
-Aucune stack : ni langage, ni framework, ni base de données. L'OS impose une **méthode
+Aucune stack : ni langage, ni framework applicatif, ni base de données. L'OS impose une **méthode
 de sélection** et une trace de décision, pas une liste de technologies
 (`docs/os/06-decisions.md` §7).
 

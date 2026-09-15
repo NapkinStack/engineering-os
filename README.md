@@ -1,12 +1,15 @@
 # NapkinStack
 
-Cadre de travail pour faire travailler plusieurs équipes et leurs agents sur un même
-dépôt : modules, contrats, garde-fous en CI.
+Framework de travail pour faire travailler plusieurs équipes et leurs agents sur un même
+dépôt : modules, contrats, garde-fous en CI. Sur le modèle de Django ou Rails, une commande
+crée le projet, qui reçoit ensuite les nouvelles versions à sa demande ; aucune stack
+applicative n'est imposée. Positionnement et vocabulaire : [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **État : en construction (v0.1.0).** `nstack init` et `nstack update` fonctionnent depuis
-> ce dépôt ; la première version publiée arrive au chantier M5, le mode d'emploi complet au
-> chantier M6.
-> Suivi : [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+> **État : en construction (v0.1.0).** `nstack init`, `nstack update` et `nstack doctor`
+> fonctionnent depuis ce dépôt ; la première version publiée arrive au chantier M5, le mode
+> d'emploi complet au chantier M6.
+> Suivi : [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
+> [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
 ```mermaid
 flowchart LR
@@ -40,6 +43,7 @@ uv run pre-commit install
 uv run nstack fitness                 # garde-fous du dépôt
 uv run bash platform/tests/run.sh     # oracle : chaque garde-fou prouve qu'il sait échouer
 uv run nstack init /tmp/essai --source . --ref HEAD   # projet d'essai depuis l'arbre de travail
+uv run nstack doctor --root /tmp/essai                # poste et réglages GitHub, en lecture seule
 ```
 
 Avant toute contribution : [`PRODUCT.md`](PRODUCT.md).

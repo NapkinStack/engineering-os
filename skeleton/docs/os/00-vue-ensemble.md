@@ -127,7 +127,7 @@ revue elle-même.
 
 ## 5. Ce que l'OS n'impose pas
 
-- **Aucune stack technique.** Ni langage, ni framework, ni base de données, ni cloud.
+- **Aucune stack technique.** Ni langage, ni framework applicatif, ni base de données, ni cloud.
   L'OS impose une *méthode de sélection* et une trace de décision. Voir
   `06-decisions.md`.
 - **Aucune structure interne de module.** Deux modules peuvent avoir des architectures
@@ -147,6 +147,8 @@ Ces termes ont un sens précis dans l'OS. Les utiliser autrement crée de l'ambi
 |---|---|
 | **Module** | Unité de contexte autonome et de parallélisme : un développeur ou un agent doit pouvoir la comprendre, la modifier, la tester et la valider **sans comprendre le reste du système**. Peut être un package, une application, un service ou un repository. |
 | **Playbook** | Module d'*instructions* pour agent, chargé à la demande (`playbooks/`). Appelé « playbook » et non « module » pour éviter toute confusion avec la ligne précédente. |
+| **Squelette** | Fichiers communs du projet — kernel, playbooks, ce manuel, CI, hooks, modèles — générés par le moteur ; le projet les possède et les adapte. |
+| **Moteur** | Outil versionné qui génère le squelette, le met à jour et exécute les contrôles ; nommé dans `docs/tooling-profile.md`. |
 | **Contrat** | Interface versionnée et testée entre deux modules : API, événement, schéma, message. Le **seul** canal de communication inter-modules autorisé. |
 | **Manifest** | Fichier déclaratif à la racine de chaque module : identité, owner, criticité, statut, contrats produits et consommés, commandes standards. Source de vérité machine-lisible. |
 | **Oracle** | Critère de réussite *exécutable* d'une tâche, écrit et vu échouer **avant** la génération : test, contract test, ou fitness function. |
