@@ -1,21 +1,51 @@
 # PRODUCT — NapkinStack
 
-> **Ce fichier n'a pas sa place dans un projet client.** S'il est présent dans un dépôt
-> créé à partir du template, c'est une erreur d'installation : supprime-le.
+> **Ce fichier n'a pas sa place dans un projet client.** S'il est présent dans un projet
+> créé par `nstack init`, c'est une erreur d'installation : supprime-le.
 > `nstack doctor` le signale.
 >
-> Il décrit ce qu'est le produit et comment travailler **sur** l'OS, pas **avec** lui.
+> Il décrit ce qu'est le produit et comment travailler **sur** NapkinStack, pas **avec** lui.
 > À lire en premier par tout humain ou agent qui contribue ici.
 
 ---
 
-## 1. Le double rôle de ce dépôt
+## 1. Ce qu'est NapkinStack, et le double rôle de ce dépôt
 
-Ce dépôt est **le produit NapkinStack**. Ce n'est pas un projet qui utilise l'OS : c'est
-l'OS lui-même, dont `nstack init` génère les projets futurs (PDR-0001).
+NapkinStack est un **framework de travail**, sur le modèle de Django ou Rails : une
+commande crée le projet, qui possède ensuite son squelette et reçoit les nouvelles versions
+à sa demande (PDR-0001). Ce n'est **pas** un framework applicatif : aucun langage, aucune
+base, aucune architecture interne n'est imposé.
 
-Il est aussi son **premier utilisateur**. Un socle qui ne tient pas ses propres règles
-ne tiendra chez personne.
+```mermaid
+flowchart TB
+    NS["NapkinStack<br/>framework de travail"]:::produit
+    NS --> E["Moteur nstack<br/>init · update · doctor · fitness"]:::livre
+    NS --> S["Squelette de projet<br/>généré, possédé par le projet"]:::livre
+    S --> OS["L'OS : la méthode<br/>kernel · playbooks · manuel"]:::contenu
+    S --> G["Garde-fous<br/>CI · hooks · CODEOWNERS · checklist GitHub"]:::contenu
+    A["Agent de l'équipe<br/>Claude Code, Codex, Copilot…"]:::externe -.->|"lit et applique"| OS
+    A -.->|"lance"| E
+
+    classDef produit fill:#1e3a8a,color:#fff
+    classDef livre fill:#1f2937,color:#fff
+    classDef contenu fill:#065f46,color:#fff
+    classDef externe fill:#6b7280,color:#fff
+```
+
+**Légende** — bleu : le produit · gris foncé : ce qu'il livre · vert : le contenu du
+squelette · gris clair, pointillés : l'agent de l'équipe, qui utilise le framework ;
+NapkinStack n'embarque aucune IA.
+
+| Terme | Sens, partout dans le dépôt |
+|---|---|
+| **Framework** | NapkinStack : le moteur et le squelette, versionnés ensemble |
+| **Moteur** | La commande `nstack`, dépendance épinglée par le projet |
+| **Squelette** | Ce que `nstack init` génère (`skeleton/` ici) ; le projet le possède |
+| **OS** | La méthode : kernel, playbooks, manuel ; générique et sans marque (P2, P7) |
+| **Socle** | Les règles et garde-fous communs d'un projet, portés par son équipe socle |
+
+Ce dépôt développe NapkinStack ; il est aussi son **premier utilisateur**. Un socle qui ne
+tient pas ses propres règles ne tiendra chez personne.
 
 D'où une règle de désambiguïsation à garder en tête en permanence :
 
@@ -52,8 +82,9 @@ la vigilance de quiconque.
    première ligne.
 
 **Ce qu'on ne vend pas.** Ni stack, ni framework applicatif, ni architecture interne,
-ni liste d'outils. NapkinStack fournit la couche qui permet à **la stack du client** de
-tenir à plusieurs équipes.
+ni liste d'outils, ni IA intégrée : l'agent de l'équipe utilise le framework.
+NapkinStack fournit la couche qui permet à **la stack du client** de tenir à plusieurs
+équipes.
 
 ---
 
@@ -115,15 +146,19 @@ Ne construis pas, ne propose pas :
 - des fitness functions au-delà du chantier en cours — les suivantes sont priorisées
   dans `skeleton/docs/os/07-gouvernance.md` §3, et leur besoin n'est pas démontré ;
 - de l'abstraction ou de la configuration pour un usage unique ;
-- une interface web, un tableau de bord, un service.
+- une interface web, un tableau de bord, un service ;
+- une IA intégrée à `nstack` (clé d'API, appel de modèle) : l'agent de l'équipe utilise le
+  framework, et ses propositions passent les mêmes garde-fous que le reste.
 
 ## 7. État actuel
 
-Le socle est complet côté règles. Côté garde-fous, les checks existent mais plusieurs
-sont défaillants ou n'ont aucun test qui prouve qu'ils échouent (P5), et le manuel promet
-des contrôles qui ne sont pas implémentés. Le produit évolue vers un modèle *framework*,
-accepté dans le PDR-0001 (`docs/pdr/`) après prototype. Défauts, décisions et ordre de
-traitement : `docs/governance/chantiers.md`.
+NapkinStack v0.1.0 est en construction. Le moteur et le squelette fonctionnent depuis ce
+dépôt : `nstack init`, `update`, `doctor` et les fitness functions. Restent le module sans
+stack imposée, la documentation produit et la première publication, puis le projet pilote,
+privé. Des contrôles hérités n'ont pas encore de test qui prouve leur échec (D4), et le
+manuel en promet d'autres qui ne sont pas implémentés (D15).
 
-La roadmap au-delà : ouvrir un premier module réel, et laisser l'usage dicter les
-fitness functions suivantes. Rien ne se construit avant d'avoir servi une fois.
+Feuille de route : `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Défauts et
+décisions : `docs/governance/chantiers.md`. Au-delà, laisser l'usage du pilote dicter les
+fitness functions et les adaptateurs d'agent suivants : rien ne se construit avant d'avoir
+servi une fois.

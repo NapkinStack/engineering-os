@@ -42,44 +42,41 @@ autour de leur préservation.
 | Vous êtes… | Lisez, dans l'ordre |
 |-----------|---------------------|
 | **Un agent IA** | `AGENTS.md` (kernel) + l'`AGENTS.md` local du module + les playbooks déclenchés |
-| **Un nouveau développeur** | `docs/00-vue-ensemble.md` → `docs/02-modules.md` → `docs/05-workflow.md` |
-| **Un tech lead / architecte** | `docs/00` → `02` → `03` → `07` |
-| **Un product owner** | `docs/00-vue-ensemble.md` → `docs/06-decisions.md` |
-| **Celui qui met en place le starter** | `docs/09-plateforme.md` puis tous les `templates/` |
+| **Un nouveau développeur** | `00-vue-ensemble.md` → `02-modules.md` → `05-workflow.md` |
+| **Un tech lead / architecte** | `00-vue-ensemble.md` → `02` → `03` → `07` |
+| **Un product owner** | `00-vue-ensemble.md` → `06-decisions.md` |
+| **Celui qui crée le projet** | Le `README.md` du projet, puis `09-plateforme.md` |
 
-### Contenu
+### Contenu du projet
 
 ```
 .
-├── README.md                     ← vous êtes ici
+├── README.md                     Mode d'emploi du projet
 ├── AGENTS.md                     ← LE KERNEL : résident, chargé à chaque tâche
+├── CONTRIBUTING.md, SECURITY.md
 │
 ├── docs/
-│   ├── 00-vue-ensemble.md        Architecture de l'OS, les 4 couches, glossaire
-│   ├── 01-principes.md           Principes non négociables et anti-patterns
-│   ├── 02-modules.md             Frontières, manifest, cycle de vie, une PR = un module
-│   ├── 03-contrats.md            Versioning, expand/contract, contract tests
-│   ├── 04-contexte-ia.md         Context firewall, budget de contexte, franchissement
-│   ├── 05-workflow.md            Boucle verification-first, DoR/DoD, budget de revue
-│   ├── 06-decisions.md           ADR/PDR, Prior Art Gate, critères de succès datés
-│   ├── 07-gouvernance.md         Où vit une règle, fitness functions, CI, quality gates
-│   ├── 08-qualite.md             Tests, sécurité, fiabilité, données, UX, QA, UAT
-│   ├── 09-plateforme.md          Verbes standards, arborescence, outillage, onboarding
-│   └── 10-mesure.md              Métriques, boucle de feedback, revue des décisions
+│   ├── os/                       ← ce manuel
+│   │   ├── README.md             vous êtes ici
+│   │   ├── 00-vue-ensemble.md    Architecture de l'OS, les 4 couches, glossaire
+│   │   ├── 01-principes.md       Principes non négociables et anti-patterns
+│   │   ├── 02-modules.md         Frontières, manifest, cycle de vie, une PR = un module
+│   │   ├── 03-contrats.md        Versioning, expand/contract, contract tests
+│   │   ├── 04-contexte-ia.md     Context firewall, budget de contexte, franchissement
+│   │   ├── 05-workflow.md        Boucle verification-first, DoR/DoD, budget de revue
+│   │   ├── 06-decisions.md       ADR/PDR, Prior Art Gate, critères de succès datés
+│   │   ├── 07-gouvernance.md     Où vit une règle, fitness functions, CI, quality gates
+│   │   ├── 08-qualite.md         Tests, sécurité, fiabilité, données, UX, QA, UAT
+│   │   ├── 09-plateforme.md      Verbes standards, arborescence, outillage, onboarding
+│   │   └── 10-mesure.md          Métriques, boucle de feedback, revue des décisions
+│   ├── tooling-profile.md        Capacités → outils du moment
+│   ├── adr/, pdr/                Décisions, et leurs modèles _TEMPLATE.md
+│   └── architecture/, runbooks/
 │
 ├── playbooks/                    ← modules d'instructions chargés à la demande
-│   ├── securite.md
-│   ├── tests.md
-│   ├── donnees-migration.md
-│   ├── ux.md
-│   └── exploitation.md
-│
-└── templates/
-    ├── MANIFEST.example.yaml     Manifest de module
-    ├── adr.md                    Architecture Decision Record
-    ├── pdr.md                    Product Decision Record
-    ├── issue-feature.md          Issue form type
-    └── pull_request_template.md
+├── modules/                      Le code : une unité de parallélisme par dossier
+├── contracts/                    Le seul canal entre modules
+└── .github/                      CI, CODEOWNERS, modèles d'issue et de PR
 ```
 
 ---
@@ -96,7 +93,7 @@ Ce qu'un agent charge, c'est :
 - un ou plusieurs `playbooks/` (uniquement si déclenchés).
 
 Si vous avez besoin de mettre une règle dans le kernel, relisez d'abord
-`docs/07-gouvernance.md` § « Où vit cette règle ? ». La réponse est très souvent
+`07-gouvernance.md` § « Où vit cette règle ? ». La réponse est très souvent
 « en CI », pas « dans le prompt ».
 
 ---

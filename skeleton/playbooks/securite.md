@@ -79,7 +79,7 @@ C'est la source de vulnérabilité la plus fréquente, et la plus facile à test
 
 | Situation | Action | Vérification |
 |---|---|---|
-| Nouvelle dépendance | Filtre niche (`docs/06-decisions.md` §3) + déclaration au manifest | Check : dépendance non déclarée → rouge |
+| Nouvelle dépendance | Filtre niche (`docs/os/06-decisions.md` §3) + déclaration au manifest | Check : dépendance non déclarée → rouge |
 | Vulnérabilité signalée | Traiter selon la sévérité et l'exposition réelle, pas seulement le score | Analyse automatisée en CI |
 | Dépendance non maintenue | Ouvrir une issue *Dette technique* avec la stratégie de sortie | Revue de dépendances |
 

@@ -14,6 +14,23 @@ uv run nstack manifests --root .
 echo "→ frontières du dépôt conformes"
 uv run nstack boundaries --root .
 
+GIT_ID_RM=(-c user.name=test -c user.email=test@example.invalid)
+echo "→ docs : un renvoi vers l'ancien emplacement du manuel (docs/0X-…) DOIT échouer (D6)"
+renvois_morts() {  # $1 = racine d'un dépôt git ; affiche les renvois morts, vrai s'il y en a
+  git -C "$1" grep -n -E '(^|[^/a-z])docs/0[0-9]-' -- ':!docs/governance/'
+}
+RM=$(mktemp -d)
+git "${GIT_ID_RM[@]}" init -q "$RM"
+# Renvoi assemblé à l'exécution : écrit en dur, il serait lui-même détecté dans ce fichier.
+printf 'Voir `docs/%s-contrats.md` §4.\n' 03 > "$RM/regle.md"
+git -C "$RM" add regle.md
+renvois_morts "$RM" >/dev/null || { echo "ÉCHEC : renvoi mort non détecté."; rm -rf "$RM"; exit 1; }
+rm -rf "$RM"
+if MORTS=$(renvois_morts .); then
+  echo "ÉCHEC : renvois vers docs/0X-… ; le manuel vit dans docs/os/ (skeleton/docs/os/ à la racine) :"
+  echo "$MORTS"; exit 1
+fi
+
 echo "→ un manifest invalide DOIT échouer"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/cassé"

@@ -21,8 +21,6 @@ runbook, tests et configuration.
 
 ## Fitness functions
 
-| Fichier | Contrôles |
-|---|---|
 | Commande | Contrôles |
 |---|---|
 | `nstack manifests` | M1–M9 : champs, cycles de vie, dates de dépréciation, runbook, enveloppe |

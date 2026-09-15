@@ -12,7 +12,7 @@ Closes #
 - [ ] ⚠️ Cross-module — label `cross-module` requis, justification ci-dessous
 
 <Justification si cross-module. Rappel : un changement de contrat se fait en
-séquence expand/contract, pas en une PR (`docs/03-contrats.md`).>
+séquence expand/contract, pas en une PR (`docs/os/03-contrats.md`).>
 
 ## Ce que ça change
 
@@ -21,7 +21,7 @@ cette section dit pourquoi.>
 
 ## Oracle
 
-> `docs/05-workflow.md` §3
+> `docs/os/05-workflow.md` §3
 
 - [ ] Le critère de réussite a été écrit **avant** l'implémentation
 - [ ] Il a été vu **échouer**, pour la bonne raison
@@ -34,7 +34,7 @@ budget · autre : <préciser>
 
 ## Budget de revue
 
-> `docs/05-workflow.md` §4
+> `docs/os/05-workflow.md` §4
 
 - Lignes modifiées (hors généré) : <n>
 - Fichiers touchés : <n>
@@ -57,7 +57,7 @@ budget · autre : <préciser>
 ## Definition of Done
 
 > Cocher ce qui est **applicable** selon la criticité du module
-> (`docs/05-workflow.md` §7). Ne jamais cocher une case sans avoir réellement exécuté.
+> (`docs/os/05-workflow.md` §7). Ne jamais cocher une case sans avoir réellement exécuté.
 
 - [ ] Oracle vert
 - [ ] Lint, format, types
@@ -79,7 +79,7 @@ budget · autre : <préciser>
 ## Résumé
 
 > Format imposé. Les trois dernières sections sont les plus importantes et les plus
-> souvent escamotées. (`docs/05-workflow.md` §8)
+> souvent escamotées. (`docs/os/05-workflow.md` §8)
 
 **FAIT**
 <une phrase par changement>
@@ -101,8 +101,8 @@ budget · autre : <préciser>
 ## Signaux à remonter
 
 - [ ] J'ai dû regarder l'implémentation d'un autre module → **signal de mauvaise
-  frontière** (`docs/02-modules.md` §9)
+  frontière** (`docs/os/02-modules.md` §9)
 - [ ] Une règle du kernel ou d'un playbook m'a gêné sans raison valable
 - [ ] Une quality gate a bloqué sans améliorer la qualité
 - [ ] Une règle appliquée manuellement mériterait d'être automatisée
-  → backlog d'automatisation (`docs/07-gouvernance.md` §9)
+  → backlog d'automatisation (`docs/os/07-gouvernance.md` §9)

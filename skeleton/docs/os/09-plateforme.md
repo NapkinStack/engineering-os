@@ -44,7 +44,7 @@ tests système — et c'est un signal de mauvaise frontière (`02-modules.md` §
 
 ---
 
-## 3. Arborescence du starter
+## 3. Arborescence du squelette
 
 ```
 project/
@@ -176,7 +176,7 @@ obligatoires.
 > Les outils sont des **adaptateurs**, jamais des fondations architecturales.
 
 L'OS ne prescrit aucun outil, pour une raison simple : l'écosystème change plus vite que
-les principes. Un starter qui impose « utilisez tel plugin et telle extension » sera
+les principes. Un squelette qui impose « utilisez tel plugin et telle extension » sera
 faux dans douze mois, alors que ses principes tiendront.
 
 L'OS déclare donc des **capacités**, et un *profil d'outillage* (`docs/tooling-profile.md`)
@@ -203,14 +203,14 @@ uniquement en interactif ne peut pas devenir une garantie.
 
 ---
 
-## 7. Le starter comme plateforme interne miniature
+## 7. Le squelette comme plateforme interne miniature
 
 Un nouveau projet démarre avec les conventions, les contrôles, les templates et les
 workflows **déjà prêts**. C'est ce qui rend l'OS réel plutôt que théorique : sans
-starter, chaque projet réimplémente les mêmes mécanismes, avec des variations qui
+squelette, chaque projet réimplémente les mêmes mécanismes, avec des variations qui
 finissent par empêcher toute mutualisation.
 
-Ce que le starter fournit dès le premier jour :
+Ce que le squelette fournit dès le premier jour :
 
 - le kernel et les playbooks ;
 - les verbes standards et leur implémentation de référence ;

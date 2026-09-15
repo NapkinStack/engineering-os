@@ -7,7 +7,7 @@
 
 ## Règle d'entrée : la convention prime
 
-C'est le terrain où le Prior Art Gate (`docs/06-decisions.md`) est le plus rentable.
+C'est le terrain où le Prior Art Gate (`docs/os/06-decisions.md`) est le plus rentable.
 
 > Sur un pattern d'interface, la valeur de la convention vient **précisément du fait que
 > l'utilisateur la connaît déjà**. Une innovation d'interface non demandée est un coût
