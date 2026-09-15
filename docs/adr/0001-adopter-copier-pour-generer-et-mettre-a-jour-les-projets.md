@@ -1,6 +1,6 @@
 # ADR-0001 — Adopter Copier pour générer et mettre à jour les projets
 
-- **Statut** : Proposé
+- **Statut** : Accepté (2026-09-15, après prototype)
 - **Date** : 2026-09-15
 - **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
 - **Portée** : projet (moteur et squelette de projet)
@@ -104,8 +104,10 @@ Règles d'usage :
 2. **Versions = tags du dépôt**, au format PEP 440 exigé par Copier.
 3. **Aucune fonction « unsafe »** (tâches, migrations, extensions Jinja) : le moteur
    n'active jamais `unsafe`, et Copier refuse ces fonctions par défaut.
-4. **Conflits en ligne** (défaut de Copier) : le hook `check-merge-conflict` du squelette
-   et la CI du projet refusent tout marqueur restant.
+4. **Conflits en ligne** (défaut de Copier) : le hook `check-merge-conflict`, avec
+   `--assume-in-merge` comme le recommande Copier, et la CI du projet refusent tout
+   marqueur restant. Sans cet argument, le hook ignore les marqueurs écrits hors merge
+   git (D20, constaté par le prototype).
 5. **Suffixe `.jinja` uniquement** sur les fichiers qui contiennent une variable ; tous
    les autres sont copiés tels quels et restent lisibles et vérifiables.
 
@@ -120,6 +122,9 @@ Aucune.
 *(Convention adoptée : critère non obligatoire.)* Validation par le prototype de
 PDR-0001 : ses critères d'acceptation 1 et 4 à 7 passent avec Copier, sans code de
 fusion propre à NapkinStack.
+
+**Constaté le 2026-09-15** : critères 1, 4, 6 et 7 validés, critère 5 validé avec
+`--assume-in-merge` ; refus natifs de Copier confirmés (arbre sale, retour arrière).
 
 Si ce n'est pas le cas : superséder par une option documentée dans une nouvelle ADR.
 
