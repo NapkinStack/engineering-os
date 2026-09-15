@@ -55,7 +55,8 @@ flowchart LR
 bleu : PyPI. Décision : [ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pypi.md).
 
 1. Monter la version dans une PR : `uv version --bump patch` (ou `minor`), puis la fusionner.
-2. Poser le tag sur le commit fusionné : `git tag vX.Y.Z <commit>` puis `git push origin vX.Y.Z`.
+2. Poser le tag sur le commit fusionné : `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>`,
+   puis `git push origin vX.Y.Z`.
 3. Approuver le déploiement dans GitHub Actions (« Review deployments »).
 
 Aucun secret n'est stocké : GitHub prouve son identité à PyPI à chaque publication. Une

@@ -154,11 +154,11 @@ Ne construis pas, ne propose pas :
 
 ## 7. État actuel
 
-NapkinStack v0.1.0 est en construction. Le moteur et le squelette fonctionnent depuis ce
-dépôt : `nstack init`, `update`, `doctor`, `new-module`, les verbes des modules et les
-fitness functions ; chaque contrôle a un test qui prouve son échec. Restent la première
-publication et le projet pilote, privé. Les contrôles que le manuel décrit sans qu'ils
-soient automatisés sont marqués comme tels et inscrits au backlog d'automatisation.
+NapkinStack v0.1.0 est publié sur PyPI (2026-09-15), avec attestation de provenance :
+`nstack init`, `update`, `doctor`, `new-module`, les verbes des modules et les fitness
+functions ; chaque contrôle a un test qui prouve son échec. Reste le projet pilote, privé,
+premier usage réel. Les contrôles que le manuel décrit sans qu'ils soient automatisés sont
+marqués comme tels et inscrits au backlog d'automatisation.
 
 Feuille de route : `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Défauts et
 décisions : `docs/governance/chantiers.md`. Au-delà, laisser l'usage du pilote dicter les

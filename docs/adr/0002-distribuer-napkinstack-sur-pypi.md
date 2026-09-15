@@ -1,6 +1,6 @@
 # ADR-0002 — Distribuer NapkinStack sur PyPI
 
-- **Statut** : Proposé
+- **Statut** : Accepté (2026-09-15, après la publication de la v0.1.0)
 - **Date** : 2026-09-15
 - **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
 - **Portée** : projet (moteur)
@@ -109,6 +109,17 @@ Aucune.
 par `uv tool install napkinstack` sur un poste neuf, affiche son attestation de provenance
 sur PyPI, et sa publication n'a utilisé aucun secret stocké.
 
+**Constaté le 2026-09-15**, sur la v0.1.0 :
+
+- `uv tool install napkinstack==0.1.0 --with-executables-from pre-commit`, dossiers d'outils
+  et cache isolés : `nstack 0.1.0` et `pre-commit` installés ; `nstack init` crée un projet
+  depuis le tag publié, qui passe ses fitness functions, ses hooks et `nstack new-module` ;
+- API d'intégrité de PyPI : une attestation pour le wheel et une pour l'archive source,
+  éditeur de confiance GitHub, dépôt `NapkinStack/engineering-os`, workflow `release.yml`,
+  environnement `pypi` ;
+- aucun secret : `release.yml` n'en référence aucun, l'action PyPA ne reçoit pas de mot de
+  passe et échange le jeton OpenID Connect du job.
+
 ---
 
 ## Conséquences
@@ -122,8 +133,8 @@ sur PyPI, et sa publication n'a utilisé aucun secret stocké.
 **Négatives et dette acceptée :**
 
 - La politique d'actions de l'organisation s'élargit à deux actions nommées.
-- Un compte PyPI à l'identité NapkinStack est à créer, 2FA obligatoire, avec un éditeur
-  de confiance en attente avant la première publication. C'est une action humaine.
+- Un compte PyPI à l'identité NapkinStack, 2FA obligatoire, porte l'éditeur de confiance ;
+  sa gestion reste une action humaine.
 - Le nom `nstack` reste un nom de commande non réservé : un autre outil pourrait
   l'installer un jour.
 

@@ -5,9 +5,9 @@ dépôt : modules, contrats, garde-fous en CI. Sur le modèle de Django ou Rails
 crée le projet, qui reçoit ensuite les nouvelles versions à sa demande ; aucune stack
 applicative n'est imposée. Positionnement et vocabulaire : [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **État : en construction (v0.1.0).** Toutes les commandes fonctionnent depuis ce dépôt ;
-> la première version publiée sur PyPI arrive au chantier M5, avant un premier projet
-> pilote. Suivi : [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
+> **État : v0.1.0, première version publiée** ([PyPI](https://pypi.org/project/napkinstack/)).
+> Un premier projet pilote, privé, l'éprouve avant la suite. Suivi :
+> [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
 > [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
 ## Le parcours d'un projet
@@ -58,8 +58,9 @@ uv tool install napkinstack --with-executables-from pre-commit   # prérequis : 
 nstack init mon-projet
 ```
 
-Disponible dès la publication de la v0.1.0 sur PyPI ; chaque projet épingle ensuite sa
-version et la change par `nstack update`.
+Chaque projet épingle ensuite sa version et la change par `nstack update`. Toute version
+publiée porte une attestation de provenance, visible sur PyPI, qui la relie au workflow et
+au commit de ce dépôt ([ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pypi.md)).
 
 ## Les commandes
 
