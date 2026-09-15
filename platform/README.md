@@ -6,33 +6,39 @@ construit ailleurs, c'est un échec de la plateforme.
 
 ## Contenu
 
+Le code du moteur vit dans `src/napkinstack/` et s'exécute par la commande `nstack`
+(`uv run nstack --help`). Ce dossier garde l'enveloppe du module : manifest, consignes,
+runbook, tests et configuration.
+
 | Chemin | Rôle |
 |---|---|
-| `fitness/` | Les checks d'architecture, non contournables |
-| `scaffold/` | Création d'un module avec ses garde-fous actifs |
-| `templates/module/` | Le squelette copié par le scaffold |
-| `sync_skills.py` | Génère les skills Claude Code depuis les playbooks |
+| `src/napkinstack/fitness/` | Les checks d'architecture, non contournables |
+| `src/napkinstack/scaffold/` | Création d'un module avec ses garde-fous actifs, et son squelette |
+| `src/napkinstack/skills.py` | Génère les skills Claude Code depuis les playbooks |
 | `skills.yaml` | Frontmatter des skills — nom et description de déclenchement |
 | `tooling-profile.md` | Mapping capacités → outils du moment |
+| `tests/run.sh` | L'oracle : chaque garde-fou prouve qu'il sait échouer |
 
 ## Fitness functions
 
 | Fichier | Contrôles |
 |---|---|
-| `fitness/manifests.py` | M1–M9 : champs, cycles de vie, dates de dépréciation, runbook, enveloppe |
-| `fitness/boundaries.py` | B1–B5 : graphe déclaré vs réel, imports internes, cycles, accès données |
-| `fitness/pr_scope.sh` | P1–P2 : une PR = un module, budget de revue |
+| Commande | Contrôles |
+|---|---|
+| `nstack manifests` | M1–M9 : champs, cycles de vie, dates de dépréciation, runbook, enveloppe |
+| `nstack boundaries` | B1–B5 : graphe déclaré vs réel, imports internes, cycles, accès données |
+| `nstack pr-scope` | P1–P2 : une PR = un module, budget de revue |
 
 ```bash
-make fitness      # manifests + frontières
-./platform/fitness/pr_scope.sh origin/main
+uv run nstack fitness                      # manifests + frontières + skills
+uv run nstack pr-scope --base origin/main
 ```
 
 ## Skills
 
 ```bash
-make skills          # génère .claude/skills/
-make skills-check    # S1, S2, S4 bloquants en CI ; S3 dès que des skills sont générées
+uv run nstack skills           # génère .claude/skills/
+uv run nstack skills --check   # S1, S2, S4 bloquants en CI ; S3 dès que des skills sont générées
 ```
 
 | Check | Vérifie |

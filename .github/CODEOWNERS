@@ -1,5 +1,5 @@
 # Rattache chaque changement à un owner (docs/os/07-gouvernance.md §7).
-# Mis à jour automatiquement par platform/scaffold/new-module.sh.
+# Mis à jour automatiquement par nstack new-module.
 
 # Socle : toute modification de l'OS lui-même passe par un ADR.
 /AGENTS.md                     @NapkinStack/maintainers

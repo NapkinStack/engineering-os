@@ -20,9 +20,9 @@ dependencies:
       en quelques heures.
 
 commands:
-  bootstrap: pip install -r fitness/requirements.txt
-  check: python3 -m py_compile fitness/manifests.py fitness/boundaries.py
-  test: bash tests/run.sh
+  bootstrap: uv sync --locked
+  check: uv run nstack fitness --root ..
+  test: uv run bash tests/run.sh
   run: "echo 'non applicable'"
 
 docs:

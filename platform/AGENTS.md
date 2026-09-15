@@ -26,5 +26,5 @@ métier ici serait partagée par tous les modules, donc les rendrait inséparabl
 
 ## Zones à ne pas modifier sans validation
 
-`fitness/` — ce sont les garde-fous eux-mêmes. Les affaiblir silencieusement
+`src/napkinstack/fitness/` — ce sont les garde-fous eux-mêmes. Les affaiblir silencieusement
 reviendrait à contourner une quality gate.

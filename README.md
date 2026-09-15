@@ -18,9 +18,9 @@
 # 1. Copier ce dossier comme racine du nouveau projet
 cp -r starter/ mon-projet && cd mon-projet && git init
 
-# 2. Préparer l'outillage de gouvernance et les hooks (prérequis : pre-commit)
-make bootstrap
-pre-commit install
+# 2. Préparer l'outillage de gouvernance et les hooks (prérequis : uv)
+uv sync
+uv run pre-commit install
 
 # 3. Remplacer les marqueurs
 #    .github/CODEOWNERS      → @NapkinStack/maintainers = ton équipe socle
@@ -28,10 +28,10 @@ pre-commit install
 #    ce README               → le tien
 
 # 4. Créer le premier module
-make scaffold NAME=billing OWNER=team-revenue CRIT=standard
+uv run nstack new-module billing team-revenue standard
 
 # 5. Vérifier que les garde-fous répondent
-make fitness
+uv run nstack fitness
 ```
 
 ## À faire une fois sur GitHub — sinon rien n'est garanti
@@ -87,13 +87,11 @@ visibles **et comptables** (`docs/os/10-mesure.md` §3).
 ## Les commandes
 
 ```bash
-make help        # liste les verbes
-make fitness     # manifests + frontières — à lancer avant chaque commit
-make skills      # génère les skills Claude Code depuis les playbooks
-make check       # validations rapides de tous les modules
-make test        # tests de tous les modules
-make ci          # ce que fait la CI
-make scaffold NAME=x OWNER=team-y CRIT=standard
+uv run nstack --help        # liste les commandes
+uv run nstack fitness       # manifests + frontières + skills — avant chaque commit
+uv run nstack skills        # génère les skills Claude Code depuis les playbooks
+uv run nstack new-module x team-y standard
+# check, test, run d'un module : section `commands` de son MANIFEST.yaml
 ```
 
 Chaque module expose les **mêmes verbes**, quelle que soit sa technologie. C'est ce qui
@@ -108,14 +106,14 @@ Les playbooks sont exposés comme skills, dont le chargement à la demande est a
 assuré par le runtime plutôt que par une instruction du kernel.
 
 ```bash
-make skills          # génère .claude/skills/ depuis playbooks/
-make skills-check    # vérifie la synchronisation (tourne en CI)
+uv run nstack skills           # génère .claude/skills/ depuis playbooks/
+uv run nstack skills --check   # vérifie la synchronisation (tourne en CI)
 ```
 
 **`playbooks/` reste la source de vérité.** Les skills sont générées, gitignorées, et
 jamais éditées à la main — on modifie le playbook, puis on régénère. Un playbook sans
 entrée dans `platform/skills.yaml` fait échouer la CI ; une skill générée puis
-désynchronisée fait échouer `make skills-check` en local.
+désynchronisée fait échouer `nstack skills --check` en local.
 
 Cette indirection a une raison : un outil est un **adaptateur**, jamais une fondation
 (`platform/tooling-profile.md`). Si les règles n'existaient que sous forme de skills,
@@ -154,7 +152,7 @@ le **contenu** t'appartient.
 - [ ] Contenu des verbes dans les `Makefile` de module
 - [ ] Format de contrat retenu, et les contract tests associés
 - [ ] Calibrage de `SOURCE_SUFFIXES` et `IMPORT_HINTS` dans
-      `platform/fitness/boundaries.py` pour ton langage
+      `src/napkinstack/fitness/boundaries.py` pour ton langage
 - [ ] Valeurs du budget de revue (400 lignes / 15 fichiers sont un point de départ)
 - [ ] Relire les `description` de `platform/skills.yaml` — ce sont elles qui
       déclenchent les skills, elles doivent parler le vocabulaire de ton domaine
