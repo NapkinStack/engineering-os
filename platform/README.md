@@ -13,7 +13,8 @@ runbook, tests et configuration.
 | Chemin | Rôle |
 |---|---|
 | `src/napkinstack/fitness/` | Les checks d'architecture, non contournables |
-| `src/napkinstack/scaffold/` | Création d'un module avec ses garde-fous actifs, et son squelette |
+| `src/napkinstack/modules.py` | Création d'un module et verbes standards lus dans son MANIFEST |
+| `src/napkinstack/templates/module/` | Gabarit d'un module, sans stack imposée |
 | `src/napkinstack/skills.py` | Génère les skills Claude Code depuis les playbooks |
 | `src/napkinstack/project.py` | Création et mise à jour d'un projet, par Copier |
 | `src/napkinstack/doctor.py` | Diagnostic du poste et des réglages GitHub, en lecture seule |
@@ -33,6 +34,8 @@ uv run nstack pr-scope --base origin/main
 uv run nstack init <dossier>               # crée un projet (PDR-0001)
 uv run nstack update                       # met à jour un projet, sur une branche à relire
 uv run nstack doctor --root <projet>       # poste et réglages GitHub, en lecture seule
+uv run nstack new-module <nom> <org>/<équipe> <criticité> --root <projet>
+uv run nstack check [module] --root <projet>   # aussi test, bootstrap ; run <module>
 ```
 
 ## Skills

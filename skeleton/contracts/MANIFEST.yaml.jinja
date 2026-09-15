@@ -15,10 +15,8 @@ data:
 dependencies: []
 
 commands:
-  bootstrap: make bootstrap
-  check: make check
-  test: make test
-  run: "echo 'non applicable'"
+  check: "echo 'commands.check à déclarer : validation des schémas de contrat' >&2; exit 1"
+  test: "echo 'commands.test à déclarer : contract tests' >&2; exit 1"
 
 docs:
   readme: README.md

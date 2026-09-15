@@ -50,7 +50,7 @@ uv tool install "napkinstack=={{ _copier_answers._commit | regex_replace('^v', '
 pre-commit install
 
 # 3. Créer le premier module
-nstack new-module billing team-revenue standard
+nstack new-module facturation acme/facturation standard
 
 # 4. Vérifier que les garde-fous répondent
 nstack fitness
@@ -139,7 +139,9 @@ limité au dépôt, permission **Administration : lecture**. Sans jeton, la part
 nstack --help        # liste les commandes
 nstack fitness       # manifests + frontières + skills — avant chaque commit
 nstack skills        # génère les skills Claude Code depuis les playbooks
-nstack new-module x team-y standard
+nstack new-module <nom> <organisation>/<équipe> <criticité>
+nstack check [module]   # commandes du MANIFEST : check, test, bootstrap ; défaut : tous
+nstack run <module>     # démarrage local, si commands.run est déclarée
 # check, test, run d'un module : section `commands` de son MANIFEST.yaml
 ```
 
@@ -192,13 +194,13 @@ Aucune stack : ni langage, ni framework applicatif, ni base de données. L'OS im
 de sélection** et une trace de décision, pas une liste de technologies
 (`docs/os/06-decisions.md` §7).
 
-Les squelettes de module contiennent donc des `TODO` dans leur `Makefile` : c'est à toi
+Un module neuf déclare donc des commandes « à déclarer », qui échouent : c'est à toi
 de câbler `check`, `test` et `run` sur ton outillage. Les **noms** ne changent jamais,
 le **contenu** t'appartient.
 
 ## Ce qui reste à câbler après l'installation
 
-- [ ] Contenu des verbes dans les `Makefile` de module
+- [ ] Commandes `check` et `test` de chaque module, dans son `MANIFEST.yaml`
 - [ ] Format de contrat retenu, et les contract tests associés
 - [ ] Valeurs du budget de revue (400 lignes / 15 fichiers sont un point de départ)
 - [ ] Relire les `description` de `.nstack/skills.yaml` — ce sont elles qui

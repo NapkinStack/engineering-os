@@ -1,6 +1,7 @@
 name: Modules
 
-# Exécute les verbes standards sur les seuls modules touchés.
+# Exécute les verbes standards sur les seuls modules touchés : nstack lit leurs
+# commandes dans le MANIFEST.yaml du module, sans supposer aucune stack (P1).
 # Le niveau de validation est proportionnel à la criticité déclarée dans le MANIFEST
 # (docs/os/07-gouvernance.md §6).
 #
@@ -60,6 +61,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+
+      - name: NapkinStack, version du projet
+        run: |
+          VERSION=$(yq '._commit' .copier-answers.yml)
+          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+
       - name: Criticité déclarée
         id: crit
         run: |
@@ -69,22 +77,22 @@ jobs:
           echo "Criticité : ${LEVEL:-standard}"
 
       - name: bootstrap
-        run: make -C "modules/$MODULE" bootstrap
+        run: nstack bootstrap "$MODULE"
 
       # Tous niveaux — docs/os/05-workflow.md §7
       - name: check
-        run: make -C "modules/$MODULE" check
+        run: nstack check "$MODULE"
 
       - name: test
-        run: make -C "modules/$MODULE" test
+        run: nstack test "$MODULE"
 
-      # Niveaux élevé et critique — à brancher quand les cibles existent
+      # Niveaux élevé et critique — pas encore branchés (D9)
       - name: Tests d'intégration
         if: steps.crit.outputs.level == 'eleve' || steps.crit.outputs.level == 'critique'
         run: |
-          echo "TODO — make -C modules/$MODULE test-integration"
+          echo "Non branché : tests d'intégration (D9)"
 
       - name: E2E parcours critiques
         if: steps.crit.outputs.level == 'critique'
         run: |
-          echo "TODO — make -C modules/$MODULE test-e2e"
+          echo "Non branché : parcours de bout en bout (D9)"
