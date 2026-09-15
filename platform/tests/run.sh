@@ -238,6 +238,18 @@ fi
 echo "$OUT" | grep -qF '"runs-on" section is missing' \
   || { echo "ÉCHEC : actionlint ne signale pas l'erreur attendue."; echo "$OUT"; exit 1; }
 
+echo "→ hooks : un marqueur de conflit hors merge git DOIT bloquer le commit"
+# Copier (ADR-0001) écrit ses conflits en dehors de tout merge git. Marqueurs assemblés
+# à l'exécution : écrits en début de ligne ici, ils bloqueraient ce fichier lui-même.
+depot_avec_hooks conflit
+printf 'intro\n%s avant\nlocal\n%s\ncorrectif\n%s après\n' '<<<<<<<' '=======' '>>>>>>>' > "$HK/conflit/regle.md"
+git -C "$HK/conflit" add regle.md
+if OUT=$(git "${GIT_ID[@]}" -C "$HK/conflit" commit -m test 2>&1); then
+  echo "ÉCHEC : un fichier contenant des marqueurs de conflit a été commité."; exit 1
+fi
+echo "$OUT" | grep -qF "Merge conflict string" \
+  || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
+
 echo "→ YAML : une clé dupliquée DOIT échouer (check-yaml)"
 depot_avec_hooks doublon
 printf 'module:\n  name: a\n  name: b\n' > "$HK/doublon/doublon.yaml"
