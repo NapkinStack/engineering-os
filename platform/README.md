@@ -16,6 +16,7 @@ runbook, tests et configuration.
 | `src/napkinstack/scaffold/` | Création d'un module avec ses garde-fous actifs, et son squelette |
 | `src/napkinstack/skills.py` | Génère les skills Claude Code depuis les playbooks |
 | `src/napkinstack/project.py` | Création et mise à jour d'un projet, par Copier |
+| `src/napkinstack/doctor.py` | Diagnostic du poste et des réglages GitHub, en lecture seule |
 | `tests/run.sh` | L'oracle : chaque garde-fou prouve qu'il sait échouer |
 
 ## Fitness functions
@@ -33,6 +34,7 @@ uv run nstack fitness                      # manifests + frontières + skills
 uv run nstack pr-scope --base origin/main
 uv run nstack init <dossier>               # crée un projet (PDR-0001)
 uv run nstack update                       # met à jour un projet, sur une branche à relire
+uv run nstack doctor --root <projet>       # poste et réglages GitHub, en lecture seule
 ```
 
 ## Skills
