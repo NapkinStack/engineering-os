@@ -37,5 +37,30 @@ bleu : revue · vert : intégré à `main`.
   met à jour toutes les pages concernées, schémas légendés compris.
 - **Definition of Done** : [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
+## Publier une version
+
+```mermaid
+flowchart LR
+    V["PR de version<br/>uv version --bump"]:::humain --> T["Tag vX.Y.Z<br/>sur main"]:::humain
+    T --> C["Construction<br/>tag = version, sinon arrêt"]:::ci
+    C --> A{"Approbation<br/>environnement pypi"}:::humain
+    A --> P["PyPI<br/>Trusted Publishing, attestation"]:::pypi
+
+    classDef humain fill:#065f46,color:#fff
+    classDef ci fill:#1f2937,color:#fff
+    classDef pypi fill:#1e3a8a,color:#fff
+```
+
+**Légende** — vert : action d'un mainteneur · gris : `.github/workflows/release.yml` ·
+bleu : PyPI. Décision : [ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pypi.md).
+
+1. Monter la version dans une PR : `uv version --bump patch` (ou `minor`), puis la fusionner.
+2. Poser le tag sur le commit fusionné : `git tag vX.Y.Z <commit>` puis `git push origin vX.Y.Z`.
+3. Approuver le déploiement dans GitHub Actions (« Review deployments »).
+
+Aucun secret n'est stocké : GitHub prouve son identité à PyPI à chaque publication. Une
+version publiée ne se remplace pas ; une erreur se corrige par la version suivante, et une
+version défectueuse se retire (*yank*) sur PyPI.
+
 Barrières contre les fuites et exceptions (`cross-module`, `hors-budget`) : les mêmes que
 dans les projets, décrites dans [`skeleton/CONTRIBUTING.md`](skeleton/CONTRIBUTING.md).

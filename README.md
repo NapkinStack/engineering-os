@@ -51,6 +51,16 @@ flowchart LR
 **Légende** — gris : version dont le projet est issu · bleu : nouvelle version · vert :
 travail de l'équipe et résultat accepté · rouge : conflit laissé à l'équipe.
 
+## Installer
+
+```bash
+uv tool install napkinstack --with-executables-from pre-commit   # prérequis : uv et git
+nstack init mon-projet
+```
+
+Disponible dès la publication de la v0.1.0 sur PyPI ; chaque projet épingle ensuite sa
+version et la change par `nstack update`.
+
 ## Les commandes
 
 | Commande | Rôle |
@@ -110,3 +120,5 @@ uv run nstack doctor --root /tmp/essai                # poste et réglages GitHu
 ```
 
 Contribuer : [`CONTRIBUTING.md`](CONTRIBUTING.md), après [`PRODUCT.md`](PRODUCT.md).
+
+Licence : [MIT](LICENSE).
