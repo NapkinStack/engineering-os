@@ -74,6 +74,8 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     import copier
     from copier.errors import CopierError
 
+    from napkinstack.doctor import CHECKLIST
+
     destination = destination.resolve()
     if destination.exists() and (not destination.is_dir() or any(destination.iterdir())):
         print(f"ÉCHEC [init] {destination} n'est pas vide : nstack init crée un projet neuf.\n"
@@ -101,8 +103,11 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     print(f"Projet créé dans {destination}, NapkinStack {version}, commit initial sur main.")
     print("\nÉtapes suivantes :")
     print(f"  1. cd {destination} && pre-commit install")
-    print(f"  2. Créer le dépôt GitHub {created.get('github_repo')}, y pousser main, "
-          "puis appliquer la checklist du README")
+    print(f"  2. Créer le dépôt GitHub {created.get('github_repo')}, y pousser main, puis appliquer "
+          "ces réglages :")
+    for _, reglage, _ in CHECKLIST:
+        print(f"     - [ ] {reglage}")
+    print("  3. Vérifier le poste et GitHub, en lecture seule : nstack doctor (jeton : voir le README)")
     return 0
 
 

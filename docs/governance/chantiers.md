@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M2a fait, M2b en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M2b fait, M3 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -46,7 +46,7 @@ flowchart LR
 | C2 | Check anti-placeholder | À replanifier au plan d'implémentation |
 | C3 | Hook git versionné | Absorbé par C0.1 |
 | C4 | Proxy d'oracle | À replanifier au plan d'implémentation |
-| C5 | Amorçage, `doctor` et marque | À replanifier au plan d'implémentation |
+| C5 | Amorçage, `doctor` et marque | Traité par M2b et M3 : `nstack init`, `nstack doctor` |
 
 ---
 
@@ -284,9 +284,9 @@ une gate qui bloque à tort sera contournée. Documenter cette limite dans
 
 ## C5 — Amorçage, `doctor` et marque
 
-> **À replanifier au plan d'implémentation (PDR-0001 accepté).** `gh repo create
-> --template` sera remplacé par `nstack init`. Le marquage de CODEOWNERS et des manifests
-> est fait (organisation, 2026-09-14).
+> **Traité par `nstack init` (M2b) et `nstack doctor` (M3)** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) :
+> plus de décompression ni de création depuis un modèle de dépôt. Le marquage de CODEOWNERS
+> et des manifests est fait (organisation, 2026-09-14).
 
 **Défaut.** Le socle suppose aujourd'hui un `unzip`, et porte encore des marqueurs
 génériques.

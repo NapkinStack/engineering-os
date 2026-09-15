@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from napkinstack import __version__, skills
+from napkinstack import __version__, doctor, skills
 from napkinstack.fitness import boundaries, manifests
 
 PACKAGE = Path(__file__).resolve().parent
@@ -66,6 +66,8 @@ def build_parser() -> argparse.ArgumentParser:
     sk.add_argument("--check", action="store_true", help="vérifier sans écrire")
     _add(sub, "fitness", "manifests + frontières + skills",
          lambda a: _fitness(a.root))
+    _add(sub, "doctor", "diagnostique le poste et les réglages GitHub, en lecture seule (PDR-0001)",
+         lambda a: doctor.run(a.root))
     nm = _add(sub, "new-module", "crée un module et ses garde-fous",
               lambda a: _script("scaffold/new-module.sh", a.name, a.owner, a.criticality, root=a.root))
     nm.add_argument("name")
