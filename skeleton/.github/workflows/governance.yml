@@ -2,7 +2,7 @@ name: Gouvernance
 
 # Fitness functions d'architecture, périmètre de PR, hooks et secrets.
 # Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
-# (skeleton/docs/os/07-gouvernance.md).
+# (docs/os/07-gouvernance.md).
 #
 # À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
 # principale. Sans cela, la CI informe mais ne garantit rien.
@@ -11,7 +11,9 @@ name: Gouvernance
 # tenues à jour par Dependabot, aucun jeton laissé dans .git/config, et les valeurs
 # issues du contexte passent par env: au lieu d'être insérées dans les scripts.
 #
-# Outillage : uv, seul prérequis (PDR-0001) ; dépendances figées par uv.lock.
+# Outillage : uv, seul prérequis. nstack et pre-commit s'installent à la version de
+# NapkinStack du projet (_commit de .copier-answers.yml), qui ne change que par
+# nstack update.
 
 on:
   pull_request:
@@ -28,24 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'uv.lock') }}
-
-      - name: Dépendances
-        run: uv sync --locked
+      - name: NapkinStack, version du projet
+        run: |
+          VERSION=$(yq '._commit' .copier-answers.yml)
+          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
       - name: Manifests, frontières, skills
-        run: uv run nstack fitness --root .
-
-      - name: Tests de la plateforme — chaque garde-fou prouve qu'il sait échouer
-        run: uv run bash platform/tests/run.sh
+        run: nstack fitness --root .
 
   scope:
     name: Périmètre et budget de revue
@@ -58,11 +53,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+
+      - name: NapkinStack, version du projet
+        run: |
+          VERSION=$(yq '._commit' .copier-answers.yml)
+          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+
       - name: Une PR = un module
         env:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_REF: ${{ github.base_ref }}
-        run: bash src/napkinstack/fitness/pr_scope.sh "origin/$BASE_REF"
+        run: nstack pr-scope --root . --base "origin/$BASE_REF"
 
   hooks:
     name: Hooks et secrets
@@ -78,18 +80,20 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'uv.lock') }}
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', '.copier-answers.yml') }}
 
-      - name: Dépendances
-        run: uv sync --locked
+      - name: NapkinStack, version du projet
+        run: |
+          VERSION=$(yq '._commit' .copier-answers.yml)
+          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
       # Même configuration que les hooks locaux. Le hook « gitleaks » ne scanne que
       # les changements indexés, vides en CI : l'étape suivante couvre les secrets.
       - name: Hooks sur tous les fichiers
         env:
           SKIP: gitleaks
-        run: uv run pre-commit run --all-files --show-diff-on-failure
+        run: pre-commit run --all-files --show-diff-on-failure
 
       # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
       - name: Secrets dans tout l'historique git
-        run: uv run pre-commit run gitleaks-historique --hook-stage manual --all-files
+        run: pre-commit run gitleaks-historique --hook-stage manual --all-files

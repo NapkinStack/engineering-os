@@ -15,8 +15,6 @@ runbook, tests et configuration.
 | `src/napkinstack/fitness/` | Les checks d'architecture, non contournables |
 | `src/napkinstack/scaffold/` | Création d'un module avec ses garde-fous actifs, et son squelette |
 | `src/napkinstack/skills.py` | Génère les skills Claude Code depuis les playbooks |
-| `skills.yaml` | Frontmatter des skills — nom et description de déclenchement |
-| `tooling-profile.md` | Mapping capacités → outils du moment |
 | `tests/run.sh` | L'oracle : chaque garde-fou prouve qu'il sait échouer |
 
 ## Fitness functions
@@ -43,7 +41,7 @@ uv run nstack skills --check   # S1, S2, S4 bloquants en CI ; S3 dès que des sk
 
 | Check | Vérifie |
 |---|---|
-| S1 | Chaque playbook a une entrée dans `skills.yaml` |
+| S1 | Chaque playbook a une entrée dans `.nstack/skills.yaml` |
 | S2 | Chaque entrée pointe vers un playbook existant, avec description non vide |
 | S3 | Les skills générées correspondent aux playbooks actuels. Non applicable sans `.claude/skills/` : un clone vierge, et donc la CI, n'en a pas |
 | S4 | Nom et description conformes à la [spécification Agent Skills](https://agentskills.io/specification) : nom de 1 à 64 caractères `a-z0-9` et tirets simples, description d'au plus 1024 caractères. Bloque aussi la génération |
@@ -67,6 +65,6 @@ enrichissant les motifs — et mérite une issue, car c'est une violation qui pa
 ## Ajouter une fitness function
 
 Par ordre de rentabilité, les suivantes à écrire sont listées dans
-`docs/os/07-gouvernance.md` §3. Une bonne fitness function est rapide, déterministe,
+`skeleton/docs/os/07-gouvernance.md` §3. Une bonne fitness function est rapide, déterministe,
 et **explicative en cas d'échec** : une fonction qui dit seulement « violation
 d'architecture » sera contournée.

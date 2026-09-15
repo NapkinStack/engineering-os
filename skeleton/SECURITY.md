@@ -19,7 +19,7 @@ Délai de première réponse visé : **7 jours**.
 | S4 | Refus par défaut en autorisation |
 | S5 | Jamais de mécanisme cryptographique ou d'authentification maison |
 
-Détail opérationnel : `skeleton/playbooks/securite.md`.
+Détail opérationnel : `playbooks/securite.md`.
 
 ## Secret exposé
 
@@ -32,4 +32,4 @@ pas un correctif.
 Modification de permissions, accès à des secrets, exposition d'un nouveau service,
 migration irréversible : jamais d'exécution silencieuse. Risque nommé, impact décrit,
 procédure sûre et rollback proposés, confirmation explicite demandée
-(`skeleton/AGENTS.md` §5).
+(`AGENTS.md` §5).

@@ -16,11 +16,9 @@ qui contraindra les suivantes.
 | **Critère de succès daté** — si l'on construit sur-mesure | Rouge si absent |
 | **Règle à automatiser** — quelle fitness function en découle | Revue |
 
-Voir `skeleton/docs/os/06-decisions.md`.
+Voir `docs/os/06-decisions.md`.
 
 ## Index
 
 | N° | Titre | Statut | Critère à vérifier le |
 |---|---|---|---|
-| [0001](./0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Adopter Copier pour générer et mettre à jour les projets | Accepté | Validé au prototype (2026-09-15) |
-| [0002](./0002-distribuer-napkinstack-sur-pypi.md) | Distribuer NapkinStack sur PyPI | Proposé | À la première publication |

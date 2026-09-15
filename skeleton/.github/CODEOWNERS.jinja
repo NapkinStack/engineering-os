@@ -1,0 +1,15 @@
+# Rattache chaque changement à un owner (docs/os/07-gouvernance.md §7).
+# Mis à jour automatiquement par nstack new-module.
+
+# Socle : toute modification de l'OS lui-même passe par un ADR.
+/AGENTS.md                     @{{ owner_team }}
+/playbooks/                    @{{ owner_team }}
+/docs/os/                      @{{ owner_team }}
+/.nstack/                      @{{ owner_team }}
+/.github/                      @{{ owner_team }}
+/.copier-answers.yml           @{{ owner_team }}
+
+# Contrats : frontière la plus critique du système, jamais orpheline.
+/contracts/                    @{{ owner_team }}
+
+# Modules — une ligne par module, ajoutée par le scaffold.

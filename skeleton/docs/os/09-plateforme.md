@@ -60,6 +60,7 @@ project/
 │   ├── adr/                       # décisions techniques transverses
 │   ├── pdr/                       # décisions produit
 │   ├── runbooks/                  # exploitation transverse
+│   ├── tooling-profile.md         # mapping capacités → outils du moment
 │   └── governance/                # backlog d'automatisation, revues de décisions
 │
 ├── playbooks/                     # modules d'instructions IA, chargés à la demande
@@ -74,8 +75,7 @@ project/
 │   ├── verbs/                     # implémentation des verbes standards
 │   ├── checks/                    # checks partagés
 │   ├── fitness/                   # fitness functions d'architecture
-│   ├── templates/                 # squelettes de module
-│   └── tooling-profile.md         # mapping capacités → outils du moment
+│   └── templates/                 # squelettes de module
 │
 ├── contracts/                     # ← module à part entière, owner dédié
 │   ├── MANIFEST.yaml
@@ -179,7 +179,7 @@ L'OS ne prescrit aucun outil, pour une raison simple : l'écosystème change plu
 les principes. Un starter qui impose « utilisez tel plugin et telle extension » sera
 faux dans douze mois, alors que ses principes tiendront.
 
-L'OS déclare donc des **capacités**, et un *profil d'outillage* (`platform/tooling-profile.md`)
+L'OS déclare donc des **capacités**, et un *profil d'outillage* (`docs/tooling-profile.md`)
 les mappe sur les outils du moment. Changer d'outil se fait alors sans toucher à l'OS.
 
 | Capacité | À quoi elle sert |

@@ -1,0 +1,39 @@
+name: Architecture
+description: Frontière, contrat, couplage, décision structurante
+labels: ["architecture"]
+body:
+  - type: textarea
+    id: signal
+    attributes:
+      label: Signal observé
+      description: |
+        Quel signal de couplage a déclenché cette issue ?
+        (docs/os/02-modules.md §9) — PR cross-module récurrentes, cycle détecté,
+        modules toujours déployés ensemble, agent incapable de travailler via le contrat…
+    validations: { required: true }
+
+  - type: input
+    id: modules
+    attributes:
+      label: Modules concernés
+    validations: { required: true }
+
+  - type: textarea
+    id: prior-art
+    attributes:
+      label: Prior art
+      description: |
+        Comment ce problème est-il résolu ailleurs ? Minimum deux références.
+        (docs/os/06-decisions.md §2)
+    validations: { required: true }
+
+  - type: checkboxes
+    id: sortie
+    attributes:
+      label: Sortie attendue
+      options:
+        - label: ADR
+        - label: Fusion de modules
+        - label: Redécoupage
+        - label: Changement de contrat (expand/contract)
+        - label: Nouvelle fitness function

@@ -1,14 +1,10 @@
-# Rattache chaque changement à un owner (docs/os/07-gouvernance.md §7).
+# Rattache chaque changement à un owner (skeleton/docs/os/07-gouvernance.md §7).
 # Mis à jour automatiquement par nstack new-module.
 
 # Socle : toute modification de l'OS lui-même passe par un ADR.
-/AGENTS.md                     @NapkinStack/maintainers
-/playbooks/                    @NapkinStack/maintainers
-/docs/os/                      @NapkinStack/maintainers
+/skeleton/                     @NapkinStack/maintainers
+/copier.yml                    @NapkinStack/maintainers
 /platform/                     @NapkinStack/maintainers
 /.github/                      @NapkinStack/maintainers
-
-# Contrats : frontière la plus critique du système, jamais orpheline.
-/contracts/                    @NapkinStack/maintainers
 
 # Modules — une ligne par module, ajoutée par le scaffold.

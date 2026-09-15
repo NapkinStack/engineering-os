@@ -18,10 +18,9 @@ Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son impléme
 
 > Le format **FDR** n'existe pas dans cet OS. Pour les fonctionnalités réellement
 > complexes, la section *Conception fonctionnelle détaillée* du PDR suffit
-> (`skeleton/docs/os/06-decisions.md` §4).
+> (`docs/os/06-decisions.md` §4).
 
 ## Index
 
 | N° | Titre | Statut | Critère à vérifier le |
 |---|---|---|---|
-| [0001](./0001-creer-un-projet-et-recevoir-les-evolutions.md) | Créer un projet et recevoir les évolutions de NapkinStack | Accepté | 2026-12-31 |

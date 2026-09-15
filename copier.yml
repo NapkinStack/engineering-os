@@ -1,0 +1,27 @@
+# Gabarit Copier du squelette de projet (ADR-0001) : le seul de ce dépôt.
+# Versions = tags du dépôt (PEP 440). Aucune fonction « unsafe » : ni _tasks, ni
+# _migrations, ni _jinja_extensions ; un test le vérifie. Seuls les fichiers .jinja
+# contiennent des variables.
+
+_subdirectory: skeleton
+_min_copier_version: "9.18"
+
+project_name:
+  type: str
+  help: Nom du projet
+
+github_repo:
+  type: str
+  help: Dépôt GitHub du projet, de la forme organisation/nom
+  validator: >-
+    {% if not (github_repo | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
+    Attendu : organisation/nom, par exemple acme/facturation.
+    {% endif %}
+
+owner_team:
+  type: str
+  help: Équipe GitHub propriétaire du socle, de la forme organisation/équipe
+  validator: >-
+    {% if not (owner_team | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
+    Attendu : organisation/équipe, par exemple acme/plateforme.
+    {% endif %}
