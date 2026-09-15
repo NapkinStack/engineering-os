@@ -406,4 +406,26 @@ echo "$OUT" | grep -qF "potentially unsafe feature: tasks" \
   || { echo "ÉCHEC : refus sans le message de Copier."; echo "$OUT"; exit 1; }
 [ ! -e "$GN/unsafe" ] || { echo "ÉCHEC : le gabarit refusé a créé des fichiers."; exit 1; }
 
+echo "→ squelette : hooks et règles YAML identiques à ceux du dépôt (P3)"
+for f in .pre-commit-config.yaml .yamllint.yaml; do
+  cmp -s "$f" "skeleton/$f" \
+    || { echo "ÉCHEC : skeleton/$f diverge de $f. Appliquer le même changement aux deux copies."; exit 1; }
+done
+
+echo "→ squelette : le projet généré passe ses propres hooks et le scan de secrets"
+git "${GIT_ID[@]}" init -q "$PROJET"
+git -C "$PROJET" add -A
+git "${GIT_ID[@]}" -C "$PROJET" commit -q --no-verify -m "Projet généré"
+if ! OUT=$(cd "$PROJET" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
+  echo "ÉCHEC : le projet généré ne passe pas ses hooks."; echo "$OUT"; exit 1
+fi
+for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2)" \
+            "Validate GitHub issue config" "Validate GitHub issue forms" "zizmor"; do
+  echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
+    || { echo "ÉCHEC : hook « $hook » non exécuté sur le projet généré."; echo "$OUT"; exit 1; }
+done
+if ! OUT=$(cd "$PROJET" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+  echo "ÉCHEC : scan d'historique en échec sur le projet généré."; echo "$OUT"; exit 1
+fi
+
 echo "Tests plateforme : OK"
