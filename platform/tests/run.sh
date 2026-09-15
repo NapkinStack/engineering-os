@@ -28,16 +28,30 @@ rm -rf "$TMP"
 # Skills : chaque fixture est une copie jetable, le vrai .claude/ n'est jamais touché.
 SK=$(mktemp -d)
 trap 'rm -rf "$SK"' EXIT
-mkdir -p "$SK/platform"
-cp platform/skills.yaml "$SK/platform/"
-cp -r playbooks "$SK/"
+mkdir -p "$SK/.nstack"
+cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
+cp -r skeleton/playbooks "$SK/"
 nstack_sk() { (cd / && uv run --project "$REPO" nstack skills --root "$SK" "$@"); }
 
 echo "→ skills : la racine donnée est analysée, quel que soit le dossier courant (D21)"
-if (cd / && uv run --project "$REPO" nstack skills --check --root / >/dev/null 2>&1); then
-  echo "ÉCHEC : racine sans skills.yaml acceptée."; exit 1
-fi
 nstack_sk --check >/dev/null || { echo "ÉCHEC : la racine donnée n'est pas analysée."; exit 1; }
+
+echo "→ skills : une racine sans playbooks ni correspondance n'est pas concernée"
+mkdir -p "$SK/vide"
+if ! OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
+  echo "ÉCHEC : une racine sans playbooks est refusée."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "Skills : non applicable" \
+  || { echo "ÉCHEC : racine non concernée sans le dire."; echo "$OUT"; exit 1; }
+
+echo "→ skills : des playbooks sans .nstack/skills.yaml DOIVENT échouer (S1)"
+mkdir -p "$SK/vide/playbooks"
+printf '# orphelin\n' > "$SK/vide/playbooks/orphelin.md"
+if OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
+  echo "ÉCHEC : des playbooks sans correspondance sont passés au vert."; exit 1
+fi
+echo "$OUT" | grep -qF "[S1] .nstack/skills.yaml introuvable" \
+  || { echo "ÉCHEC : message S1 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : sur un clone vierge, S3 est non applicable et le check passe"
 if ! OUT=$(nstack_sk --check 2>&1); then
@@ -65,13 +79,13 @@ echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
-cp playbooks/tests.md "$SK/playbooks/"
+cp skeleton/playbooks/tests.md "$SK/playbooks/"
 nstack_sk >/dev/null
 python3 - "$SK" <<'EOF' || exit 1
 import sys, yaml
 from pathlib import Path
 root = Path(sys.argv[1])
-skills = yaml.safe_load((root / "platform/skills.yaml").read_text(encoding="utf-8"))["skills"]
+skills = yaml.safe_load((root / ".nstack/skills.yaml").read_text(encoding="utf-8"))["skills"]
 for name, entry in skills.items():
     _, front, _ = (root / ".claude/skills" / name / "SKILL.md").read_text(encoding="utf-8").split("---\n", 2)
     try:
@@ -85,8 +99,8 @@ EOF
 # S4 : la skill « tests » est renommée, ou sa description remplacée, dans une copie de
 # skills.yaml. Sans .claude/skills/, S3 ne s'applique pas : seul S4 peut échouer.
 skill_tests_modifiee() {  # $1 = nom, $2 = longueur de description (facultatif)
-  cp platform/skills.yaml "$SK/platform/"
-  python3 - "$SK/platform/skills.yaml" "$@" <<'EOF'
+  cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
+  python3 - "$SK/.nstack/skills.yaml" "$@" <<'EOF'
 import sys, yaml
 path, name, *size = sys.argv[1:]
 with open(path, encoding="utf-8") as f:
@@ -145,8 +159,8 @@ uv run nstack manifests --root "$SC" >/dev/null \
 
 echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
 FT=$(mktemp -d)
-mkdir -p "$FT/platform" "$FT/playbooks"
-printf 'skills: {}\n' > "$FT/platform/skills.yaml"
+mkdir -p "$FT/.nstack" "$FT/playbooks"
+printf 'skills: {}\n' > "$FT/.nstack/skills.yaml"
 printf '# orphelin\n' > "$FT/playbooks/orphelin.md"
 if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
   echo "ÉCHEC : un playbook sans entrée est passé au vert."; rm -rf "$FT"; exit 1

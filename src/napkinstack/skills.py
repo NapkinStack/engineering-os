@@ -7,17 +7,20 @@ sont dérivées : fichiers générés, jamais édités à la main, jamais commit
 Pourquoi générer plutôt qu'écrire directement des skills :
   - portabilité — l'OS doit rester utilisable par un agent qui ne connaît pas les
     skills. Un outil est un adaptateur, jamais une fondation
-    (platform/tooling-profile.md).
+    (docs/tooling-profile.md).
   - source unique — deux copies d'une même règle divergent toujours.
 
 Contrôles (mode --check, exécuté en CI) :
-  S1  chaque playbook a une entrée dans platform/skills.yaml
+  S1  chaque playbook a une entrée dans .nstack/skills.yaml
   S2  chaque entrée pointe vers un playbook existant
   S3  les skills générées correspondent aux playbooks actuels
   S4  nom et description conformes à la spécification Agent Skills
 
 S3 ne s'applique que si .claude/skills/ existe. Les skills sont gitignorées : un clone
 vierge, donc la CI, n'en a aucune, et aucune ne peut y être désynchronisée.
+
+Une racine sans playbooks/ ni .nstack/skills.yaml, comme le dépôt NapkinStack lui-même,
+n'est pas concernée.
 
 Usage :
     nstack skills [--root RACINE]            # génère .claude/skills/
@@ -37,6 +40,7 @@ BANNER = (
     "<!-- GÉNÉRÉ depuis {source} par nstack skills — NE PAS ÉDITER.\n"
     "     Modifier le playbook, puis relancer `nstack skills`. -->"
 )
+MAPPING = Path(".nstack") / "skills.yaml"
 
 
 def normalise(text: str) -> str:
@@ -60,12 +64,16 @@ def digest(text: str) -> str:
 
 
 def run(root: Path, check_only: bool = False) -> int:
-    map_file = root / "platform" / "skills.yaml"
+    map_file = root / MAPPING
     playbook_dir = root / "playbooks"
     skill_dir = root / ".claude" / "skills"
 
     if not map_file.is_file():
-        print(f"ÉCHEC : {map_file.relative_to(root)} introuvable dans {root}.")
+        if not playbook_dir.is_dir():
+            print(f"Skills : non applicable, ni playbooks/ ni {MAPPING} dans {root}.")
+            return 0
+        print(f"  ÉCHEC [S1] {MAPPING} introuvable dans {root} : aucun playbook n'a d'entrée.\n"
+              f"      Créer {MAPPING}, une entrée par playbook (source, description).")
         return 1
 
     mapping = (yaml.safe_load(map_file.read_text(encoding="utf-8")) or {}).get("skills") or {}
@@ -77,7 +85,7 @@ def run(root: Path, check_only: bool = False) -> int:
         if playbook.name not in declared:
             failures.append(
                 f"[S1] {playbook.relative_to(root)} n'a pas d'entrée dans "
-                f"platform/skills.yaml.\n      Ajouter une description, ou retirer le "
+                f"{MAPPING}.\n      Ajouter une description, ou retirer le "
                 f"playbook s'il ne sert plus (docs/os/10-mesure.md §6)."
             )
 
