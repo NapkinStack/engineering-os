@@ -15,7 +15,8 @@ Contrôles :
   L3  hooks pre-commit installés
   L4  PRODUCT.md absent : contexte de développement de NapkinStack (R6)
   L5  README personnalisé : phrase de présentation écrite
-  G1–G11  réglages GitHub de CHECKLIST
+  G1–G11  réglages GitHub de CHECKLIST ; G6 non applicable hors dépôt public, et en privé
+          G1–G5 nomment l'offre ou l'option GitHub requise
 
 Usage :  nstack doctor [--root RACINE]
 Sortie :  0 si tout est vérifié et conforme, 1 sinon.
@@ -39,7 +40,7 @@ import yaml
 from napkinstack import __version__
 from napkinstack.project import ANSWERS
 
-OK, ECART, INCONNU = "OK", "ÉCHEC", "NON VÉRIFIÉ"
+OK, ECART, INCONNU, SANS_OBJET = "OK", "ÉCHEC", "NON VÉRIFIÉ", "NON APPLICABLE"
 API_VERSION = "2026-03-10"
 MARQUEUR = "<Une phrase : ce que fait ce projet.>"
 JOBS = ("Fitness functions", "Périmètre et budget de revue", "Hooks et secrets")
@@ -60,7 +61,7 @@ CHECKLIST = [  # (règle, réglage, action)
      f"{RULESET} : exiger ces checks de statut"),
     ("G5", "Secret Protection et protection au push",
      f"{SECURITE} : activer Secret Protection et la protection au push"),
-    ("G6", "Signalement privé de vulnérabilités (canal de `SECURITY.md`)",
+    ("G6", "Signalement privé de vulnérabilités, dépôt public (canal de `SECURITY.md`)",
      f"{SECURITE} : activer le signalement privé de vulnérabilités"),
     ("G7", "Actions autorisées : celles de GitHub, plus " + ", ".join(f"`{a}`" for a in ACTIONS_TIERCES),
      f"{ACTIONS} : n'autoriser que les actions de GitHub et " + ", ".join(f"{a}@*" for a in ACTIONS_TIERCES)),
@@ -72,6 +73,15 @@ CHECKLIST = [  # (règle, réglage, action)
     ("G11", "Labels " + " et ".join(f"`{label}`" for label in LABELS),
      "Issues → Labels : créer " + " et ".join(LABELS)),
 ]
+
+# Réglages propres aux dépôts publics, et réglages qu'un dépôt privé paie (doc GitHub, 2026-09-15).
+PUBLIC_SEULEMENT = {"G6": "le signalement privé de vulnérabilités n'existe que pour un dépôt public ; "
+                          "indiquer un canal interne dans SECURITY.md"}
+OFFRE_PRIVEE = dict.fromkeys(("G1", "G2", "G3", "G4"),
+                             "Dépôt privé : les rulesets exigent l'offre GitHub Team (organisation) ou Pro "
+                             "(compte personnel) ; sans elle, rien ne bloque la fusion.")
+OFFRE_PRIVEE["G5"] = ("Dépôt privé : Secret Protection est une option payante ; sans elle, seuls les hooks "
+                      "et la CI cherchent les secrets.")
 
 
 class NonVerifie(Exception):
@@ -203,10 +213,18 @@ def _poste(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     return resultats
 
 
+def _prive(gh: GitHub) -> bool:
+    """Dépôt non public (privé ou interne) ; visibilité illisible : traité comme public."""
+    try:
+        return (gh.get("").get("visibility") or "public") != "public"
+    except NonVerifie:
+        return False
+
+
 def _afficher(regle: str, reglage: str, statut: str, detail: str) -> None:
-    print(f"  {statut:<11} [{regle}] {reglage}")
+    print(f"  {statut:<14} [{regle}] {reglage}")
     for ligne in detail.splitlines():
-        print(f"              {ligne}")
+        print(f"                 {ligne}")
 
 
 def run(root: Path) -> int:
@@ -232,22 +250,29 @@ def run(root: Path) -> int:
         print("  Aucun jeton (GH_TOKEN ou GITHUB_TOKEN) : aucun réglage n'est lu.\n"
               "  Action : fournir un jeton à grain fin limité au dépôt, permission "
               "Administration : lecture, puis relancer.")
+    prive = gh is not None and _prive(gh)
     for regle, reglage, action in CHECKLIST:
         if gh is None:
             statut, detail = INCONNU, ""
+        elif prive and regle in PUBLIC_SEULEMENT:
+            statut, detail = SANS_OBJET, f"Raison : {PUBLIC_SEULEMENT[regle]}."
         else:
             try:
                 statut, detail = (OK, "") if VERIFICATIONS[regle](gh) else (ECART, f"Action : {action}")
             except NonVerifie as raison:
                 statut, detail = INCONNU, f"Raison : {raison}"
+            if prive and statut != OK and regle in OFFRE_PRIVEE:
+                detail += f"\n{OFFRE_PRIVEE[regle]}"
         resultats.append((regle, reglage, statut, detail))
         _afficher(regle, reglage, statut, detail)
 
     ecarts = sum(statut == ECART for _, _, statut, _ in resultats)
     inconnus = sum(statut == INCONNU for _, _, statut, _ in resultats)
+    sans_objet = sum(statut == SANS_OBJET for _, _, statut, _ in resultats)
+    suffixe = f", {sans_objet} non applicable(s)" if sans_objet else ""
     if not ecarts and not inconnus:
-        print("\nnstack doctor : conforme.")
+        print(f"\nnstack doctor : conforme{suffixe}.")
         return 0
-    print(f"\nnstack doctor : {ecarts} écart(s), {inconnus} non vérifié(s).\nLes workflows informent ; "
+    print(f"\nnstack doctor : {ecarts} écart(s), {inconnus} non vérifié(s){suffixe}.\nLes workflows informent ; "
           "ce sont les réglages GitHub qui bloquent, et ils ne se copient pas avec le projet.")
     return 1

@@ -7,6 +7,9 @@
 Utiliser le signalement privé de la forge : sur GitHub, onglet **Security**, puis
 **Report a vulnerability**. Le rapport n'est visible que des mainteneurs.
 
+Ce canal n'existe que pour un dépôt public. Pour un dépôt privé, remplacer ce paragraphe
+par le canal interne de l'équipe.
+
 Délai de première réponse visé : **7 jours**.
 
 ## Règles absolues du projet

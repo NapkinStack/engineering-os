@@ -1,6 +1,6 @@
 # PDR-0001 — Créer un projet et recevoir les évolutions de NapkinStack
 
-- **Statut** : Accepté (2026-09-15, après prototype)
+- **Statut** : Accepté (2026-09-15, après prototype) ; précisé le 2026-09-15 (dépôts privés)
 - **Date** : 2026-09-15
 - **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
 - **Modules impactés** : `platform/` (devient le moteur), squelette de projet, gouvernance
@@ -211,6 +211,33 @@ v0.2.0, trois projets générés.
 Écarts reportés au plan d'implémentation : gabarit de module sans commande imposée
 (C1) ; moteur qui reçoit la racine du projet au lieu de supposer y vivre (D21) ; erreurs
 de Copier traduites en messages explicatifs (P6).
+
+---
+
+## Précision du 2026-09-15 — dépôts privés
+
+Ajoutée sans changer la décision ci-dessus, quand le projet pilote s'est annoncé **privé**.
+
+**Constat** (documentation GitHub, vérifiée le 2026-09-15) : plusieurs barrières de la
+checklist dépendent de la visibilité du dépôt et de l'offre GitHub.
+
+| Réglage | Dépôt public | Privé, offre Free | Privé, Team ou Pro |
+|---|---|---|---|
+| Rulesets : PR, relecture, CODEOWNERS, checks requis | Oui | Non | Oui |
+| Scan de secrets et protection au push | Oui | Non | Option payante Secret Protection |
+| Signalement privé de vulnérabilités | Oui | N'existe pas | N'existe pas |
+| Minutes de CI | Illimitées | 2 000 par mois | Selon l'offre |
+
+**Précision :**
+
+- Un projet peut être privé ; GitHub reste la seule forge.
+- La promesse « non contournable » exige un dépôt public, ou un dépôt privé sous GitHub Team
+  (organisation) ou Pro (compte personnel). Le README du squelette l'écrit dans ses prérequis.
+- `nstack doctor` suit la visibilité du dépôt : le signalement privé est « non applicable »
+  hors dépôt public ; un réglage absent d'un dépôt privé nomme l'offre ou l'option requise ;
+  sur l'offre Free, ces écarts restent des écarts, car aucune barrière n'existe.
+- Usage sans forge, projet uniquement local : hors périmètre tant qu'un vrai projet ne le
+  demande pas.
 
 ---
 
