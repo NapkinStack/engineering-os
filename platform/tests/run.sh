@@ -243,6 +243,22 @@ echo "→ nstack pr-scope : répond sur la racine donnée"
 uv run nstack pr-scope --root . --base HEAD | grep -qF "Aucun fichier modifié" \
   || { echo "ÉCHEC : nstack pr-scope ne répond pas."; exit 1; }
 
+echo "→ publication : un tag différent de la version du paquet DOIT bloquer (ADR-0002)"
+[ -f .github/workflows/release.yml ] || { echo "ÉCHEC : .github/workflows/release.yml absent."; exit 1; }
+CONTROLE_TAG=$(python3 - <<'EOF'
+import yaml
+jobs = yaml.safe_load(open(".github/workflows/release.yml", encoding="utf-8"))["jobs"]
+print(next(step["run"] for step in jobs["construction"]["steps"] if step.get("name") == "Tag et version identiques"))
+EOF
+)
+if OUT=$(GITHUB_REF_NAME=v9.9.9 bash -c "$CONTROLE_TAG" 2>&1); then
+  echo "ÉCHEC : tag v9.9.9 accepté pour une autre version."; exit 1
+fi
+echo "$OUT" | grep -qF "Tag v9.9.9 et version" \
+  || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
+GITHUB_REF_NAME="v$(uv version --short)" bash -c "$CONTROLE_TAG" >/dev/null \
+  || { echo "ÉCHEC : tag conforme refusé."; exit 1; }
+
 # Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
 # l'exécution : écrits en dur, ils déclencheraient la protection au push.
 command -v pre-commit >/dev/null \
@@ -720,8 +736,11 @@ for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
 export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
 
 V=$(nstack --version | cut -d' ' -f2)
-git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
-git -C "$TPL" tag "v$V"
+# Tag de la version du moteur ; il existe déjà si elle coïncide avec une version du gabarit jetable.
+if ! git -C "$TPL" rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+  git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
+  git -C "$TPL" tag "v$V"
+fi
 C="$GN/projet-c"
 INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Projet C" \
   --github-repo acme/conforme --owner-team acme/plateforme 2>&1) \
