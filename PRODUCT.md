@@ -12,7 +12,7 @@
 ## 1. Le double rôle de ce dépôt
 
 Ce dépôt est **le produit NapkinStack**. Ce n'est pas un projet qui utilise l'OS : c'est
-l'OS lui-même, celui qui sera copié comme racine de projets futurs.
+l'OS lui-même, dont `nstack init` génère les projets futurs (PDR-0001).
 
 Il est aussi son **premier utilisateur**. Un socle qui ne tient pas ses propres règles
 ne tiendra chez personne.
@@ -51,9 +51,9 @@ la vigilance de quiconque.
 3. L'**oracle avant la génération**. Le critère de réussite est exécutable avant la
    première ligne.
 
-**Ce qu'on ne vend pas.** Ni stack, ni framework, ni architecture interne, ni liste
-d'outils. NapkinStack fournit la couche qui permet à **la stack du client** de tenir à
-plusieurs équipes.
+**Ce qu'on ne vend pas.** Ni stack, ni framework applicatif, ni architecture interne,
+ni liste d'outils. NapkinStack fournit la couche qui permet à **la stack du client** de
+tenir à plusieurs équipes.
 
 ---
 
@@ -77,7 +77,7 @@ Non négociables. Une PR qui en viole un est refusée, même si tout le reste es
 
 | # | Invariant | Pourquoi |
 |---|---|---|
-| P1 | **Aucune stack imposée** — ni langage, ni framework, ni base | La plateforme orchestre, elle ne connaît aucune stack. Toute logique spécifique à un écosystème dans `platform/` est un bug. |
+| P1 | **Aucune stack imposée aux modules** — ni langage, ni framework, ni base. L'outillage NapkinStack (uv, qui fournit Python et pre-commit) a ses propres prérequis, isolés du code du projet | La plateforme orchestre, elle ne connaît aucune stack. Toute logique spécifique à un écosystème dans le moteur est un bug ; un preset délègue au générateur officiel. |
 | P2 | **Portabilité des règles** — `AGENTS.md`, `playbooks/`, `docs/os/` restent en markdown générique | Un client doit pouvoir utiliser l'OS avec un autre agent que Claude. Un outil est un adaptateur, jamais une fondation. |
 | P3 | **L'enforcement reste en CI** — jamais dans un hook, jamais dans un plugin | Un hook est contournable. Le confondre avec une garantie fait repousser le vrai check. |
 | P4 | **Kernel sous budget** — 250 lignes | Sans plafond, il regrossit à chaque incident et redevient le document illisible qu'il remplace. |
@@ -109,6 +109,7 @@ ne sert aucun d'eux n'est pas une amélioration.
 Ne construis pas, ne propose pas :
 
 - une stack de référence, un module d'exemple, une architecture applicative ;
+- un preset de stack qu'aucun vrai projet n'utilise encore ;
 - un plugin ou un marketplace Claude Code — l'enforcement reste en CI (P3) ;
 - des fitness functions au-delà du chantier en cours — les suivantes sont priorisées
   dans `docs/os/07-gouvernance.md` §3, et leur besoin n'est pas démontré ;
@@ -120,8 +121,8 @@ Ne construis pas, ne propose pas :
 Le socle est complet côté règles. Côté garde-fous, les checks existent mais plusieurs
 sont défaillants ou n'ont aucun test qui prouve qu'ils échouent (P5), et le manuel promet
 des contrôles qui ne sont pas implémentés. Le produit évolue vers un modèle *framework*,
-proposé dans le PDR-0001 (`docs/pdr/`) et accepté après prototype. Défauts, décisions
-et ordre de traitement : `docs/governance/chantiers.md`.
+accepté dans le PDR-0001 (`docs/pdr/`) après prototype. Défauts, décisions et ordre de
+traitement : `docs/governance/chantiers.md`.
 
 La roadmap au-delà : ouvrir un premier module réel, et laisser l'usage dicter les
 fitness functions suivantes. Rien ne se construit avant d'avoir servi une fois.

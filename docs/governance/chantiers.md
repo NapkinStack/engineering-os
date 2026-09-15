@@ -13,11 +13,11 @@ flowchart LR
     C0 --> C01["C0.1<br/>hooks et secrets"]:::fait
     C01 --> C02["C0.2<br/>sécurité des<br/>workflows"]:::fait
     C02 --> C03["C0.3<br/>formats stricts"]:::fait
-    C03 --> PDR["PDR-0001<br/>proposé"]:::partiel
-    PDR --> A1["ADR-0001<br/>Copier, proposé"]:::partiel
+    C03 --> PDR["PDR-0001<br/>accepté"]:::fait
+    PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
-    A2 --> PT["Prototype<br/>PDR-0001 accepté"]:::afaire
-    PT --> RP["Replanification<br/>C1 · C2 · C4 · C5"]:::bloque
+    A2 --> PT["Prototype<br/>validé"]:::fait
+    PT --> RP["Plan d'implémentation<br/>moteur v0.1.0"]:::afaire
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -36,17 +36,17 @@ flowchart LR
 | C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | Fait |
-| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Proposé ; acceptation après prototype |
-| ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Proposé ; acceptation au prototype |
+| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Accepté (2026-09-15) |
+| ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Accepté (2026-09-15) |
 | ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Proposé ; vérifié à la première publication |
-| Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | À faire |
+| Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
-| C1 | Point d'entrée unique `nstack` | À replanifier après PDR-0001 |
-| C2 | Check anti-placeholder | À replanifier après PDR-0001 |
+| C1 | Point d'entrée unique `nstack` | À replanifier au plan d'implémentation |
+| C2 | Check anti-placeholder | À replanifier au plan d'implémentation |
 | C3 | Hook git versionné | Absorbé par C0.1 |
-| C4 | Proxy d'oracle | À replanifier après PDR-0001 |
-| C5 | Amorçage, `doctor` et marque | À replanifier après PDR-0001 |
+| C4 | Proxy d'oracle | À replanifier au plan d'implémentation |
+| C5 | Amorçage, `doctor` et marque | À replanifier au plan d'implémentation |
 
 ---
 
@@ -155,11 +155,11 @@ flowchart LR
 **Légende** — trait plein : génération, une seule fois · pointillé : dépendance
 versionnée, le projet choisit quand monter de version.
 
-**Proposé (2026-09-15)** : [`docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md`](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
+**Accepté (2026-09-15, après prototype)** : [`docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md`](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
 Le projet possède son squelette et l'adapte ; chaque version lui arrive à sa demande, en
 PR fusionnée avec ses adaptations (fusion à 3 voies) ; réglages GitHub en checklist
 vérifiée en lecture seule ; uv seul prérequis. Il remplace les points « copiés ou
-générés », « réglages GitHub » et la révision de P1 et du §6, appliquée à l'acceptation.
+générés », « réglages GitHub » et la révision de P1 et du §6, appliquée le 2026-09-15.
 
 **Décidé avant le PDR.**
 
@@ -181,16 +181,17 @@ générés », « réglages GitHub » et la révision de P1 et du §6, appliqué
   suivie par l'agent propose règles, PDR, ADR, modules et contrats ; l'humain valide, le
   CLI génère. À comparer à GitHub Spec Kit et BMAD-METHOD.
 
-**Oracle.** Prototype jetable : les 7 critères d'acceptation du PDR (init, doctor,
-module sans preset, fusion sans conflit, conflit bloquant, fichier supprimé, `modules/`
-intact). Le README produit, avec schémas, est réécrit à l'acceptation.
+**Prototype (2026-09-15).** Mécanisme validé dans un conteneur uv + git : critères 1, 2,
+4, 6 et 7 validés, 5 après correctif (D20), 3 partiel (gabarit de module qui impose
+`make`). Écarts reportés au plan d'implémentation, avec la réécriture du README produit
+et la replanification de C1, C2, C4 et C5.
 
 ---
 
 ## C1 — Point d'entrée unique `nstack`
 
-> **À replanifier après PDR-0001.** Le modèle framework change sa portée : CLI publié,
-> commande `init`, dépendance à pre-commit.
+> **À replanifier au plan d'implémentation (PDR-0001 accepté).** Le modèle framework
+> change sa portée : CLI publié, commande `init`, dépendance à pre-commit.
 
 **Défaut.** Quatre styles d'invocation coexistent (`make`, `python3 platform/…`,
 `bash platform/…`, `./platform/…`). Pire : le `Makefile` racine suppose que chaque
@@ -240,7 +241,7 @@ module a un Makefile, ce qui viole l'invariant P1 — un module Node ne devrait 
 
 ## C2 — Check anti-placeholder
 
-> **À replanifier après PDR-0001.**
+> **À replanifier au plan d'implémentation (PDR-0001 accepté).**
 
 **Défaut.** `manifests.py` vérifie que `responsibility` est non vide, pas qu'elle a été
 écrite. Un module entièrement non rempli passe au vert. Le gabarit garantit la forme,
@@ -268,7 +269,7 @@ on cessera de considérer la CI comme la vraie barrière.
 
 ## C4 — Proxy d'oracle
 
-> **À replanifier après PDR-0001.**
+> **À replanifier au plan d'implémentation (PDR-0001 accepté).**
 
 **Défaut.** L'OS exige que le critère de réussite soit écrit et vu échouer avant la
 génération. C'est invérifiable mécaniquement.
@@ -282,9 +283,9 @@ une gate qui bloque à tort sera contournée. Documenter cette limite dans
 
 ## C5 — Amorçage, `doctor` et marque
 
-> **À replanifier après PDR-0001.** `gh repo create --template` sera remplacé par
-> `nstack init`. Le marquage de CODEOWNERS et des manifests est fait (organisation,
-> 2026-09-14).
+> **À replanifier au plan d'implémentation (PDR-0001 accepté).** `gh repo create
+> --template` sera remplacé par `nstack init`. Le marquage de CODEOWNERS et des manifests
+> est fait (organisation, 2026-09-14).
 
 **Défaut.** Le socle suppose aujourd'hui un `unzip`, et porte encore des marqueurs
 génériques.
@@ -331,6 +332,8 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | PDR-0001 |
 | D19 | Scaffold : `sed` casse sur un owner contenant `/` | Replanification |
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
+| D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | Plan d'implémentation |
+| D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | C1, plan d'implémentation |
 
 ---
 

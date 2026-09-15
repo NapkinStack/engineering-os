@@ -1,6 +1,6 @@
 # PDR-0001 — Créer un projet et recevoir les évolutions de NapkinStack
 
-- **Statut** : Proposé
+- **Statut** : Accepté (2026-09-15, après prototype)
 - **Date** : 2026-09-15
 - **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
 - **Modules impactés** : `platform/` (devient le moteur), squelette de projet, gouvernance
@@ -156,7 +156,8 @@ vert : travail de l'équipe et résultat accepté · rouge : conflit laissé à 
 d'administration. `doctor` lit les réglages avec un jeton en lecture seule fourni par
 l'humain ; sans jeton, la partie GitHub est signalée non vérifiée.
 
-**Critères d'acceptation** *(oracle du prototype, `docs/os/05-workflow.md` §3)* :
+**Critères d'acceptation** *(oracle de l'implémentation, `docs/os/05-workflow.md` §3 ;
+le prototype du 2026-09-15 a validé le mécanisme, voir « Validation »)* :
 
 - [ ] Étant donné un poste avec uv et git uniquement, quand le tech lead lance `init`,
   alors la CI du dépôt généré est verte sur clone vierge, sans retouche manuelle.
@@ -172,7 +173,9 @@ l'humain ; sans jeton, la partie GitHub est signalée non vérifiée.
   lancé, alors le conflit est marqué et le commit refusé tant qu'il subsiste.
 - [ ] Étant donné un fichier du squelette supprimé par l'équipe, quand `update` est lancé,
   alors le fichier n'est pas recréé.
-- [ ] Quand `update` est lancé, alors aucun fichier sous `modules/` n'est modifié.
+- [ ] Quand `update` est lancé, alors aucun fichier d'un module (`modules/<nom>/`) n'est
+  modifié ; les fichiers du squelette placés sous `modules/`, comme son README, suivent
+  les versions.
 
 ---
 
@@ -189,8 +192,25 @@ projet ; aucune règle recopiée à la main depuis le dépôt NapkinStack.
 Si le critère n'est pas atteint : ajuster si l'écart vient de la friction d'installation ;
 superséder par l'option B si la fusion échoue.
 
-Avant l'acceptation, un prototype jetable doit satisfaire les critères d'acceptation. Il
-n'est jamais mergé ; seul le statut de ce PDR passe à « Accepté ».
+### Validation
+
+Prototype jetable du 2026-09-15, non mergé : conteneur avec uv et git seulement (ni
+Python système, ni Go), gabarit construit à partir du squelette réel, v0.1.0 puis
+v0.2.0, trois projets générés.
+
+| Critère | Résultat |
+|---|---|
+| 1. `init`, CI verte sur clone vierge | Validé : fitness, hooks et scan d'historique verts |
+| 2. `doctor` | Validé : 5 écarts listés et sortie en échec sans ruleset ; succès sur un dépôt conforme |
+| 3. Module sans preset | Partiel : fitness verte, mais le gabarit de module impose `make` (R5) |
+| 4. Fusion sans conflit | Validé : correctif et adaptation présents, commit accepté par les hooks |
+| 5. Conflit bloquant | Validé après correctif : le hook ignorait les marqueurs hors merge git (D20) |
+| 6. Fichier supprimé | Validé : non recréé, même modifié par la nouvelle version |
+| 7. Modules intacts | Validé après reformulation : code du module intact, README du squelette mis à jour |
+
+Écarts reportés au plan d'implémentation : gabarit de module sans commande imposée
+(C1) ; moteur qui reçoit la racine du projet au lieu de supposer y vivre (D21) ; erreurs
+de Copier traduites en messages explicatifs (P6).
 
 ---
 
