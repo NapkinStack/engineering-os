@@ -14,6 +14,9 @@ uv run nstack manifests --root .
 echo "→ frontières du dépôt conformes"
 uv run nstack boundaries --root .
 
+echo "→ contrôles M, B, S, P : chaque règle prouve qu'elle échoue et se nomme (pytest, D4)"
+pytest -q platform/tests
+
 GIT_ID_RM=(-c user.name=test -c user.email=test@example.invalid)
 echo "→ docs : un renvoi vers l'ancien emplacement du manuel (docs/0X-…) DOIT échouer (D6)"
 renvois_morts() {  # $1 = racine d'un dépôt git ; affiche les renvois morts, vrai s'il y en a

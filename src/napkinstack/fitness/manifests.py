@@ -32,6 +32,10 @@ CRITICALITIES = {"prototype", "standard", "eleve", "critique"}
 REQUIRED_FIELDS = ["name", "responsibility", "owner", "lifecycle", "criticality"]
 REQUIRED_COMMANDS = ["check", "test"]
 MODULE_DIRS = ["modules", "services", "apps", "packages", "contracts", "platform"]
+MODULE_BASES = ["modules", "services", "apps", "packages"]  # bases dont chaque dossier est un module
+SECTIONS = {"module": dict, "provides": list, "consumes": list, "data": dict,
+            "commands": dict, "docs": dict, "dependencies": list}
+TYPES = {dict: "dictionnaire", list: "liste"}
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -59,6 +63,13 @@ def find_manifests(root: Path) -> list[Path]:
     return found
 
 
+def find_orphans(root: Path) -> list[Path]:
+    """Dossiers de module sans MANIFEST.yaml (M1)."""
+    return [enfant for base in MODULE_BASES if (root / base).is_dir()
+            for enfant in sorted((root / base).iterdir())
+            if enfant.is_dir() and not enfant.name.startswith(".") and not (enfant / "MANIFEST.yaml").is_file()]
+
+
 def parse_date(value) -> datetime.date | None:
     if isinstance(value, datetime.date):
         return value
@@ -75,6 +86,14 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     except yaml.YAMLError as exc:
         fail(rel, "M2", f"MANIFEST.yaml illisible : {exc}")
         return
+    if not isinstance(data, dict):
+        fail(rel, "M2", "MANIFEST.yaml doit être un dictionnaire YAML (sections module, commands, docs…).")
+        return
+    for section, attendu in SECTIONS.items():
+        if data.get(section) is not None and not isinstance(data[section], attendu):
+            fail(rel, "M2", f"section {section} : {TYPES[attendu]} attendu, "
+                            f"{type(data[section]).__name__} trouvé.")
+            data[section] = attendu()
 
     mod = data.get("module") or {}
 
@@ -101,7 +120,8 @@ def check_manifest(path: Path, today: datetime.date) -> None:
 
     # M5 — dépréciation du module
     if lifecycle == "Déprécié":
-        dep = mod.get("deprecation") or {}
+        dep = mod.get("deprecation")
+        dep = dep if isinstance(dep, dict) else {}
         removal = parse_date(dep.get("removal_date"))
         if not removal:
             fail(rel, "M5", "module Déprécié sans module.deprecation.removal_date valide (AAAA-MM-JJ)")
@@ -111,6 +131,9 @@ def check_manifest(path: Path, today: datetime.date) -> None:
 
     # M6 — dépréciation des contrats produits
     for provided in data.get("provides") or []:
+        if not isinstance(provided, dict):
+            fail(rel, "M2", "entrée de provides : dictionnaire attendu (contract, version, stability).")
+            continue
         if provided.get("stability") == "deprecated":
             name = f"{provided.get('contract')}@{provided.get('version')}"
             removal = parse_date(provided.get("removal_date"))
@@ -147,10 +170,13 @@ def run(root: Path) -> int:
     warnings.clear()
     today = datetime.date.today()
     manifests = find_manifests(root)
-
-    if not manifests:
+    orphans = find_orphans(root)
+    if not manifests and not orphans:
         print("Aucun MANIFEST.yaml trouvé. Rien à valider.")
         return 0
+    for orphan in orphans:
+        fail(orphan.name, "M1", f"{orphan.relative_to(root)}/ n'a pas de MANIFEST.yaml. "
+                                "Action : le créer, ou créer le module avec nstack new-module.")
 
     for manifest in manifests:
         check_manifest(manifest, today)
