@@ -16,7 +16,7 @@ qui contraindra les suivantes.
 | **Critère de succès daté** — si l'on construit sur-mesure | Rouge si absent |
 | **Règle à automatiser** — quelle fitness function en découle | Revue |
 
-Voir `docs/os/06-decisions.md`.
+Voir `skeleton/docs/os/06-decisions.md`.
 
 ## Index
 

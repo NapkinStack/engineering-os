@@ -18,7 +18,7 @@ Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son impléme
 
 > Le format **FDR** n'existe pas dans cet OS. Pour les fonctionnalités réellement
 > complexes, la section *Conception fonctionnelle détaillée* du PDR suffit
-> (`docs/os/06-decisions.md` §4).
+> (`skeleton/docs/os/06-decisions.md` §4).
 
 ## Index
 

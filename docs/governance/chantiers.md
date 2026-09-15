@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M1 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M1 fait, M2a en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -335,6 +335,7 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
 | D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | M1 : `--root` |
 | D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | C1, plan d'implémentation |
+| D23 | Moteur installé : `SOURCE_SUFFIXES` et `IMPORT_HINTS` de `boundaries.py` ne se calibrent plus depuis un projet (trouvé par M2a) | À ordonnancer |
 
 ---
 

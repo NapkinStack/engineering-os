@@ -21,8 +21,8 @@ D'où une règle de désambiguïsation à garder en tête en permanence :
 
 | Quand tu lis… | Comprends… |
 |---|---|
-| `AGENTS.md`, `playbooks/`, `docs/os/` | Le **livrable**. Ce que liront les clients. On l'édite comme on édite un produit. |
-| `platform/`, `.github/`, `contracts/` | Le **produit outillé**. Le code de NapkinStack. |
+| `skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`, `skeleton/contracts/`, CI et hooks du squelette | Le **livrable**. Ce que reçoit chaque projet. On l'édite comme on édite un produit. |
+| `src/napkinstack/`, `copier.yml`, `platform/`, `.github/` | Le **produit outillé**. Le code de NapkinStack. |
 | Ce fichier, `docs/governance/` | Le **contexte de travail**. Il ne part pas chez le client. |
 
 Un agent qui travaille ici n'est donc **pas** dans le cas nominal décrit par le kernel
@@ -78,7 +78,7 @@ Non négociables. Une PR qui en viole un est refusée, même si tout le reste es
 | # | Invariant | Pourquoi |
 |---|---|---|
 | P1 | **Aucune stack imposée aux modules** — ni langage, ni framework, ni base. L'outillage NapkinStack (uv, qui fournit Python et pre-commit) a ses propres prérequis, isolés du code du projet | La plateforme orchestre, elle ne connaît aucune stack. Toute logique spécifique à un écosystème dans le moteur est un bug ; un preset délègue au générateur officiel. |
-| P2 | **Portabilité des règles** — `AGENTS.md`, `playbooks/`, `docs/os/` restent en markdown générique | Un client doit pouvoir utiliser l'OS avec un autre agent que Claude. Un outil est un adaptateur, jamais une fondation. |
+| P2 | **Portabilité des règles** — les règles du squelette (`skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`) restent en markdown générique | Un client doit pouvoir utiliser l'OS avec un autre agent que Claude. Un outil est un adaptateur, jamais une fondation. |
 | P3 | **L'enforcement reste en CI** — jamais dans un hook, jamais dans un plugin | Un hook est contournable. Le confondre avec une garantie fait repousser le vrai check. |
 | P4 | **Kernel sous budget** — 250 lignes | Sans plafond, il regrossit à chaque incident et redevient le document illisible qu'il remplace. |
 | P5 | **Tout check a un test qui prouve qu'il échoue** | Un garde-fou qui ne sait pas échouer ne garde rien. |
@@ -89,7 +89,7 @@ Non négociables. Une PR qui en viole un est refusée, même si tout le reste es
 
 ## 5. Comment travailler sur ce dépôt
 
-Le kernel `AGENTS.md` reste ta référence de **méthode** — oracle d'abord, changement
+Le kernel `skeleton/AGENTS.md` reste ta référence de **méthode** — oracle d'abord, changement
 minimal, résumé en cinq blocs, arrêt sur action à haut risque. Trois adaptations :
 
 **« Un module » se lit « un chantier ».** Il n'y a pas de modules ici. L'unité de lot
@@ -113,7 +113,7 @@ Ne construis pas, ne propose pas :
 - un preset de stack qu'aucun vrai projet n'utilise encore ;
 - un plugin ou un marketplace Claude Code — l'enforcement reste en CI (P3) ;
 - des fitness functions au-delà du chantier en cours — les suivantes sont priorisées
-  dans `docs/os/07-gouvernance.md` §3, et leur besoin n'est pas démontré ;
+  dans `skeleton/docs/os/07-gouvernance.md` §3, et leur besoin n'est pas démontré ;
 - de l'abstraction ou de la configuration pour un usage unique ;
 - une interface web, un tableau de bord, un service.
 

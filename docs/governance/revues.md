@@ -1,7 +1,7 @@
 # Revues périodiques
 
 > Trois rendez-vous. Chacun produit une **décision**, jamais un simple constat.
-> (`docs/os/10-mesure.md` §5)
+> (`skeleton/docs/os/10-mesure.md` §5)
 
 ## Revue de frontières — mensuelle
 

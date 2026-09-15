@@ -2,7 +2,7 @@ name: Gouvernance
 
 # Fitness functions d'architecture, périmètre de PR, hooks et secrets.
 # Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
-# (docs/os/07-gouvernance.md).
+# (skeleton/docs/os/07-gouvernance.md).
 #
 # À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
 # principale. Sans cela, la CI informe mais ne garantit rien.

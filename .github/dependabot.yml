@@ -1,29 +1,35 @@
 # Mises à jour de l'outillage : actions GitHub, hooks pre-commit, dépendances Python (uv.lock).
-# Une PR par écosystème, pour ménager le budget de revue. Le délai de 7 jours évite
-# d'adopter une version publiée la veille, le temps qu'une compromission soit repérée.
-# Chaque PR passe par les mêmes checks obligatoires que les autres.
+# Le délai de 7 jours évite d'adopter une version publiée la veille, le temps qu'une
+# compromission soit repérée. Chaque PR passe par les mêmes checks obligatoires.
+#
+# Actions et hooks existent en deux exemplaires, ce dépôt et skeleton/ :
+# group-by: dependency-name les met à jour dans la même PR, une par dépendance.
+# github-actions lit tel quel un répertoire autre que « / », d'où le chemin des
+# workflows du squelette.
 
 version: 2
 
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    directories: ["/", "/skeleton/.github/workflows"]
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
     groups:
       github-actions:
+        group-by: dependency-name
         patterns: ["*"]
 
   - package-ecosystem: pre-commit
-    directory: /
+    directories: ["/", "/skeleton"]
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
     groups:
       pre-commit:
+        group-by: dependency-name
         patterns: ["*"]
 
   - package-ecosystem: uv

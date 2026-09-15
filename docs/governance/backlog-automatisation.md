@@ -4,7 +4,7 @@
 > est une **dette**. Ce fichier la rend visible et datée.
 >
 > Sans ce backlog, le kernel grossit à chaque incident et redevient le document
-> illisible qu'il remplace (`docs/os/07-gouvernance.md` §9).
+> illisible qu'il remplace (`skeleton/docs/os/07-gouvernance.md` §9).
 
 | Règle | Où elle vit | Risque si violée | Coût d'automatisation | Déclencheur | Échéance |
 |---|---|---|---|---|---|
