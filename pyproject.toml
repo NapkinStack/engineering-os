@@ -8,6 +8,9 @@ dependencies = ["PyYAML>=6.0", "copier==9.18.2", "pre-commit==4.6.2"]
 [project.scripts]
 nstack = "napkinstack.cli:main"
 
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
 [tool.uv]
 required-version = ">=0.12.14,<0.13"
 

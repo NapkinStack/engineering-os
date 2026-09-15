@@ -76,8 +76,19 @@ def run(root: Path, check_only: bool = False) -> int:
               f"      Créer {MAPPING}, une entrée par playbook (source, description).")
         return 1
 
-    mapping = (yaml.safe_load(map_file.read_text(encoding="utf-8")) or {}).get("skills") or {}
-    failures: list[str] = []
+    try:
+        brut = yaml.safe_load(map_file.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        print(f"  ÉCHEC [S2] {MAPPING} illisible : {exc}")
+        return 1
+    mapping = brut.get("skills") if isinstance(brut, dict) else None
+    if not isinstance(mapping, dict):
+        print(f"  ÉCHEC [S2] {MAPPING} : section skills attendue, un dictionnaire nom → source et "
+              "description.")
+        return 1
+    failures: list[str] = [f"[S2] skill '{name}' : entrée invalide, source et description attendues"
+                           for name, entry in mapping.items() if not isinstance(entry, dict)]
+    mapping = {name: entry for name, entry in mapping.items() if isinstance(entry, dict)}
 
     # S1 — tout playbook doit avoir une entrée
     declared = {Path(e["source"]).name for e in mapping.values() if e.get("source")}

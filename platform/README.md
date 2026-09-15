@@ -19,6 +19,7 @@ runbook, tests et configuration.
 | `src/napkinstack/project.py` | Création et mise à jour d'un projet, par Copier |
 | `src/napkinstack/doctor.py` | Diagnostic du poste et des réglages GitHub, en lecture seule |
 | `tests/run.sh` | L'oracle : chaque garde-fou prouve qu'il sait échouer |
+| `tests/test_controles.py` | Règles M, B, S, P : un cas qui échoue par règle (pytest, lancé par `run.sh`) |
 
 ## Fitness functions
 

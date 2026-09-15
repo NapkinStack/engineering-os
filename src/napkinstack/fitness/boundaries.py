@@ -62,16 +62,23 @@ def load_modules(root: Path) -> dict[str, dict]:
         if not d.is_dir():
             continue
         for manifest in sorted(d.glob("*/MANIFEST.yaml")):
-            data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-            mod = data.get("module") or {}
+            try:
+                data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                continue  # signalé par nstack manifests (M2)
+            mod = data.get("module") if isinstance(data, dict) else None
+            if not isinstance(mod, dict):
+                continue  # signalé par nstack manifests (M2)
+            consumes = data.get("consumes") if isinstance(data.get("consumes"), list) else []
+            section = data.get("data") if isinstance(data.get("data"), dict) else {}
+            owns = section.get("owns") if isinstance(section.get("owns"), list) else []
             name = mod.get("name") or manifest.parent.name
             modules[name] = {
                 "path": manifest.parent,
                 "dirname": manifest.parent.name,
                 "code_name": mod.get("code_name") or name,
-                "declared": {c.get("module") for c in (data.get("consumes") or [])
-                             if c.get("module")},
-                "owns_data": set(((data.get("data") or {}).get("owns")) or []),
+                "declared": {c.get("module") for c in consumes if isinstance(c, dict) and c.get("module")},
+                "owns_data": set(owns),
                 "raw": data,
             }
     return modules
