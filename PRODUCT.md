@@ -127,10 +127,12 @@ minimal, résumé en cinq blocs, arrêt sur action à haut risque. Trois adaptat
 est le chantier listé dans `docs/governance/chantiers.md`. Un chantier, une PR, un
 commit. Jamais deux chantiers ensemble.
 
-**L'oracle, ici, c'est `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`).
+**L'oracle, ici, c'est `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`), qui
+lance aussi les tests pytest des règles M, B, S et P (`platform/tests/test_controles.py`).
 Pour chaque nouveau contrôle, écris d'abord le cas qui prouve qu'il échoue quand la
-règle est violée, et vois-le échouer.
-Le pattern existe déjà dans ce fichier.
+règle est violée, et vois-le échouer. Le pattern existe dans ces deux fichiers : une
+règle de fitness function y gagne un cas paramétré, un comportement de commande un bloc
+de `run.sh`.
 
 **Le « client » est fictif mais exigeant.** Avant chaque changement, demande-toi lequel
 des quatre utilisateurs du §3 en bénéficie, et comment on le saura. Une amélioration qui
@@ -154,10 +156,9 @@ Ne construis pas, ne propose pas :
 
 NapkinStack v0.1.0 est en construction. Le moteur et le squelette fonctionnent depuis ce
 dépôt : `nstack init`, `update`, `doctor`, `new-module`, les verbes des modules et les
-fitness functions. Restent la fiabilité des contrôles hérités, dont plusieurs n'ont pas
-encore de test qui prouve leur échec (D4), puis la première publication et le projet
-pilote, privé. Les contrôles que le manuel décrit sans qu'ils soient automatisés sont
-marqués comme tels et inscrits au backlog d'automatisation.
+fitness functions ; chaque contrôle a un test qui prouve son échec. Restent la première
+publication et le projet pilote, privé. Les contrôles que le manuel décrit sans qu'ils
+soient automatisés sont marqués comme tels et inscrits au backlog d'automatisation.
 
 Feuille de route : `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Défauts et
 décisions : `docs/governance/chantiers.md`. Au-delà, laisser l'usage du pilote dicter les

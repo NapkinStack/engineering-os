@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M4 fait, M6 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M6 fait, M6.1 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -319,11 +319,11 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D1 | S3 exige des skills gitignorées : `main` rouge sur tout clone vierge | C0 |
 | D2 | Scripts à shebang non exécutables (`pr_scope.sh` : exit 126) | C0 |
 | D3 | Tests des garde-fous absents de la CI | C0 |
-| D4 | Checks sans test d'échec (P5) : M1, M3–M9, B1–B5, S1–S2, P1–P2 | M6.1 |
-| D5 | M1 documenté mais non implémenté | M6.1 |
+| D4 | Checks sans test d'échec (P5) : M1, M3–M9, B1–B5, S1–S2, P1–P2 | M6.1 : un test d'échec par règle M, B, S, P (pytest), mutations vérifiées |
+| D5 | M1 documenté mais non implémenté | M6.1 : M1 implémenté |
 | D6 | ~34 références mortes `docs/0X-….md`, dont 3 dans le kernel | M3.2 : renvois corrigés, gardés par un test |
 | D7 | « Module » défini 5 fois, différemment (fitness, `pr_scope.sh`, workflow, scaffold) | Après le projet pilote |
-| D8 | Manifest malformé : traceback au lieu d'un message (P6) | M6.1 |
+| D8 | Manifest malformé : traceback au lieu d'un message (P6) | M6.1 : types vérifiés dans manifests, frontières et skills |
 | D9 | Déclarations sans effet : `review_budget` jamais lu, étapes par criticité en `echo TODO` | Après le projet pilote |
 | D10 | Frontmatter YAML des skills générées invalide | C0.3 |
 | D11 | Gabarit `MANIFEST.yaml` : YAML invalide | C0.3 |
