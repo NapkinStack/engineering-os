@@ -255,13 +255,16 @@ et l'état actuel **avant** de décider. Ne jamais s'appuyer sur un souvenir.
 Sinon il reste un vœu pieux — et l'OS retombe exactement sur le défaut qu'il dénonce :
 une règle qui n'est qu'un texte ne produit aucun comportement.
 
-| Mécanisme | Check |
+| Mécanisme | Contrôle attendu |
 |---|---|
 | Section **Prior art** obligatoire dans ADR et PDR, avec ≥ 2 références nommées et la convention identifiée | Absence de section ou de référence → rouge |
 | Section **Déviation** obligatoire dès que la décision s'écarte de la convention, avec valeur utilisateur et critère d'observation | Décision marquée « déviation » sans section → rouge |
 | Toute nouvelle dépendance déclare **adoption et stratégie de sortie** dans le manifest | Dépendance non déclarée → rouge |
 | Décisions `CONSTRUIRE` : **critère de succès daté** obligatoire | Absence de date → rouge |
 | Échéance dépassée sans revue | Warning en CI, remonté au rituel trimestriel |
+
+Tant qu'un de ces contrôles n'est pas automatisé, il se fait en revue et figure au backlog
+d'automatisation (`07-gouvernance.md` §9) : écrire « rouge » ne suffit pas à le rendre vrai.
 
 Formulation courte, pour le kernel :
 
