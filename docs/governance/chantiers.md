@@ -15,9 +15,10 @@ flowchart LR
     C02 --> C03["C0.3<br/>formats stricts"]:::fait
     C03 --> PDR["PDR-0001<br/>accepté"]:::fait
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
-    A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
+    A1 --> A2["ADR-0002<br/>PyPI, accepté"]:::fait
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M6.1 fait, M5 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>publié sur PyPI"]:::fait
+    RP --> PP["Projet pilote<br/>privé"]:::afaire
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -38,7 +39,7 @@ flowchart LR
 | C0.3 | Formats stricts | Fait |
 | PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Accepté (2026-09-15), précisé : dépôts privés |
 | ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Accepté (2026-09-15) |
-| ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Proposé ; vérifié à la première publication |
+| ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Accepté (2026-09-15), vérifié à la publication de la v0.1.0 |
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
@@ -171,10 +172,11 @@ générés », « réglages GitHub » et la révision de P1 et du §6, appliqué
 
 **À trancher, dans l'ordre.**
 
-- ~~ADR-0001 — outil de gabarit~~ : Copier, proposé (2026-09-15). Un seul gabarit dans
-  ce dépôt, le squelette ; versions = tags ; aucune fonction « unsafe ».
+- ~~ADR-0001 — outil de gabarit~~ : Copier, accepté après prototype (2026-09-15). Un seul
+  gabarit dans ce dépôt, le squelette ; versions = tags ; aucune fonction « unsafe ».
 - ~~ADR-0002 — distribution et nom~~ : PyPI, paquet `napkinstack`, commande `nstack`,
-  `uv_build`, publication sur tag par Trusted Publishing, proposé (2026-09-15).
+  `uv_build`, publication sur tag par Trusted Publishing, accepté à la publication de la
+  v0.1.0 (2026-09-15).
 - ADR-0003 — identité de l'agent (GitHub App ou compte machine), condition pour exiger
   une approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
 - PDR-0002 — cadrage et découpage guidés : à partir de l'idée ou des specs, une procédure
