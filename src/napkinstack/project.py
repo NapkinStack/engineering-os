@@ -104,3 +104,62 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     print(f"  2. Créer le dépôt GitHub {created.get('github_repo')}, y pousser main, "
           "puis appliquer la checklist du README")
     return 0
+
+
+def update(root: Path, ref: str) -> int:
+    import copier
+    from copier.errors import CopierError
+
+    if not (root / ANSWERS).is_file():
+        print(f"ÉCHEC [update] {ANSWERS} introuvable dans {root} : ce dossier n'est pas un projet "
+              "créé par nstack init.\n      Action : lancer la commande à la racine du projet, "
+              "ou préciser --root.")
+        return 1
+    previous = str(_answers(root).get("_commit"))
+    if previous == ref:
+        print(f"Déjà à jour : NapkinStack {ref}.")
+        return 0
+    branch = f"nstack/update-{ref}"
+    if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+        print(f"ÉCHEC [update] La branche {branch} existe déjà dans {root}.\n"
+              "      Action : la fusionner ou la supprimer (git branch -D), puis relancer.")
+        return 1
+    try:
+        copier.run_update(root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,
+                          conflict="inline", quiet=True, unsafe=False)
+    except (CopierError, ValueError, OSError) as exc:
+        print(_explain(exc, "update", root, str(_answers(root).get("_src_path")), ref))
+        return 1
+
+    if not _git(root, "status", "--porcelain").stdout.strip():
+        print(f"Déjà à jour : rien ne change entre NapkinStack {previous} et {ref}.")
+        return 0
+    current = str(_answers(root).get("_commit"))
+    switch = _git(root, "switch", "--create", branch)
+    if switch.returncode:
+        print(f"ÉCHEC [update] Branche {branch} impossible à créer : {switch.stderr.strip()}\n"
+              "      Action : les changements restent dans l'arbre de travail ; créer la branche "
+              "à la main, puis commiter.")
+        return 1
+    conflicts = _git(root, "diff", "--name-only", "--diff-filter=U").stdout.splitlines()
+    if conflicts:
+        print(f"ÉCHEC [update] NapkinStack {previous} → {current} : conflits avec les adaptations "
+              f"du projet, marqués sur la branche {branch} dans :")
+        for path in conflicts:
+            print(f"  - {path}")
+        print("      Action : dans chaque fichier, garder la bonne version entre <<<<<<< et >>>>>>>, "
+              "puis git add --all && git commit.\n      Le hook check-merge-conflict et la CI "
+              "refusent tout marqueur restant.")
+        return 1
+    for args in (("add", "--all"), ("commit", "--quiet", "--message", f"NapkinStack {previous} → {current}")):
+        result = _git(root, *args)
+        if result.returncode:
+            print(f"ÉCHEC [update] Mise à jour posée sur {branch}, mais `git {args[0]}` a échoué :\n"
+                  f"      {(result.stdout + result.stderr).strip()}\n"
+                  "      Action : corriger, puis git add --all && git commit.")
+            return 1
+
+    print(f"Branche {branch} : NapkinStack {previous} → {current}, fusionné avec les adaptations "
+          "du projet.")
+    print(f"\nÉtape suivante : git push -u origin {branch}, puis ouvrir la PR ; la CI la valide.")
+    return 0

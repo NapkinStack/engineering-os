@@ -47,6 +47,12 @@ def _init(args: argparse.Namespace) -> int:
                         args.ref or project.default_ref())
 
 
+def _update(args: argparse.Namespace) -> int:
+    from napkinstack import project
+
+    return project.update(args.root, args.ref or project.default_ref())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="Moteur NapkinStack.")
     parser.add_argument("--version", action="version", version=f"nstack {__version__}")
@@ -76,6 +82,9 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--source", help="gabarit : URL ou chemin (défaut : dépôt NapkinStack)")
     ini.add_argument("--ref", help="version du squelette, tag vX.Y.Z (défaut : celle de nstack)")
     ini.set_defaults(func=_init)
+    up = _add(sub, "update", "fusionne une version de NapkinStack sur une branche à relire (PDR-0001)",
+              _update)
+    up.add_argument("--ref", help="version cible, tag vX.Y.Z (défaut : celle de nstack)")
     return parser
 
 

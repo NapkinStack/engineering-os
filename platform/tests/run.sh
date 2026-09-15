@@ -448,4 +448,117 @@ fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "Aucun fichier modifié" \
   || { echo "ÉCHEC : nstack pr-scope ne répond pas dans le projet."; exit 1; }
 
+# Mises à jour : gabarit jetable à trois versions, construit depuis l'arbre de travail.
+TPL="$GN/gabarit"
+mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"
+git "${GIT_ID[@]}" init -q "$TPL"
+version_gabarit() {  # $1 = tag, les modifications du gabarit étant faites
+  git -C "$TPL" add -A
+  git "${GIT_ID[@]}" -C "$TPL" commit -q --no-verify -m "$1"
+  git -C "$TPL" tag "$1"
+}
+version_gabarit v0.1.0
+printf '\nCorrectif v0.2, en fin de fichier.\n' >> "$TPL/skeleton/playbooks/tests.md"
+printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
+printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/modules/README.md"
+version_gabarit v0.2.0
+sed -i '1s/.*/# Sécurité — titre v0.3/' "$TPL/skeleton/playbooks/securite.md"
+version_gabarit v0.3.0
+projet_v01() {
+  nstack init "$1" --source "$TPL" --ref v0.1.0 "${REPONSES[@]}" >/dev/null \
+    || { echo "ÉCHEC : nstack init depuis le gabarit jetable ($1)."; exit 1; }
+}
+commit_projet() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --no-verify -m "$2"; }
+
+A="$GN/projet-a"
+projet_v01 "$A"
+sed -i '1s/.*/# Tests — adaptation locale/' "$A/playbooks/tests.md"
+rm "$A/docs/pdr/_TEMPLATE.md"
+nstack new-module demo equipe-demo standard --root "$A" >/dev/null
+commit_projet "$A" "Adaptations et premier module"
+MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
+
+echo "→ update : correctif et adaptation fusionnés, commités sur une branche (critère 4)"
+if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+  echo "ÉCHEC : nstack update a échoué."; echo "$OUT"; exit 1
+fi
+[ "$(git -C "$A" branch --show-current)" = nstack/update-v0.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
+  || { echo "ÉCHEC : mise à jour non commitée sur nstack/update-v0.2.0."; git -C "$A" status; exit 1; }
+[ "$(head -1 "$A/playbooks/tests.md")" = "# Tests — adaptation locale" ] \
+  && grep -qF "Correctif v0.2, en fin de fichier." "$A/playbooks/tests.md" \
+  || { echo "ÉCHEC : adaptation ou correctif perdu dans playbooks/tests.md."; exit 1; }
+grep -qF "_commit: v0.2.0" "$A/.copier-answers.yml" \
+  || { echo "ÉCHEC : version du projet non montée."; exit 1; }
+echo "$OUT" | grep -qF "git push -u origin nstack/update-v0.2.0" \
+  || { echo "ÉCHEC : étape suivante absente."; echo "$OUT"; exit 1; }
+
+echo "→ update : un fichier supprimé par l'équipe n'est pas recréé (critère 6)"
+[ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "ÉCHEC : fichier supprimé recréé."; exit 1; }
+
+echo "→ update : aucun fichier de module modifié, le README du squelette suit (critère 7)"
+[ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_AVANT" ] \
+  || { echo "ÉCHEC : modules/demo modifié par la mise à jour (PDR-0001 R4)."; exit 1; }
+grep -qF "Correctif v0.2." "$A/modules/README.md" \
+  || { echo "ÉCHEC : modules/README.md n'a pas suivi la version."; exit 1; }
+
+echo "→ update : un projet déjà à jour ne crée pas de branche"
+if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+  echo "ÉCHEC : projet à jour refusé."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "Déjà à jour" \
+  && [ "$(git -C "$A" branch --list 'nstack/*' | wc -l)" -eq 1 ] \
+  || { echo "ÉCHEC : projet à jour mal traité."; echo "$OUT"; exit 1; }
+
+echo "→ update : une version antérieure DOIT être refusée, sans rien modifier"
+if OUT=$(nstack update --root "$A" --ref v0.1.0 2>&1); then
+  echo "ÉCHEC : retour arrière accepté."; exit 1
+fi
+echo "$OUT" | grep -qF "antérieure à celle du projet (0.2.0)" \
+  && [ -z "$(git -C "$A" status --porcelain)" ] \
+  || { echo "ÉCHEC : retour arrière mal refusé."; echo "$OUT"; exit 1; }
+
+echo "→ update : un arbre de travail modifié DOIT être refusé, sans rien modifier"
+echo "modification locale" >> "$A/README.md"
+if OUT=$(nstack update --root "$A" --ref v0.3.0 2>&1); then
+  echo "ÉCHEC : mise à jour acceptée sur un arbre modifié."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] Arbre de travail modifié" \
+  && [ "$(git -C "$A" diff --name-only)" = README.md ] \
+  && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v0.3.0 >/dev/null \
+  || { echo "ÉCHEC : arbre modifié mal refusé."; echo "$OUT"; exit 1; }
+git -C "$A" checkout -q -- README.md
+
+echo "→ update : hors d'un projet, la commande DOIT l'expliquer"
+if OUT=$(nstack update --root "$GN/occupe" 2>&1); then
+  echo "ÉCHEC : update accepté hors d'un projet."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] .copier-answers.yml introuvable" \
+  || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
+
+B="$GN/projet-b"
+projet_v01 "$B"
+sed -i '1s/.*/# Sécurité — adaptation locale/' "$B/playbooks/securite.md"
+commit_projet "$B" "Adaptation"
+
+echo "→ update : versions sautées d'un coup, conflit marqué et laissé à l'équipe (critère 5)"
+if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
+  echo "ÉCHEC : conflit passé sous silence."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] NapkinStack v0.1.0 → v0.3.0 : conflits" \
+  && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
+  || { echo "ÉCHEC : conflit sans liste des fichiers."; echo "$OUT"; exit 1; }
+[ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
+  && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
+  && grep -qF "Correctif v0.2, en fin de fichier." "$B/playbooks/tests.md" \
+  || { echo "ÉCHEC : branche, commit ou version sautée incorrects."; exit 1; }
+
+echo "→ update : le commit reste refusé tant qu'un marqueur subsiste (critère 5)"
+(cd "$B" && pre-commit install >/dev/null)
+git -C "$B" add -A
+if OUT=$(git "${GIT_ID[@]}" -C "$B" commit -m "Mise à jour" 2>&1); then
+  echo "ÉCHEC : un conflit de mise à jour a été commité."; exit 1
+fi
+echo "$OUT" | grep -qF "Merge conflict string" \
+  || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
+
 echo "Tests plateforme : OK"
