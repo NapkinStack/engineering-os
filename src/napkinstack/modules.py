@@ -92,3 +92,41 @@ def nouveau(root: Path, nom: str, owner: str, criticite: str) -> int:
     print(f"  3. modules/{nom}/AGENTS.md : le spécifique du module, jamais le kernel")
     print(f"  4. nstack fitness, puis nstack check {nom} et nstack test {nom}")
     return 0
+
+
+def _modules(root: Path) -> dict[str, Path]:
+    """Nom → dossier, pour chaque MANIFEST.yaml que reconnaissent les fitness functions."""
+    return {manifest.parent.name: manifest.parent for manifest in find_manifests(root)}
+
+
+def verbe(root: Path, verbe: str, nom: str | None) -> int:
+    connus = _modules(root)
+    if nom is not None and nom not in connus:
+        print(f"ÉCHEC [{verbe}] module '{nom}' introuvable dans {root} : aucun MANIFEST.yaml à ce nom.\n"
+              f"      Modules connus : {', '.join(connus) or 'aucun'}.")
+        return 1
+    cibles = [nom] if nom is not None else list(connus)
+    if not cibles:
+        print(f"Aucun module dans {root} : rien à exécuter.")
+        return 0
+    for cible in cibles:
+        manifest = connus[cible] / "MANIFEST.yaml"
+        try:
+            commandes = (yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}).get("commands") or {}
+        except yaml.YAMLError as erreur:
+            print(f"ÉCHEC [{verbe}] {manifest} illisible : {erreur}\n      Action : nstack manifests.")
+            return 1
+        commande = commandes.get(verbe)
+        if not commande:
+            if verbe in FACULTATIFS:
+                print(f"→ {cible} : {verbe} non déclaré, rien à préparer.")
+                continue
+            print(f"ÉCHEC [{verbe}] module '{cible}' : commands.{verbe} non déclarée dans {manifest}.\n"
+                  "      Action : y déclarer la commande de la stack du module (docs/os/09-plateforme.md §2).")
+            return 1
+        print(f"→ {cible} : {commande}", flush=True)
+        code = subprocess.run(commande, shell=True, cwd=connus[cible]).returncode
+        if code:
+            print(f"ÉCHEC [{verbe}] module '{cible}' : `{commande}` sort en {code}.")
+            return code
+    return 0

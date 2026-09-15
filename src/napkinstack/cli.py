@@ -73,6 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
     nm.add_argument("name", help="nom du module, kebab-case")
     nm.add_argument("owner", help="équipe GitHub, organisation/équipe")
     nm.add_argument("criticality", choices=["prototype", "standard", "eleve", "critique"])
+    for nom_verbe, aide in (("bootstrap", "prépare un module, ou tous (commands.bootstrap)"),
+                            ("check", "format, lint, types d'un module, ou de tous (commands.check)"),
+                            ("test", "tests d'un module, ou de tous (commands.test)")):
+        vb = _add(sub, nom_verbe, aide, lambda a, v=nom_verbe: modules.verbe(a.root, v, a.module))
+        vb.add_argument("module", nargs="?", help="nom du module (défaut : tous)")
+    rn = _add(sub, "run", "démarre un module en local (commands.run)",
+              lambda a: modules.verbe(a.root, "run", a.module))
+    rn.add_argument("module")
     ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
