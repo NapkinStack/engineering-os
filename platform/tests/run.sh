@@ -2,52 +2,63 @@
 # Tests des fitness functions. L'oracle des garde-fous eux-mêmes.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+REPO=$(pwd)
 
-echo "→ les scripts compilent"
-python3 -m py_compile platform/fitness/manifests.py platform/fitness/boundaries.py
+echo "→ nstack : la commande répond et affiche sa version"
+uv run nstack --version | grep -qE '^nstack [0-9]+\.[0-9]+' \
+  || { echo "ÉCHEC : nstack --version ne répond pas."; exit 1; }
 
 echo "→ manifests du dépôt conformes"
-python3 platform/fitness/manifests.py .
+uv run nstack manifests --root .
 
 echo "→ frontières du dépôt conformes"
-python3 platform/fitness/boundaries.py .
+uv run nstack boundaries --root .
 
 echo "→ un manifest invalide DOIT échouer"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/cassé"
 printf 'module:\n  name: cassé\n' > "$TMP/modules/cassé/MANIFEST.yaml"
-if python3 platform/fitness/manifests.py "$TMP" >/dev/null 2>&1; then
+if OUT=$(cd / && uv run --project "$REPO" nstack manifests --root "$TMP" 2>&1); then
   echo "ÉCHEC : un manifest incomplet est passé au vert."; rm -rf "$TMP"; exit 1
 fi
+echo "$OUT" | grep -qF "[M2] cassé" \
+  || { echo "ÉCHEC : message M2 attendu absent."; echo "$OUT"; rm -rf "$TMP"; exit 1; }
 rm -rf "$TMP"
 
 # Skills : chaque fixture est une copie jetable, le vrai .claude/ n'est jamais touché.
 SK=$(mktemp -d)
 trap 'rm -rf "$SK"' EXIT
 mkdir -p "$SK/platform"
-cp platform/sync_skills.py platform/skills.yaml "$SK/platform/"
+cp platform/skills.yaml "$SK/platform/"
 cp -r playbooks "$SK/"
+nstack_sk() { (cd / && uv run --project "$REPO" nstack skills --root "$SK" "$@"); }
+
+echo "→ skills : la racine donnée est analysée, quel que soit le dossier courant (D21)"
+if (cd / && uv run --project "$REPO" nstack skills --check --root / >/dev/null 2>&1); then
+  echo "ÉCHEC : racine sans skills.yaml acceptée."; exit 1
+fi
+nstack_sk --check >/dev/null || { echo "ÉCHEC : la racine donnée n'est pas analysée."; exit 1; }
 
 echo "→ skills : sur un clone vierge, S3 est non applicable et le check passe"
-if ! OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if ! OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : --check échoue alors qu'aucune skill n'a été générée."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "S3 non applicable" \
   || { echo "ÉCHEC : S3 ignoré sans le dire."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill désynchronisée DOIT échouer"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 echo "ajout" >> "$SK/playbooks/tests.md"
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill désynchronisée est passée au vert."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'tests' désynchronisée" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill supprimée DOIT échouer"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 rm "$SK/.claude/skills/ux/SKILL.md"
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill supprimée est passée au vert."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
@@ -55,7 +66,7 @@ echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
 
 echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
 cp playbooks/tests.md "$SK/playbooks/"
-python3 "$SK/platform/sync_skills.py" >/dev/null
+nstack_sk >/dev/null
 python3 - "$SK" <<'EOF' || exit 1
 import sys, yaml
 from pathlib import Path
@@ -94,7 +105,7 @@ A64=$(printf 'a%.0s' {1..64})
 echo "→ skills : un nom hors spécification Agent Skills DOIT échouer (S4)"
 for nom in Majuscule -debut fin- double--tiret nom_souligne "${A64}a"; do
   skill_tests_modifiee "$nom"
-  if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+  if OUT=$(nstack_sk --check 2>&1); then
     echo "ÉCHEC : nom de skill invalide accepté : '$nom'."; exit 1
   fi
   echo "$OUT" | grep -qF "[S4] skill '$nom'" \
@@ -103,7 +114,7 @@ done
 
 echo "→ skills : une description de plus de 1024 caractères DOIT échouer (S4)"
 skill_tests_modifiee tests 1025
-if OUT=$(python3 "$SK/platform/sync_skills.py" --check 2>&1); then
+if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : description de 1025 caractères acceptée."; exit 1
 fi
 echo "$OUT" | grep -qF "[S4] skill 'tests'" \
@@ -111,7 +122,7 @@ echo "$OUT" | grep -qF "[S4] skill 'tests'" \
 
 echo "→ skills : nom de 64 caractères et description de 1024 caractères acceptés"
 skill_tests_modifiee "$A64" 1024
-python3 "$SK/platform/sync_skills.py" --check >/dev/null \
+nstack_sk --check >/dev/null \
   || { echo "ÉCHEC : limites de la spécification refusées."; exit 1; }
 
 # Scaffold : copie jetable, le vrai dépôt n'est jamais touché.
@@ -120,9 +131,8 @@ trap 'rm -rf "$SK" "$SC"' EXIT
 
 echo "→ scaffold : le module généré a un MANIFEST.yaml valide, aux valeurs substituées"
 mkdir -p "$SC/.github" "$SC/modules"
-cp -r platform "$SC/"
 cp .github/CODEOWNERS "$SC/.github/"
-bash "$SC/platform/scaffold/new-module.sh" demo equipe-demo standard >/dev/null
+uv run nstack new-module demo equipe-demo standard --root "$SC" >/dev/null
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
 import sys, yaml
 module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
@@ -130,8 +140,23 @@ attendu = {"name": "demo", "owner": "equipe-demo", "criticality": "standard"}
 if {k: module.get(k) for k in attendu} != attendu:
     sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
 EOF
-python3 platform/fitness/manifests.py "$SC" >/dev/null \
-  || { echo "ÉCHEC : le module généré ne passe pas manifests.py."; exit 1; }
+uv run nstack manifests --root "$SC" >/dev/null \
+  || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
+
+echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
+FT=$(mktemp -d)
+mkdir -p "$FT/platform" "$FT/playbooks"
+printf 'skills: {}\n' > "$FT/platform/skills.yaml"
+printf '# orphelin\n' > "$FT/playbooks/orphelin.md"
+if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
+  echo "ÉCHEC : un playbook sans entrée est passé au vert."; rm -rf "$FT"; exit 1
+fi
+echo "$OUT" | grep -qF "[S1]" || { echo "ÉCHEC : S1 attendu."; echo "$OUT"; rm -rf "$FT"; exit 1; }
+rm -rf "$FT"
+
+echo "→ nstack pr-scope : répond sur la racine donnée"
+uv run nstack pr-scope --root . --base HEAD | grep -qF "Aucun fichier modifié" \
+  || { echo "ÉCHEC : nstack pr-scope ne répond pas."; exit 1; }
 
 # Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
 # l'exécution : écrits en dur, ils déclencheraient la protection au push.

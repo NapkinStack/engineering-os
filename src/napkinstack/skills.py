@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Génère les skills Claude Code à partir des playbooks.
 
@@ -21,30 +20,22 @@ S3 ne s'applique que si .claude/skills/ existe. Les skills sont gitignorées : u
 vierge, donc la CI, n'en a aucune, et aucune ne peut y être désynchronisée.
 
 Usage :
-    python3 platform/sync_skills.py            # génère .claude/skills/
-    python3 platform/sync_skills.py --check    # vérifie sans écrire
+    nstack skills [--root RACINE]            # génère .claude/skills/
+    nstack skills --check [--root RACINE]    # vérifie sans écrire
 """
 
 from __future__ import annotations
+
 import hashlib
 import re
-import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    sys.exit("PyYAML requis : pip install -r platform/fitness/requirements.txt")
+import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
-MAP_FILE = ROOT / "platform" / "skills.yaml"
-PLAYBOOK_DIR = ROOT / "playbooks"
-SKILL_DIR = ROOT / ".claude" / "skills"
 SKILL_NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
-
 BANNER = (
-    "<!-- GÉNÉRÉ depuis {source} par platform/sync_skills.py — NE PAS ÉDITER.\n"
-    "     Modifier le playbook, puis relancer `make skills`. -->"
+    "<!-- GÉNÉRÉ depuis {source} par nstack skills — NE PAS ÉDITER.\n"
+    "     Modifier le playbook, puis relancer `nstack skills`. -->"
 )
 
 
@@ -53,53 +44,46 @@ def normalise(text: str) -> str:
     return " ".join(text.split())
 
 
-def build(name: str, entry: dict) -> tuple[Path, str]:
-    source = ROOT / entry["source"]
-    body = source.read_text(encoding="utf-8")
+def build(root: Path, name: str, entry: dict) -> tuple[Path, str]:
+    body = (root / entry["source"]).read_text(encoding="utf-8")
     # Sérialisé, jamais concaténé : « : » ou « # » dans une description casserait le YAML.
     frontmatter = yaml.safe_dump(
         {"name": name, "description": normalise(entry["description"])},
         allow_unicode=True, sort_keys=False, width=float("inf"),
     )
-    content = (
-        "---\n"
-        + frontmatter
-        + "---\n\n"
-        + BANNER.format(source=entry["source"])
-        + "\n\n"
-        + body
-    )
-    return SKILL_DIR / name / "SKILL.md", content
+    content = "---\n" + frontmatter + "---\n\n" + BANNER.format(source=entry["source"]) + "\n\n" + body
+    return root / ".claude" / "skills" / name / "SKILL.md", content
 
 
 def digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
-def main() -> int:
-    check_only = "--check" in sys.argv
+def run(root: Path, check_only: bool = False) -> int:
+    map_file = root / "platform" / "skills.yaml"
+    playbook_dir = root / "playbooks"
+    skill_dir = root / ".claude" / "skills"
 
-    if not MAP_FILE.is_file():
-        print(f"ÉCHEC : {MAP_FILE.relative_to(ROOT)} introuvable.")
+    if not map_file.is_file():
+        print(f"ÉCHEC : {map_file.relative_to(root)} introuvable dans {root}.")
         return 1
 
-    mapping = (yaml.safe_load(MAP_FILE.read_text(encoding="utf-8")) or {}).get("skills") or {}
+    mapping = (yaml.safe_load(map_file.read_text(encoding="utf-8")) or {}).get("skills") or {}
     failures: list[str] = []
 
     # S1 — tout playbook doit avoir une entrée
     declared = {Path(e["source"]).name for e in mapping.values() if e.get("source")}
-    for playbook in sorted(PLAYBOOK_DIR.glob("*.md")):
+    for playbook in sorted(playbook_dir.glob("*.md")):
         if playbook.name not in declared:
             failures.append(
-                f"[S1] {playbook.relative_to(ROOT)} n'a pas d'entrée dans "
+                f"[S1] {playbook.relative_to(root)} n'a pas d'entrée dans "
                 f"platform/skills.yaml.\n      Ajouter une description, ou retirer le "
                 f"playbook s'il ne sert plus (docs/os/10-mesure.md §6)."
             )
 
     # S2 — toute entrée doit pointer vers un playbook existant
     for name, entry in mapping.items():
-        source = ROOT / entry.get("source", "")
-        if not source.is_file():
+        if not (root / entry.get("source", "")).is_file():
             failures.append(f"[S2] skill '{name}' : source introuvable ({entry.get('source')})")
         if not normalise(entry.get("description", "")):
             failures.append(f"[S2] skill '{name}' : description vide")
@@ -115,20 +99,20 @@ def main() -> int:
             failures.append(f"[S4] skill '{name}' : description de plus de 1024 caractères")
 
     if failures:
-        for f in failures:
-            print(f"  ÉCHEC {f}")
+        for failure in failures:
+            print(f"  ÉCHEC {failure}")
         return 1
 
     # S3 — génération ou comparaison
-    if check_only and not SKILL_DIR.is_dir():
+    if check_only and not skill_dir.is_dir():
         print(f"Skills : S1, S2 et S4 conformes. S3 non applicable : "
-              f"{SKILL_DIR.relative_to(ROOT)}/ absent, aucune skill générée ici.")
+              f"{skill_dir.relative_to(root)}/ absent, aucune skill générée ici.")
         return 0
 
     stale: list[str] = []
     written = 0
     for name, entry in sorted(mapping.items()):
-        path, content = build(name, entry)
+        path, content = build(root, name, entry)
         if check_only:
             if not path.is_file():
                 stale.append(f"[S3] skill '{name}' absente de .claude/skills/")
@@ -141,9 +125,9 @@ def main() -> int:
 
     if check_only:
         if stale:
-            for s in stale:
-                print(f"  ÉCHEC {s}")
-            print("\nLancer `make skills` pour régénérer.")
+            for item in stale:
+                print(f"  ÉCHEC {item}")
+            print("\nLancer `nstack skills` pour régénérer.")
             return 1
         print(f"Skills : {len(mapping)} synchronisées avec les playbooks.")
         return 0
@@ -154,7 +138,3 @@ def main() -> int:
     print("\nElles se déclenchent seules selon leur description ; l'agent peut aussi")
     print("les invoquer par leur nom. Le kernel reste dans AGENTS.md.")
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

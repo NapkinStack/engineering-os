@@ -10,6 +10,8 @@ name: Gouvernance
 # Sécurité, vérifiée par zizmor : jeton en lecture seule, actions épinglées par SHA et
 # tenues à jour par Dependabot, aucun jeton laissé dans .git/config, et les valeurs
 # issues du contexte passent par env: au lieu d'être insérées dans les scripts.
+#
+# Outillage : uv, seul prérequis (PDR-0001) ; dépendances figées par uv.lock.
 
 on:
   pull_request:
@@ -29,29 +31,21 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'uv.lock') }}
 
       - name: Dépendances
-        run: pip install -r platform/fitness/requirements.txt -r requirements-dev.txt
+        run: uv sync --locked
 
-      - name: Manifests, cycles de vie, dates de dépréciation
-        run: python3 platform/fitness/manifests.py .
-
-      - name: Frontières — graphe déclaré vs réel, cycles, accès données
-        run: python3 platform/fitness/boundaries.py .
-
-      - name: Skills synchronisées avec les playbooks
-        run: python3 platform/sync_skills.py --check
+      - name: Manifests, frontières, skills
+        run: uv run nstack fitness --root .
 
       - name: Tests de la plateforme — chaque garde-fou prouve qu'il sait échouer
-        run: bash platform/tests/run.sh
+        run: uv run bash platform/tests/run.sh
 
   scope:
     name: Périmètre et budget de revue
@@ -68,7 +62,7 @@ jobs:
         env:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_REF: ${{ github.base_ref }}
-        run: ./platform/fitness/pr_scope.sh "origin/$BASE_REF"
+        run: bash src/napkinstack/fitness/pr_scope.sh "origin/$BASE_REF"
 
   hooks:
     name: Hooks et secrets
@@ -79,25 +73,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements-dev.txt') }}
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'uv.lock') }}
 
       - name: Dépendances
-        run: pip install -r requirements-dev.txt
+        run: uv sync --locked
 
       # Même configuration que les hooks locaux. Le hook « gitleaks » ne scanne que
       # les changements indexés, vides en CI : l'étape suivante couvre les secrets.
       - name: Hooks sur tous les fichiers
         env:
           SKIP: gitleaks
-        run: pre-commit run --all-files --show-diff-on-failure
+        run: uv run pre-commit run --all-files --show-diff-on-failure
 
       # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
       - name: Secrets dans tout l'historique git
-        run: pre-commit run gitleaks-historique --hook-stage manual --all-files
+        run: uv run pre-commit run gitleaks-historique --hook-stage manual --all-files

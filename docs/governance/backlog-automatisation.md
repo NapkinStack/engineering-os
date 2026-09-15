@@ -15,10 +15,10 @@
 
 | Règle | Automatisée par | Date |
 |---|---|---|
-| Une PR = un module | `platform/fitness/pr_scope.sh` | |
-| Graphe déclaré = graphe réel | `platform/fitness/boundaries.py` | |
-| Dates de dépréciation non dépassées | `platform/fitness/manifests.py` | |
-| Runbook obligatoire si criticité élevée | `platform/fitness/manifests.py` | |
+| Une PR = un module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.sh`) | |
+| Graphe déclaré = graphe réel | `nstack boundaries` | |
+| Dates de dépréciation non dépassées | `nstack manifests` | |
+| Runbook obligatoire si criticité élevée | `nstack manifests` | |
 | Aucun secret dans le dépôt | gitleaks (hook et CI), protection au push | 2026-09-13 |
 
 ## Revue

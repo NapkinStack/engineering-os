@@ -20,7 +20,7 @@ ressemblant à un import, les jetons identifiant un autre module. Deux sources :
 Ajuste IMPORT_HINTS et SOURCE_SUFFIXES selon ta stack. Un faux positif se corrige
 en déclarant la dépendance ; un faux négatif se corrige en enrichissant les motifs.
 
-Usage :  python3 platform/fitness/boundaries.py [racine]
+Usage :  nstack boundaries [--root RACINE]
 """
 
 from __future__ import annotations
@@ -28,10 +28,7 @@ import re
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    sys.exit("PyYAML requis : pip install -r platform/fitness/requirements.txt")
+import yaml
 
 MODULE_DIRS = ["modules", "services", "apps", "packages"]
 SOURCE_SUFFIXES = {
@@ -180,8 +177,9 @@ def find_cycles(graph: dict[str, set[str]]) -> list[list[str]]:
     return cycles
 
 
-def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+def run(root: Path) -> int:
+    failures.clear()
+    warnings.clear()
     modules = load_modules(root)
 
     if len(modules) < 2:
@@ -214,4 +212,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run(Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()))

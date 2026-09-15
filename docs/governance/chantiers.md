@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Plan d'implémentation<br/>moteur v0.1.0"]:::afaire
+    PT --> RP["Moteur v0.1.0<br/>M1 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -42,7 +42,7 @@ flowchart LR
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
-| C1 | Point d'entrée unique `nstack` | À replanifier au plan d'implémentation |
+| C1 | Point d'entrée unique `nstack` | Partiel (M1) : commande `nstack`, Makefile racine supprimé ; verbes de module à M4 |
 | C2 | Check anti-placeholder | À replanifier au plan d'implémentation |
 | C3 | Hook git versionné | Absorbé par C0.1 |
 | C4 | Proxy d'oracle | À replanifier au plan d'implémentation |
@@ -190,8 +190,9 @@ et la replanification de C1, C2, C4 et C5.
 
 ## C1 — Point d'entrée unique `nstack`
 
-> **À replanifier au plan d'implémentation (PDR-0001 accepté).** Le modèle framework
-> change sa portée : CLI publié, commande `init`, dépendance à pre-commit.
+> **Partiellement traité par M1** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) : commande
+> `nstack`, Makefile racine supprimé. Le reste suit le plan d'implémentation, où le modèle
+> framework change sa portée : CLI publié, commande `init`, dépendance à pre-commit.
 
 **Défaut.** Quatre styles d'invocation coexistent (`make`, `python3 platform/…`,
 `bash platform/…`, `./platform/…`). Pire : le `Makefile` racine suppose que chaque
@@ -329,10 +330,10 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D15 | Manuel : contrôles promis mais absents (prior art des ADR/PDR, transitions de cycle de vie, issue de contraction, matrice des consommateurs, échéances) | PDR-0001 |
 | D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | Organisation (2026-09-14) |
 | D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
-| D18 | Amorçage : `make` et `pip` absents du poste de référence | PDR-0001 |
+| D18 | Amorçage : `make` et `pip` absents du poste de référence | M1 : uv seul prérequis |
 | D19 | Scaffold : `sed` casse sur un owner contenant `/` | Replanification |
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
-| D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | Plan d'implémentation |
+| D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | M1 : `--root` |
 | D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | C1, plan d'implémentation |
 
 ---
@@ -340,8 +341,8 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 ## Definition of Done, par chantier
 
 - [ ] Le comportement est couvert par un test qui échouait avant
-- [ ] `./nstack fitness` vert (avant C1 : `manifests.py`, `boundaries.py`, `sync_skills.py --check`)
-- [ ] `bash platform/tests/run.sh` vert
+- [ ] `uv run nstack fitness` vert
+- [ ] `uv run bash platform/tests/run.sh` vert
 - [ ] Documentation impactée mise à jour
 - [ ] Aucune référence morte
 - [ ] Statut du chantier mis à jour dans le tableau ci-dessus

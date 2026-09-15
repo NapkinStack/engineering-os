@@ -41,7 +41,7 @@ déjà public : c'est un incident, il se révoque immédiatement (`SECURITY.md`)
 - **Rester dans le module.** Besoin d'un autre module ? Passer par son contrat.
   Le contrat ne suffit pas ? C'est un changement de contrat, donc une séquence
   expand/contract (`docs/os/03-contrats.md` §4) — jamais une PR unique.
-- `make fitness` avant chaque commit.
+- `uv run nstack fitness` avant chaque commit.
 
 ## Ouvrir la PR
 

@@ -16,7 +16,7 @@ Contrôles :
   M8  runbook obligatoire si criticality >= eleve
   M9  enveloppe de fichiers complète (AGENTS.md, README.md, tests/)
 
-Usage :  python3 platform/fitness/manifests.py [racine]
+Usage :  nstack manifests [--root RACINE]
 Sortie :  0 si tout passe, 1 sinon. Chaque échec explique la règle violée.
 """
 
@@ -25,10 +25,7 @@ import sys
 import datetime
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    sys.exit("PyYAML requis : pip install -r platform/fitness/requirements.txt")
+import yaml
 
 LIFECYCLES = {"Proposé", "Actif", "Maintenance", "Déprécié", "Retiré"}
 CRITICALITIES = {"prototype", "standard", "eleve", "critique"}
@@ -145,8 +142,9 @@ def check_manifest(path: Path, today: datetime.date) -> None:
         fail(rel, "M9", "dossier tests/ absent")
 
 
-def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+def run(root: Path) -> int:
+    failures.clear()
+    warnings.clear()
     today = datetime.date.today()
     manifests = find_manifests(root)
 
@@ -171,4 +169,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run(Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()))

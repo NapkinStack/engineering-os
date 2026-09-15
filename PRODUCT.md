@@ -96,8 +96,9 @@ minimal, résumé en cinq blocs, arrêt sur action à haut risque. Trois adaptat
 est le chantier listé dans `docs/governance/chantiers.md`. Un chantier, une PR, un
 commit. Jamais deux chantiers ensemble.
 
-**L'oracle, ici, c'est `platform/tests/run.sh`.** Pour chaque nouveau contrôle, écris
-d'abord le cas qui prouve qu'il échoue quand la règle est violée, et vois-le échouer.
+**L'oracle, ici, c'est `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`).
+Pour chaque nouveau contrôle, écris d'abord le cas qui prouve qu'il échoue quand la
+règle est violée, et vois-le échouer.
 Le pattern existe déjà dans ce fichier.
 
 **Le « client » est fictif mais exigeant.** Avant chaque changement, demande-toi lequel

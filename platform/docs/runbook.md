@@ -10,7 +10,7 @@
 ## Rollback
 
 Les fitness functions sont sans état : `git revert` suffit. Vérifier ensuite
-`make fitness` sur la branche principale.
+`uv run nstack fitness` sur la branche principale.
 
 ## Faux positif récurrent
 

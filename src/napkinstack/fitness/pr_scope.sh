@@ -8,8 +8,8 @@
 # Les deux sont volontairement visibles : ils rendent l'exception comptable
 # (docs/os/10-mesure.md §3).
 #
-# Usage local :  ./platform/fitness/pr_scope.sh [base]     (base par défaut : origin/main)
-# En CI      :   PR_LABELS="cross-module,bug" ./platform/fitness/pr_scope.sh "$BASE_SHA"
+# Usage local :  nstack pr-scope [--base BASE] [--root RACINE]   (base par défaut : origin/main)
+# En CI      :   PR_LABELS="cross-module,bug" bash src/napkinstack/fitness/pr_scope.sh "$BASE_SHA"
 
 set -uo pipefail
 
@@ -57,7 +57,7 @@ fi
 
 # --- P2 : budget de revue ------------------------------------------------
 STATS=$(git diff --numstat "$BASE"...HEAD \
-  | grep -vE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|\.generated\.|/generated/)' \
+  | grep -vE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|uv\.lock|\.generated\.|/generated/)' \
   || true)
 LINES=$(echo "$STATS" | awk '{ a += $1 + $2 } END { print a+0 }')
 FILES=$(echo "$STATS" | grep -c . || true)
