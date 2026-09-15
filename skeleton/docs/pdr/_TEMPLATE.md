@@ -32,7 +32,7 @@ empêche le glissement progressif.>
 ## Prior art
 
 > **Section obligatoire.** Minimum deux références nommées.
-> (`docs/06-decisions.md` §2)
+> (`docs/os/06-decisions.md` §2)
 
 **Comment ce problème est-il résolu ailleurs ?**
 
@@ -76,7 +76,7 @@ l'utilisateur la connaît déjà.>
 **Permissions :** <qui peut faire quoi>
 
 **Critères d'acceptation** *(testables — c'est l'oracle de la tâche,
-`docs/05-workflow.md` §3)* :
+`docs/os/05-workflow.md` §3)* :
 
 - [ ] Étant donné <contexte>, quand <action>, alors <résultat observable>
 - [ ] …
@@ -88,7 +88,7 @@ l'utilisateur la connaît déjà.>
 > À remplir uniquement si la fonctionnalité est réellement complexe : nombreux acteurs,
 > machine à états, matrice de permissions. Sinon, supprimer cette section.
 >
-> Elle remplace l'ancien format FDR (`docs/06-decisions.md` §4).
+> Elle remplace l'ancien format FDR (`docs/os/06-decisions.md` §4).
 
 **Acteurs :**
 **États et transitions :**

@@ -142,7 +142,7 @@ Les attentes fixes (`sleep`) sont la cause de flakiness la plus répandue : on a
 | Signal | Interprétation |
 |---|---|
 | Un test casse à chaque refactor sans changement de comportement | Il teste l'implémentation, pas le comportement |
-| Il faut démarrer un autre module pour tester | Mauvaise frontière (`docs/02-modules.md` §9) |
+| Il faut démarrer un autre module pour tester | Mauvaise frontière (`docs/os/02-modules.md` §9) |
 | Le test est plus long que le code testé | Le code est probablement trop couplé |
 | Personne ne comprend ce que teste ce test | Le supprimer ou le réécrire ; il ne protège rien |
 | La suite met plus de 10 minutes | Elle sera contournée — la rendre rapide est une tâche prioritaire |

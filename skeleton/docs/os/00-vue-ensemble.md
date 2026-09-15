@@ -70,7 +70,7 @@ La flèche en pointillés est le mécanisme central de l'OS :
 
 Une règle qui reste dans le prompt alors qu'elle est mécaniquement vérifiable est une
 **dette**. Elle doit apparaître dans le backlog d'automatisation
-(`docs/07-gouvernance.md`).
+(`07-gouvernance.md`).
 
 ---
 
@@ -129,13 +129,13 @@ revue elle-même.
 
 - **Aucune stack technique.** Ni langage, ni framework, ni base de données, ni cloud.
   L'OS impose une *méthode de sélection* et une trace de décision. Voir
-  `docs/06-decisions.md`.
+  `06-decisions.md`.
 - **Aucune structure interne de module.** Deux modules peuvent avoir des architectures
-  internes différentes. Seule leur *enveloppe* est uniforme. Voir `docs/02-modules.md`.
+  internes différentes. Seule leur *enveloppe* est uniforme. Voir `02-modules.md`.
 - **Aucune liste d'outils IA.** L'OS décrit des *capacités* nécessaires ; un profil
-  d'outillage les mappe sur les outils du moment. Voir `docs/09-plateforme.md`.
+  d'outillage les mappe sur les outils du moment. Voir `09-plateforme.md`.
 - **Aucun niveau de cérémonie uniforme.** La gouvernance est proportionnelle à la
-  criticité déclarée du module. Voir `docs/07-gouvernance.md`.
+  criticité déclarée du module. Voir `07-gouvernance.md`.
 
 ---
 
@@ -159,7 +159,7 @@ Ces termes ont un sens précis dans l'OS. Les utiliser autrement crée de l'ambi
 > **Note.** Le format **FDR** (Functional Design Record) n'existe pas dans cet OS. Il
 > chevauchait le PDR et les critères d'acceptation d'une issue sans apporter de valeur
 > distincte. Pour les cas réellement complexes, il devient une **section optionnelle du
-> PDR**. Justification : `docs/06-decisions.md` § « Pourquoi seulement deux formats ».
+> PDR**. Justification : `06-decisions.md` § « Pourquoi seulement deux formats ».
 
 ---
 

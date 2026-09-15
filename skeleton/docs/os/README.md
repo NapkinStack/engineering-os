@@ -42,10 +42,10 @@ autour de leur préservation.
 | Vous êtes… | Lisez, dans l'ordre |
 |-----------|---------------------|
 | **Un agent IA** | `AGENTS.md` (kernel) + l'`AGENTS.md` local du module + les playbooks déclenchés |
-| **Un nouveau développeur** | `docs/00-vue-ensemble.md` → `docs/02-modules.md` → `docs/05-workflow.md` |
+| **Un nouveau développeur** | `00-vue-ensemble.md` → `02-modules.md` → `05-workflow.md` |
 | **Un tech lead / architecte** | `docs/00` → `02` → `03` → `07` |
-| **Un product owner** | `docs/00-vue-ensemble.md` → `docs/06-decisions.md` |
-| **Celui qui met en place le starter** | `docs/09-plateforme.md` puis tous les `templates/` |
+| **Un product owner** | `00-vue-ensemble.md` → `06-decisions.md` |
+| **Celui qui met en place le starter** | `09-plateforme.md` puis tous les `templates/` |
 
 ### Contenu
 
@@ -96,7 +96,7 @@ Ce qu'un agent charge, c'est :
 - un ou plusieurs `playbooks/` (uniquement si déclenchés).
 
 Si vous avez besoin de mettre une règle dans le kernel, relisez d'abord
-`docs/07-gouvernance.md` § « Où vit cette règle ? ». La réponse est très souvent
+`07-gouvernance.md` § « Où vit cette règle ? ». La réponse est très souvent
 « en CI », pas « dans le prompt ».
 
 ---

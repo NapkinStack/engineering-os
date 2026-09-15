@@ -28,7 +28,7 @@ sécurité, budget, délai, conformité. Distinguer contraintes réelles et pré
 ## Prior art
 
 > **Section obligatoire.** Minimum deux références nommées. Absence de section ou de
-> référence → check rouge. (`docs/06-decisions.md` §2)
+> référence → check rouge. (`docs/os/06-decisions.md` §2)
 
 **Convention dominante du domaine :** <quelle est la réponse standard à ce problème ?>
 
@@ -97,7 +97,7 @@ Que fait-on si ce n'est pas le cas : <corriger · superséder · revenir en arri
 **Impacts sur d'autres modules ou contrats :**
 
 **Règle à automatiser :** <quelle fitness function ou quel check découle de cette
-décision ? Si aucun n'est possible, expliquer pourquoi. `docs/07-gouvernance.md` §2>
+décision ? Si aucun n'est possible, expliquer pourquoi. `docs/os/07-gouvernance.md` §2>
 
 ---
 

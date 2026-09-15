@@ -117,7 +117,7 @@ kernel (ce fichier)
 3. vérifie si le **contrat** existant suffit — dans 80 % des cas, oui ;
 4. si le contrat suffit : reste dans ton module, consomme le contrat ;
 5. si le contrat ne suffit pas : c'est un **changement de contrat**. Il se traite en
-   séquence expand/contract (`docs/03-contrats.md`), jamais en une seule PR.
+   séquence expand/contract (`docs/os/03-contrats.md`), jamais en une seule PR.
 
 L'incapacité à travailler via le contrat seul est un **signal de mauvaise frontière**.
 Signale-le, ne le contourne pas.
@@ -161,7 +161,7 @@ une solution de niche sans stratégie de sortie.
 
 Une décision structurante donne lieu à un **ADR** (technique) ou un **PDR** (produit),
 avec section *prior art* et, si l'on construit sur-mesure, un **critère de succès daté**.
-Détail : `docs/06-decisions.md`.
+Détail : `docs/os/06-decisions.md`.
 
 Une décision importante ne reste jamais uniquement dans une conversation avec une IA.
 
@@ -177,7 +177,7 @@ une **hypothèse explicitement déclarée**.
 **Done** — une tâche est terminée quand les validations *applicables* sont réellement
 passées : oracle vert, checks locaux verts, contrats validés, documentation impactée à
 jour, diff auto-relu, résumé produit. Le niveau exigé dépend de la criticité déclarée
-dans le manifest du module (`docs/07-gouvernance.md` § gouvernance proportionnelle).
+dans le manifest du module (`docs/os/07-gouvernance.md` § gouvernance proportionnelle).
 
 ---
 
