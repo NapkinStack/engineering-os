@@ -720,8 +720,11 @@ for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
 export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
 
 V=$(nstack --version | cut -d' ' -f2)
-git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
-git -C "$TPL" tag "v$V"
+# Tag de la version du moteur ; il existe déjà si elle coïncide avec une version du gabarit jetable.
+if ! git -C "$TPL" rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+  git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
+  git -C "$TPL" tag "v$V"
+fi
 C="$GN/projet-c"
 INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Projet C" \
   --github-repo acme/conforme --owner-team acme/plateforme 2>&1) \

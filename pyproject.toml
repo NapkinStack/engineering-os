@@ -1,9 +1,17 @@
 [project]
 name = "napkinstack"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Framework de travail pour faire travailler plusieurs équipes et leurs agents sur un même dépôt : modules, contrats, garde-fous en CI."
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
 dependencies = ["PyYAML>=6.0", "copier==9.18.2", "pre-commit==4.6.2"]
+
+[project.urls]
+Homepage = "https://github.com/NapkinStack/engineering-os"
+Source = "https://github.com/NapkinStack/engineering-os"
+Issues = "https://github.com/NapkinStack/engineering-os/issues"
 
 [project.scripts]
 nstack = "napkinstack.cli:main"
