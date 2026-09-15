@@ -109,17 +109,18 @@ sequenceDiagram
 | **1 — Expand contrat** | Producteur | v2 déclarée, additive. v1 intacte. | Contract tests v1 **et** v2 verts |
 | **2 — Expand impl.** | Producteur | Sert les deux versions simultanément | Aucun consommateur impacté |
 | **3 — Migration** | Chaque consommateur | Bascule vers v2, à son rythme | Manifest mis à jour : version consommée |
-| **4 — Contract** | Producteur | Retrait de v1 | Check : consommateurs v1 = 0 |
+| **4 — Contract** | Producteur | Retrait de v1 | Revue : consommateurs v1 = 0 (à automatiser) |
 
-### Les deux garde-fous automatisés
+### Les deux garde-fous
 
 **① La date de dépréciation est un check.** Dès la PR 1, v1 porte une date de retrait.
 Un check échoue quand la date est dépassée et que des consommateurs subsistent. Sans
 cela, on accumule des versions que personne n'ose retirer.
 
 **② La contraction est obligatoire.** L'étape 4 est la plus souvent oubliée, et c'est
-précisément elle qui produit les états intermédiaires permanents. Une PR 1 ouvre
-automatiquement une issue de contraction, assignée à l'owner du contrat.
+précisément elle qui produit les états intermédiaires permanents. Une PR 1 ouvre une
+issue de contraction, assignée à l'owner du contrat : à la main tant que cette ouverture
+n'est pas automatisée.
 
 ---
 

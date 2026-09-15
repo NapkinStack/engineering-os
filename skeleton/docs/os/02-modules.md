@@ -259,7 +259,7 @@ sont visibles, tracées et comptées.
 | Exception | Traitement |
 |---|---|
 | Changement de contrat | Séquence expand/contract, jamais une PR unique (`03-contrats.md`) |
-| Changement plateforme | Module `platform/`, owner dédié, revue élargie |
+| Changement du socle | Fichiers du squelette : équipe socle, revue élargie ; module `platform/` s'il existe (`09-plateforme.md` §1) |
 | Correction d'incident critique | Autorisée, label obligatoire, ADR ou post-mortem sous 5 jours |
 
 Le déblocage passe par un label explicite sur la PR. Cela rend le taux de changements

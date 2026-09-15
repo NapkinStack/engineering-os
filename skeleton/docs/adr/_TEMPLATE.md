@@ -28,7 +28,7 @@ sécurité, budget, délai, conformité. Distinguer contraintes réelles et pré
 ## Prior art
 
 > **Section obligatoire.** Minimum deux références nommées. Absence de section ou de
-> référence → check rouge. (`docs/os/06-decisions.md` §2)
+> référence → refusée en revue, en attendant un contrôle automatisé. (`docs/os/06-decisions.md` §2)
 
 **Convention dominante du domaine :** <quelle est la réponse standard à ce problème ?>
 

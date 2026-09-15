@@ -17,7 +17,7 @@ flowchart LR
     PDR --> A1["ADR-0001<br/>Copier, accepté"]:::fait
     A1 --> A2["ADR-0002<br/>PyPI, proposé"]:::partiel
     A2 --> PT["Prototype<br/>validé"]:::fait
-    PT --> RP["Moteur v0.1.0<br/>M3.2 fait, M4 en cours"]:::partiel
+    PT --> RP["Moteur v0.1.0<br/>M4 fait, M6 en cours"]:::partiel
     PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
     A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
@@ -43,9 +43,9 @@ flowchart LR
 | ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
 | C1 | Point d'entrée unique `nstack` | Traité par M1 et M4 : commande `nstack`, verbes des modules lus dans le MANIFEST |
-| C2 | Check anti-placeholder | À replanifier au plan d'implémentation |
+| C2 | Check anti-placeholder | Après le projet pilote, si le besoin est constaté |
 | C3 | Hook git versionné | Absorbé par C0.1 |
-| C4 | Proxy d'oracle | À replanifier au plan d'implémentation |
+| C4 | Proxy d'oracle | Après le projet pilote, si le besoin est constaté |
 | C5 | Amorçage, `doctor` et marque | Traité par M2b et M3 : `nstack init`, `nstack doctor` |
 
 ---
@@ -243,7 +243,8 @@ module a un Makefile, ce qui viole l'invariant P1 — un module Node ne devrait 
 
 ## C2 — Check anti-placeholder
 
-> **À replanifier au plan d'implémentation (PDR-0001 accepté).**
+> **Après le projet pilote, si le besoin est constaté** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) :
+> nouveau contrôle, donc construit seulement après avoir servi (`PRODUCT.md` §6).
 
 **Défaut.** `manifests.py` vérifie que `responsibility` est non vide, pas qu'elle a été
 écrite. Un module entièrement non rempli passe au vert. Le gabarit garantit la forme,
@@ -271,7 +272,8 @@ on cessera de considérer la CI comme la vraie barrière.
 
 ## C4 — Proxy d'oracle
 
-> **À replanifier au plan d'implémentation (PDR-0001 accepté).**
+> **Après le projet pilote, si le besoin est constaté** ([plan](plans/2026-09-15-moteur-v0.1.0.md)) :
+> nouveau contrôle, donc construit seulement après avoir servi (`PRODUCT.md` §6).
 
 **Défaut.** L'OS exige que le critère de réussite soit écrit et vu échouer avant la
 génération. C'est invérifiable mécaniquement.
@@ -317,18 +319,18 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D1 | S3 exige des skills gitignorées : `main` rouge sur tout clone vierge | C0 |
 | D2 | Scripts à shebang non exécutables (`pr_scope.sh` : exit 126) | C0 |
 | D3 | Tests des garde-fous absents de la CI | C0 |
-| D4 | Checks sans test d'échec (P5) : M1, M3–M9, B1–B5, S1–S2, P1–P2 | À ordonnancer |
-| D5 | M1 documenté mais non implémenté | À ordonnancer |
+| D4 | Checks sans test d'échec (P5) : M1, M3–M9, B1–B5, S1–S2, P1–P2 | M6.1 |
+| D5 | M1 documenté mais non implémenté | M6.1 |
 | D6 | ~34 références mortes `docs/0X-….md`, dont 3 dans le kernel | M3.2 : renvois corrigés, gardés par un test |
-| D7 | « Module » défini 5 fois, différemment (fitness, `pr_scope.sh`, workflow, scaffold) | À ordonnancer |
-| D8 | Manifest malformé : traceback au lieu d'un message (P6) | À ordonnancer |
-| D9 | Déclarations sans effet : `review_budget` jamais lu, étapes par criticité en `echo TODO` | À ordonnancer |
+| D7 | « Module » défini 5 fois, différemment (fitness, `pr_scope.sh`, workflow, scaffold) | Après le projet pilote |
+| D8 | Manifest malformé : traceback au lieu d'un message (P6) | M6.1 |
+| D9 | Déclarations sans effet : `review_budget` jamais lu, étapes par criticité en `echo TODO` | Après le projet pilote |
 | D10 | Frontmatter YAML des skills générées invalide | C0.3 |
 | D11 | Gabarit `MANIFEST.yaml` : YAML invalide | C0.3 |
 | D12 | Job `secrets` factice ; `.gitignore` renvoie ce détecteur à C5, qui n'en parle pas | C0.1 |
 | D13 | Workflows : injection, permissions, épinglage, token persistant | C0.2 |
 | D14 | `SECURITY.md` sans canal ; fichiers locaux d'agent non ignorés | C0.2 |
-| D15 | Manuel : contrôles promis mais absents (prior art des ADR/PDR, transitions de cycle de vie, issue de contraction, matrice des consommateurs, échéances) | PDR-0001 |
+| D15 | Manuel : contrôles promis mais absents (prior art des ADR/PDR, transitions de cycle de vie, issue de contraction, matrice des consommateurs, échéances) | M6 : contrôles annoncés marqués « revue, à automatiser », inscrits au backlog |
 | D16 | `@equipe-plateforme` refusé par GitHub ; équipes impossibles sur un compte utilisateur | Organisation (2026-09-14) |
 | D17 | Lien `ORG/REPO` mort dans le formulaire d'issues | Organisation (2026-09-14) |
 | D18 | Amorçage : `make` et `pip` absents du poste de référence | M1 : uv seul prérequis |
@@ -336,7 +338,7 @@ Constatés lors de l'audit du 2026-09-13. Un défaut sans chantier attend d'êtr
 | D20 | `check-merge-conflict` ignore les marqueurs hors merge git : un conflit de mise à jour Copier se commite (trouvé par le prototype de PDR-0001) | `--assume-in-merge`, 2026-09-15 |
 | D21 | Moteur couplé au dépôt : `sync_skills.py` et `new-module.sh` supposent vivre dans le projet (trouvé par le prototype) | M1 : `--root` |
 | D22 | Gabarit de module : commandes `make` imposées, contraire à P1 et R5 (confirmé par le prototype) | M4 : gabarit sans Makefile, commandes à déclarer |
-| D23 | Moteur installé : `SOURCE_SUFFIXES` et `IMPORT_HINTS` de `boundaries.py` ne se calibrent plus depuis un projet (trouvé par M2a) | À ordonnancer |
+| D23 | Moteur installé : `SOURCE_SUFFIXES` et `IMPORT_HINTS` de `boundaries.py` ne se calibrent plus depuis un projet (trouvé par M2a) | Après le projet pilote |
 
 ---
 

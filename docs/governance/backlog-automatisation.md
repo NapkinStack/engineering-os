@@ -9,7 +9,10 @@
 | Règle | Où elle vit | Risque si violée | Coût d'automatisation | Déclencheur | Échéance |
 |---|---|---|---|---|---|
 | *exemple* — un changement de contrat doit être précédé d'un ADR | kernel §6 | Moyen | Faible | 2ᵉ contrat inter-équipes | AAAA-MM-JJ |
-| | | | | | |
+| Sections obligatoires d'un ADR : prior art, déviation, critère daté | Index des ADR, revue | Moyen | Faible | Premier projet réel | Revue post-pilote |
+| Consommateurs d'une version retirée = 0 | `03-contrats.md` §4, revue | Élevé | Moyen | Premier contrat entre deux équipes | Revue post-pilote |
+| Issue de contraction ouverte dès l'expand | `03-contrats.md` §4, à la main | Moyen | Faible | Premier contrat versionné | Revue post-pilote |
+| Dépendance externe déclarée au manifest | Playbook sécurité, revue | Moyen | Moyen | Premier module avec dépendances | Revue post-pilote |
 
 ## Règles déjà automatisées — retirées du prompt
 
@@ -20,6 +23,8 @@
 | Dates de dépréciation non dépassées | `nstack manifests` | |
 | Runbook obligatoire si criticité élevée | `nstack manifests` | |
 | Aucun secret dans le dépôt | gitleaks (hook et CI), protection au push | 2026-09-13 |
+| Aucun marqueur de conflit de mise à jour | `check-merge-conflict --assume-in-merge` (hook et CI) | 2026-09-15 |
+| Réglages de la forge conformes à la checklist | `nstack doctor`, lecture seule | 2026-09-15 |
 
 ## Revue
 

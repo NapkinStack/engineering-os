@@ -9,11 +9,11 @@ qui contraindra les suivantes.
 
 ## Sections obligatoires
 
-| Section | Check |
+| Section | Contrôle |
 |---|---|
-| **Prior art** — ≥ 2 références nommées + convention identifiée | Rouge si absente |
-| **Déviation** — si l'on s'écarte de la convention | Rouge si absente quand applicable |
-| **Critère de succès daté** — si l'on construit sur-mesure | Rouge si absent |
+| **Prior art** — ≥ 2 références nommées + convention identifiée | Revue ; à automatiser |
+| **Déviation** — si l'on s'écarte de la convention | Revue ; à automatiser |
+| **Critère de succès daté** — si l'on construit sur-mesure | Revue ; à automatiser |
 | **Règle à automatiser** — quelle fitness function en découle | Revue |
 
 Voir `docs/os/06-decisions.md`.

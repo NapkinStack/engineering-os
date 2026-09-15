@@ -153,10 +153,11 @@ Ne construis pas, ne propose pas :
 ## 7. État actuel
 
 NapkinStack v0.1.0 est en construction. Le moteur et le squelette fonctionnent depuis ce
-dépôt : `nstack init`, `update`, `doctor` et les fitness functions. Restent le module sans
-stack imposée, la documentation produit et la première publication, puis le projet pilote,
-privé. Des contrôles hérités n'ont pas encore de test qui prouve leur échec (D4), et le
-manuel en promet d'autres qui ne sont pas implémentés (D15).
+dépôt : `nstack init`, `update`, `doctor`, `new-module`, les verbes des modules et les
+fitness functions. Restent la fiabilité des contrôles hérités, dont plusieurs n'ont pas
+encore de test qui prouve leur échec (D4), puis la première publication et le projet
+pilote, privé. Les contrôles que le manuel décrit sans qu'ils soient automatisés sont
+marqués comme tels et inscrits au backlog d'automatisation.
 
 Feuille de route : `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Défauts et
 décisions : `docs/governance/chantiers.md`. Au-delà, laisser l'usage du pilote dicter les
