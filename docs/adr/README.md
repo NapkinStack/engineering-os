@@ -23,3 +23,4 @@ Voir `docs/os/06-decisions.md`.
 | N° | Titre | Statut | Critère à vérifier le |
 |---|---|---|---|
 | [0001](./0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Adopter Copier pour générer et mettre à jour les projets | Proposé | Au prototype de PDR-0001 |
+| [0002](./0002-distribuer-napkinstack-sur-pypi.md) | Distribuer NapkinStack sur PyPI | Proposé | À la première publication |
