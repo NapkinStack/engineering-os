@@ -131,9 +131,8 @@ trap 'rm -rf "$SK" "$SC"' EXIT
 
 echo "→ scaffold : le module généré a un MANIFEST.yaml valide, aux valeurs substituées"
 mkdir -p "$SC/.github" "$SC/modules"
-cp -r platform "$SC/"
 cp .github/CODEOWNERS "$SC/.github/"
-bash "$SC/platform/scaffold/new-module.sh" demo equipe-demo standard >/dev/null
+uv run nstack new-module demo equipe-demo standard --root "$SC" >/dev/null
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
 import sys, yaml
 module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
@@ -143,6 +142,21 @@ if {k: module.get(k) for k in attendu} != attendu:
 EOF
 uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
+
+echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
+FT=$(mktemp -d)
+mkdir -p "$FT/platform" "$FT/playbooks"
+printf 'skills: {}\n' > "$FT/platform/skills.yaml"
+printf '# orphelin\n' > "$FT/playbooks/orphelin.md"
+if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
+  echo "ÉCHEC : un playbook sans entrée est passé au vert."; rm -rf "$FT"; exit 1
+fi
+echo "$OUT" | grep -qF "[S1]" || { echo "ÉCHEC : S1 attendu."; echo "$OUT"; rm -rf "$FT"; exit 1; }
+rm -rf "$FT"
+
+echo "→ nstack pr-scope : répond sur la racine donnée"
+uv run nstack pr-scope --root . --base HEAD | grep -qF "Aucun fichier modifié" \
+  || { echo "ÉCHEC : nstack pr-scope ne répond pas."; exit 1; }
 
 # Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
 # l'exécution : écrits en dur, ils déclencheraient la protection au push.

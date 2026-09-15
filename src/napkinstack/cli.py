@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 from pathlib import Path
 
 from napkinstack import __version__, skills
 from napkinstack.fitness import boundaries, manifests
+
+PACKAGE = Path(__file__).resolve().parent
 
 
 def _root(value: str) -> Path:
@@ -14,6 +18,16 @@ def _root(value: str) -> Path:
     if not root.is_dir():
         raise argparse.ArgumentTypeError(f"racine introuvable : {value}")
     return root
+
+
+def _script(relative: str, *args: str, root: Path) -> int:
+    env = {**os.environ, "NSTACK_ROOT": str(root)}
+    return subprocess.run(["bash", str(PACKAGE / relative), *args], cwd=root, env=env).returncode
+
+
+def _fitness(root: Path) -> int:
+    results = [manifests.run(root), boundaries.run(root), skills.run(root, check_only=True)]
+    return 1 if any(results) else 0
 
 
 def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
@@ -35,6 +49,16 @@ def build_parser() -> argparse.ArgumentParser:
     sk = _add(sub, "skills", "génère ou vérifie les skills (S1–S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="vérifier sans écrire")
+    _add(sub, "fitness", "manifests + frontières + skills",
+         lambda a: _fitness(a.root))
+    nm = _add(sub, "new-module", "crée un module et ses garde-fous",
+              lambda a: _script("scaffold/new-module.sh", a.name, a.owner, a.criticality, root=a.root))
+    nm.add_argument("name")
+    nm.add_argument("owner")
+    nm.add_argument("criticality", choices=["prototype", "standard", "eleve", "critique"])
+    ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
+              lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
+    ps.add_argument("--base", default="origin/main")
     return parser
 
 

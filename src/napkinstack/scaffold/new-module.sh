@@ -2,7 +2,7 @@
 # Crée un nouveau module à partir du squelette, avec ses garde-fous actifs
 # dès le premier commit (docs/os/09-plateforme.md §4).
 #
-# Usage : ./platform/scaffold/new-module.sh <nom> <owner> <criticite>
+# Usage : nstack new-module <nom> <owner> <criticite> [--root RACINE]
 #   nom        : kebab-case, ex. billing
 #   owner      : une ÉQUIPE, ex. team-revenue
 #   criticite  : prototype | standard | eleve | critique
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 NAME="${1:-}"; OWNER="${2:-}"; CRIT="${3:-standard}"
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="${NSTACK_ROOT:?racine du projet requise (nstack new-module --root)}"
 DEST="$ROOT/modules/$NAME"
 
 usage() { echo "Usage : $0 <nom> <owner> [prototype|standard|eleve|critique]"; exit 1; }
@@ -21,7 +21,7 @@ echo "$NAME" | grep -qE '^[a-z][a-z0-9-]*$' || { echo "Nom invalide : kebab-case
 echo "$CRIT" | grep -qE '^(prototype|standard|eleve|critique)$' || usage
 [ -d "$DEST" ] && { echo "Le module '$NAME' existe déjà."; exit 1; }
 
-cp -r "$ROOT/platform/templates/module" "$DEST"
+cp -r "$(cd "$(dirname "$0")" && pwd)/templates/module" "$DEST"
 
 # Substitutions dans le squelette
 find "$DEST" -type f -print0 | while IFS= read -r -d '' f; do
@@ -70,7 +70,7 @@ echo
 echo "Actif dès maintenant :"
 echo "  - MANIFEST.yaml pré-rempli (owner=$OWNER, criticality=$CRIT)"
 echo "  - AGENTS.md local avec les sections attendues"
-echo "  - verbes standards : make check / test / run"
+echo "  - verbes standards : section commands du MANIFEST"
 echo "  - CODEOWNERS mis à jour"
 echo "  - fitness functions actives sur ce module"
 [ "$CRIT" != "prototype" ] && [ "$CRIT" != "standard" ] && echo "  - runbook créé (à remplir)"
@@ -79,4 +79,4 @@ echo "Étapes suivantes :"
 echo "  1. ADR de création dans docs/adr/ (capacité, frontière, alternatives)"
 echo "  2. Remplir la responsabilité du MANIFEST — UNE phrase"
 echo "  3. Remplir modules/$NAME/AGENTS.md avec le spécifique, jamais le kernel"
-echo "  4. make fitness  → doit passer avant le premier commit"
+echo "  4. nstack fitness  → doit passer avant le premier commit"
