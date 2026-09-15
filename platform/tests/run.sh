@@ -594,7 +594,18 @@ nu = {
     "/actions/permissions/workflow": {"default_workflow_permissions": "write", "can_approve_pull_request_reviews": True},
 }
 restreint = {"": {}, "/rules/branches/main": regles, **labels}
-json.dump({"acme/conforme": conforme, "acme/nu": nu, "acme/restreint": restreint}, open(sys.argv[1], "w"))
+conforme[""]["visibility"] = "public"
+nu[""]["visibility"] = "public"
+actions = {chemin: reponse for chemin, reponse in conforme.items() if chemin.startswith("/actions/")}
+prive = {
+    "": {"visibility": "private", "security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
+    "/rules/branches/main": [],
+    **actions, **labels,
+}
+prive_team = {chemin: reponse for chemin, reponse in conforme.items() if chemin != "/private-vulnerability-reporting"}
+prive_team[""] = {**conforme[""], "visibility": "private"}
+json.dump({"acme/conforme": conforme, "acme/nu": nu, "acme/restreint": restreint,
+           "acme/prive": prive, "acme/prive-team": prive_team}, open(sys.argv[1], "w"))
 EOF
 cat > "$API/serveur.py" <<'EOF'
 import http.server, json, pathlib, sys
@@ -686,6 +697,26 @@ if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
 fi
 echo "$OUT" | grep -qF "nstack doctor : conforme." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
   || { echo "ÉCHEC : conformité mal rapportée."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : dépôt privé sur l'offre Free, écarts nommant l'offre requise, signalement non applicable"
+depot_c acme/prive
+if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : dépôt privé sans barrière accepté."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "NON APPLICABLE +\[G6\]" \
+  && [ "$(echo "$OUT" | grep -cF 'offre GitHub Team')" -eq 4 ] \
+  && echo "$OUT" | grep -qF "Secret Protection est une option payante" \
+  && echo "$OUT" | grep -qE "OK +\[G7\]" \
+  || { echo "ÉCHEC : dépôt privé sur l'offre Free mal rapporté."; echo "$OUT"; exit 1; }
+
+echo "→ doctor : dépôt privé sous GitHub Team, conforme sans signalement privé"
+depot_c acme/prive-team
+if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
+  echo "ÉCHEC : dépôt privé conforme refusé."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "nstack doctor : conforme" && echo "$OUT" | grep -qE "NON APPLICABLE +\[G6\]" \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 15 ] \
+  || { echo "ÉCHEC : dépôt privé conforme mal rapporté."; echo "$OUT"; exit 1; }
 
 echo "→ doctor : sans jeton, la partie GitHub est non vérifiée, jamais conforme"
 if OUT=$(env -u GH_TOKEN -u GITHUB_TOKEN nstack doctor --root "$C" 2>&1); then
