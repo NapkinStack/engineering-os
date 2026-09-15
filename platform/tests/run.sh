@@ -160,19 +160,32 @@ nstack_sk --check >/dev/null \
 SC=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC"' EXIT
 
-echo "→ scaffold : le module généré a un MANIFEST.yaml valide, aux valeurs substituées"
+echo "→ scaffold : module créé sans Makefile, owner org/équipe dans le manifest et CODEOWNERS (D19)"
 mkdir -p "$SC/.github" "$SC/modules"
 cp .github/CODEOWNERS "$SC/.github/"
-uv run nstack new-module demo equipe-demo standard --root "$SC" >/dev/null
+uv run nstack new-module demo acme/equipe-demo standard --root "$SC" >/dev/null
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
 import sys, yaml
 module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
-attendu = {"name": "demo", "owner": "equipe-demo", "criticality": "standard"}
+attendu = {"name": "demo", "owner": "acme/equipe-demo", "criticality": "standard"}
 if {k: module.get(k) for k in attendu} != attendu:
     sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
 EOF
+[ ! -e "$SC/modules/demo/Makefile" ] || { echo "ÉCHEC : le gabarit impose encore un Makefile (D22)."; exit 1; }
+grep -qE '^/modules/demo/ +@acme/equipe-demo$' "$SC/.github/CODEOWNERS" \
+  || { echo "ÉCHEC : ligne CODEOWNERS du module absente ou invalide."; exit 1; }
 uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
+
+echo "→ scaffold : un owner sans organisation ou un nom invalide DOIVENT être refusés (P6)"
+for cas in "demo2|equipe-demo|owner 'equipe-demo' invalide" "Demo|acme/equipe|nom 'Demo' invalide"; do
+  IFS='|' read -r nom owner message <<<"$cas"
+  if OUT=$(uv run nstack new-module "$nom" "$owner" standard --root "$SC" 2>&1); then
+    echo "ÉCHEC : new-module $nom $owner accepté."; exit 1
+  fi
+  echo "$OUT" | grep -qF "ÉCHEC [new-module] $message" \
+    || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
+done
 
 echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
 FT=$(mktemp -d)
@@ -491,7 +504,7 @@ A="$GN/projet-a"
 projet_v01 "$A"
 sed -i '1s/.*/# Tests — adaptation locale/' "$A/playbooks/tests.md"
 rm "$A/docs/pdr/_TEMPLATE.md"
-nstack new-module demo equipe-demo standard --root "$A" >/dev/null
+nstack new-module demo acme/equipe-demo standard --root "$A" >/dev/null
 commit_projet "$A" "Adaptations et premier module"
 MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
 
