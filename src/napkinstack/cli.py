@@ -38,6 +38,21 @@ def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
     return parser
 
 
+def _init(args: argparse.Namespace) -> int:
+    from napkinstack import project  # Copier ne se charge que pour init et update
+
+    answers = {"project_name": args.project_name, "github_repo": args.github_repo,
+               "owner_team": args.owner_team}
+    return project.init(args.destination, answers, args.source or project.SOURCE,
+                        args.ref or project.default_ref())
+
+
+def _update(args: argparse.Namespace) -> int:
+    from napkinstack import project
+
+    return project.update(args.root, args.ref or project.default_ref())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="Moteur NapkinStack.")
     parser.add_argument("--version", action="version", version=f"nstack {__version__}")
@@ -59,6 +74,17 @@ def build_parser() -> argparse.ArgumentParser:
     ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
+    ini = sub.add_parser("init", help="crée un projet à partir du squelette (PDR-0001)")
+    ini.add_argument("destination", type=Path, help="dossier du projet, absent ou vide")
+    ini.add_argument("--project-name", help="nom du projet (demandé si absent)")
+    ini.add_argument("--github-repo", help="dépôt GitHub, organisation/nom (demandé si absent)")
+    ini.add_argument("--owner-team", help="équipe GitHub du socle, organisation/équipe (demandé si absent)")
+    ini.add_argument("--source", help="gabarit : URL ou chemin (défaut : dépôt NapkinStack)")
+    ini.add_argument("--ref", help="version du squelette, tag vX.Y.Z (défaut : celle de nstack)")
+    ini.set_defaults(func=_init)
+    up = _add(sub, "update", "fusionne une version de NapkinStack sur une branche à relire (PDR-0001)",
+              _update)
+    up.add_argument("--ref", help="version cible, tag vX.Y.Z (défaut : celle de nstack)")
     return parser
 
 

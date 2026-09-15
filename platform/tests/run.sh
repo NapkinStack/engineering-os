@@ -338,24 +338,26 @@ for cas in check-dependabot:.github/dependabot.yml \
     || { echo "ÉCHEC : $hook ne signale pas d'erreur de schéma."; echo "$OUT"; exit 1; }
 done
 
-# Squelette : projets générés depuis l'arbre de travail, modifications non commitées
-# comprises, jamais depuis GitHub.
+# Squelette, init et update : projets créés depuis l'arbre de travail, modifications non
+# commitées comprises, jamais depuis GitHub. nstack commite : identité git fictive.
 GN=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
-generer() {  # $1 = gabarit, $2 = destination, puis les options -d de Copier
-  local gabarit=$1 destination=$2; shift 2
-  copier copy --quiet --defaults --vcs-ref HEAD "$@" "$gabarit" "$destination"
-}
+export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.invalid
+export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.invalid
 # Nom long : Copier écrit .copier-answers.yml sans limite de ligne (nom, chemin du gabarit).
 # Le rejeu sur clone vierge l'a montré avec un chemin long ; le nom rend le cas déterministe.
 NOM_LONG="Projet démo $(printf 'long%.0s' {1..30})"
-REPONSES=(-d "project_name=$NOM_LONG" -d github_repo=acme/demo -d owner_team=acme/plateforme)
+REPONSES=(--project-name "$NOM_LONG" --github-repo acme/demo --owner-team acme/plateforme)
 PROJET="$GN/projet"
 
-echo "→ squelette : le projet généré porte les réponses, sans fichier de gabarit résiduel"
-if ! OUT=$(generer "$REPO" "$PROJET" "${REPONSES[@]}" 2>&1); then
-  echo "ÉCHEC : la génération du projet a échoué."; echo "$OUT"; exit 1
+echo "→ init : projet créé et commité sur main, réponses rendues, sans fichier de gabarit"
+if ! OUT=$(nstack init "$PROJET" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
+  echo "ÉCHEC : nstack init a échoué."; echo "$OUT"; exit 1
 fi
+echo "$OUT" | grep -qF "Projet créé dans" \
+  || { echo "ÉCHEC : nstack init ne confirme pas la création."; echo "$OUT"; exit 1; }
+[ "$(git -C "$PROJET" branch --show-current)" = main ] && [ -z "$(git -C "$PROJET" status --porcelain)" ] \
+  || { echo "ÉCHEC : le projet n'est pas commité sur main."; git -C "$PROJET" status; exit 1; }
 RESIDUS=$(find "$PROJET" -name '*.jinja')
 [ -z "$RESIDUS" ] || { echo "ÉCHEC : fichiers de gabarit copiés tels quels :"; echo "$RESIDUS"; exit 1; }
 for attendu in ".github/CODEOWNERS|@acme/plateforme" \
@@ -368,46 +370,55 @@ for attendu in ".github/CODEOWNERS|@acme/plateforme" \
     || { echo "ÉCHEC : $fichier ne contient pas « $texte »."; exit 1; }
 done
 
-echo "→ squelette : le contexte de développement de NapkinStack n'est jamais copié (R6)"
+echo "→ init : le contexte de développement de NapkinStack n'est jamais copié (R6)"
 for absent in PRODUCT.md docs/governance platform src pyproject.toml uv.lock copier.yml skeleton; do
   [ ! -e "$PROJET/$absent" ] \
     || { echo "ÉCHEC : $absent copié dans le projet généré (PDR-0001 R6). Le retirer de skeleton/."; exit 1; }
 done
 
-echo "→ squelette : le projet généré passe nstack fitness, playbooks compris"
-if ! OUT=$(cd / && uv run --project "$REPO" nstack fitness --root "$PROJET" 2>&1); then
-  echo "ÉCHEC : le projet généré ne passe pas nstack fitness."; echo "$OUT"; exit 1
+echo "→ init : un dossier non vide DOIT être refusé, sans rien y écrire"
+mkdir -p "$GN/occupe" && echo garde > "$GN/occupe/garde.txt"
+if OUT=$(nstack init "$GN/occupe" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
+  echo "ÉCHEC : init dans un dossier non vide accepté."; exit 1
 fi
-echo "$OUT" | grep -qF "Skills : S1, S2 et S4 conformes" \
-  || { echo "ÉCHEC : skills non vérifiées dans le projet généré."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "n'est pas vide" \
+  || { echo "ÉCHEC : refus sans explication."; echo "$OUT"; exit 1; }
+[ "$(ls -A "$GN/occupe")" = garde.txt ] || { echo "ÉCHEC : init a écrit dans le dossier refusé."; exit 1; }
 
-echo "→ squelette : un dépôt ou une équipe sans organisation DOIT être refusé"
+echo "→ init : un dépôt ou une équipe sans organisation DOIT être refusé (P6)"
 for question in github_repo owner_team; do
   if [ "$question" = github_repo ]; then
-    reponses=(-d project_name=x -d github_repo=demo -d owner_team=acme/plateforme)
+    reponses=(--project-name x --github-repo demo --owner-team acme/plateforme)
   else
-    reponses=(-d project_name=x -d github_repo=acme/demo -d owner_team=plateforme)
+    reponses=(--project-name x --github-repo acme/demo --owner-team plateforme)
   fi
-  if OUT=$(generer "$REPO" "$GN/refus-$question" "${reponses[@]}" 2>&1); then
+  if OUT=$(nstack init "$GN/refus-$question" --source "$REPO" --ref HEAD "${reponses[@]}" 2>&1); then
     echo "ÉCHEC : $question sans « / » accepté."; exit 1
   fi
-  echo "$OUT" | grep -qF "Validation error for question '$question'" \
-    || { echo "ÉCHEC : refus de $question sans le message du validateur."; echo "$OUT"; exit 1; }
+  echo "$OUT" | grep -qF "ÉCHEC [init] Réponse refusée pour $question" \
+    || { echo "ÉCHEC : refus de $question sans message explicatif."; echo "$OUT"; exit 1; }
 done
 
-echo "→ squelette : un gabarit à fonction « unsafe » DOIT être refusé, sans rien créer (ADR-0001)"
+echo "→ init : un gabarit à fonction « unsafe » DOIT être refusé, sans rien créer (ADR-0001)"
 UNSAFE="$GN/gabarit-unsafe"
 mkdir -p "$UNSAFE" && cp -r copier.yml skeleton "$UNSAFE/"
 printf '\n_tasks:\n  - "touch execute"\n' >> "$UNSAFE/copier.yml"
 git "${GIT_ID[@]}" init -q "$UNSAFE"
 git -C "$UNSAFE" add -A
 git "${GIT_ID[@]}" -C "$UNSAFE" commit -q --no-verify -m unsafe
-CODE=0
-OUT=$(generer "$UNSAFE" "$GN/unsafe" "${REPONSES[@]}" 2>&1) || CODE=$?
-[ "$CODE" -eq 4 ] || { echo "ÉCHEC : gabarit unsafe non refusé (code $CODE, 4 attendu)."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "potentially unsafe feature: tasks" \
-  || { echo "ÉCHEC : refus sans le message de Copier."; echo "$OUT"; exit 1; }
+if OUT=$(nstack init "$GN/unsafe" --source "$UNSAFE" --ref HEAD "${REPONSES[@]}" 2>&1); then
+  echo "ÉCHEC : gabarit unsafe accepté."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [init] Le gabarit $UNSAFE exécute du code" \
+  || { echo "ÉCHEC : refus unsafe sans message explicatif."; echo "$OUT"; exit 1; }
 [ ! -e "$GN/unsafe" ] || { echo "ÉCHEC : le gabarit refusé a créé des fichiers."; exit 1; }
+
+echo "→ init : une version de gabarit introuvable DOIT être expliquée (P6)"
+if OUT=$(nstack init "$GN/absente" --source "$REPO" --ref v9.9.9 "${REPONSES[@]}" 2>&1); then
+  echo "ÉCHEC : version introuvable acceptée."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [init] Gabarit $REPO en version v9.9.9 inaccessible" \
+  || { echo "ÉCHEC : version introuvable sans message explicatif."; echo "$OUT"; exit 1; }
 
 echo "→ squelette : hooks et règles YAML identiques à ceux du dépôt (P3)"
 for f in .pre-commit-config.yaml .yamllint.yaml; do
@@ -415,20 +426,139 @@ for f in .pre-commit-config.yaml .yamllint.yaml; do
     || { echo "ÉCHEC : skeleton/$f diverge de $f. Appliquer le même changement aux deux copies."; exit 1; }
 done
 
-echo "→ squelette : le projet généré passe ses propres hooks et le scan de secrets"
-git "${GIT_ID[@]}" init -q "$PROJET"
-git -C "$PROJET" add -A
-git "${GIT_ID[@]}" -C "$PROJET" commit -q --no-verify -m "Projet généré"
-if ! OUT=$(cd "$PROJET" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
-  echo "ÉCHEC : le projet généré ne passe pas ses hooks."; echo "$OUT"; exit 1
+echo "→ init : sur clone vierge, le projet passe sa CI sans retouche (critère 1)"
+CLONE="$GN/clone"
+git clone -q "$PROJET" "$CLONE"
+if ! OUT=$(cd "$CLONE" && nstack fitness --root . 2>&1); then
+  echo "ÉCHEC : le projet ne passe pas nstack fitness."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "Skills : S1, S2 et S4 conformes" \
+  || { echo "ÉCHEC : skills non vérifiées dans le projet."; echo "$OUT"; exit 1; }
+if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
+  echo "ÉCHEC : le projet ne passe pas ses hooks."; echo "$OUT"; exit 1
 fi
 for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2)" \
             "Validate GitHub issue config" "Validate GitHub issue forms" "zizmor"; do
   echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
-    || { echo "ÉCHEC : hook « $hook » non exécuté sur le projet généré."; echo "$OUT"; exit 1; }
+    || { echo "ÉCHEC : hook « $hook » non exécuté sur le projet."; echo "$OUT"; exit 1; }
 done
-if ! OUT=$(cd "$PROJET" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
-  echo "ÉCHEC : scan d'historique en échec sur le projet généré."; echo "$OUT"; exit 1
+if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+  echo "ÉCHEC : scan d'historique en échec sur le projet."; echo "$OUT"; exit 1
 fi
+(cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "Aucun fichier modifié" \
+  || { echo "ÉCHEC : nstack pr-scope ne répond pas dans le projet."; exit 1; }
+
+# Mises à jour : gabarit jetable à trois versions, construit depuis l'arbre de travail.
+TPL="$GN/gabarit"
+mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"
+git "${GIT_ID[@]}" init -q "$TPL"
+version_gabarit() {  # $1 = tag, les modifications du gabarit étant faites
+  git -C "$TPL" add -A
+  git "${GIT_ID[@]}" -C "$TPL" commit -q --no-verify -m "$1"
+  git -C "$TPL" tag "$1"
+}
+version_gabarit v0.1.0
+printf '\nCorrectif v0.2, en fin de fichier.\n' >> "$TPL/skeleton/playbooks/tests.md"
+printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
+printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/modules/README.md"
+version_gabarit v0.2.0
+sed -i '1s/.*/# Sécurité — titre v0.3/' "$TPL/skeleton/playbooks/securite.md"
+version_gabarit v0.3.0
+projet_v01() {
+  nstack init "$1" --source "$TPL" --ref v0.1.0 "${REPONSES[@]}" >/dev/null \
+    || { echo "ÉCHEC : nstack init depuis le gabarit jetable ($1)."; exit 1; }
+}
+commit_projet() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --no-verify -m "$2"; }
+
+A="$GN/projet-a"
+projet_v01 "$A"
+sed -i '1s/.*/# Tests — adaptation locale/' "$A/playbooks/tests.md"
+rm "$A/docs/pdr/_TEMPLATE.md"
+nstack new-module demo equipe-demo standard --root "$A" >/dev/null
+commit_projet "$A" "Adaptations et premier module"
+MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
+
+echo "→ update : correctif et adaptation fusionnés, commités sur une branche (critère 4)"
+if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+  echo "ÉCHEC : nstack update a échoué."; echo "$OUT"; exit 1
+fi
+[ "$(git -C "$A" branch --show-current)" = nstack/update-v0.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
+  || { echo "ÉCHEC : mise à jour non commitée sur nstack/update-v0.2.0."; git -C "$A" status; exit 1; }
+[ "$(head -1 "$A/playbooks/tests.md")" = "# Tests — adaptation locale" ] \
+  && grep -qF "Correctif v0.2, en fin de fichier." "$A/playbooks/tests.md" \
+  || { echo "ÉCHEC : adaptation ou correctif perdu dans playbooks/tests.md."; exit 1; }
+grep -qF "_commit: v0.2.0" "$A/.copier-answers.yml" \
+  || { echo "ÉCHEC : version du projet non montée."; exit 1; }
+echo "$OUT" | grep -qF "git push -u origin nstack/update-v0.2.0" \
+  || { echo "ÉCHEC : étape suivante absente."; echo "$OUT"; exit 1; }
+
+echo "→ update : un fichier supprimé par l'équipe n'est pas recréé (critère 6)"
+[ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "ÉCHEC : fichier supprimé recréé."; exit 1; }
+
+echo "→ update : aucun fichier de module modifié, le README du squelette suit (critère 7)"
+[ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_AVANT" ] \
+  || { echo "ÉCHEC : modules/demo modifié par la mise à jour (PDR-0001 R4)."; exit 1; }
+grep -qF "Correctif v0.2." "$A/modules/README.md" \
+  || { echo "ÉCHEC : modules/README.md n'a pas suivi la version."; exit 1; }
+
+echo "→ update : un projet déjà à jour ne crée pas de branche"
+if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+  echo "ÉCHEC : projet à jour refusé."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "Déjà à jour" \
+  && [ "$(git -C "$A" branch --list 'nstack/*' | wc -l)" -eq 1 ] \
+  || { echo "ÉCHEC : projet à jour mal traité."; echo "$OUT"; exit 1; }
+
+echo "→ update : une version antérieure DOIT être refusée, sans rien modifier"
+if OUT=$(nstack update --root "$A" --ref v0.1.0 2>&1); then
+  echo "ÉCHEC : retour arrière accepté."; exit 1
+fi
+echo "$OUT" | grep -qF "antérieure à celle du projet (0.2.0)" \
+  && [ -z "$(git -C "$A" status --porcelain)" ] \
+  || { echo "ÉCHEC : retour arrière mal refusé."; echo "$OUT"; exit 1; }
+
+echo "→ update : un arbre de travail modifié DOIT être refusé, sans rien modifier"
+echo "modification locale" >> "$A/README.md"
+if OUT=$(nstack update --root "$A" --ref v0.3.0 2>&1); then
+  echo "ÉCHEC : mise à jour acceptée sur un arbre modifié."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] Arbre de travail modifié" \
+  && [ "$(git -C "$A" diff --name-only)" = README.md ] \
+  && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v0.3.0 >/dev/null \
+  || { echo "ÉCHEC : arbre modifié mal refusé."; echo "$OUT"; exit 1; }
+git -C "$A" checkout -q -- README.md
+
+echo "→ update : hors d'un projet, la commande DOIT l'expliquer"
+if OUT=$(nstack update --root "$GN/occupe" 2>&1); then
+  echo "ÉCHEC : update accepté hors d'un projet."; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] .copier-answers.yml introuvable" \
+  || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
+
+B="$GN/projet-b"
+projet_v01 "$B"
+sed -i '1s/.*/# Sécurité — adaptation locale/' "$B/playbooks/securite.md"
+commit_projet "$B" "Adaptation"
+
+echo "→ update : versions sautées d'un coup, conflit marqué et laissé à l'équipe (critère 5)"
+if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
+  echo "ÉCHEC : conflit passé sous silence."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "ÉCHEC [update] NapkinStack v0.1.0 → v0.3.0 : conflits" \
+  && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
+  || { echo "ÉCHEC : conflit sans liste des fichiers."; echo "$OUT"; exit 1; }
+[ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
+  && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
+  && grep -qF "Correctif v0.2, en fin de fichier." "$B/playbooks/tests.md" \
+  || { echo "ÉCHEC : branche, commit ou version sautée incorrects."; exit 1; }
+
+echo "→ update : le commit reste refusé tant qu'un marqueur subsiste (critère 5)"
+(cd "$B" && pre-commit install >/dev/null)
+git -C "$B" add -A
+if OUT=$(git "${GIT_ID[@]}" -C "$B" commit -m "Mise à jour" 2>&1); then
+  echo "ÉCHEC : un conflit de mise à jour a été commité."; exit 1
+fi
+echo "$OUT" | grep -qF "Merge conflict string" \
+  || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
 
 echo "Tests plateforme : OK"
