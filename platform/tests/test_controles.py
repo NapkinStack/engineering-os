@@ -141,3 +141,69 @@ def test_frontieres_manifest_illisible_sans_trace(tmp_path, capsys):
     ecrire_module(tmp_path, "clients", "- une\n- liste\n")
     ecrire_module(tmp_path, "stock", degrade(module__name="stock", consumes="clients"))
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def ecrire_skills(racine: Path, correspondance) -> None:
+    (racine / "playbooks").mkdir()
+    (racine / "playbooks" / "tests.md").write_text("# Tests\n", encoding="utf-8")
+    (racine / ".nstack").mkdir()
+    texte = correspondance if isinstance(correspondance, str) else yaml.safe_dump(correspondance, allow_unicode=True)
+    (racine / ".nstack" / "skills.yaml").write_text(texte, encoding="utf-8")
+
+
+TESTS = {"source": "playbooks/tests.md", "description": "Stratégie de test."}
+CAS_SKILLS = {
+    "S2 source introuvable": {"skills": {"tests": TESTS, "absente": {**TESTS, "source": "playbooks/absent.md"}}},
+    "S2 description vide": {"skills": {"tests": {**TESTS, "description": ""}}},
+    "S2 correspondance en liste (D8)": "- tests\n",
+    "S2 entrée en texte (D8)": {"skills": {"tests": "playbooks/tests.md"}},
+}
+
+
+@pytest.mark.parametrize("correspondance", CAS_SKILLS.values(), ids=CAS_SKILLS.keys())
+def test_skills(tmp_path, capsys, correspondance):
+    ecrire_skills(tmp_path, correspondance)
+    code = skills.run(tmp_path, check_only=True)
+    verifier(code, capsys.readouterr().out, "S2", True)
+
+
+def depot(racine: Path, fichiers: dict[str, int]) -> str:
+    """Dépôt git à deux commits ; rend la base. Les fichiers portent n lignes."""
+    env = {**os.environ, "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
+           "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], cwd=racine, env=env, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    git("init", "-q", "--initial-branch=main")
+    (racine / "README.md").write_text("base\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    for chemin, lignes in fichiers.items():
+        (racine / chemin).parent.mkdir(parents=True, exist_ok=True)
+        (racine / chemin).write_text("ligne\n" * lignes, encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "changement")
+    return base
+
+
+DEUX_MODULES = {"modules/a/x.txt": 1, "modules/b/y.txt": 1}
+CAS_PR = {
+    "P1 deux modules": (DEUX_MODULES, {}, "ÉCHEC [P1]", 1),
+    "P1 label cross-module": (DEUX_MODULES, {"PR_LABELS": "cross-module"}, "AVERTISSEMENT [P1]", 0),
+    "P2 hors budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "AVERTISSEMENT [P2] Hors budget de revue.", 0),
+}
+
+
+@pytest.mark.parametrize(("fichiers", "variables", "attendu", "code_attendu"), CAS_PR.values(), ids=CAS_PR.keys())
+def test_pr_scope(tmp_path, capfd, monkeypatch, fichiers, variables, attendu, code_attendu):
+    base = depot(tmp_path, fichiers)
+    monkeypatch.delenv("PR_LABELS", raising=False)
+    for nom, valeur in variables.items():
+        monkeypatch.setenv(nom, valeur)
+    code = cli.main(["pr-scope", "--root", str(tmp_path), "--base", base])
+    sortie = capfd.readouterr().out
+    assert attendu in sortie, sortie
+    assert code == code_attendu, sortie
