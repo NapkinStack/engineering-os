@@ -104,6 +104,16 @@ Issues → Labels:
 - [ ] Labels `cross-module` and `over-budget` — they make the exceptions visible **and
   countable** (`docs/os/10-measurement.md` §3)
 
+Settings → Developer settings → GitHub Apps → New GitHub App, then install it on this
+repository — **the identity your agents work under** (`docs/os/07-governance.md` §7):
+
+- [ ] Permissions: Contents, Pull requests and Issues read and write; Actions and Checks
+      read; Workflows write only when agents maintain CI; never Administration
+- [ ] No webhook; installable only on this account
+- [ ] Its private key stored outside any repository: the workstation's secret store, or
+      the CI's secrets
+- [ ] The agent's session reaches no human credential
+
 Then check, read-only:
 
 ```bash
