@@ -754,7 +754,7 @@ echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r lign
   grep -qF -- "$ligne" skeleton/README.md.jinja \
     || { echo "ÉCHEC : « $ligne » absent du README du squelette."; exit 1; }
 done
-python3 - "$(echo "$INIT_OUT" | grep -F 'Checks obligatoires')" <<'EOF' || exit 1
+python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
 import sys, yaml
 jobs = yaml.safe_load(open("skeleton/.github/workflows/governance.yml", encoding="utf-8"))["jobs"]
 absents = [job["name"] for job in jobs.values() if f"`{job['name']}`" not in sys.argv[1]]
@@ -768,10 +768,10 @@ if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$A" 2>&1); then
   echo "ÉCHEC : poste non conforme accepté."; echo "$OUT"; exit 1
 fi
 for regle in L1 L3 L4 L5; do
-  echo "$OUT" | grep -qE "ÉCHEC +\[$regle\]" \
+  echo "$OUT" | grep -qE "FAIL +\[$regle\]" \
     || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
 done
-echo "$OUT" | grep -qF "Action : pre-commit install" \
+echo "$OUT" | grep -qF "Action: pre-commit install" \
   || { echo "ÉCHEC : action de L3 absente."; echo "$OUT"; exit 1; }
 rm "$A/PRODUCT.md"
 
@@ -784,10 +784,10 @@ if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : dépôt sans réglages accepté."; echo "$OUT"; exit 1
 fi
 for regle in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11; do
-  echo "$OUT" | grep -qE "ÉCHEC +\[$regle\]" \
+  echo "$OUT" | grep -qE "FAIL +\[$regle\]" \
     || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
 done
-[ "$(echo "$OUT" | grep -cF 'Action : Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
+[ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
   || { echo "ÉCHEC : actions ou poste incorrects."; echo "$OUT"; exit 1; }
 
 echo "→ doctor : checklist appliquée, la commande sort en succès (critère 2)"
@@ -795,7 +795,7 @@ depot_c acme/conforme
 if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : projet conforme refusé."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor : conforme." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
   || { echo "ÉCHEC : conformité mal rapportée."; echo "$OUT"; exit 1; }
 
 echo "→ doctor : dépôt privé sur l'offre Free, écarts nommant l'offre requise, signalement non applicable"
@@ -803,9 +803,9 @@ depot_c acme/prive
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : dépôt privé sans barrière accepté."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "NON APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cF 'offre GitHub Team')" -eq 4 ] \
-  && echo "$OUT" | grep -qF "Secret Protection est une option payante" \
+echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
+  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 4 ] \
+  && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "ÉCHEC : dépôt privé sur l'offre Free mal rapporté."; echo "$OUT"; exit 1; }
 
@@ -814,7 +814,7 @@ depot_c acme/prive-team
 if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : dépôt privé conforme refusé."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor : conforme" && echo "$OUT" | grep -qE "NON APPLICABLE +\[G6\]" \
+echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
   && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 15 ] \
   || { echo "ÉCHEC : dépôt privé conforme mal rapporté."; echo "$OUT"; exit 1; }
 
@@ -822,7 +822,7 @@ echo "→ doctor : sans jeton, la partie GitHub est non vérifiée, jamais confo
 if OUT=$(env -u GH_TOKEN -u GITHUB_TOKEN nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : conforme sans jeton."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
+echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
   && echo "$OUT" | grep -qF "GH_TOKEN" \
   || { echo "ÉCHEC : absence de jeton mal traitée."; echo "$OUT"; exit 1; }
 
@@ -831,22 +831,22 @@ depot_c acme/restreint
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : conforme sans permission Administration."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G5\]" \
-  && echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G8\]" && echo "$OUT" | grep -qF "Administration : lecture" \
+echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G5\]" \
+  && echo "$OUT" | grep -qE "NOT VERIFIED +\[G8\]" && echo "$OUT" | grep -qF "Administration: read" \
   || { echo "ÉCHEC : permission manquante mal traitée."; echo "$OUT"; exit 1; }
 
 echo "→ doctor : API injoignable, rien n'est déclaré conforme"
 if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
   echo "ÉCHEC : conforme sans API."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "NON VÉRIFIÉ +\[G1\]" && echo "$OUT" | grep -qF "injoignable" \
+echo "$OUT" | grep -qE "NOT VERIFIED +\[G1\]" && echo "$OUT" | grep -qF "unreachable" \
   || { echo "ÉCHEC : API injoignable mal traitée."; echo "$OUT"; exit 1; }
 
 echo "→ doctor : hors d'un projet, la commande DOIT l'expliquer"
 if OUT=$(nstack doctor --root "$GN/occupe" 2>&1); then
   echo "ÉCHEC : doctor accepté hors d'un projet."; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [doctor] .copier-answers.yml introuvable" \
+echo "$OUT" | grep -qF "FAIL [doctor] .copier-answers.yml not found" \
   || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
 
 echo "Tests plateforme : OK"

@@ -79,26 +79,26 @@ Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette
 
 Settings → Rules → Rulesets → sur la branche principale (dépôt privé : offre Team ou Pro) :
 
-- [ ] Pull request obligatoire : aucun push direct sur main
-- [ ] Au moins 1 relecture approuvée
-- [ ] Revue des CODEOWNERS obligatoire
-- [ ] Checks obligatoires : `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
+- [ ] Pull request required: no direct push to main
+- [ ] At least 1 approving review
+- [ ] Code owner review required
+- [ ] Required checks: `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
 
 Settings → Advanced Security (dépôt privé : option Secret Protection) :
 
-- [ ] Secret Protection et protection au push
-- [ ] Signalement privé de vulnérabilités, dépôt public (canal de `SECURITY.md`)
+- [ ] Secret Protection and push protection
+- [ ] Private vulnerability reporting, public repository (the `SECURITY.md` channel)
 
 Settings → Actions → General :
 
-- [ ] Actions autorisées : celles de GitHub, plus `astral-sh/setup-uv`
-- [ ] Actions épinglées par SHA obligatoires
-- [ ] Approbation des workflows pour tout contributeur externe
-- [ ] Jeton des workflows en lecture seule ; Actions ne crée ni n'approuve de PR
+- [ ] Allowed actions: GitHub's own, plus `astral-sh/setup-uv`
+- [ ] SHA-pinned actions required
+- [ ] Workflow approval for every outside contributor
+- [ ] Workflow token read-only; Actions neither creates nor approves pull requests
 
 Issues → Labels :
 
-- [ ] Labels `cross-module` et `hors-budget` : ils rendent les exceptions visibles **et
+- [ ] Labels `cross-module` and `hors-budget` : ils rendent les exceptions visibles **et
   comptables** (`docs/os/10-mesure.md` §3)
 
 Puis vérifier, en lecture seule :
