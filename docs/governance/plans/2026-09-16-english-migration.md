@@ -411,37 +411,50 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 ### Task 0 — Human action: ruleset, before merge
 
-- [ ] Required checks replaced per §5.2. Verified by `nstack doctor` after merge.
+- [ ] In ruleset `main`, replace the two required checks `Périmètre et budget de revue`
+      and `Hooks et secrets` with **`PR scope and review budget`** and
+      **`Hooks and secrets`**. The pull request reports the new names as soon as it is
+      pushed; until the ruleset is updated it stays blocked on two checks that will never
+      report again.
 
-### Task 1 — CI and hooks
+### Task 1 — CI and hooks (done)
 
-- [ ] `.github/workflows/governance.yml`: workflow name `Governance`, job names per §3,
+- [x] `.github/workflows/governance.yml`: workflow name `Governance`, the two job names,
       step names, comments.
-- [ ] `.github/workflows/release.yml`.
-- [ ] `.pre-commit-config.yaml`: hook id `gitleaks-history`, comments. The reference in
-      `governance.yml` follows.
-- [ ] `doctor.py` `JOBS` updated to the new job names, in the same commit as the workflow
-      rename. Workflow, `JOBS` and the ruleset form one atomic change: any two of them
-      alone leave `nstack doctor` reporting a mismatch.
+- [x] `.github/workflows/release.yml`: the workflow name, both job keys and their names,
+      the tag check and its message. The test extracts that check by job key and step
+      name, so its expectations were turned first and seen red.
+- [x] `.pre-commit-config.yaml`: hook id `gitleaks-history` — **done in M7b**, since it
+      lives in the shared configuration and in a workflow step, never in a job name.
+- [x] `doctor.py` `JOBS` — **done in M7b**: it names the *skeleton's* jobs, which a
+      generated project's ruleset requires, not this repository's.
+- [x] `hors-budget` becomes `over-budget` in `pr_scope.sh`, `doctor.py` and both
+      CONTRIBUTING files. Until the label is renamed on GitHub, P2 only warns, so nothing
+      breaks in between.
 
-### Task 2 — Root documents
+### Task 2 — Root documents (done)
 
-- [ ] `README.md`, `PRODUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, mermaid diagrams and
+- [x] `README.md`, `PRODUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, mermaid diagrams and
       legends included. `AGENTS.md` was done in M7a.
-- [ ] The canonical glossary (§2) replaces the terminology table of `PRODUCT.md` §1 and
-      becomes its permanent home.
+- [x] The canonical glossary (§2) replaces the terminology table of `PRODUCT.md` §1 and
+      becomes its permanent home, extended with guardrail, workstream, contract, standard
+      verb and fitness function.
 
-### Task 3 — Decisions
+### Task 3 — Decisions (done)
 
-- [ ] `git mv` the three ADR/PDR files per §4; content translated; indexes and every
-      inbound link updated.
+- [x] `git mv` on the three ADR/PDR files per §4; content translated; indexes and every
+      inbound link updated. Facts, dates and observed results preserved verbatim.
+- [x] The templates and indexes are the skeleton ones with this repository's paths, as
+      they were before.
 
-### Task 4 — Templates
+### Task 4 — Templates (done)
 
-- [ ] `git mv .github/ISSUE_TEMPLATE/05-debt.yml 05-debt.yml` (the repository's copy;
-      the skeleton's was renamed in M7b).
-- [ ] `.github/ISSUE_TEMPLATE/*`, `pull_request_template.md`, `config.yml`,
-      `dependabot.yml` comments, `CODEOWNERS`, `.yamllint.yaml` comments, `.gitignore`.
+- [x] The repository's `05-dette.yml` renamed to `05-debt.yml` (the skeleton's moved in
+      M7b).
+- [x] `.github/ISSUE_TEMPLATE/*`, `pull_request_template.md`, `config.yml`,
+      `dependabot.yml`, `CODEOWNERS`, `.gitignore`. The issue and pull request templates
+      are the skeleton ones with this repository's paths — they were identical before.
+- [x] `.yamllint.yaml` — **done in M7b**, with its byte-identical skeleton copy.
 
 ### Task 5 — Human action: labels, after merge
 
