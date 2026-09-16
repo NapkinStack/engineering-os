@@ -1,128 +1,128 @@
-# PDR-XXXX — <titre court, orienté utilisateur>
+# PDR-XXXX — <short, user-oriented title>
 
-- **Statut** : Proposé | Accepté | Supersédé par PDR-YYYY | Abandonné
-- **Date** : AAAA-MM-JJ
-- **Décideurs** :
-- **Modules impactés** :
+- **Status**: Proposed | Accepted | Superseded by PDR-YYYY | Abandoned
+- **Date**: YYYY-MM-DD
+- **Decision makers**:
+- **Modules affected**:
 
-> Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son implémentation.
-> Le comment relève d'un ADR.
+> The PDR describes **what the product must do and why**, never its implementation.
+> The how belongs to an ADR.
 
 ---
 
-## Problème utilisateur
+## User problem
 
-<Qui a le problème, dans quelle situation, et qu'est-ce qui échoue aujourd'hui ?
-Décrire l'utilisateur, pas la fonctionnalité manquante.
-Mauvais : « il manque un export CSV ».
-Bon : « les comptables reconstituent chaque mois à la main un tableau que le produit
-possède déjà, ce qui leur prend une demi-journée et introduit des erreurs ».>
+<Who has the problem, in what situation, and what fails today?
+Describe the user, not the missing feature.
+Bad: "there is no CSV export".
+Good: "every month the accountants rebuild by hand a table the product already has,
+which takes them half a day and introduces errors".>
 
-## Objectif
+## Goal
 
-<Ce que l'utilisateur doit pouvoir faire à l'issue. Une phrase.>
+<What the user must be able to do afterwards. One sentence.>
 
-## Hors périmètre
+## Out of scope
 
-<Ce qu'on ne fait délibérément pas. Section la plus utile du document : c'est elle qui
-empêche le glissement progressif.>
+<What we deliberately do not do. The most useful section of the document: it is what
+prevents gradual drift.>
 
 ---
 
 ## Prior art
 
-> **Section obligatoire.** Minimum deux références nommées.
+> **Mandatory section.** Minimum two named references.
 > (`skeleton/docs/os/06-decisions.md` §2)
 
-**Comment ce problème est-il résolu ailleurs ?**
+**How is this problem solved elsewhere?**
 
-| Produit / référence | Solution retenue | Ce qu'on en garde |
+| Product / reference | Solution chosen | What we keep from it |
 |---|---|---|
 | | | |
 | | | |
 
-**Convention que l'utilisateur connaît déjà :** <quel pattern s'attend-il à trouver ?>
+**The convention the user already knows:** <which pattern do they expect to find?>
 
-**Pourquoi s'en écarter** *(uniquement si l'on s'en écarte)* :
+**Why depart from it** *(only when departing from it)*:
 
-<La valeur utilisateur qui paie le coût d'apprentissage imposé. Sur une interface, la
-convention est presque toujours le bon choix — sa valeur vient précisément de ce que
-l'utilisateur la connaît déjà.>
+<The user value that pays for the learning cost imposed. On an interface, the convention
+is almost always the right choice — its value comes precisely from the user already
+knowing it.>
 
 ---
 
-## Options envisagées
+## Options considered
 
-| Option | Ce que vit l'utilisateur | Coût | Retenue ? |
+| Option | What the user experiences | Cost | Chosen? |
 |---|---|---|---|
-| Ne rien faire | | 0 | |
+| Do nothing | | 0 | |
 | <option 1> | | | |
 | <option 2> | | | |
 
-## Décision
+## Decision
 
-<Ce que fait le produit, décrit du point de vue de l'utilisateur. Arbitrages assumés.>
+<What the product does, described from the user's point of view. Trade-offs owned.>
 
 ---
 
-## Comportement attendu
+## Expected behaviour
 
-**Parcours nominal :**
+**Nominal journey:**
 
-**Cas limites et états dégradés :**
+**Edge cases and degraded states:**
 
-**Règles métier :**
+**Business rules:**
 
-**Permissions :** <qui peut faire quoi>
+**Permissions:** <who can do what>
 
-**Critères d'acceptation** *(testables — c'est l'oracle de la tâche,
-`skeleton/docs/os/05-workflow.md` §3)* :
+**Acceptance criteria** *(testable — this is the task's oracle,
+`skeleton/docs/os/05-workflow.md` §3)*:
 
-- [ ] Étant donné <contexte>, quand <action>, alors <résultat observable>
+- [ ] Given <context>, when <action>, then <observable result>
 - [ ] …
 
 ---
 
-## Conception fonctionnelle détaillée *(optionnelle)*
+## Detailed functional design *(optional)*
 
-> À remplir uniquement si la fonctionnalité est réellement complexe : nombreux acteurs,
-> machine à états, matrice de permissions. Sinon, supprimer cette section.
+> Fill this in only when the feature is genuinely complex: many actors, a state machine,
+> a permission matrix. Otherwise, delete this section.
 >
-> Elle remplace l'ancien format FDR (`skeleton/docs/os/06-decisions.md` §4).
+> It replaces the old FDR format (`skeleton/docs/os/06-decisions.md` §4).
 
-**Acteurs :**
-**États et transitions :**
-**Matrice de permissions :**
-**Interactions avec d'autres modules :**
-
----
-
-## Critère de succès
-
-> **Section obligatoire.** Sans date, personne ne revient vérifier et le dossier des
-> décisions devient un cimetière.
-
-> On considérera que c'était le bon choix si **\<observation mesurable\>** est constaté
-> avant le **\<AAAA-MM-JJ\>**.
-
-Comment on l'observe : <métrique, retour utilisateur, usage>
-
-Si le critère n'est pas atteint : <ajuster · superséder · retirer>
+**Actors:**
+**States and transitions:**
+**Permission matrix:**
+**Interactions with other modules:**
 
 ---
 
-## Condition de retrait
+## Success criterion
 
-> **Section obligatoire.** Une fonctionnalité sans condition de retrait est définitive
-> par défaut, y compris quand personne ne l'utilise.
+> **Mandatory section.** Without a date nobody comes back to check, and the decision
+> folder becomes a graveyard.
 
-> Cette fonctionnalité sera retirée si **\<condition\>**.
+> We will consider this was the right call if **\<measurable observation\>** is observed
+> before **\<YYYY-MM-DD\>**.
+
+How it is observed: <metric, user feedback, usage>
+
+If the criterion is not met: <adjust · supersede · remove>
+
+---
+
+## Removal condition
+
+> **Mandatory section.** A feature with no removal condition is permanent by default,
+> including when nobody uses it.
+
+> This feature will be removed if **\<condition\>**.
 
 ---
 
 ## Impacts
 
-- **Utilisateurs existants** : <migration, communication, apprentissage>
-- **Modules et contrats** :
-- **Support et documentation** :
-- **Données** : <collecte, rétention, conformité>
+- **Existing users**: <migration, communication, learning>
+- **Modules and contracts**:
+- **Support and documentation**:
+- **Data**: <collection, retention, compliance>

@@ -1,166 +1,167 @@
 # PRODUCT — NapkinStack
 
-> **Ce fichier n'a pas sa place dans un projet client.** S'il est présent dans un projet
-> créé par `nstack init`, c'est une erreur d'installation : supprime-le.
-> `nstack doctor` le signale.
+> **This file has no place in a client project.** If it is present in a project created by
+> `nstack init`, that is an installation error: delete it. `nstack doctor` reports it.
 >
-> Il décrit ce qu'est le produit et comment travailler **sur** NapkinStack, pas **avec** lui.
-> À lire en premier par tout humain ou agent qui contribue ici.
+> It describes what the product is and how to work **on** NapkinStack, not **with** it.
+> To be read first by any human or agent contributing here.
 
 ---
 
-## 1. Ce qu'est NapkinStack, et le double rôle de ce dépôt
+## 1. What NapkinStack is, and this repository's double role
 
-NapkinStack est un **framework de travail**, sur le modèle de Django ou Rails : une
-commande crée le projet, qui possède ensuite son squelette et reçoit les nouvelles versions
-à sa demande (PDR-0001). Ce n'est **pas** un framework applicatif : aucun langage, aucune
-base, aucune architecture interne n'est imposé.
+NapkinStack is an **engineering framework**, on the Django or Rails model: one command
+creates the project, which then owns its skeleton and receives new versions on demand
+(PDR-0001). It is **not** an application framework: no language, no database, no internal
+architecture is imposed.
 
 ```mermaid
 flowchart TB
-    NS["NapkinStack<br/>framework de travail"]:::produit
-    NS --> E["Moteur nstack<br/>init · update · doctor · fitness"]:::livre
-    NS --> S["Squelette de projet<br/>généré, possédé par le projet"]:::livre
-    S --> OS["L'OS : la méthode<br/>kernel · playbooks · manuel"]:::contenu
-    S --> G["Garde-fous<br/>CI · hooks · CODEOWNERS · checklist GitHub"]:::contenu
-    A["Agent de l'équipe<br/>Claude Code, Codex, Copilot…"]:::externe -.->|"lit et applique"| OS
-    A -.->|"lance"| E
+    NS["NapkinStack<br/>engineering framework"]:::product
+    NS --> E["nstack engine<br/>init · update · doctor · fitness"]:::shipped
+    NS --> S["Project skeleton<br/>generated, owned by the project"]:::shipped
+    S --> OS["The OS: the method<br/>kernel · playbooks · handbook"]:::content
+    S --> G["Guardrails<br/>CI · hooks · CODEOWNERS · GitHub checklist"]:::content
+    A["The team's agent<br/>Claude Code, Codex, Copilot…"]:::external -.->|"reads and applies"| OS
+    A -.->|"runs"| E
 
-    classDef produit fill:#1e3a8a,color:#fff
-    classDef livre fill:#1f2937,color:#fff
-    classDef contenu fill:#065f46,color:#fff
-    classDef externe fill:#6b7280,color:#fff
+    classDef product fill:#1e3a8a,color:#fff
+    classDef shipped fill:#1f2937,color:#fff
+    classDef content fill:#065f46,color:#fff
+    classDef external fill:#6b7280,color:#fff
 ```
 
-**Légende** — bleu : le produit · gris foncé : ce qu'il livre · vert : le contenu du
-squelette · gris clair, pointillés : l'agent de l'équipe, qui utilise le framework ;
-NapkinStack n'embarque aucune IA.
+**Legend** — blue: the product · dark grey: what it ships · green: the skeleton's content ·
+light grey, dotted: the team's agent, which uses the framework; NapkinStack embeds no AI.
 
-| Terme | Sens, partout dans le dépôt |
+| Term | Meaning, everywhere in this repository |
 |---|---|
-| **Framework** | NapkinStack : le moteur et le squelette, versionnés ensemble |
-| **Moteur** | La commande `nstack`, dépendance épinglée par le projet |
-| **Squelette** | Ce que `nstack init` génère (`skeleton/` ici) ; le projet le possède |
-| **OS** | La méthode : kernel, playbooks, manuel ; générique et sans marque (P2, P7) |
-| **Socle** | Les règles et garde-fous communs d'un projet, portés par son équipe socle |
+| **Framework** | NapkinStack: the engine and the skeleton, versioned together |
+| **Engine** | The `nstack` command, a dependency the project pins |
+| **Skeleton** | What `nstack init` generates (`skeleton/` here); the project owns it |
+| **OS** | The method: kernel, playbooks, handbook; generic and unbranded (P2, P7) |
+| **Foundation** | A project's shared rules and guardrails, carried by its foundation team |
+| **Guardrail** | A check that refuses an invalid state, in CI or in a hook |
+| **Workstream** | The unit of batch in this repository; elsewhere, read "module" |
+| **Contract** | The only channel between two modules: API, event, schema, versioned |
+| **Standard verb** | `bootstrap`, `check`, `test`, `run`: the same names in every module |
+| **Fitness function** | An automated test that fails when the architecture drifts |
 
-Ce dépôt développe NapkinStack ; il est aussi son **premier utilisateur**. Un socle qui ne
-tient pas ses propres règles ne tiendra chez personne.
+This repository develops NapkinStack; it is also its **first user**. A foundation that
+does not hold its own rules will hold nowhere.
 
-D'où une règle de désambiguïsation à garder en tête en permanence :
+Hence a disambiguation rule to keep in mind at all times:
 
-| Quand tu lis… | Comprends… |
+| When you read… | Understand… |
 |---|---|
-| `skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`, `skeleton/contracts/`, CI et hooks du squelette | Le **livrable**. Ce que reçoit chaque projet. On l'édite comme on édite un produit. |
-| `src/napkinstack/`, `copier.yml`, `platform/`, `.github/` | Le **produit outillé**. Le code de NapkinStack. |
-| Ce fichier, `docs/governance/` | Le **contexte de travail**. Il ne part pas chez le client. |
+| `skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`, `skeleton/contracts/`, the skeleton's CI and hooks | The **deliverable**. What every project receives. It is edited the way a product is edited. |
+| `src/napkinstack/`, `copier.yml`, `platform/`, `.github/` | The **tooled product**. NapkinStack's code. |
+| This file, `docs/governance/` | The **working context**. It never goes to the client. |
 
-Un agent qui travaille ici n'est donc **pas** dans le cas nominal décrit par le kernel
-(« tu travailles dans un seul module »). Il n'y a pas encore de modules. Les règles qui
-s'appliquent réellement à toi sont en §5.
-
----
-
-## 2. Ce que NapkinStack vend
-
-**Le problème client.** Les agents rendent l'écriture de code quasi gratuite. Trois
-coûts ne baissent pas : comprendre, vérifier, coordonner. Une équipe qui branche un
-agent sur un dépôt sans frontières ne produit pas plus vite — elle produit plus vite
-quelque chose que personne ne peut relire.
-
-**La promesse.** Plusieurs équipes, et leurs agents, travaillent en parallèle sur des
-modules différents sans réunion de synchronisation, et sans que la qualité dépende de
-la vigilance de quiconque.
-
-**Le mécanisme.** Trois idées, et elles seules :
-
-1. Le **module** est l'unité de parallélisme. Deux modules ne se connaissent que par
-   leur contrat.
-2. Le **prompt est une zone de transit**. Toute règle automatisable descend en CI et
-   quitte le prompt.
-3. L'**oracle avant la génération**. Le critère de réussite est exécutable avant la
-   première ligne.
-
-**Ce qu'on ne vend pas.** Ni stack, ni framework applicatif, ni architecture interne,
-ni liste d'outils, ni IA intégrée : l'agent de l'équipe utilise le framework.
-NapkinStack fournit la couche qui permet à **la stack du client** de tenir à plusieurs
-équipes.
+An agent working here is therefore **not** in the nominal case the kernel describes ("you
+work in a single module"). There are no modules yet. The rules that actually apply to you
+are in §5.
 
 ---
 
-## 3. Les utilisateurs
+## 2. What NapkinStack sells
 
-| Utilisateur | Ce qu'il doit pouvoir faire | Critère de réussite |
+**The client's problem.** Agents make writing code nearly free. Three costs do not come
+down: understanding, verifying, coordinating. A team that plugs an agent into a repository
+with no boundaries does not produce faster — it produces, faster, something nobody can
+review.
+
+**The promise.** Several teams, and their agents, work in parallel on different modules
+with no synchronisation meeting, and without quality depending on anyone's vigilance.
+
+**The mechanism.** Three ideas, and only these:
+
+1. The **module** is the unit of parallelism. Two modules know each other only through
+   their contract.
+2. The **prompt is a transit zone**. Every automatable rule moves down into CI and leaves
+   the prompt.
+3. The **oracle before the generation**. The success criterion is executable before the
+   first line.
+
+**What it does not sell.** No stack, no application framework, no internal architecture,
+no list of tools, no embedded AI: the team's agent uses the framework. NapkinStack
+provides the layer that lets **the client's stack** hold up across several teams.
+
+---
+
+## 3. The users
+
+| User | What they must be able to do | Success criterion |
 |---|---|---|
-| **Tech lead** qui démarre un projet | Créer un dépôt conforme et un premier module | < 30 min, sans lire tout le manuel |
-| **Développeur** qui rejoint une équipe | Contribuer utilement | Sans conversation orale |
-| **Agent IA** sur une tâche | Travailler borné, être bloqué s'il dérive | PR non mergeable plutôt que dette dans `main` |
-| **Deuxième équipe** qui arrive | Avancer sans bloquer la première | Zéro réunion de synchronisation |
+| **A tech lead** starting a project | Create a compliant repository and a first module | Under 30 min, without reading the whole handbook |
+| **A developer** joining a team | Contribute usefully | With no spoken conversation |
+| **An AI agent** on a task | Work bounded, be blocked when it drifts | An unmergeable PR rather than debt in `main` |
+| **A second team** arriving | Move forward without blocking the first | Zero synchronisation meetings |
 
-Ces quatre critères sont les tests d'acceptation du produit. Une modification qui en
-dégrade un est un échec, quelle que soit son élégance.
+These four criteria are the product's acceptance tests. A change that degrades one of them
+is a failure, however elegant.
 
 ---
 
-## 4. Invariants produit
+## 4. Product invariants
 
-Non négociables. Une PR qui en viole un est refusée, même si tout le reste est vert.
+Non-negotiable. A pull request that violates one is refused, even when everything else is
+green.
 
-| # | Invariant | Pourquoi |
+| # | Invariant | Why |
 |---|---|---|
-| P1 | **Aucune stack imposée aux modules** — ni langage, ni framework, ni base. L'outillage NapkinStack (uv, qui fournit Python et pre-commit) a ses propres prérequis, isolés du code du projet | La plateforme orchestre, elle ne connaît aucune stack. Toute logique spécifique à un écosystème dans le moteur est un bug ; un preset délègue au générateur officiel. |
-| P2 | **Portabilité des règles** — les règles du squelette (`skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`) restent en markdown générique | Un client doit pouvoir utiliser l'OS avec un autre agent que Claude. Un outil est un adaptateur, jamais une fondation. |
-| P3 | **L'enforcement reste en CI** — jamais dans un hook, jamais dans un plugin | Un hook est contournable. Le confondre avec une garantie fait repousser le vrai check. |
-| P4 | **Kernel sous budget** — 250 lignes | Sans plafond, il regrossit à chaque incident et redevient le document illisible qu'il remplace. |
-| P5 | **Tout check a un test qui prouve qu'il échoue** | Un garde-fou qui ne sait pas échouer ne garde rien. |
-| P6 | **Message d'échec explicatif** — règle, fichier, ligne, action | Un check qui dit « violation » sera contourné. |
-| P7 | **Branding en périphérie** — `platform/`, CLI et distribution portent la marque ; les règles restent génériques | Personne n'adopte un cadre de travail qui porte le nom d'un fournisseur dans chaque fichier. |
+| P1 | **No stack imposed on the modules** — no language, no framework, no database. NapkinStack's own tooling (uv, which provides Python and pre-commit) has its own prerequisites, isolated from the project's code | The platform orchestrates, it knows no stack. Any ecosystem-specific logic in the engine is a bug; a preset delegates to the official generator. |
+| P2 | **Portability of the rules** — the skeleton's rules (`skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`) stay in generic markdown | A client must be able to use the OS with an agent other than Claude. A tool is an adapter, never a foundation. |
+| P3 | **Enforcement stays in CI** — never in a hook, never in a plugin | A hook is bypassable. Mistaking it for a guarantee postpones the real check. |
+| P4 | **Kernel within budget** — 250 lines | Without a ceiling it grows back at every incident and turns into the unreadable document it replaces. |
+| P5 | **Every check has a test that proves it fails** | A guardrail that cannot fail guards nothing. |
+| P6 | **Explanatory failure message** — rule, file, line, action | A check that says "violation" will be worked around. |
+| P7 | **Branding at the periphery** — `platform/`, the CLI and the distribution carry the brand; the rules stay generic | Nobody adopts a way of working that carries a vendor's name in every file. |
 
 ---
 
-## 5. Comment travailler sur ce dépôt
+## 5. How to work on this repository
 
-Le kernel `skeleton/AGENTS.md` reste ta référence de **méthode** — oracle d'abord, changement
-minimal, résumé en cinq blocs, arrêt sur action à haut risque. Trois adaptations :
+The kernel `skeleton/AGENTS.md` stays your reference for **method** — oracle first,
+minimal change, five-block summary, stop on a high-risk action. Three adaptations:
 
-**« Un module » se lit « un chantier ».** Il n'y a pas de modules ici. L'unité de lot
-est le chantier listé dans `docs/governance/chantiers.md`. Un chantier, une PR, un
-commit. Jamais deux chantiers ensemble.
+**"A module" reads "a workstream".** There are no modules here. The unit of batch is the
+workstream listed in `docs/governance/chantiers.md`. One workstream, one pull request, one
+commit. Never two workstreams together.
 
-**L'oracle, ici, c'est `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`), qui
-lance aussi les tests pytest des règles M, B, S et P (`platform/tests/test_guardrails.py`).
-Pour chaque nouveau contrôle, écris d'abord le cas qui prouve qu'il échoue quand la
-règle est violée, et vois-le échouer. Le pattern existe dans ces deux fichiers : une
-règle de fitness function y gagne un cas paramétré, un comportement de commande un bloc
-de `run.sh`.
+**The oracle, here, is `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`),
+which also runs the pytest cases for rules M, B, S and P
+(`platform/tests/test_guardrails.py`). For every new check, first write the case that
+proves it fails when the rule is broken, and watch it fail. The pattern exists in both
+files: a fitness function rule gains a parameterised case there, a command behaviour gains
+a block of `run.sh`.
 
-**Le « client » est fictif mais exigeant.** Avant chaque changement, demande-toi lequel
-des quatre utilisateurs du §3 en bénéficie, et comment on le saura. Une amélioration qui
-ne sert aucun d'eux n'est pas une amélioration.
+**The "client" is fictional but demanding.** Before every change, ask which of the four
+users of §3 benefits, and how we will know. An improvement that serves none of them is not
+an improvement.
 
-## 6. Hors périmètre produit
+## 6. Out of product scope
 
-Ne construis pas, ne propose pas :
+Do not build, do not propose:
 
-- une stack de référence, un module d'exemple, une architecture applicative ;
-- un preset de stack qu'aucun vrai projet n'utilise encore ;
-- un plugin ou un marketplace Claude Code — l'enforcement reste en CI (P3) ;
-- des fitness functions au-delà du chantier en cours — les suivantes sont priorisées
-  dans `skeleton/docs/os/07-governance.md` §3, et leur besoin n'est pas démontré ;
-- de l'abstraction ou de la configuration pour un usage unique ;
-- une interface web, un tableau de bord, un service ;
-- une IA intégrée à `nstack` (clé d'API, appel de modèle) : l'agent de l'équipe utilise le
-  framework, et ses propositions passent les mêmes garde-fous que le reste.
+- a reference stack, an example module, an application architecture;
+- a stack preset that no real project uses yet;
+- a Claude Code plugin or marketplace — enforcement stays in CI (P3);
+- fitness functions beyond the current workstream — the next ones are prioritised in
+  `skeleton/docs/os/07-governance.md` §3, and their need is not demonstrated;
+- abstraction or configuration for a single use;
+- a web interface, a dashboard, a service;
+- an AI embedded in `nstack` (an API key, a model call): the team's agent uses the
+  framework, and its proposals go through the same guardrails as everything else.
 
-## 7. État actuel
+## 7. Current state
 
-NapkinStack v0.1.0 est publié sur PyPI (2026-09-15), avec attestation de provenance :
-`nstack init`, `update`, `doctor`, `new-module`, les verbes des modules et les fitness
-functions ; chaque contrôle a un test qui prouve son échec. Reste le projet pilote, privé,
-premier usage réel. Les contrôles que le manuel décrit sans qu'ils soient automatisés sont
-marqués comme tels et inscrits au backlog d'automatisation.
+NapkinStack v0.1.0 is published on PyPI (2026-09-15), with a provenance attestation:
+`nstack init`, `update`, `doctor`, `new-module`, the module verbs and the fitness
+functions; every check has a test that proves its failure. What remains is the pilot
+project, private, the first real use. The checks the handbook describes without them being
+automated are marked as such and listed in the automation backlog.
 
-Feuille de route : `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Défauts et
-décisions : `docs/governance/chantiers.md`. Au-delà, laisser l'usage du pilote dicter les
-fitness functions et les adaptateurs d'agent suivants : rien ne se construit avant d'avoir
-servi une fois.
+Roadmap: `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Defects and decisions:
+`docs/governance/chantiers.md`. Beyond that, let the pilot's usage dictate the next
+fitness functions and agent adapters: nothing is built before it has served once.

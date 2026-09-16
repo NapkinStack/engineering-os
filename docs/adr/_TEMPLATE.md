@@ -1,107 +1,106 @@
-# ADR-XXXX — <titre court à l'infinitif : « Adopter X », « Découper Y »>
+# ADR-XXXX — <short verb-phrase title: "Adopt X", "Split Y">
 
-- **Statut** : Proposé | Accepté | Supersédé par ADR-YYYY | Abandonné
-- **Date** : AAAA-MM-JJ
-- **Décideurs** : <équipe ou personnes>
-- **Portée** : projet | module `<nom>`
-- **Réversibilité** : facile | coûteuse | irréversible
+- **Status**: Proposed | Accepted | Superseded by ADR-YYYY | Abandoned
+- **Date**: YYYY-MM-DD
+- **Decision makers**: <team or people>
+- **Scope**: project | module `<name>`
+- **Reversibility**: easy | costly | irreversible
 
 ---
 
-## Contexte
+## Context
 
-<Ce qui est vrai aujourd'hui et pourquoi la question se pose maintenant. Factuel.
-Quelqu'un qui arrive dans six mois doit comprendre la situation sans contexte oral.>
+<What is true today and why the question arises now. Factual.
+Somebody arriving in six months must understand the situation with no spoken context.>
 
-## Problème
+## Problem
 
-<La question à trancher, en une ou deux phrases. Si elle n'est pas formulable en une
-question, c'est probablement plusieurs décisions — les séparer.>
+<The question to settle, in one or two sentences. If it cannot be put as one question,
+it is probably several decisions — separate them.>
 
-## Contraintes
+## Constraints
 
-<Ce qui est non négociable et cadre le choix : existant, compétences, exploitation,
-sécurité, budget, délai, conformité. Distinguer contraintes réelles et préférences.>
+<What is non-negotiable and frames the choice: what exists, skills, operations, security,
+budget, deadline, compliance. Distinguish real constraints from preferences.>
 
 ---
 
 ## Prior art
 
-> **Section obligatoire.** Minimum deux références nommées. Absence de section ou de
-> référence → refusée en revue, en attendant un contrôle automatisé. (`skeleton/docs/os/06-decisions.md` §2)
+> **Mandatory section.** Minimum two named references. A missing section or a missing
+> reference → refused in review, pending an automated check. (`skeleton/docs/os/06-decisions.md` §2)
 
-**Convention dominante du domaine :** <quelle est la réponse standard à ce problème ?>
+**Dominant convention of the field:** <what is the standard answer to this problem?>
 
-**Références examinées :**
+**References examined:**
 
-| Référence | Ce qu'elle fait | Applicable ici ? |
+| Reference | What it does | Applicable here? |
 |---|---|---|
-| <projet, entreprise, standard> | | |
-| <projet, entreprise, standard> | | |
+| <project, company, standard> | | |
+| <project, company, standard> | | |
 
-**Pourquoi la convention ne suffit pas** *(à remplir uniquement si l'on s'en écarte)* :
+**Why the convention is not enough** *(fill in only when departing from it)*:
 
-<Le besoin démontré qui justifie l'écart. « Plus propre », « plus flexible »,
-« plus moderne » ne sont pas des justifications recevables.>
-
----
-
-## Options considérées
-
-### Option 1 — <nom>
-- Description :
-- Avantages :
-- Inconvénients :
-- Coût de mise en place / de maintenance / **de sortie** :
-
-### Option 2 — <nom>
-<idem>
-
-### Option 3 — Ne rien faire
-<À évaluer systématiquement. C'est souvent l'option la moins chère et rarement la
-plus mauvaise.>
+<The demonstrated need that justifies the gap. "Cleaner", "more flexible", "more modern"
+are not acceptable justifications.>
 
 ---
 
-## Décision
+## Options considered
 
-<L'option retenue, et **pourquoi celle-ci** plutôt que les autres. Pas une répétition
-de la description : l'argument qui a tranché.>
+### Option 1 — <name>
+- Description:
+- Advantages:
+- Drawbacks:
+- Cost of setup / of maintenance / **of getting out**:
 
-### Déviation par rapport à la convention
+### Option 2 — <name>
+<same>
 
-*(Section obligatoire si la décision s'écarte de la convention identifiée.)*
-
-- **Valeur utilisateur attendue** :
-- **Comment on l'observera** :
-
----
-
-## Critère de succès
-
-*(Obligatoire si la décision construit sur-mesure ou dévie de la convention.)*
-
-> On considérera que c'était le bon choix si **\<observation mesurable\>** est constaté
-> avant le **\<AAAA-MM-JJ\>**.
-
-Que fait-on si ce n'est pas le cas : <corriger · superséder · revenir en arrière>
+### Option 3 — Do nothing
+<To evaluate every time. It is often the cheapest option and rarely the worst.>
 
 ---
 
-## Conséquences
+## Decision
 
-**Positives :**
+<The option chosen, and **why this one** rather than the others. Not a repeat of the
+description: the argument that settled it.>
 
-**Négatives et dette acceptée :**
+### Deviation from the convention
 
-**Impacts sur d'autres modules ou contrats :**
+*(Mandatory section when the decision departs from the convention identified.)*
 
-**Règle à automatiser :** <quelle fitness function ou quel check découle de cette
-décision ? Si aucun n'est possible, expliquer pourquoi. `skeleton/docs/os/07-governance.md` §2>
+- **Expected user value**:
+- **How we will observe it**:
 
 ---
 
-## Alternatives rejetées
+## Success criterion
 
-<Pourquoi elles ont été écartées. Cette section vaut souvent plus que la décision
-elle-même : elle évite que quelqu'un repropose dans un an une solution déjà évaluée.>
+*(Mandatory when building something bespoke or departing from the convention.)*
+
+> We will consider this was the right call if **\<measurable observation\>** is observed
+> before **\<YYYY-MM-DD\>**.
+
+What we do if it is not: <correct · supersede · roll back>
+
+---
+
+## Consequences
+
+**Positive:**
+
+**Negative and accepted debt:**
+
+**Impacts on other modules or contracts:**
+
+**Rule to automate:** <which fitness function or check follows from this decision? If
+none is possible, explain why. `skeleton/docs/os/07-governance.md` §2>
+
+---
+
+## Rejected alternatives
+
+<Why they were set aside. This section is often worth more than the decision itself: it
+stops somebody re-proposing, a year from now, a solution already evaluated.>
