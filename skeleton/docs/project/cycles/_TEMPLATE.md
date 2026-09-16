@@ -3,12 +3,12 @@ goal: "<One sentence: the outcome of this cycle>"
 status: proposed          # proposed | accepted | closed | stopped — the decider accepts
 appetite_weeks: 2         # the time the decider WANTS to spend, not an estimate
 start: 2026-01-05         # YYYY-MM-DD
-end: 2026-01-19           # start + appetite: the circuit breaker's date
+end: 2026-01-19           # start + appetite: the first day the cycle is over — the circuit breaker
 deliverables:
   - id: D1
-    title: "<An outcome a user can observe>"
-    module: "<module name>"
-    state: proposed       # proposed | ready | in-progress | accepted | deferred | dropped
+    title: "<An outcome a user can observe; for a spike, the question it answers>"
+    module: "<module name>"   # null for a spike run outside the code
+    state: proposed       # proposed | ready (testable criteria) | in-progress | accepted | deferred | dropped
     acceptance:           # given · when · then, required from ready on: the test sheet starts here
       - "Given <context>, when <action>, then <observable result>"
 # outcome: completed      # closed: completed | shipped — stopped: reframed | stopped
@@ -26,15 +26,22 @@ deliverables:
 
 ## Deliverables
 
-<Notes the front matter cannot hold: order, dependencies, open points.>
+<Notes the front matter cannot hold: order, dependencies.>
 
 ## Out of scope
 
-<What this cycle deliberately does not do.>
+<Not done in this cycle, even if time remains.>
 
 ## Later
 
-<Ideas that came up during the cycle. They enter a cycle only through a new framing.>
+<Candidates for the next framing: what framing left out, and ideas that came up during the
+cycle.>
+
+## Open questions
+
+**Blocking:** <none left once the cycle is accepted>
+
+**Not blocking:**
 
 ## Closure
 
