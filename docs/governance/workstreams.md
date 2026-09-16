@@ -23,6 +23,8 @@ flowchart LR
     V2 --> PP["Pilot project<br/>private"]:::todo
     PT --> A4["ADR-0004<br/>agent identity<br/>proposed"]:::wip
     A4 --> PP
+    PT --> P3["PDR-0003<br/>test sheet<br/>proposed"]:::wip
+    P3 --> PP
     A4 --> P2["PDR-0002<br/>guided framing"]:::todo
 
     classDef done fill:#065f46,color:#fff
@@ -50,6 +52,7 @@ waiting on a decision.
 | M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
 | ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Proposed (2026-09-16); applied and checked with the pilot project |
 | PDR-0002 | Guided framing and splitting | To do |
+| PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Proposed (2026-09-16); applied and measured with the pilot project |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
 | C2 | Anti-placeholder check | After the pilot project, if the need is observed |
 | C3 | A versioned git hook | Absorbed by C0.1 |
@@ -190,7 +193,11 @@ verified read-only; uv the only prerequisite. It replaces the "copied or generat
   v0.2.0.
 - ADR-0004 — agent identity: proposed on 2026-09-16, a GitHub App per organisation, no
   human credential in the agent's session, a human code owner's approval and an empty
-  bypass list; applied with the pilot project, which checks its criterion.
+  bypass list; applied with the pilot project, which checks its criterion. An agent's
+  approval is deferred, decided on PDR-0003's measurement.
+- PDR-0003 — approve on evidence: proposed on 2026-09-16, a test sheet written before the
+  code, run by a verifier other than the author, no result without evidence; the
+  framework decides the rule, the project its tools, the module its scenarios.
 - PDR-0002 — guided framing and splitting: from the idea or the specs, a procedure the
   agent follows proposes rules, PDRs, ADRs, modules and contracts; the human validates,
   the CLI generates. To compare with GitHub Spec Kit and BMAD-METHOD.
