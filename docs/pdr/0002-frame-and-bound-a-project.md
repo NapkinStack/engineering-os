@@ -1,6 +1,6 @@
 # PDR-0002 — Frame and bound a project
 
-- **Status**: Proposed
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, templates,
@@ -299,6 +299,21 @@ of the cycle's acceptance, end date and closure; the pull requests and their lin
 If the criterion is not met: adjust the procedure when the framing takes too long; adjust
 the cycle's rules when the bounds block legitimate work; supersede if the pilot shows that
 cycles do not bound the work.
+
+---
+
+## Clarification of 2026-09-16 — delivery work
+
+Added when planning the implementation (workstream M8), without changing the decision.
+
+**Observation:** "every pull request is tied to a deliverable" cannot hold for the pull
+request that frames the project — no cycle exists yet — nor for a NapkinStack update, a CI
+change or a handbook correction, none of which delivers a user outcome.
+
+**Clarification:** the cycle rules apply to **delivery work**, a pull request that changes
+a module. The others are exempt; they stay visible in the history like any change. The
+circuit breaker stops delivery work only, so that an `out-of-cycle` incident fix remains
+possible.
 
 ---
 

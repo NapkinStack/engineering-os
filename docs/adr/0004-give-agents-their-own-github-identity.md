@@ -1,6 +1,6 @@
 # ADR-0004 — Give agents their own GitHub identity, behind a human approval
 
-- **Status**: Proposed
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the skeleton, `nstack doctor`, and this repository)
