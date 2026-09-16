@@ -1,167 +1,167 @@
-# 04 — Contexte IA
+# 04 — AI context
 
-## 1. Le contexte est une ressource, pas un réservoir
+## 1. Context is a resource, not a reservoir
 
-Charger « tout le repo au cas où » est l'erreur la plus courante et la plus coûteuse.
-Elle a trois effets, tous mauvais :
+Loading "the whole repo just in case" is the most common and most expensive mistake. It
+has three effects, all bad:
 
-1. **Dilution** — l'information pertinente se noie ; la qualité du raisonnement baisse
-   à mesure que le contexte grossit.
-2. **Contamination de frontière** — un agent qui *voit* l'implémentation d'un autre
-   module finit par s'en servir. Le couplage naît de la visibilité.
-3. **Coût** — en tokens, en latence, et en attention humaine lors de la revue.
+1. **Dilution** — the relevant information drowns; reasoning quality drops as the
+   context grows.
+2. **Boundary contamination** — an agent that *sees* another module's implementation
+   ends up using it. Coupling is born of visibility.
+3. **Cost** — in tokens, in latency, and in human attention at review time.
 
-> **Ne jamais scanner massivement le projet « au cas où ».**
+> **Never scan the project wholesale "just in case".**
 
-L'isolation du contexte n'est donc pas une technique de prompting : c'est une
-**préoccupation architecturale**. Le découpage en modules sert autant à borner ce qu'un
-agent doit charger qu'à organiser le déploiement.
+Context isolation is therefore not a prompting technique: it is an **architectural
+concern**. Splitting into modules serves as much to bound what an agent has to load as to
+organise deployment.
 
 ---
 
-## 2. La procédure de scoping
+## 2. The scoping procedure
 
 ```mermaid
 flowchart TD
-    T["Tâche entrante"] --> S{"Périmètre<br/>identifiable ?"}
-    S -->|Non| S2["Clarifier ou poser<br/>une hypothèse explicite"] --> S
-    S -->|Oui| U["Charger : kernel<br/>+ AGENTS.md et MANIFEST du module"]
+    T["Incoming task"] --> S{"Scope<br/>identifiable?"}
+    S -->|No| S2["Clarify, or state<br/>an explicit assumption"] --> S
+    S -->|Yes| U["Load: the kernel<br/>+ the module's AGENTS.md and MANIFEST"]
 
-    U --> N{"Playbooks<br/>déclenchés ?"}
-    N -->|"authn · secrets · données perso"| N1["+ security.md"]
-    N -->|"schéma · migration"| N2["+ data-migration.md"]
-    N -->|"surface utilisateur"| N3["+ ux.md"]
-    N -->|"stratégie de test · flaky"| N4["+ tests.md"]
+    U --> N{"Playbooks<br/>triggered?"}
+    N -->|"authn · secrets · personal data"| N1["+ security.md"]
+    N -->|"schema · migration"| N2["+ data-migration.md"]
+    N -->|"user-facing surface"| N3["+ ux.md"]
+    N -->|"test strategy · flaky"| N4["+ tests.md"]
     N -->|"logs · retries · rollback"| N5["+ operations.md"]
-    N -->|Aucun| V
+    N -->|None| V
 
-    N1 --> V["Inventaire LOCAL :<br/>code, tests, contrats, décisions"]
+    N1 --> V["LOCAL inventory:<br/>code, tests, contracts, decisions"]
     N2 --> V
     N3 --> V
     N4 --> V
     N5 --> V
 
-    V --> W{"Le changement franchit-il<br/>une frontière ?"}
-    W -->|Non| X["Contexte gelé<br/>→ oracle puis implémentation"]
-    W -->|Oui| Y["STOP — élargissement explicite"]
+    V --> W{"Does the change cross<br/>a boundary?"}
+    W -->|No| X["Context frozen<br/>→ oracle, then implementation"]
+    W -->|Yes| Y["STOP — explicit widening"]
 
-    Y --> Y1["Nommer les modules concernés<br/>et ce qui manque"]
-    Y1 --> Y2["Charger uniquement leurs CONTRATS,<br/>jamais leur implémentation"]
-    Y2 --> Y3{"Contrat<br/>suffisant ?"}
-    Y3 -->|Oui| X
-    Y3 -->|Non| Z["Changement de contrat<br/>→ expand/contract, PR séparée"]
-    Z --> Z2["Signal de frontière à tracer"]
+    Y --> Y1["Name the modules concerned<br/>and what is missing"]
+    Y1 --> Y2["Load only their CONTRACTS,<br/>never their implementation"]
+    Y2 --> Y3{"Contract<br/>enough?"}
+    Y3 -->|Yes| X
+    Y3 -->|No| Z["Contract change<br/>→ expand/contract, separate PR"]
+    Z --> Z2["A boundary signal to record"]
 
     style Y fill:#7c2d12,color:#fff
     style Z fill:#7c2d12,color:#fff
     style X fill:#065f46,color:#fff
 ```
 
-« **Contexte gelé** » signifie : à partir de ce point, on n'ajoute plus de fichiers au
-contexte sans repasser par la question du franchissement de frontière. Une exploration
-qui s'élargit progressivement pendant l'implémentation est le symptôme d'un cadrage
-raté, pas d'une découverte utile.
+**Legend** — green: the nominal path · red: stop, and what it costs.
+
+"**Context frozen**" means: from that point on, no file is added to the context without
+going back through the boundary-crossing question. An exploration that widens gradually
+during implementation is the symptom of a failed framing, not of a useful discovery.
 
 ---
 
-## 3. Ordre de chargement et budget
+## 3. Loading order and budget
 
 ```
-1. kernel AGENTS.md                     toujours      ~250 lignes
-2. MANIFEST du module cible             toujours      court
-3. AGENTS.md local du module            toujours      ~50-100 lignes
-4. playbook(s) déclenché(s)             conditionnel  1 à 2 maximum
-5. code et tests locaux pertinents      ciblé         pas le module entier
-6. contrats consommés                   ciblé         le contrat, pas l'implémentation
-7. ADR/PDR liés à la zone modifiée       si existants
-8. autre module                          JAMAIS sans franchissement explicite
+1. kernel AGENTS.md                     always        ~250 lines
+2. the target module's MANIFEST         always        short
+3. the module's local AGENTS.md         always        ~50-100 lines
+4. triggered playbook(s)                conditional   1 to 2 at most
+5. relevant local code and tests        targeted      not the whole module
+6. contracts consumed                   targeted      the contract, not the implementation
+7. ADR/PDR tied to the area changed     when they exist
+8. another module                       NEVER without an explicit crossing
 ```
 
-Avant d'explorer, un agent doit pouvoir répondre à cinq questions. Si l'une reste sans
-réponse, le problème est le cadrage, pas le contexte :
+Before exploring, an agent must be able to answer five questions. If one has no answer,
+the problem is the framing, not the context:
 
-- Quel **module** est concerné ?
-- Quels **contrats** sont impliqués ?
-- Quels **tests** existent déjà sur cette zone ?
-- Quelles **décisions** (ADR/PDR) contraignent ce choix ?
-- Quel est l'**oracle** de cette tâche ?
+- Which **module** is concerned?
+- Which **contracts** are involved?
+- Which **tests** already exist on this area?
+- Which **decisions** (ADR/PDR) constrain this choice?
+- What is this task's **oracle**?
 
 ---
 
-## 4. Le franchissement de frontière
+## 4. Crossing a boundary
 
-C'est le mécanisme qui distingue un système avec des frontières d'un système qui en a
-l'apparence. Le franchissement n'est pas interdit : il est rendu **explicite, coûteux
-et tracé**, donc rare.
+This is the mechanism that separates a system with boundaries from one that merely looks
+like it has them. Crossing is not forbidden: it is made **explicit, expensive and
+traced**, and therefore rare.
 
-Quand une tâche semble nécessiter un second module, il existe presque toujours l'une de
-ces quatre réponses — dans cet ordre de préférence :
+When a task seems to need a second module, one of these four answers almost always
+applies — in this order of preference:
 
-| Réponse | Quand | Coût |
+| Answer | When | Cost |
 |---|---|---|
-| **1. Le contrat suffit déjà** | Cas le plus fréquent. L'information existe, elle n'avait pas été cherchée. | Nul |
-| **2. Le contrat doit s'étendre** | Besoin réel côté consommateur. | Expand/contract (`03-contracts.md`) |
-| **3. La tâche était mal découpée** | Elle contenait en réalité deux tâches. | Redécoupage, deux issues |
-| **4. La frontière est mauvaise** | Le contrat ne peut structurellement pas suffire. | Issue *Architecture*, ne pas contourner |
+| **1. The contract is already enough** | The most frequent case. The information exists, it had not been looked for. | None |
+| **2. The contract must expand** | A real need on the consumer side. | Expand/contract (`03-contracts.md`) |
+| **3. The task was badly split** | It actually contained two tasks. | Re-split, two issues |
+| **4. The boundary is wrong** | The contract structurally cannot suffice. | An *Architecture* issue; do not work around it |
 
-**Le cas 4 est le signal le plus précieux du système.** L'incapacité à travailler via le
-contrat seul est le symptôme de couplage le plus fiable qu'on puisse collecter — et il
-est collecté gratuitement, à chaque tâche, par l'agent lui-même.
+**Case 4 is the system's most valuable signal.** Being unable to work through the
+contract alone is the most reliable coupling symptom you can collect — and it is
+collected for free, on every task, by the agent itself.
 
-Le contourner en important directement le code de l'autre module, c'est détruire
-l'information *et* la frontière en un seul geste.
-
----
-
-## 5. Multi-agents
-
-Utiliser plusieurs agents **uniquement** quand le bénéfice est clair :
-
-| Cas légitime | Pourquoi |
-|---|---|
-| Travail réellement parallèle sur des modules distincts | Le cloisonnement est déjà garanti par les frontières |
-| Revue indépendante | Un contexte non contaminé par la génération détecte mieux |
-| Investigation / spike isolé | Évite de polluer le contexte de la tâche principale |
-| Comparaison de deux approches | Chacune raisonnée sans connaître l'autre |
-| Expertise spécialisée ponctuelle | Sécurité, performance, accessibilité |
-
-Ne pas multiplier les agents pour une tâche simple : le coût de coordination et de
-synthèse dépasse vite le gain.
-
-**Règle de cohérence.** Les agents partagent les mêmes sources de vérité, les mêmes
-contrats et les mêmes formats de décision. Ils ne créent **jamais** chacun leurs propres
-conventions. Rôles types : Architect, Product, Software Engineer, QA, Security, UX/UI,
-DevOps/SRE, Reviewer, Researcher.
-
-**Règle de frontière.** Deux agents travaillant en parallèle travaillent sur deux
-modules distincts. Deux agents sur le même module, c'est un conflit de merge et une
-revue impossible.
+Working around it by importing the other module's code directly destroys the information
+*and* the boundary in a single move.
 
 ---
 
-## 6. Recherche et vérification
+## 5. Multiple agents
 
-Quand l'information est susceptible d'avoir changé — versions, API, options, capacités
-d'outils, état d'un écosystème — la chercher **avant** de décider.
+Use several agents **only** when the benefit is clear:
 
-| Faire | Ne pas faire |
+| Legitimate case | Why |
 |---|---|
-| Privilégier les sources primaires et la documentation officielle | Se fier à un souvenir d'entraînement |
-| Vérifier les versions et les contraintes de compatibilité | Supposer qu'une option existe parce qu'elle serait logique |
-| Distinguer faits et opinions | Présenter une préférence comme une contrainte technique |
-| Dire quand l'information n'est pas connue | Inventer une API, une commande, une version, une capacité |
+| Genuinely parallel work on distinct modules | The partitioning is already guaranteed by the boundaries |
+| Independent review | A context uncontaminated by the generation detects more |
+| An isolated investigation or spike | Avoids polluting the main task's context |
+| Comparing two approaches | Each reasoned without knowing the other |
+| One-off specialist expertise | Security, performance, accessibility |
 
-Ordre de résolution d'une incertitude, du moins cher au plus cher :
+Do not multiply agents for a simple task: the cost of coordinating and synthesising soon
+exceeds the gain.
+
+**Consistency rule.** The agents share the same sources of truth, the same contracts and
+the same decision formats. They **never** each invent their own conventions. Typical
+roles: Architect, Product, Software Engineer, QA, Security, UX/UI, DevOps/SRE, Reviewer,
+Researcher.
+
+**Boundary rule.** Two agents working in parallel work on two distinct modules. Two
+agents on the same module means a merge conflict and an impossible review.
+
+---
+
+## 6. Research and verification
+
+When the information is likely to have changed — versions, APIs, options, tool
+capabilities, the state of an ecosystem — look it up **before** deciding.
+
+| Do | Do not |
+|---|---|
+| Prefer primary sources and official documentation | Rely on a memory from training |
+| Check versions and compatibility constraints | Assume an option exists because it would be logical |
+| Distinguish facts from opinions | Present a preference as a technical constraint |
+| Say when the information is not known | Invent an API, a command, a version, a capability |
+
+Order for resolving an uncertainty, from cheapest to most expensive:
 
 ```
-1. inspecter le module et ses tests
-2. lire le contrat concerné
-3. lire les ADR/PDR liés
-4. rechercher la documentation officielle
-5. demander une clarification  ← uniquement si réellement bloquant
+1. inspect the module and its tests
+2. read the contract concerned
+3. read the related ADR/PDR
+4. look up the official documentation
+5. ask for clarification  ← only when genuinely blocking
 ```
 
-Demander une clarification pour une information trouvable en trente secondes est un
-coût de coordination injustifié. Avancer sur une hypothèse non déclarée est pire.
-La bonne réponse intermédiaire : **avancer avec une hypothèse explicitement déclarée**,
-et la faire apparaître dans le résumé final.
+Asking for clarification on something findable in thirty seconds is an unjustified
+coordination cost. Moving ahead on an undeclared assumption is worse. The right middle
+answer: **move ahead with an explicitly stated assumption**, and surface it in the
+closing summary.
