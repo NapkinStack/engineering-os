@@ -5,9 +5,10 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.1.0, the first published version** ([PyPI](https://pypi.org/project/napkinstack/)).
-> A first pilot project, private, puts it to the test before the rest. Tracking:
-> [roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
+> **Status: v0.2.0, published** ([PyPI](https://pypi.org/project/napkinstack/)), English
+> throughout. A first pilot project, private, starts from it and puts it to the test before
+> the rest. Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
+> [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey

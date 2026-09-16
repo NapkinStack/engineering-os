@@ -210,6 +210,12 @@ Gaps carried into the implementation plan: a module template with no imposed com
 (C1); an engine that receives the project root instead of assuming it lives there (D21);
 Copier's errors translated into explanatory messages (P6).
 
+**On published versions (2026-09-16).** `nstack update` carried a project from v0.1.0 to
+v0.2.0: criteria 5 and 7 confirmed; 6 confirmed for a file that keeps its name, while a
+file renamed between the two versions comes back under its new name; 4 not exercised,
+since v0.2.0 translated the whole skeleton. Details:
+[the M7 plan](../governance/plans/2026-09-16-english-migration.md) §7.
+
 ---
 
 ## Clarification of 2026-09-15 — private repositories

@@ -18,8 +18,8 @@ flowchart LR
     A1 --> A2["ADR-0002<br/>PyPI, accepted"]:::done
     A2 --> PT["Prototype<br/>validated"]:::done
     PT --> RP["Engine v0.1.0<br/>published on PyPI"]:::done
-    RP --> M7["M7<br/>move to English<br/>ADR-0003"]:::wip
-    M7 --> V2["Engine v0.2.0"]:::todo
+    RP --> M7["M7<br/>move to English<br/>ADR-0003"]:::done
+    M7 --> V2["Engine v0.2.0<br/>published on PyPI"]:::done
     V2 --> PP["Pilot project<br/>private"]:::todo
     PT --> A4["ADR-0004<br/>agent identity"]:::todo
     A4 --> P2["PDR-0002<br/>guided framing"]:::todo
@@ -45,8 +45,8 @@ waiting on a decision.
 | ADR-0001 | [Adopt Copier to generate and update projects](../adr/0001-adopt-copier-to-generate-and-update-projects.md) | Accepted (2026-09-15) |
 | ADR-0002 | [Distribute NapkinStack on PyPI](../adr/0002-distribute-napkinstack-on-pypi.md) | Accepted (2026-09-15), verified at the v0.1.0 release |
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
-| ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16) |
-| M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | In progress: M7d |
+| ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 release |
+| M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
 | ADR-0004 | Agent identity and mandatory approval | To do |
 | PDR-0002 | Guided framing and splitting | To do |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
@@ -185,7 +185,8 @@ verified read-only; uv the only prerequisite. It replaces the "copied or generat
   command, `uv_build`, publication on tag through Trusted Publishing, accepted at the
   v0.1.0 release (2026-09-15).
 - ~~ADR-0003 — repository language~~: English everywhere, machine values included; no
-  localisation mechanism; accepted on 2026-09-16, executed by workstream M7.
+  localisation mechanism; accepted on 2026-09-16, executed by workstream M7, published in
+  v0.2.0.
 - ADR-0004 — agent identity (a GitHub App or a machine account), the condition for
   requiring a human approval: a pull request's author cannot approve it.
 - PDR-0002 — guided framing and splitting: from the idea or the specs, a procedure the
