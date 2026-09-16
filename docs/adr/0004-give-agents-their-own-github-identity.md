@@ -150,7 +150,7 @@ accepted result · red: the refusal · dotted cross: what the agent's session ne
 | The agent's session | Reaches no human credential: no SSH key, token or GitHub CLI login of a human (a sandbox, a container or a dedicated system user) | Otherwise the agent approves under a human's name |
 | Merge | Ruleset on the main branch: pull request, at least 1 approval, code owner review, required checks, **empty bypass list** | Administrators bypass only when listed: with an empty list, this repository's ruleset answers `current_user_can_bypass: never` to the organisation owner |
 | Code owners | A default owner — `*` followed by the foundation team, first line of `CODEOWNERS` — so the code owner review covers every path | A dedicated App's approval can count toward the approval count — the `renovate-approve` App exists for that — but an App is never a code owner |
-| Who approves | A human code owner. In a team, preferably not the one who drove the agent; for a `critical` module, its owner (`05-workflow.md` §7) | GitHub cannot tie a local agent's pull request to the person who drove it |
+| Who approves | A human code owner — during the pilot, see "Deferred, decided on evidence". In a team, preferably not the one who drove the agent; for a `critical` module, its owner (`05-workflow.md` §7) | GitHub cannot tie a local agent's pull request to the person who drove it |
 | Who merges | Anyone with write access, the agent included, once the approval and the checks are there | The barrier is the approval, not the click |
 | Traceability | The agent assigns the pull request to the human who drove it | — |
 | Local tooling | An established tool mints the tokens and serves git's credentials; chosen, pinned and verified when the pilot starts, never built | Candidates: `gh-token`, `gh-app-auth`, `git-credential-github-app`, each to pass the niche filter (`06-decisions.md` §3) |
@@ -231,6 +231,22 @@ the automation backlog (`07-governance.md` §9).
 
 ---
 
+## Deferred, decided on evidence
+
+**Letting an agent's approval count toward merging.** Not during the pilot — and not
+rejected either. Agents already run end-to-end scenarios in a browser or on a mobile
+emulator and bring back evidence, and GitHub lets an AI approval count toward the
+required approvals since 2026-09-01. What nobody knows yet is whether an independent
+verifying agent is reliable on a real project.
+
+PDR-0003 measures it: on every pull request carrying a test sheet, what the human found
+that the verifier had missed. If, over the pilot's last 20 such pull requests, the human
+found nothing the verifier missed, a new ADR may let a verifier agent's approval count for
+modules of criticality `prototype` and `standard` — never `high` or `critical`. That
+agent will need an App of its own: the author of a pull request cannot approve it.
+
+---
+
 ## Rejected alternatives
 
 - **A machine account**: a seat, long-lived credentials and 2FA to manage, for what an App
@@ -239,9 +255,6 @@ the automation backlog (`07-governance.md` §9).
   holds its human's right to approve.
 - **Not counting the approval of the human who drove the agent**, as Copilot does:
   unenforceable for a local agent, and a single maintainer could never merge.
-- **Letting an AI reviewer's approval count** (Copilot code review, since 2026-09-01): the
-  barrier would no longer involve a human, against the human review required at every
-  level of criticality (`05-workflow.md` §7).
 - **The vendor's App** (Claude, Copilot): ties the identity to one agent product, with a
   permission set broader than the need — Claude's own documentation points to a custom App
   for minimal permissions.
