@@ -76,6 +76,22 @@ other: <specify>
 
 ---
 
+## Test sheet
+
+> Required when the pull request touches a user-facing module, or one of criticality high
+> or critical (`docs/os/05-workflow.md` §7). The scenarios come from the acceptance
+> criteria and are written before the code; the results are filled in by a verifier who is
+> not the author (`playbooks/verification.md`). Kind: automated · explored · human only —
+> reason. Result: passed · failed — what was observed · not verified.
+
+Verifier: <agent session or @human>
+
+| # | Given · when · then | Kind | Result | Evidence | Commit |
+|---|---|---|---|---|---|
+| S1 | <Given …, when …, then …> | <automated · explored · human only — reason> | <passed · failed · not verified> | <link> | <commit> |
+
+---
+
 ## Summary
 
 > An imposed format. The last three sections are the most important and the most often

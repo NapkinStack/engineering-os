@@ -18,16 +18,19 @@ runbook, tests and configuration.
 | `src/napkinstack/skills.py` | Generates the Claude Code skills from the playbooks |
 | `src/napkinstack/project.py` | Project creation and update, through Copier |
 | `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
+| `src/napkinstack/pull_request.py` | The rules read from the pull request description: test sheet, cycle |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |
 | `tests/test_guardrails.py` | Rules M, B, S, P: one failing case per rule (pytest, run by `run.sh`) |
+| `tests/test_pull_request.py` | Rules T and K: one failing case per rule |
 
 ## Fitness functions
 
 | Command | Rules |
 |---|---|
-| `nstack manifests` | M1-M9: fields, lifecycles, deprecation dates, runbook, envelope |
+| `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
 | `nstack boundaries` | B1-B5: declared graph vs real graph, internal imports, cycles, data access |
 | `nstack pr-scope` | P1-P2: one PR = one module, review budget |
+| `nstack pr-check` | T1-T5: the test sheet, read from the pull request description |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills
@@ -36,7 +39,7 @@ uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review
 uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
 uv run nstack new-module <name> <owner> <criticality> --root <project>
-uv run nstack check [module] --root <project>   # also test, bootstrap; run <module>
+uv run nstack check [module] --root <project>   # also test, bootstrap, e2e; run <module>
 ```
 
 ## Skills

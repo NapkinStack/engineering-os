@@ -84,7 +84,7 @@ Settings → Rules → Rulesets → on the main branch (private repository: Team
 - [ ] Pull request required: no direct push to main
 - [ ] At least 1 approving review
 - [ ] Code owner review required
-- [ ] Required checks: `Fitness functions`, `PR scope and review budget`, `Hooks and secrets`
+- [ ] Required checks: `Fitness functions`, `PR scope and review budget`, `Hooks and secrets`, `Test sheet and cycle`
 - [ ] Bypass list empty: nobody merges around the rules, administrators included
 
 Settings → Advanced Security (private repository: the Secret Protection option):
@@ -155,6 +155,8 @@ nstack skills        # generates the Claude Code skills from the playbooks
 nstack new-module <name> <owner> <criticality>
 nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
 nstack run <module>     # local start, when commands.run is declared
+nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
+nstack pr-check --body-file <file>   # test sheet and cycle, as CI reads them from the pull request
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```
 
