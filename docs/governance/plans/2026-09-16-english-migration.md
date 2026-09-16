@@ -187,16 +187,27 @@ Unchanged: `02-modules.md`, `05-workflow.md`, `06-decisions.md`, `playbooks/test
 
 The agent's token is read-only on settings. These are yours, in this order.
 
-1. **Before M7a** — create the `cross-module` label. `pr_scope.sh` requires it to lift
-   rule P1, `CONTRIBUTING.md` documents it and `doctor.py` expects it, but it does not
-   exist on the repository: a guardrail that cannot currently be lifted. This is a real
-   defect, independent of language, found by this pass.
+1. **Before M7a — done 2026-09-16, by the agent.** The label audit found not one but
+   **four phantom labels**: `cross-module`, required by `pr_scope.sh` to lift rule P1,
+   documented in `CONTRIBUTING.md` and expected by `doctor.py`; and `feature`,
+   `architecture`, `spike`, declared by the issue forms. None existed, so rule P1 could
+   not be lifted and three of the five issue templates produced unlabelled issues. All
+   four created, descriptions in English. Seven unused GitHub default labels
+   (`accessibility`, `documentation`, `duplicate`, `enhancement`, `invalid`, `question`,
+   `wontfix`) were deleted: referenced by no file, carried by none of the 23 issues and
+   pull requests. `good first issue` and `help wanted` were kept — GitHub's own
+   contributor-discovery surfaces rely on them, and this repository is public.
+   Remaining gap, closed in M7c: the `dette` label is still declared by
+   `05-dette.yml` and still does not exist. Creating it now would mean creating a French
+   label three pull requests before renaming it — residue by construction.
 2. **Before merging M7c** — in ruleset `main`, replace the two required checks
    `Périmètre et budget de revue` and `Hooks et secrets` with `PR scope and review budget`
    and `Hooks and secrets`. A required check whose job no longer reports stays pending
    forever and blocks every pull request. No other PR must be open at that moment.
-3. **After M7c** — rename label `hors-budget` to `over-budget` (GitHub's rename preserves
-   it on existing issues and pull requests).
+3. **After M7c** — rename label `hors-budget` to `over-budget`, and create the missing
+   `debt` label. GitHub's rename preserves `hors-budget` on the eight pull requests that
+   carry it. The rename cannot happen earlier: `pr_scope.sh` greps that exact string, and
+   the M7 pull requests themselves need the escape hatch to exceed the review budget.
 
 Still pending from M5, unrelated but worth doing in the same sitting: fill the
 repository's "About" description, and confirm the PyPI API token was revoked.
@@ -207,9 +218,10 @@ repository's "About" description, and confirm the PyPI API token was revoked.
 
 Machine values, code, tests. Small diff, entirely covered by the test suite.
 
-### Task 0 — Human action: create the `cross-module` label
+### Task 0 — Labels (done 2026-09-16)
 
-- [ ] Label created on `NapkinStack/engineering-os`, description in English.
+- [x] `cross-module`, `feature`, `architecture`, `spike` created; seven unused default
+      labels deleted. Detail and rationale in §5.1.
 
 ### Task 1 — ADR-0003, English as the repository language
 
@@ -344,10 +356,12 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 - [ ] `.github/ISSUE_TEMPLATE/*`, `pull_request_template.md`, `config.yml`,
       `dependabot.yml` comments, `CODEOWNERS`, `.yamllint.yaml` comments, `.gitignore`.
 
-### Task 5 — Human action: rename the label
+### Task 5 — Human action: labels, after merge
 
-- [ ] `hors-budget` → `over-budget`, after merge. `pr_scope.sh` and `CONTRIBUTING.md`
-      already expect the new name.
+- [ ] `hors-budget` → `over-budget`. `pr_scope.sh` and `CONTRIBUTING.md` already expect
+      the new name once this pull request is merged.
+- [ ] Create `debt`, matching `05-debt.yml`. This closes the last phantom label; after it,
+      every label an issue form or a guardrail names exists on the repository.
 
 ---
 
