@@ -1,105 +1,104 @@
 # AI Engineering OS
 
-Un système de règles, de frontières, de contrats, de documentation et de garde-fous
-déterministes permettant à **plusieurs équipes et à des agents IA de développer en
-parallèle** sans que la vitesse de génération fasse exploser la complexité.
+A system of rules, boundaries, contracts, documentation and deterministic guardrails that
+lets **several teams and their AI agents develop in parallel** without generation speed
+blowing up complexity.
 
 ---
 
-## Le problème que cet OS résout
+## The problem this OS solves
 
-Les agents rendent l'écriture de code quasi gratuite. Trois coûts, eux, ne baissent pas :
+Agents make writing code nearly free. Three costs do not come down:
 
-1. **La compréhension** — quelqu'un doit encore savoir ce que fait le système.
-2. **La vérification** — quelqu'un doit encore relire et valider.
-3. **La coordination** — plusieurs équipes doivent avancer sans se bloquer.
+1. **Understanding** — somebody still has to know what the system does.
+2. **Verification** — somebody still has to review and validate.
+3. **Coordination** — several teams have to move without blocking each other.
 
-Un accélérateur de génération branché sur un système sans frontières ne produit pas
-un projet plus rapide : il produit un projet illisible plus rapidement.
+A generation accelerator plugged into a system without boundaries does not produce a
+faster project: it produces an unreadable project faster.
 
-Cet OS traite donc la **charge cognitive**, la **capacité de revue** et le **couplage
-inter-équipes** comme les trois ressources rares du projet, et organise tout le reste
-autour de leur préservation.
+This OS therefore treats **cognitive load**, **review capacity** and **inter-team
+coupling** as the project's three scarce resources, and organises everything else around
+preserving them.
 
 ---
 
-## Les cinq idées structurantes
+## The five structuring ideas
 
-| # | Idée | Conséquence pratique |
+| # | Idea | Practical consequence |
 |---|------|----------------------|
-| 1 | **Le prompt est une zone de transit, pas de résidence** | Toute règle automatisable descend en CI et quitte le prompt |
-| 2 | **Le module est l'unité de parallélisme** | Une PR = un module ; deux modules ne se connaissent que par contrat |
-| 3 | **L'oracle avant la génération** | On rend le critère exécutable avant d'écrire la première ligne |
-| 4 | **La convention est le choix par défaut** | Elle ne se justifie pas ; toute déviation se justifie |
-| 5 | **Aucune stack n'est imposée** | L'OS impose une méthode de sélection, pas une liste de technologies |
+| 1 | **The prompt is a transit zone, not a residence** | Every automatable rule moves down into CI and leaves the prompt |
+| 2 | **The module is the unit of parallelism** | One PR = one module; two modules know each other only through a contract |
+| 3 | **The oracle before the generation** | The criterion is made executable before the first line is written |
+| 4 | **Convention is the default choice** | It needs no justification; every deviation does |
+| 5 | **No stack is imposed** | The OS imposes a selection method, not a list of technologies |
 
 ---
 
-## Carte de navigation
+## Navigation map
 
-### À lire selon qui vous êtes
+### What to read, depending on who you are
 
-| Vous êtes… | Lisez, dans l'ordre |
+| You are… | Read, in order |
 |-----------|---------------------|
-| **Un agent IA** | `AGENTS.md` (kernel) + l'`AGENTS.md` local du module + les playbooks déclenchés |
-| **Un nouveau développeur** | `00-overview.md` → `02-modules.md` → `05-workflow.md` |
-| **Un tech lead / architecte** | `00-overview.md` → `02` → `03` → `07` |
-| **Un product owner** | `00-overview.md` → `06-decisions.md` |
-| **Celui qui crée le projet** | Le `README.md` du projet, puis `09-platform.md` |
+| **An AI agent** | `AGENTS.md` (kernel) + the module's local `AGENTS.md` + the triggered playbooks |
+| **A new developer** | `00-overview.md` → `02-modules.md` → `05-workflow.md` |
+| **A tech lead / architect** | `00-overview.md` → `02` → `03` → `07` |
+| **A product owner** | `00-overview.md` → `06-decisions.md` |
+| **Whoever creates the project** | The project's `README.md`, then `09-platform.md` |
 
-### Contenu du projet
+### Project contents
 
 ```
 .
-├── README.md                     Mode d'emploi du projet
-├── AGENTS.md                     ← LE KERNEL : résident, chargé à chaque tâche
+├── README.md                     How to use the project
+├── AGENTS.md                     ← THE KERNEL: resident, loaded for every task
 ├── CONTRIBUTING.md, SECURITY.md
 │
 ├── docs/
-│   ├── os/                       ← ce manuel
-│   │   ├── README.md             vous êtes ici
-│   │   ├── 00-overview.md    Architecture de l'OS, les 4 couches, glossaire
-│   │   ├── 01-principles.md       Principes non négociables et anti-patterns
-│   │   ├── 02-modules.md         Frontières, manifest, cycle de vie, une PR = un module
-│   │   ├── 03-contracts.md        Versioning, expand/contract, contract tests
-│   │   ├── 04-ai-context.md     Context firewall, budget de contexte, franchissement
-│   │   ├── 05-workflow.md        Boucle verification-first, DoR/DoD, budget de revue
-│   │   ├── 06-decisions.md       ADR/PDR, Prior Art Gate, critères de succès datés
-│   │   ├── 07-governance.md     Où vit une règle, fitness functions, CI, quality gates
-│   │   ├── 08-quality.md         Tests, sécurité, fiabilité, données, UX, QA, UAT
-│   │   ├── 09-platform.md      Verbes standards, arborescence, outillage, onboarding
-│   │   └── 10-measurement.md          Métriques, boucle de feedback, revue des décisions
-│   ├── tooling-profile.md        Capacités → outils du moment
-│   ├── adr/, pdr/                Décisions, et leurs modèles _TEMPLATE.md
+│   ├── os/                       ← this handbook
+│   │   ├── README.md             you are here
+│   │   ├── 00-overview.md        OS architecture, the 4 layers, glossary
+│   │   ├── 01-principles.md      Non-negotiable principles and anti-patterns
+│   │   ├── 02-modules.md         Boundaries, manifest, lifecycle, one PR = one module
+│   │   ├── 03-contracts.md       Versioning, expand/contract, contract tests
+│   │   ├── 04-ai-context.md      Context firewall, context budget, crossing over
+│   │   ├── 05-workflow.md        Verification-first loop, DoR/DoD, review budget
+│   │   ├── 06-decisions.md       ADR/PDR, Prior Art Gate, dated success criteria
+│   │   ├── 07-governance.md      Where a rule lives, fitness functions, CI, quality gates
+│   │   ├── 08-quality.md         Tests, security, reliability, data, UX, QA, UAT
+│   │   ├── 09-platform.md        Standard verbs, layout, tooling, onboarding
+│   │   └── 10-measurement.md     Metrics, feedback loop, decision review
+│   ├── tooling-profile.md        Capabilities → the tools of the moment
+│   ├── adr/, pdr/                Decisions, and their _TEMPLATE.md models
 │   └── architecture/, runbooks/
 │
-├── playbooks/                    ← modules d'instructions chargés à la demande
-├── modules/                      Le code : une unité de parallélisme par dossier
-├── contracts/                    Le seul canal entre modules
-└── .github/                      CI, CODEOWNERS, modèles d'issue et de PR
+├── playbooks/                    ← instruction modules loaded on demand
+├── modules/                      The code: one unit of parallelism per folder
+├── contracts/                    The only channel between modules
+└── .github/                      CI, CODEOWNERS, issue and pull request templates
 ```
 
 ---
 
-## Règle de lecture des documents
+## How to read these documents
 
-Les documents de `docs/` sont **la référence** : ils expliquent, justifient et
-détaillent. Ils ne sont **pas** destinés à être chargés dans le contexte d'un agent.
+The documents in `docs/` are **the reference**: they explain, justify and detail. They
+are **not** meant to be loaded into an agent's context.
 
-Ce qu'un agent charge, c'est :
+What an agent loads is:
 
-- `AGENTS.md` (kernel, toujours) ;
-- l'`AGENTS.md` du module concerné (toujours) ;
-- un ou plusieurs `playbooks/` (uniquement si déclenchés).
+- `AGENTS.md` (the kernel, always);
+- the `AGENTS.md` of the module concerned (always);
+- one or more `playbooks/` (only when triggered).
 
-Si vous avez besoin de mettre une règle dans le kernel, relisez d'abord
-`07-governance.md` § « Où vit cette règle ? ». La réponse est très souvent
-« en CI », pas « dans le prompt ».
+If you need to put a rule in the kernel, re-read `07-governance.md` § "Where does this
+rule live?" first. The answer is very often "in CI", not "in the prompt".
 
 ---
 
-## Statut
+## Status
 
-Cet OS est lui-même soumis à ses propres règles : il évolue par petits pas, ses
-changements structurants font l'objet d'un ADR, et toute règle qu'il contient est
-candidate à l'automatisation. Voir `docs/10-measurement.md` § « Amélioration de l'OS ».
+This OS is subject to its own rules: it evolves in small steps, its structuring changes
+get an ADR, and every rule it contains is a candidate for automation. See
+`docs/10-measurement.md` § "Improving the OS".

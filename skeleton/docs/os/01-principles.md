@@ -1,111 +1,109 @@
-# 01 — Principes
+# 01 — Principles
 
-## 1. Les cinq lois
+## 1. The five laws
 
-Ce sont les seules règles qui priment sur toutes les autres, y compris sur une
-instruction locale de module. Elles figurent dans le kernel parce qu'elles s'appliquent
-à *toute* tâche, sans exception.
+These are the only rules that override all others, including a module's local
+instruction. They sit in the kernel because they apply to *every* task, without
+exception.
 
-### Loi 1 — Frontière
+### Law 1 — Boundary
 
-> Tu travailles dans un seul module. Tu ne connais les autres que par leurs contrats.
+> You work in a single module. You know the others only through their contracts.
 
-**Pourquoi.** C'est ce qui rend le parallélisme possible : si un changement peut
-toucher n'importe quoi, alors deux équipes ne peuvent pas travailler simultanément sans
-se marcher dessus, et un agent doit charger un contexte non borné pour être sûr de ne
-rien casser.
+**Why.** This is what makes parallelism possible: if a change can touch anything, then
+two teams cannot work at the same time without stepping on each other, and an agent has
+to load an unbounded context to be sure it breaks nothing.
 
-**Conséquence.** Le franchissement de frontière n'est pas interdit — il est rendu
-**explicite et coûteux**, donc rare et tracé. Voir `04-ai-context.md`.
+**Consequence.** Crossing a boundary is not forbidden — it is made **explicit and
+expensive**, therefore rare and traceable. See `04-ai-context.md`.
 
-### Loi 2 — Oracle
+### Law 2 — Oracle
 
-> Pas de génération tant que le critère de réussite n'est pas exécutable.
+> No generation until the success criterion is executable.
 
-**Pourquoi.** Un agent est un système probabiliste. Le seul moyen fiable de le
-contraindre est de lui opposer un juge déterministe. Sans oracle, la validation repose
-sur la relecture humaine d'un code produit en quarante secondes — c'est-à-dire sur la
-ressource la plus rare du projet.
+**Why.** An agent is a probabilistic system. The only reliable way to constrain it is to
+set a deterministic judge against it. Without an oracle, validation rests on a human
+reading code produced in forty seconds — that is, on the project's scarcest resource.
 
-**Conséquence.** L'ordre habituel « je code puis je teste » est inversé. Si le critère
-ne *peut pas* être rendu exécutable, ce n'est pas un détail de méthode : c'est le signe
-que la tâche est mal cadrée.
+**Consequence.** The usual order, "I write the code then I test it", is reversed. If the
+criterion *cannot* be made executable, that is not a detail of method: it is the sign
+that the task is badly framed.
 
-### Loi 3 — Convention
+### Law 3 — Convention
 
-> La solution établie est le choix par défaut et ne se justifie pas.
-> Toute déviation se justifie par une valeur utilisateur observable.
+> The established solution is the default choice and needs no justification.
+> Every deviation is justified by an observable user value.
 
-**Pourquoi.** Un LLM produit toujours une réponse plausible et sur-mesure, y compris
-quand la bonne réponse est « c'est un problème résolu depuis vingt ans, voici la
-convention ». L'asymétrie de justification corrige ce biais structurel.
+**Why.** An LLM always produces a plausible, bespoke answer, including when the right
+answer is "this has been solved for twenty years, here is the convention". The asymmetry
+of justification corrects that structural bias.
 
-**Conséquence.** L'élégance, la flexibilité future et la préférence technique ne sont
-pas des justifications recevables. Voir `06-decisions.md` § Prior Art Gate.
+**Consequence.** Elegance, future flexibility and technical preference are not
+acceptable justifications. See `06-decisions.md` § Prior Art Gate.
 
-### Loi 4 — Minimum
+### Law 4 — Minimum
 
-> Le changement minimal qui satisfait l'oracle.
+> The minimal change that satisfies the oracle.
 
-**Pourquoi.** Chaque ligne non nécessaire consomme de la capacité de revue, augmente la
-surface de régression et devient du code que quelqu'un devra comprendre plus tard.
+**Why.** Every unnecessary line consumes review capacity, increases the regression
+surface and becomes code somebody will have to understand later.
 
-**Conséquence.** Pas de refactoring opportuniste dans une PR fonctionnelle. Pas
-d'anticipation d'un besoin non démontré. Pas de généralisation spéculative.
+**Consequence.** No opportunistic refactoring inside a feature pull request. No
+anticipation of an undemonstrated need. No speculative generalisation.
 
-### Loi 5 — Vérité
+### Law 5 — Truth
 
-> Distinguer toujours fait, hypothèse, décision, recommandation, incertitude.
+> Always distinguish fact, assumption, decision, recommendation, uncertainty.
 
-**Pourquoi.** Une affirmation fausse mais confiante coûte plus cher qu'une absence de
-réponse, parce qu'elle est intégrée sans être vérifiée.
+**Why.** A confident but false statement costs more than no answer at all, because it is
+absorbed without being checked.
 
-**Conséquence.** Ne jamais écrire qu'un test passe sans l'avoir exécuté. Ne jamais
-inventer une API, une commande, une option, une version ou une capacité d'outil. Si
-l'information est vérifiable, la vérifier ; sinon, le dire.
+**Consequence.** Never write that a test passes without having run it. Never invent an
+API, a command, an option, a version or a tool capability. If the information is
+verifiable, verify it; otherwise, say so.
 
 ---
 
-## 2. Principes de conception
+## 2. Design principles
 
-Ils ne sont pas dans le kernel car ils guident la conception plutôt que l'exécution
-d'une tâche. Ils restent opposables en revue et en ADR.
+They are not in the kernel because they guide design rather than the execution of a
+task. They remain enforceable in review and in an ADR.
 
-| # | Principe | Test pratique |
+| # | Principle | Practical test |
 |---|---|---|
-| 1 | Valeur utilisateur avant production technique | Qui bénéficie de ce changement, et comment le saura-t-on ? |
-| 2 | Simplicité avant sophistication | Quelle est la version la plus bête qui marche ? Pourquoi ne pas la prendre ? |
-| 3 | Explicite avant implicite | Un nouvel arrivant devinerait-il ce comportement, ou doit-il le découvrir ? |
-| 4 | Petits changements avant grands changements | Ce lot est-il relisable en une session d'attention ? |
-| 5 | Frontières fortes avant couplage caché | Ce module reste-t-il compréhensible seul ? |
-| 6 | Contrats avant dépendances d'implémentation | Puis-je réécrire l'autre module sans casser celui-ci ? |
-| 7 | Automatisation avant mémoire humaine | Cette règle survit-elle au départ de celui qui l'a écrite ? |
-| 8 | Validation déterministe avant jugement d'IA | Qui dit que c'est correct : un check ou une intuition ? |
-| 9 | Documentation comme savoir versionné | Cette décision est-elle retrouvable dans six mois ? |
-| 10 | Sécurité et fiabilité dès la conception | Qu'est-ce qui casse, et que se passe-t-il alors ? |
-| 11 | Décisions réversibles quand c'est possible | Combien coûte le retour en arrière ? |
-| 12 | Évolution incrémentale plutôt que big-bang | Le système reste-t-il cohérent à chaque étape ? |
-| 13 | Toute règle importante doit devenir vérifiable | Où vit cette règle ? (voir `07-governance.md`) |
-| 14 | Le contexte IA reste volontairement borné | Ai-je chargé plus que nécessaire ? |
-| 15 | Jamais de complexité sans raison mesurable | Quel chiffre ou quel comportement justifie ce surcoût ? |
+| 1 | User value before technical output | Who benefits from this change, and how will we know? |
+| 2 | Simplicity before sophistication | What is the dumbest version that works? Why not take it? |
+| 3 | Explicit before implicit | Would a newcomer guess this behaviour, or must they discover it? |
+| 4 | Small changes before large ones | Is this batch reviewable in one session of attention? |
+| 5 | Strong boundaries before hidden coupling | Does this module stay understandable on its own? |
+| 6 | Contracts before implementation dependencies | Can I rewrite the other module without breaking this one? |
+| 7 | Automation before human memory | Does this rule survive the departure of whoever wrote it? |
+| 8 | Deterministic validation before AI judgement | What says this is correct: a check, or an intuition? |
+| 9 | Documentation as versioned knowledge | Will this decision be findable in six months? |
+| 10 | Security and reliability by design | What breaks, and what happens then? |
+| 11 | Reversible decisions where possible | How much does going back cost? |
+| 12 | Incremental evolution rather than big bang | Does the system stay coherent at each step? |
+| 13 | Every important rule must become checkable | Where does this rule live? (see `07-governance.md`) |
+| 14 | The AI context stays deliberately bounded | Have I loaded more than necessary? |
+| 15 | Never complexity without a measurable reason | What number or behaviour justifies this extra cost? |
 
 ---
 
-## 3. Les confusions à ne jamais faire
+## 3. The confusions never to make
 
-Chacune de ces confusions est un mode d'échec observé, pas une figure de style.
+Each of these is an observed failure mode, not a figure of speech.
 
 ```mermaid
 flowchart LR
-    A1["Vitesse de génération"] -.->|"≠"| B1["Vitesse de livraison"]
-    A2["Quantité de code"] -.->|"≠"| B2["Valeur"]
-    A3["Microservices"] -.->|"≠"| B3["Modularité"]
-    A4["Documentation"] -.->|"≠"| B4["Bureaucratie"]
-    A5["Couverture de tests"] -.->|"≠"| B5["Qualité"]
-    A6["IA"] -.->|"≠"| B6["Validation"]
-    A7["Technologie récente"] -.->|"≠"| B7["Technologie pertinente"]
-    A8["Interface qui fonctionne"] -.->|"≠"| B8["Expérience correcte"]
-    A9["Bug corrigé"] -.->|"≠"| B9["Cause traitée"]
+    A1["Generation speed"] -.->|"≠"| B1["Delivery speed"]
+    A2["Amount of code"] -.->|"≠"| B2["Value"]
+    A3["Microservices"] -.->|"≠"| B3["Modularity"]
+    A4["Documentation"] -.->|"≠"| B4["Bureaucracy"]
+    A5["Test coverage"] -.->|"≠"| B5["Quality"]
+    A6["AI"] -.->|"≠"| B6["Validation"]
+    A7["Recent technology"] -.->|"≠"| B7["Relevant technology"]
+    A8["An interface that works"] -.->|"≠"| B8["A decent experience"]
+    A9["Bug fixed"] -.->|"≠"| B9["Cause addressed"]
 
     style A1 fill:#7c2d12,color:#fff
     style A2 fill:#7c2d12,color:#fff
@@ -118,62 +116,64 @@ flowchart LR
     style A9 fill:#7c2d12,color:#fff
 ```
 
-Quelques précisions, parce que ces confusions sont coûteuses :
+**Legend** — red: the tempting term, on the left of each pair; what it is not follows it.
 
-**Microservices ≠ modularité.** Découper en services sans découpler les données ni les
-contrats produit un *monolithe distribué* : tous les inconvénients du distribué, aucun
-des bénéfices de la modularité. La frontière doit réduire le coût de changement, pas
-déplacer le code dans un autre dossier.
+A few clarifications, because these confusions are expensive:
 
-**Couverture ≠ qualité.** Un projet à 90 % de couverture dont aucune règle métier
-critique n'est testée est moins sûr qu'un projet à 40 % qui couvre les parcours à fort
-impact. On teste selon le risque, jamais selon un objectif chiffré arbitraire.
+**Microservices ≠ modularity.** Splitting into services without decoupling data and
+contracts produces a *distributed monolith*: every drawback of distribution, none of the
+benefits of modularity. A boundary must reduce the cost of change, not move the code into
+another folder.
 
-**Documentation ≠ bureaucratie.** Le critère est simple : *la documentation doit
-réduire la charge cognitive, pas l'augmenter*. Un document qui n'est jamais lu, jamais
-mis à jour et jamais opposable doit être supprimé.
+**Coverage ≠ quality.** A project at 90 % coverage where no critical business rule is
+tested is less safe than one at 40 % that covers the high-impact journeys. You test
+according to risk, never according to an arbitrary numeric target.
 
----
-
-## 4. L'IA dans ce système
-
-Ce que l'IA fait bien : explorer, raisonner, proposer, générer, refactorer, écrire des
-tests, documenter, relire, rechercher, et surtout **challenger une décision**.
-
-Ce qu'elle ne doit jamais être : la garantie.
-
-Ne jamais faire confiance sans vérification à :
-
-- une affirmation non sourcée ;
-- une API, une option ou une version supposée ;
-- une bibliothèque supposée exister ;
-- un résultat de test non exécuté ;
-- une décision architecturale non documentée.
-
-> **Règle finale.** L'IA ne doit jamais être la seule chose empêchant une mauvaise
-> modification. Les règles importantes sont codifiées dans le système.
+**Documentation ≠ bureaucracy.** The criterion is simple: *documentation must reduce
+cognitive load, not increase it*. A document that is never read, never updated and never
+enforceable must be deleted.
 
 ---
 
-## 5. La chaîne de garantie
+## 4. AI in this system
 
-C'est la vue d'ensemble de ce que l'OS construit : une suite de maillons dont aucun ne
-repose sur la vigilance.
+What AI does well: explore, reason, propose, generate, refactor, write tests, document,
+review, research, and above all **challenge a decision**.
+
+What it must never be: the guarantee.
+
+Never trust without verification:
+
+- an unsourced statement;
+- an assumed API, option or version;
+- a library assumed to exist;
+- a test result that was not run;
+- an undocumented architectural decision.
+
+> **Final rule.** The AI must never be the only thing preventing a bad change. The
+> important rules are codified in the system.
+
+---
+
+## 5. The chain of guarantee
+
+This is the overview of what the OS builds: a series of links, none of which rests on
+vigilance.
 
 ```mermaid
 flowchart TB
-    H["Les humains définissent l'intention"]
-    D["Les documents figent les décisions"]
-    C["Les contrats définissent les frontières"]
-    K["Le code implémente"]
-    T["Les tests vérifient le comportement"]
-    F["Les fitness functions vérifient l'architecture"]
-    CI["La CI vérifie automatiquement"]
-    P["La plateforme automatise la livraison"]
-    IA["L'IA accélère raisonnement et exécution"]
+    H["Humans define the intent"]
+    D["Documents fix the decisions"]
+    C["Contracts define the boundaries"]
+    K["Code implements"]
+    T["Tests verify the behaviour"]
+    F["Fitness functions verify the architecture"]
+    CI["CI verifies automatically"]
+    P["The platform automates delivery"]
+    IA["AI accelerates reasoning and execution"]
 
     H --> D --> C --> K --> T --> F --> CI --> P
-    IA -.->|"accélère chaque étape"| H
+    IA -.->|"accelerates every step"| H
     IA -.-> K
     IA -.-> T
     IA -.-> D
@@ -183,5 +183,7 @@ flowchart TB
     style CI fill:#065f46,color:#fff
 ```
 
-Noter la position de l'IA : **à côté** de la chaîne, jamais **dans** la chaîne de
-garantie.
+**Legend** — green: the deterministic links · dark grey: the AI, beside the chain ·
+dotted: what it accelerates.
+
+Note where the AI sits: **beside** the chain, never **inside** the chain of guarantee.

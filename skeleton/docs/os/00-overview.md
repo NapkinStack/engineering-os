@@ -1,37 +1,37 @@
-# 00 — Vue d'ensemble
+# 00 — Overview
 
-## 1. Ce qu'est un « OS » ici
+## 1. What an "OS" means here
 
-La métaphore n'est pas décorative. Un système d'exploitation a :
+The metaphor is not decorative. An operating system has:
 
-- un **kernel** : petit, résident, chargé en permanence ;
-- des **modules chargés à la demande** : présents seulement quand on en a besoin ;
-- un **espace utilisateur cloisonné** : chaque processus voit son contexte, pas celui des autres ;
-- des **garanties matérielles** : ce que le kernel ne peut pas garantir par convention, le matériel l'impose.
+- a **kernel**: small, resident, loaded at all times;
+- **modules loaded on demand**: present only when needed;
+- a **partitioned user space**: each process sees its own context, not anyone else's;
+- **hardware guarantees**: what the kernel cannot guarantee by convention, the hardware
+  enforces.
 
-L'erreur la plus fréquente quand on écrit un « système de règles pour agents » est de
-tout mettre dans le kernel. On obtient un prompt de 6 000 mots qui consomme le budget
-de contexte qu'il prétend protéger, à chaque tâche, y compris pour corriger une faute
-de frappe.
+The most frequent mistake when writing a "system of rules for agents" is to put
+everything in the kernel. You end up with a 6 000-word prompt that consumes the context
+budget it claims to protect, on every task, including fixing a typo.
 
-Cet OS répartit donc ses règles sur quatre couches, chacune avec un coût et un mode de
-chargement différents.
+This OS therefore spreads its rules across four layers, each with a different cost and a
+different loading mode.
 
 ---
 
-## 2. Les quatre couches
+## 2. The four layers
 
 ```mermaid
 flowchart TB
-    subgraph L0["KERNEL — toujours résident, budget 250 lignes"]
+    subgraph L0["KERNEL — always resident, 250-line budget"]
         direction LR
-        K1["5 lois"]
-        K2["Boucle de travail"]
-        K3["Règles d'arrêt"]
-        K4["Protocole<br/>d'incertitude"]
+        K1["5 laws"]
+        K2["Working loop"]
+        K3["Stopping rules"]
+        K4["Uncertainty<br/>protocol"]
     end
 
-    subgraph L1["PLAYBOOKS — chargés par déclencheur"]
+    subgraph L1["PLAYBOOKS — loaded by trigger"]
         direction LR
         M1["security.md"]
         M2["tests.md"]
@@ -40,14 +40,14 @@ flowchart TB
         M5["operations.md"]
     end
 
-    subgraph L2["CONTEXTE LOCAL — scopé par frontière"]
+    subgraph L2["LOCAL CONTEXT — scoped by boundary"]
         direction LR
         C1["modules/x/AGENTS.md"]
-        C2["MANIFEST du module"]
-        C3["contrats consommés"]
+        C2["the module's MANIFEST"]
+        C3["contracts consumed"]
     end
 
-    subgraph L3["ENFORCEMENT — hors prompt, non contournable"]
+    subgraph L3["ENFORCEMENT — outside the prompt, not bypassable"]
         direction LR
         E1["Lint · Types · Tests"]
         E2["Fitness functions"]
@@ -56,61 +56,61 @@ flowchart TB
     end
 
     L0 --> L1 --> L2
-    L0 -.->|"une règle migre vers le bas<br/>dès qu'elle devient automatisable"| L3
-    L3 ==>|"verdict déterministe"| L0
+    L0 -.->|"a rule migrates downwards<br/>as soon as it becomes automatable"| L3
+    L3 ==>|"deterministic verdict"| L0
 
     style L0 fill:#1f2937,color:#fff
     style L3 fill:#065f46,color:#fff
 ```
 
-La flèche en pointillés est le mécanisme central de l'OS :
+**Legend** — dark grey: the resident layer, the expensive one · green: the deterministic
+layer, free in context · dotted: the migration that makes the OS work.
 
-> **Le prompt est une zone de transit, pas un lieu de résidence.**
-> Une règle n'y séjourne que le temps de devenir un check.
+The dotted arrow is the central mechanism of the OS:
 
-Une règle qui reste dans le prompt alors qu'elle est mécaniquement vérifiable est une
-**dette**. Elle doit apparaître dans le backlog d'automatisation
-(`07-governance.md`).
+> **The prompt is a transit zone, not a place of residence.**
+> A rule stays there only long enough to become a check.
+
+A rule that stays in the prompt although it is mechanically checkable is a **debt**. It
+must appear in the automation backlog (`07-governance.md`).
 
 ---
 
-## 3. Pourquoi cette répartition
+## 3. Why this split
 
-| Couche | Fiabilité | Coût de contexte | Coût de mise en place | Contournable ? |
+| Layer | Reliability | Context cost | Setup cost | Bypassable? |
 |---|---|---|---|---|
-| Kernel | Probabiliste | Élevé (permanent) | Nul | Oui |
-| Playbooks | Probabiliste | Moyen (ponctuel) | Faible | Oui |
-| Contexte local | Probabiliste | Faible | Faible | Oui |
-| Enforcement | **Déterministe** | **Nul** | Moyen à élevé | **Non** |
+| Kernel | Probabilistic | High (permanent) | None | Yes |
+| Playbooks | Probabilistic | Medium (occasional) | Low | Yes |
+| Local context | Probabilistic | Low | Low | Yes |
+| Enforcement | **Deterministic** | **None** | Medium to high | **No** |
 
-L'enforcement est la seule couche qui ne coûte rien en contexte et qui ne dépend pas de
-la vigilance d'un agent ou d'un humain. C'est pourquoi tout ce qui peut y descendre doit
-y descendre.
+Enforcement is the only layer that costs nothing in context and does not depend on the
+vigilance of an agent or a human. That is why everything that can move down to it must.
 
-Corollaire opérationnel : **l'IA ne doit jamais être la seule chose qui empêche une
-mauvaise modification.**
+Operational corollary: **the AI must never be the only thing preventing a bad change.**
 
 ---
 
-## 4. Les trois ressources rares
+## 4. The three scarce resources
 
-Tout l'OS est dimensionné par trois contraintes, et par elles seules.
+The whole OS is sized by three constraints, and by them alone.
 
 ```mermaid
 flowchart LR
-    G["Génération de code<br/>coût ≈ 0"] --> R1
+    G["Code generation<br/>cost ≈ 0"] --> R1
     G --> R2
     G --> R3
 
-    subgraph RARE["Ressources rares — elles, ne baissent pas"]
-        R1["CHARGE COGNITIVE<br/>ce qu'un humain ou un agent<br/>doit tenir en tête"]
-        R2["CAPACITÉ DE REVUE<br/>ce qu'un humain peut<br/>réellement valider"]
-        R3["COORDINATION<br/>ce que deux équipes doivent<br/>synchroniser pour avancer"]
+    subgraph RARE["Scarce resources — these do not come down"]
+        R1["COGNITIVE LOAD<br/>what a human or an agent<br/>has to hold in mind"]
+        R2["REVIEW CAPACITY<br/>what a human can<br/>actually validate"]
+        R3["COORDINATION<br/>what two teams have to<br/>synchronise to move on"]
     end
 
-    R1 --> S1["Réponse : frontières<br/>+ context firewall"]
-    R2 --> S2["Réponse : petits lots<br/>+ oracle exécutable"]
-    R3 --> S3["Réponse : contrats<br/>+ expand/contract"]
+    R1 --> S1["Answer: boundaries<br/>+ context firewall"]
+    R2 --> S2["Answer: small batches<br/>+ executable oracle"]
+    R3 --> S3["Answer: contracts<br/>+ expand/contract"]
 
     style RARE fill:#7c2d12,color:#fff
     style S1 fill:#065f46,color:#fff
@@ -118,64 +118,64 @@ flowchart LR
     style S3 fill:#065f46,color:#fff
 ```
 
-**Le débit réel d'un projet n'est pas le débit de génération, c'est le débit de
-vérification.** Doubler la vitesse de production sans toucher à la capacité de revue
-ne double pas la livraison : ça allonge la file d'attente et dégrade la qualité de la
-revue elle-même.
+**Legend** — red: what generation speed does not relieve · green: the OS's answer to each.
+
+**A project's real throughput is not its generation throughput, it is its verification
+throughput.** Doubling production speed without touching review capacity does not double
+delivery: it lengthens the queue and degrades the quality of the review itself.
 
 ---
 
-## 5. Ce que l'OS n'impose pas
+## 5. What the OS does not impose
 
-- **Aucune stack technique.** Ni langage, ni framework applicatif, ni base de données, ni cloud.
-  L'OS impose une *méthode de sélection* et une trace de décision. Voir
-  `06-decisions.md`.
-- **Aucune structure interne de module.** Deux modules peuvent avoir des architectures
-  internes différentes. Seule leur *enveloppe* est uniforme. Voir `02-modules.md`.
-- **Aucune liste d'outils IA.** L'OS décrit des *capacités* nécessaires ; un profil
-  d'outillage les mappe sur les outils du moment. Voir `09-platform.md`.
-- **Aucun niveau de cérémonie uniforme.** La gouvernance est proportionnelle à la
-  criticité déclarée du module. Voir `07-governance.md`.
+- **No technical stack.** No language, no application framework, no database, no cloud.
+  The OS imposes a *selection method* and a decision trail. See `06-decisions.md`.
+- **No internal module structure.** Two modules may have different internal
+  architectures. Only their *envelope* is uniform. See `02-modules.md`.
+- **No list of AI tools.** The OS describes the *capabilities* needed; a tooling profile
+  maps them onto the tools of the moment. See `09-platform.md`.
+- **No uniform level of ceremony.** Governance is proportionate to the module's declared
+  criticality. See `07-governance.md`.
 
 ---
 
-## 6. Glossaire
+## 6. Glossary
 
-Ces termes ont un sens précis dans l'OS. Les utiliser autrement crée de l'ambiguïté.
+These terms have a precise meaning in the OS. Using them differently creates ambiguity.
 
-| Terme | Définition |
+| Term | Definition |
 |---|---|
-| **Module** | Unité de contexte autonome et de parallélisme : un développeur ou un agent doit pouvoir la comprendre, la modifier, la tester et la valider **sans comprendre le reste du système**. Peut être un package, une application, un service ou un repository. |
-| **Playbook** | Module d'*instructions* pour agent, chargé à la demande (`playbooks/`). Appelé « playbook » et non « module » pour éviter toute confusion avec la ligne précédente. |
-| **Squelette** | Fichiers communs du projet — kernel, playbooks, ce manuel, CI, hooks, modèles — générés par le moteur ; le projet les possède et les adapte. |
-| **Moteur** | Outil versionné qui génère le squelette, le met à jour et exécute les contrôles ; nommé dans `docs/tooling-profile.md`. |
-| **Contrat** | Interface versionnée et testée entre deux modules : API, événement, schéma, message. Le **seul** canal de communication inter-modules autorisé. |
-| **Manifest** | Fichier déclaratif à la racine de chaque module : identité, owner, criticité, statut, contrats produits et consommés, commandes standards. Source de vérité machine-lisible. |
-| **Oracle** | Critère de réussite *exécutable* d'une tâche, écrit et vu échouer **avant** la génération : test, contract test, ou fitness function. |
-| **Fitness function** | Test automatisé qui échoue quand l'architecture dérive (dépendance interdite, cycle, couplage, budget de performance). Gouvernance par règle plutôt que par inspection. |
-| **Budget de revue** | Plafond explicite par PR (lignes, fichiers, modules touchés) qui force le redécoupage **avant** génération. |
-| **Prior Art Gate** | Procédure obligatoire avant décision structurante : identifier la convention du domaine, l'adopter par défaut, ne dévier que contre une valeur utilisateur observable. |
-| **Expand / Contract** | Séquence de PR permettant de faire évoluer un contrat entre équipes sans synchronisation temporelle. |
-| **ADR / PDR** | Architecture / Product Decision Record. Trace durable d'une décision structurante. |
+| **Module** | An autonomous unit of context and of parallelism: a developer or an agent must be able to understand it, change it, test it and validate it **without understanding the rest of the system**. It can be a package, an application, a service or a repository. |
+| **Playbook** | A module of *instructions* for an agent, loaded on demand (`playbooks/`). Called a "playbook" rather than a "module" to avoid any confusion with the line above. |
+| **Skeleton** | The project's shared files — kernel, playbooks, this handbook, CI, hooks, templates — generated by the engine; the project owns them and adapts them. |
+| **Engine** | The versioned tool that generates the skeleton, updates it and runs the checks; named in `docs/tooling-profile.md`. |
+| **Contract** | A versioned, tested interface between two modules: API, event, schema, message. The **only** channel of inter-module communication allowed. |
+| **Manifest** | A declarative file at the root of every module: identity, owner, criticality, status, contracts provided and consumed, standard commands. The machine-readable source of truth. |
+| **Oracle** | A task's *executable* success criterion, written and seen failing **before** generation: a test, a contract test, or a fitness function. |
+| **Fitness function** | An automated test that fails when the architecture drifts (forbidden dependency, cycle, coupling, performance budget). Governance by rule rather than by inspection. |
+| **Review budget** | An explicit ceiling per pull request (lines, files, modules touched) that forces the split **before** generation. |
+| **Prior Art Gate** | The mandatory procedure before a structuring decision: identify the convention of the field, adopt it by default, deviate only against an observable user value. |
+| **Expand / Contract** | The sequence of pull requests that lets a contract evolve between teams without temporal synchronisation. |
+| **ADR / PDR** | Architecture / Product Decision Record. A durable trail of a structuring decision. |
 
-> **Note.** Le format **FDR** (Functional Design Record) n'existe pas dans cet OS. Il
-> chevauchait le PDR et les critères d'acceptation d'une issue sans apporter de valeur
-> distincte. Pour les cas réellement complexes, il devient une **section optionnelle du
-> PDR**. Justification : `06-decisions.md` § « Pourquoi seulement deux formats ».
+> **Note.** The **FDR** (Functional Design Record) format does not exist in this OS. It
+> overlapped the PDR and an issue's acceptance criteria without adding distinct value.
+> For genuinely complex cases, it becomes an **optional section of the PDR**.
+> Justification: `06-decisions.md` § "Why only two formats".
 
 ---
 
-## 7. Comment lire la suite
+## 7. How to read the rest
 
-| Document | Répond à la question |
+| Document | Answers the question |
 |---|---|
-| `01-principes` | Sur quoi ne transige-t-on jamais ? |
-| `02-modules` | Comment découper, et comment plusieurs équipes avancent en parallèle ? |
-| `03-contrats` | Comment changer une interface sans bloquer l'autre équipe ? |
-| `04-contexte-ia` | Que charge-t-on, et que fait-on en cas de franchissement de frontière ? |
-| `05-workflow` | Comment se déroule concrètement une tâche ? |
-| `06-decisions` | Comment décide-t-on, et comment évite-t-on de réinventer la roue ? |
-| `07-gouvernance` | Où vit une règle, et comment devient-elle non contournable ? |
-| `08-qualite` | Que teste-t-on, et jusqu'où selon le risque ? |
-| `09-plateforme` | Comment démarre-t-on un module en une commande ? |
-| `10-mesure` | Comment sait-on que le système s'améliore ? |
+| `01-principles` | What do we never compromise on? |
+| `02-modules` | How do we split the system, and how do several teams move in parallel? |
+| `03-contracts` | How do we change an interface without blocking the other team? |
+| `04-ai-context` | What do we load, and what do we do when a boundary is crossed? |
+| `05-workflow` | How does a task actually unfold? |
+| `06-decisions` | How do we decide, and how do we avoid reinventing the wheel? |
+| `07-governance` | Where does a rule live, and how does it become non-bypassable? |
+| `08-quality` | What do we test, and how far, depending on the risk? |
+| `09-platform` | How do we start a module with one command? |
+| `10-measurement` | How do we know the system is improving? |
