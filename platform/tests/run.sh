@@ -771,21 +771,22 @@ if absents:
     sys.exit(f"FAIL: skeleton CI jobs missing from the checklist (G4): {absents}")
 EOF
 
-echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5)"
+echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from
 # the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
 sed -i 's#^_commit: .*#_commit: v0.0.1#' "$A/.copier-answers.yml"
 echo "# Product" > "$A/PRODUCT.md"
+sed -i '/^\*/d' "$A/.github/CODEOWNERS"
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
 fi
-for rule in L1 L3 L4 L5; do
+for rule in L1 L3 L4 L5 L6; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
-echo "$OUT" | grep -qF "Action: pre-commit install" \
-  || { echo "FAIL: L3 action missing."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "Action: pre-commit install" && echo "$OUT" | grep -qF 'make `*  @<owner>` its first rule' \
+  || { echo "FAIL: L3 or L6 action missing."; echo "$OUT"; exit 1; }
 rm "$A/PRODUCT.md"
 
 (cd "$C" && pre-commit install >/dev/null)
@@ -808,7 +809,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 17 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: private repository on the Free plan, gaps naming the plan required, reporting not applicable"
@@ -828,7 +829,7 @@ if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 15 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"

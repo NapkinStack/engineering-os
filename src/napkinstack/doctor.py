@@ -15,6 +15,7 @@ Rules:
   L3  pre-commit hooks installed
   L4  PRODUCT.md absent: that is NapkinStack's own development context (R6)
   L5  README personalised: the presentation sentence is written
+  L6  CODEOWNERS starts with a default owner: the code owner review covers every path
   G1-G11  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5 name the GitHub plan or option required
 
@@ -51,6 +52,7 @@ PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"
 ACTIONS = "Settings → Actions → General"
+CODEOWNERS = Path(".github") / "CODEOWNERS"
 
 CHECKLIST = [  # (rule, setting, action)
     ("G1", "Pull request required: no direct push to main",
@@ -172,6 +174,19 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
 }
 
 
+def _default_owner(root: Path) -> tuple[str, str]:
+    """L6: `*` first, so that the code owner review covers every path (ADR-0004)."""
+    path = root / CODEOWNERS
+    if not path.is_file():
+        return GAP, f"{CODEOWNERS} missing.\nAction: create it, starting with `*  @<owner>`."
+    rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
+             if line.strip() and not line.lstrip().startswith("#")]
+    if rules and rules[0][0] == "*" and len(rules[0]) > 1:
+        return OK, ""
+    return GAP, (f"The first rule of {CODEOWNERS} is not a default owner.\nAction: make `*  @<owner>` "
+                 "its first rule: the code owner review then covers every path (ADR-0004).")
+
+
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     commit = str(answers.get("_commit") or "")
     project = commit.removeprefix("v")
@@ -212,6 +227,8 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     results.append(("L5", "README personalised", GAP if untouched else OK,
                     f'README.md still contains "{PLACEHOLDER}".\n'
                     "Action: write the sentence that presents the project." if untouched else ""))
+
+    results.append(("L6", "CODEOWNERS starts with a default owner", *_default_owner(root)))
     return results
 
 
