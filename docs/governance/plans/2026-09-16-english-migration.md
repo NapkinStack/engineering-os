@@ -469,26 +469,41 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 No code, no guardrail. The largest volume, the lowest risk — deliberately last.
 
-### Task 1 — Living documents
+### Task 1 — Living documents (done)
 
-- [ ] `git mv` per §4; `workstreams.md` → `workstreams.md`, `reviews.md` → `reviews.md`,
-      `automation-backlog.md` → `automation-backlog.md`.
-- [ ] Content translated. M7 is already in the sequence, table and diagram (added in
-      M7a); this task only turns them English.
+- [x] `git mv` per §4: `chantiers.md` to `workstreams.md`, `revues.md` to `reviews.md`,
+      `backlog-automatisation.md` to `automation-backlog.md`. References followed in 7
+      files.
+- [x] Content translated. M7 was already in the sequence, table and diagram (added in
+      M7a); this task only turned them English.
 
-### Task 2 — The M1→M5 plan
+### Task 2 — The M1→M5 plan (done, scope adjusted)
 
-- [ ] `git mv` to `2026-09-15-engine-v0.1.0.md`, content translated. Facts, dates, SHAs
-      and PR numbers are preserved verbatim: this is a record of what happened.
-- [ ] Embedded code and configuration excerpts follow the English sources.
+- [x] `git mv` to `2026-09-15-engine-v0.1.0.md`, prose translated. Decisions, verified
+      facts, dates, SHAs, run ids, measured numbers, pull request numbers and the gaps
+      observed during execution are preserved.
+- [x] **Adjustment, decided with the maintainer.** The plan was 3 654 lines, of which
+      **2 357 sat inside code fences**: verbatim snapshots of files as they were at the
+      time, copied in as instructions to follow. They no longer match the repository — the
+      paths moved, the functions were renamed — and git already holds the exact text.
+      Translating them would have produced English code that never existed, inside a
+      document whose value is being a faithful record, for about 80 % of the remaining
+      effort. Each long excerpt is now one English sentence stating what the step did. The
+      file went from 3 654 to 742 lines, and a note at its head says so.
 
-### Task 3 — Final consistency
+### Task 3 — Final consistency (done)
 
-- [ ] No French remains: `git grep` on accented **letters** (`[àâçéèêëîïôùûü]`, case
-      insensitive) and on the glossary's French terms returns nothing outside git
-      history. Typographic punctuation — `«  »`, `—` — is not a French marker and stays
-      wherever the English text uses it.
-- [ ] Link check (§6) clean across the whole repository.
+- [x] `git grep` on accented **letters** across every markdown, YAML, Python, shell, jinja
+      and toml file. What remains is **quotation only**, and correct as such:
+      - this plan's glossary, whose left column is the French term being replaced, and its
+        before/after tables of machine values, check names and summary blocks;
+      - ADR-0003 §Context, quoting `Proposé` and `Déprécié` to describe what was true;
+      - three merged pull request titles and one commit message written into generated
+        projects at the time, in the M1→M5 plan — real past artefacts, not prose.
+      The §6.4 wording "returns nothing" was too strict: a record that may not quote the
+      names it replaced is not a record.
+- [x] Link check clean across the whole repository: every relative markdown link resolves,
+      0 dead out of the whole tree.
 
 ---
 
