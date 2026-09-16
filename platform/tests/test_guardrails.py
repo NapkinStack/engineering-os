@@ -219,3 +219,26 @@ def test_pr_scope(tmp_path, capfd, monkeypatch, files, variables, expected, expe
     output = capfd.readouterr().out
     assert expected in output, output
     assert code == expected_code, output
+
+
+OWNERS = {
+    "team": ("acme/billing", True),
+    "user": ("alice", True),
+    "user with hyphens": ("a-l-i-c-e", True),
+    "user of 39 characters": ("a" * 39, True),
+    "leading hyphen": ("-alice", False),
+    "trailing hyphen": ("alice-", False),
+    "double hyphen": ("al--ice", False),
+    "user of 40 characters": ("a" * 40, False),
+    "team without a name": ("acme/", False),
+    "space": ("bad owner", False),
+}
+
+
+@pytest.mark.parametrize(("owner", "accepted"), OWNERS.values(), ids=OWNERS.keys())
+def test_new_module_owner(tmp_path, capsys, owner, accepted):
+    """A team, or a user when the project has no organisation (PDR-0001, clarification)."""
+    code = cli.main(["new-module", "--root", str(tmp_path), "--", "demo", owner, "standard"])
+    output = capsys.readouterr().out
+    assert code == (0 if accepted else 1), output
+    assert accepted or f"FAIL [new-module] invalid owner '{owner}'" in output

@@ -35,7 +35,7 @@ uv run nstack pr-scope --base origin/main
 uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review
 uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
-uv run nstack new-module <name> <org>/<team> <criticality> --root <project>
+uv run nstack new-module <name> <owner> <criticality> --root <project>
 uv run nstack check [module] --root <project>   # also test, bootstrap; run <module>
 ```
 

@@ -181,7 +181,7 @@ uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "FAIL: the generated module does not pass nstack manifests."; exit 1; }
 
 echo "-> scaffolding: an owner without an organisation or an invalid name MUST be refused (P6)"
-for case in "demo2|demo-team|invalid owner 'demo-team'" "Demo|acme/team|invalid name 'Demo'"; do
+for case in "demo2|team-|invalid owner 'team-'" "Demo|acme/team|invalid name 'Demo'"; do
   IFS='|' read -r name owner message <<<"$case"
   if OUT=$(uv run nstack new-module "$name" "$owner" standard --root "$SC" 2>&1); then
     echo "FAIL: new-module $name $owner accepted."; exit 1
@@ -472,19 +472,25 @@ echo "$OUT" | grep -qF "is not empty" \
   || { echo "FAIL: refusal without an explanation."; echo "$OUT"; exit 1; }
 [ "$(ls -A "$GN/occupied")" = guard.txt ] || { echo "FAIL: init wrote into the refused folder."; exit 1; }
 
-echo "-> init: a repository or a team without an organisation MUST be refused (P6)"
+echo "-> init: a repository without an organisation, or an invalid owner, MUST be refused (P6)"
 for question in github_repo owner_team; do
   if [ "$question" = github_repo ]; then
     answers=(--project-name x --github-repo demo --owner-team acme/platform)
   else
-    answers=(--project-name x --github-repo acme/demo --owner-team platform)
+    answers=(--project-name x --github-repo acme/demo --owner-team platform-)
   fi
   if OUT=$(nstack init "$GN/refused-$question" --source "$REPO" --ref HEAD "${answers[@]}" 2>&1); then
-    echo "FAIL: $question without a "/" accepted."; exit 1
+    echo "FAIL: $question '${answers[-1]}' accepted."; exit 1
   fi
   echo "$OUT" | grep -qF "FAIL [init] Answer rejected for $question" \
     || { echo "FAIL: refusal of $question without an explanatory message."; echo "$OUT"; exit 1; }
 done
+
+echo "-> init: a project without an organisation names a user as owner"
+nstack init "$GN/solo" --source "$REPO" --ref HEAD --project-name Solo --github-repo alice/solo \
+  --owner-team alice >/dev/null || { echo "FAIL: init with a user as owner."; exit 1; }
+grep -qE '^/AGENTS\.md +@alice$' "$GN/solo/.github/CODEOWNERS" \
+  || { echo "FAIL: CODEOWNERS does not name the user."; exit 1; }
 
 echo "-> init: a template with an "unsafe" feature MUST be refused, creating nothing (ADR-0001)"
 UNSAFE="$GN/template-unsafe"

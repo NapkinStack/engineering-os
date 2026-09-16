@@ -21,7 +21,8 @@ from napkinstack.fitness.manifests import find_manifests
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
-TEAM = re.compile(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+")  # same rule as copier.yml
+OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
+    r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
 OPTIONAL = {"bootstrap"}  # absent: nothing to prepare
 NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
 
@@ -50,9 +51,10 @@ def create(root: Path, name: str, owner: str, criticality: str) -> int:
     if not NAME.fullmatch(name):
         print(f"FAIL [new-module] invalid name '{name}': kebab-case expected, for example billing.")
         return 1
-    if not TEAM.fullmatch(owner):
+    if not OWNER.fullmatch(owner):
         print(f"FAIL [new-module] invalid owner '{owner}': a GitHub team, organisation/team, "
-              "for example acme/billing (CODEOWNERS, docs/os/07-governance.md §7).")
+              "or a user when the project has no organisation, for example acme/billing "
+              "(CODEOWNERS, docs/os/07-governance.md §7).")
         return 1
     folder = root / "modules" / name
     if folder.exists():

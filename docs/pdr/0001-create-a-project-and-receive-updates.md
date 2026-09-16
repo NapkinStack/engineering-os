@@ -247,6 +247,24 @@ checklist depend on the repository's visibility and on the GitHub plan.
 
 ---
 
+## Clarification of 2026-09-16 — a project without an organisation
+
+Added without changing the decision above, when checking that one person alone can use the
+framework.
+
+**Observation:** `nstack init` required the foundation's owner as `organisation/team`. A
+personal GitHub account has no team: one person working alone could not answer.
+
+**Clarification:**
+
+- The `owner_team` question accepts a team, `organisation/team`, or a GitHub user when the
+  project has no organisation; its name stays, so that no update has a question to migrate.
+  `CODEOWNERS` names either; `nstack new-module` accepts either.
+- Several teams remain the framework's target: a module's owner stays a team whenever an
+  organisation exists (`docs/os/02-modules.md` §5).
+
+---
+
 ## Removal condition
 
 > This model will be removed if, **out of the first 3 updates of a real project, more than
