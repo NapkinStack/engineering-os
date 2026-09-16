@@ -331,11 +331,23 @@ moves later, and removing it early would break a guardrail:
 | What | Where | Freed by |
 |---|---|---|
 | `hors-budget` label string | `pr_scope.sh`, `doctor.py`, `run.sh` | M7c, with the GitHub rename |
-| CI job names | `doctor.py` `JOBS`, `run.sh` simulated API | M7c, with the ruleset |
+| CI job names, skeleton side | `doctor.py` `JOBS`, skeleton workflow, `run.sh` simulated API | ~~M7c~~ **done in M7b**, see below |
+| CI job names, this repository | `.github/workflows/governance.yml` | M7c, with the ruleset |
+| `gitleaks-historique` hook id | shared pre-commit config, both workflows | ~~M7c~~ **done in M7b**, see below |
 | `<Une phrase : ce que fait ce projet.>` | `doctor.py` `PLACEHOLDER`, `run.sh` | M7b, with the skeleton README |
 | `Tag et version identiques` | `run.sh` | M7c, with `release.yml` |
 | `docs/os/0X-*.md` paths | fitness functions, module templates | M7b, with the file renames |
 | `skeleton/playbooks/security.md` path | `run.sh` | M7b, with the playbook renames |
+
+**Correction made during M7b.** The plan treated "the CI job names" as one set tied to
+this repository's ruleset. They are two sets, in two separate files. The skeleton's job
+names feed `doctor.py` `JOBS`, the checklist in the skeleton README and the simulated
+ruleset of a *generated* project — none of which touches this repository's ruleset, so
+they moved in M7b. Only `.github/workflows/governance.yml`, whose names this repository's
+ruleset requires by exact string, waits for M7c and its human action.
+
+The same reasoning frees the `gitleaks-history` hook id: it lives in the shared
+pre-commit configuration and in a workflow *step*, never in a job name.
 
 ---
 
