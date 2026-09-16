@@ -1,0 +1,420 @@
+# English baseline — implementation plan (M7)
+
+> **Location:** `docs/governance/plans/`, the repository's working context; no directory
+> named after a tool (P2, P7).
+>
+> **For the executing agent:** run workstream by workstream, task by task, in TDD. Steps
+> use checkboxes (`- [ ]`) for tracking. This plan is written in English because its own
+> subject is that every repository artefact is English; translating it later would be
+> absurd.
+
+**Goal:** make English the single language of this repository — content, naming and
+machine values — and use the pass to remove the naming inconsistencies it exposes.
+Ship the result as `napkinstack` **v0.2.0**, before the pilot project starts.
+
+**Why now:** v0.1.0 is published but no project has been generated from it yet. Every
+breaking rename below costs nothing today. The moment a project exists, each one becomes
+a three-way merge on a live repository. This window closes when the pilot opens.
+
+**Side benefit:** v0.2.0 is the second published version, which finally makes it possible
+to verify `nstack update` between two tags — the last unverified item of PDR-0001.
+
+**Decision record:** ADR-0003 (written in M7a). Existing specification unchanged:
+[PDR-0001](../../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md),
+[ADR-0001](../../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md),
+[ADR-0002](../../adr/0002-distribuer-napkinstack-sur-pypi.md).
+
+---
+
+## Global constraints
+
+- **The glossary below is normative.** No term is translated ad hoc while writing; every
+  file conforms to §2. A translation that drifts from it is a defect, not a variant.
+- **Renames use `git mv`**, so review sees moves rather than delete-plus-create pairs.
+- The test suite asserts **exact message text** (`platform/tests/run.sh`,
+  `platform/tests/test_controles.py`). Expectations turn English first, seen red, then the
+  code follows (P5). This is what makes a 65 000-word migration safe.
+- One workstream = one PR. Review budget 400 lines and 15 files; beyond that the
+  `over-budget` label, justified in the PR (mechanical migration).
+- Hooks and CI run the same configuration (P3); every failure names the rule, the place
+  and the action (P6).
+- Identity: commits `fc <328672623+napkinstack-admin@users.noreply.github.com>`, push via
+  the `github-napkinstack` SSH alias, GitHub API via `gh-napkinstack`.
+- **Main is transiently bilingual** between M7a and M7d. Acceptable: no user, no
+  onboarded team, no generated project.
+
+---
+
+## Roadmap
+
+```mermaid
+flowchart LR
+    A["M7a<br/>lexical baseline"]:::pr --> B["M7b<br/>skeleton"]:::pr
+    B --> C["M7c<br/>repository"]:::pr
+    C --> D["M7d<br/>governance journal"]:::pr
+    D --> R["Release v0.2.0"]:::release
+    R --> P["Pilot project<br/>init before 2026-10-31"]:::human
+
+    H1["Create label<br/>cross-module"]:::human -.->|"before"| A
+    H2["Update ruleset<br/>required checks"]:::human -.->|"before merge"| C
+    H3["Rename label<br/>hors-budget"]:::human -.->|"after"| C
+
+    classDef pr fill:#1f2937,color:#fff
+    classDef release fill:#1e3a8a,color:#fff
+    classDef human fill:#065f46,color:#fff
+```
+
+**Legend** — dark grey: a pull request · blue: published release · green: human action on
+GitHub, which the agent's read-only token cannot perform · dotted: ordering constraint.
+
+---
+
+## 1. Scope
+
+| Layer | In | Out |
+|---|---|---|
+| Machine values | `lifecycle`, `criticality`, GitHub labels, CI job names, hook ids, skill keys | published tag `v0.1.0`, ADR/PDR numbers |
+| Code | identifiers, docstrings, comments, output strings, test expectations | command names — already English |
+| Skeleton | file names and delivered prose | — |
+| Repository | README, PRODUCT, CONTRIBUTING, AGENTS, SECURITY, ADR/PDR, CI, templates | git history and past commit messages |
+| Journal | workstreams, reviews, backlog, M1→M5 plan | — |
+
+**Explicitly out of scope**, to keep this workstream from growing:
+
+- No i18n mechanism, no translation catalogue, no bilingual documentation, no `language`
+  question in `copier.yml`. One language, one source.
+- No CI check enforcing English. Accent-based detection is brittle (typographic quotes,
+  proper nouns) for a low risk. The rule lives in `AGENTS.md` and `CONTRIBUTING.md`,
+  where humans and agents actually read it, and review holds it.
+- Git history is not rewritten. Past commit messages stay French; new ones are English.
+- No permanent markdown link checker. Links are verified once, during this migration
+  (§6). Making that check permanent is a separate decision.
+
+---
+
+## 2. Canonical glossary
+
+Most of the conceptual vocabulary is **already English inside the French text** and needs
+no work: *fitness function, playbook, kernel, oracle, context firewall, expand/contract,
+contract test, quality gate, runbook, backfill, DoR/DoD, Prior Art Gate*.
+
+What changes:
+
+| French | Canonical English | Note |
+|---|---|---|
+| squelette | **skeleton** | already the directory name |
+| moteur | **engine** | the `nstack` command |
+| socle | **foundation** | `platform` is taken twice: `platform/` here, `09-platform.md` in the skeleton |
+| équipe socle | **foundation team** | the `owner_team` answer |
+| garde-fou | **guardrail** | |
+| chantier | **workstream** | in this repository, "a module" reads "a workstream" |
+| verbe (standard) | **standard verb** | |
+| frontière | **boundary** | already the module name `fitness/boundaries.py` |
+| périmètre (de PR) | **scope** | |
+| budget de revue | **review budget** | |
+| criticité · cycle de vie · dette | **criticality · lifecycle · debt** | |
+| manuel | **handbook** | `docs/os/` |
+| plateforme · gouvernance · qualité · mesure | **platform · governance · quality · measurement** | |
+| exploitation | **operations** | the playbook |
+| données et migrations | **data and migrations** | the playbook |
+| vue d'ensemble · principes · contexte IA | **overview · principles · AI context** | |
+
+The table lands in `PRODUCT.md` §1, which already holds a terminology table — it becomes
+the single reference instead of translating file by file at the pen's pace.
+
+---
+
+## 3. Machine values
+
+Breaking for anyone who installed v0.1.0; free today, since nobody has.
+
+| Field | Before | After |
+|---|---|---|
+| `lifecycle` | `Proposé · Actif · Maintenance · Déprécié · Retiré` | `proposed · active · maintenance · deprecated · retired` |
+| `criticality` | `prototype · standard · eleve · critique` | `prototype · standard · high · critical` |
+| PR label | `hors-budget` | `over-budget` |
+| PR label | `cross-module` *(never created)* | `cross-module` — **to create** |
+| CI job | `Périmètre et budget de revue` | `PR scope and review budget` |
+| CI job | `Hooks et secrets` | `Hooks and secrets` |
+| CI job | `Fitness functions` | unchanged |
+| Workflow | `Gouvernance` | `Governance` |
+| pre-commit hook | `gitleaks-historique` | `gitleaks-history` |
+| Skill keys | `securite · donnees-migration · exploitation` | `security · data-migration · operations` |
+| Skill keys | `tests · ux` | unchanged |
+
+**`lifecycle` moves to lower case** to match `criticality`. Today two enumerations read by
+the same code in the same file follow two different casing conventions, one of them
+accented. Accented values travelling through YAML, Python comparisons and CI output are a
+portability hazard for no benefit.
+
+**Command names do not change.** `init`, `update`, `doctor`, `fitness`, `new-module`,
+`pr-scope`, `bootstrap`, `check`, `test`, `run`, `manifests`, `boundaries`, `skills` are
+already English. Only help text, messages and the `eleve` value of `new-module` move.
+
+---
+
+## 4. File renames
+
+| Before | After |
+|---|---|
+| `skeleton/docs/os/00-vue-ensemble.md` | `00-overview.md` |
+| `skeleton/docs/os/01-principes.md` | `01-principles.md` |
+| `skeleton/docs/os/03-contrats.md` | `03-contracts.md` |
+| `skeleton/docs/os/04-contexte-ia.md` | `04-ai-context.md` |
+| `skeleton/docs/os/07-gouvernance.md` | `07-governance.md` |
+| `skeleton/docs/os/08-qualite.md` | `08-quality.md` |
+| `skeleton/docs/os/09-plateforme.md` | `09-platform.md` |
+| `skeleton/docs/os/10-mesure.md` | `10-measurement.md` |
+| `skeleton/playbooks/securite.md` | `security.md` |
+| `skeleton/playbooks/donnees-migration.md` | `data-migration.md` |
+| `skeleton/playbooks/exploitation.md` | `operations.md` |
+| `.github/ISSUE_TEMPLATE/05-dette.yml` *(and skeleton copy)* | `05-debt.yml` |
+| `platform/tests/test_controles.py` | `test_guardrails.py` |
+| `docs/governance/chantiers.md` | `workstreams.md` |
+| `docs/governance/revues.md` | `reviews.md` |
+| `docs/governance/backlog-automatisation.md` | `automation-backlog.md` |
+| `docs/governance/plans/2026-09-15-moteur-v0.1.0.md` | `2026-09-15-engine-v0.1.0.md` |
+| `docs/adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md` | `0001-adopt-copier-to-generate-and-update-projects.md` |
+| `docs/adr/0002-distribuer-napkinstack-sur-pypi.md` | `0002-distribute-napkinstack-on-pypi.md` |
+| `docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md` | `0001-create-a-project-and-receive-updates.md` |
+
+Unchanged: `02-modules.md`, `05-workflow.md`, `06-decisions.md`, `playbooks/tests.md`,
+`playbooks/ux.md`, and every directory name — they are already English.
+
+---
+
+## 5. Human actions on GitHub
+
+The agent's token is read-only on settings. These are yours, in this order.
+
+1. **Before M7a** — create the `cross-module` label. `pr_scope.sh` requires it to lift
+   rule P1, `CONTRIBUTING.md` documents it and `doctor.py` expects it, but it does not
+   exist on the repository: a guardrail that cannot currently be lifted. This is a real
+   defect, independent of language, found by this pass.
+2. **Before merging M7c** — in ruleset `main`, replace the two required checks
+   `Périmètre et budget de revue` and `Hooks et secrets` with `PR scope and review budget`
+   and `Hooks and secrets`. A required check whose job no longer reports stays pending
+   forever and blocks every pull request. No other PR must be open at that moment.
+3. **After M7c** — rename label `hors-budget` to `over-budget` (GitHub's rename preserves
+   it on existing issues and pull requests).
+
+Still pending from M5, unrelated but worth doing in the same sitting: fill the
+repository's "About" description, and confirm the PyPI API token was revoked.
+
+---
+
+## M7a — Lexical baseline (PR 1)
+
+Machine values, code, tests. Small diff, entirely covered by the test suite.
+
+### Task 0 — Human action: create the `cross-module` label
+
+- [ ] Label created on `NapkinStack/engineering-os`, description in English.
+
+### Task 1 — ADR-0003, English as the repository language
+
+- [ ] `docs/adr/0003-adopt-english-as-the-repository-language.md`, from `_TEMPLATE.md`.
+- [ ] Prior art, at least two named references: Django, Kubernetes, the Linux kernel —
+      canonical English source, localisation left downstream to the user's project.
+      No deviation from the convention, so no dated success criterion is required.
+- [ ] Consequences state the breaking value changes and the v0.2.0 bump.
+- [ ] `docs/adr/README.md` index updated.
+- [ ] The planned agent-identity ADR shifts to **ADR-0004**; the reference in
+      `docs/governance/chantiers.md` is renumbered (one-line edit, file still French).
+
+### Task 2 — Glossary in `PRODUCT.md` §1
+
+- [ ] The §2 table replaces the current terminology table, in English.
+- [ ] `AGENTS.md` and `CONTRIBUTING.md` state the rule: everything in this repository is
+      written in English.
+
+### Task 3 — `lifecycle` and `criticality` (TDD)
+
+- [ ] `test_guardrails.py` and `run.sh` expectations turned English — **seen red**.
+- [ ] `fitness/manifests.py`: `LIFECYCLES`, `CRITICALITIES` and their messages.
+- [ ] `cli.py`: `new-module` choices `prototype · standard · high · critical`.
+- [ ] `templates/module/MANIFEST.yaml`, `platform/MANIFEST.yaml`.
+- [ ] Green.
+
+### Task 4 — Python identifiers and output strings
+
+- [ ] `modules.py`: `nouveau` → `create`, `verbe` → `run_verb`, `criticite` →
+      `criticality`, `GABARIT` → `TEMPLATE`, `NOM` → `NAME`, `EQUIPE` → `TEAM`,
+      `FACULTATIFS` → `OPTIONAL`.
+- [ ] `doctor.py`: `MARQUEUR` → `PLACEHOLDER`, `PUBLIEE` → `PUBLISHED`, `SECURITE` →
+      `SECURITY`, `ACTIONS_TIERCES` → `THIRD_PARTY_ACTIONS`, `PUBLIC_SEULEMENT` →
+      `PUBLIC_ONLY`, `OFFRE_PRIVEE` → `PRIVATE_PLAN`, `NonVerifie` → `NotVerified`,
+      `_regle`, `_parametres`, `_securite`, `_actions_autorisees`, `_poste`, `_prive`,
+      `_afficher`. `JOBS` keeps its current values — the CI job names it checks only
+      change in M7c, and the three must move together (§5.2).
+- [ ] `fitness/manifests.py`: `TYPES` values `dictionnaire · liste` → `mapping · list`.
+- [ ] `fitness/pr_scope.sh`, `fitness/boundaries.py`, `skills.py`, `project.py`,
+      `cli.py`: all help text, comments and messages. `ÉCHEC` → `FAIL`,
+      `AVERTISSEMENT` → `WARNING`.
+- [ ] `copier.yml` questions and validator messages.
+- [ ] `pyproject.toml` description.
+
+### Task 5 — Tests and verification
+
+- [ ] `git mv platform/tests/test_controles.py platform/tests/test_guardrails.py`;
+      `run.sh` reference updated.
+- [ ] `platform/MANIFEST.yaml`, `platform/README.md`, `platform/AGENTS.md`,
+      `platform/docs/runbook.md` in English.
+- [ ] `uv run nstack fitness` green; `uv run bash platform/tests/run.sh` green.
+- [ ] Every rule still proves it fails (P5): no expectation was weakened to pass.
+
+---
+
+## M7b — Skeleton (PR 2)
+
+What every generated project receives. File names and delivered prose.
+
+### Task 1 — File renames
+
+- [ ] `git mv` on `docs/os/` and `playbooks/` per §4, plus `05-dette.yml`.
+- [ ] Every internal link updated: `docs/os/README.md` navigation map, cross-references
+      between chapters, `AGENTS.md`, `README.md.jinja`.
+
+### Task 2 — Skills and playbooks
+
+- [ ] `.nstack/skills.yaml`: keys `security`, `data-migration`, `operations`; `source`
+      paths follow the renames; descriptions in English, keeping the rule that a
+      description says what and when, in the third person.
+- [ ] The five playbooks translated.
+- [ ] `uv run nstack skills --check` green (S1–S4).
+
+### Task 3 — The handbook
+
+- [ ] The eleven `docs/os/` chapters and their `README.md`, mermaid diagrams and legends
+      included.
+- [ ] `docs/tooling-profile.md`, `docs/adr/`, `docs/pdr/` templates and indexes.
+
+### Task 4 — Skeleton root
+
+- [ ] `AGENTS.md` (the kernel), `README.md.jinja`, `CONTRIBUTING.md`, `SECURITY.md`,
+      `modules/README.md`, `contracts/` (README, AGENTS, MANIFEST template, runbook).
+- [ ] `.github/`: workflow display names, job names, issue and PR templates,
+      `CODEOWNERS.jinja`, `config.yml.jinja`.
+- [ ] PR summary blocks: `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES` →
+      `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
+
+### Task 5 — Verification
+
+- [ ] `nstack init` into a scratch directory from the working tree; the generated project
+      contains no French and no `PRODUCT.md`.
+- [ ] In the generated project: `nstack fitness` green, `nstack new-module` then
+      `nstack check` behave as documented.
+- [ ] `run.sh` generated-project assertions updated and green.
+
+---
+
+## M7c — Repository (PR 3)
+
+The repository's own surface. Contains the CI job renames, hence the ruleset action.
+
+### Task 0 — Human action: ruleset, before merge
+
+- [ ] Required checks replaced per §5.2. Verified by `nstack doctor` after merge.
+
+### Task 1 — CI and hooks
+
+- [ ] `.github/workflows/governance.yml`: workflow name `Governance`, job names per §3,
+      step names, comments.
+- [ ] `.github/workflows/release.yml`.
+- [ ] `.pre-commit-config.yaml`: hook id `gitleaks-history`, comments. The reference in
+      `governance.yml` follows.
+- [ ] `doctor.py` `JOBS` updated to the new job names, in the same commit as the workflow
+      rename. Workflow, `JOBS` and the ruleset form one atomic change: any two of them
+      alone leave `nstack doctor` reporting a mismatch.
+
+### Task 2 — Root documents
+
+- [ ] `README.md`, `PRODUCT.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, mermaid
+      diagrams and legends included.
+
+### Task 3 — Decisions
+
+- [ ] `git mv` the three ADR/PDR files per §4; content translated; indexes and every
+      inbound link updated.
+
+### Task 4 — Templates
+
+- [ ] `git mv .github/ISSUE_TEMPLATE/05-dette.yml 05-debt.yml` (the repository's copy;
+      the skeleton's was renamed in M7b).
+- [ ] `.github/ISSUE_TEMPLATE/*`, `pull_request_template.md`, `config.yml`,
+      `dependabot.yml` comments, `CODEOWNERS`, `.yamllint.yaml` comments, `.gitignore`.
+
+### Task 5 — Human action: rename the label
+
+- [ ] `hors-budget` → `over-budget`, after merge. `pr_scope.sh` and `CONTRIBUTING.md`
+      already expect the new name.
+
+---
+
+## M7d — Governance journal (PR 4)
+
+No code, no guardrail. The largest volume, the lowest risk — deliberately last.
+
+### Task 1 — Living documents
+
+- [ ] `git mv` per §4; `chantiers.md` → `workstreams.md`, `revues.md` → `reviews.md`,
+      `backlog-automatisation.md` → `automation-backlog.md`.
+- [ ] Content translated, M7 added to the workstream sequence and its diagram.
+
+### Task 2 — The M1→M5 plan
+
+- [ ] `git mv` to `2026-09-15-engine-v0.1.0.md`, content translated. Facts, dates, SHAs
+      and PR numbers are preserved verbatim: this is a record of what happened.
+- [ ] Embedded code and configuration excerpts follow the English sources.
+
+### Task 3 — Final consistency
+
+- [ ] No French remains: `git grep` on accented **letters** (`[àâçéèêëîïôùûü]`, case
+      insensitive) and on the glossary's French terms returns nothing outside git
+      history. Typographic punctuation — `«  »`, `—` — is not a French marker and stays
+      wherever the English text uses it.
+- [ ] Link check (§6) clean across the whole repository.
+
+---
+
+## 6. Verification
+
+Per PR, before pushing:
+
+1. `uv run nstack fitness` and `uv run bash platform/tests/run.sh` green.
+2. `uv run pre-commit run --all-files`.
+3. CI replay with `GITHUB_ACTIONS` and `GITHUB_WORKFLOW` set, asserting message text.
+4. Relative markdown links resolve — one-off check over the changed files, not a
+   permanent CI hook.
+5. gitleaks over history, identity check, diff reviewed for leaks before pushing.
+6. Merge only on green CI, on a fresh clone at head SHA, with
+   `--match-head-commit <full sha>`.
+
+After M7c, `nstack doctor` must report the ruleset as compliant with the new job names.
+
+---
+
+## 7. Release v0.2.0
+
+Minor bump, not a patch: `lifecycle`, `criticality` and skill keys change, so a manifest
+valid in v0.1.0 is invalid in v0.2.0.
+
+- [ ] Version PR (`uv version --bump minor`), merged.
+- [ ] Annotated tag `v0.2.0` pushed via the SSH alias — **only with explicit consent**.
+- [ ] The `pypi` deployment approved by the user in GitHub.
+- [ ] Verification: PyPI JSON and Integrity API, isolated `uv tool install`, `nstack init`
+      in a clean directory.
+- [ ] The pilot project starts from v0.2.0.
+
+---
+
+## 8. Risks
+
+| Risk | Mitigation |
+|---|---|
+| A required check renamed without the ruleset update blocks `main` permanently | §5.2, ordered and explicit; no other PR open at that moment |
+| Broken relative links after ~20 renames | `git mv` keeps history; link check per PR (§6.4) and repository-wide in M7d |
+| Translation drifts from the glossary across four PRs | §2 is normative and lands first, in M7a |
+| An expectation weakened to make a test pass | M7a task 5: each rule must still prove it fails (P5) |
+| A French string left in a machine value | `git grep` on accented characters in M7d task 3 |
+| Main bilingual between M7a and M7d | Accepted: no user, no team, no generated project |
