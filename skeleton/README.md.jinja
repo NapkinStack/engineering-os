@@ -13,8 +13,10 @@
 flowchart LR
     I["nstack init<br/>project created and committed"]:::cmd --> G["GitHub repository<br/>checklist applied"]:::team
     G --> D["nstack doctor<br/>workstation and settings"]:::cmd
-    D --> M["nstack new-module<br/>first module"]:::cmd
-    M --> W["Work in pull requests<br/>CI: fitness, hooks, secrets"]:::team
+    D --> X["nstack discover idea.md<br/>then the discovery, with your agent"]:::cmd
+    X --> F["Framing with your agent<br/>charter + first cycle"]:::team
+    F --> M["nstack new-module<br/>first module"]:::cmd
+    M --> W["Work in pull requests<br/>CI: fitness, hooks, secrets, sheet, cycle"]:::team
     W --> U["nstack update<br/>new version, reviewed branch"]:::cmd
     U --> W
 
@@ -52,7 +54,7 @@ uv tool install "napkinstack=={{ _copier_answers._commit | regex_replace('^v', '
 # 2. Hooks, once per clone
 pre-commit install
 
-# 3. Create the first module
+# 3. Frame the project with your agent (nstack discover, playbooks/framing.md), then create the first module
 nstack new-module billing acme/billing standard
 
 # 4. Check that the guardrails answer
@@ -136,6 +138,7 @@ token, the GitHub part stays "not verified", never compliant.
 | `contracts/` | The **only** channel between modules | Producers and consumers |
 | `.nstack/` | Tooling configuration: playbooks exposed as skills | The foundation team |
 | `docs/os/` | **The handbook**: the why behind every rule | Humans, once |
+| `docs/project/` | **The discovery, the charter and the cycles**: who it is for, what is delivered now | Everyone, agents first |
 | `docs/adr/`, `docs/pdr/` | The decisions taken, with their success criterion | Everyone, on demand |
 | `.copier-answers.yml` | The NapkinStack version and the creation answers | `nstack update`, the only thing that changes it |
 | `.github/` | What makes the rules non-bypassable | GitHub |

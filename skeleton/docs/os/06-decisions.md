@@ -158,6 +158,12 @@ becomes an **optional section of the PDR**: *Detailed functional design*.
 > Do not create a document when an issue or existing documentation is enough.
 > Documentation must reduce cognitive load, not increase it.
 
+### The charter and the cycles are not decision records
+
+The charter (`docs/project/charter.md`) frames the whole project; a cycle plans a bounded
+piece of it. Neither records a trade-off: a change to the charter goes through a PDR, and
+a cycle changes only through its decider — re-framed, closed or stopped, never extended.
+
 ---
 
 ## 5. The dated success criterion

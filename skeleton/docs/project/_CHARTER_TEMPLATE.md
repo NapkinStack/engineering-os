@@ -1,11 +1,11 @@
 ---
 status: proposed              # proposed | accepted — the decider accepts
 decider: "@<github-handle>"   # the human who validates the charter and the cycles
-success_criteria:             # when the project itself is finished: measurable, dated
+success_criteria:             # when the goal is reached: measurable, dated or relative to a named event
   - "<An observable result, and when it is observed>"
 ---
 
-# Charter — <project name>
+# Charter — <project name: project_name in .copier-answers.yml>
 
 > Written once, at the first framing (`playbooks/framing.md`), copied to `charter.md`;
 > changed only through a PDR. Every agent session reads it.
@@ -38,4 +38,6 @@ success_criteria:             # when the project itself is finished: measurable,
 
 ## Open questions
 
-<None left blocking once the charter is accepted.>
+**Blocking:** <none left once the charter is accepted>
+
+**Not blocking:**

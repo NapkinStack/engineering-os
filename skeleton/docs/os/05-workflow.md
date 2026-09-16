@@ -159,6 +159,7 @@ quietest way to accumulate debt.
 
 Do not start a significant task without:
 
+- [ ] a **deliverable of the current cycle**, ready (`docs/project/`)
 - [ ] a goal understandable without a spoken conversation
 - [ ] scope **and out of scope**
 - [ ] the target module identified
@@ -227,7 +228,7 @@ criticality `high` or `critical` — carries a **test sheet** in its description
   *explored* — judged by driving the interface; *human only* — what no agent can run, with
   the reason, listed apart for the approver.
 
-`nstack pr-check` reads the sheet in CI: missing, unfilled, without evidence, verified on
+The engine's pull request check reads the sheet in CI: missing, unfilled, without evidence, verified on
 another commit, failed. The approver decides on the sheet, and notes what they found that
 the verifier had missed — that measurement decides, one day and module by module, whether
 a verifier agent's approval may count.
@@ -274,3 +275,20 @@ testability, paying down documented debt.
 A significant refactor is **isolated from the functional change**, in its own pull
 request. Mixing the two makes review impossible: the reviewer can no longer tell what
 changes the behaviour from what preserves it.
+
+---
+
+## 10. Postures
+
+One person or one agent can hold several postures in a small team — except that the author
+never verifies its own work, and never approves it.
+
+| Posture | Held by | Mission | Never | Produces |
+|---|---|---|---|---|
+| **Framer** | An agent | Interview the decider; propose the charter, the cycle, the deliverables and their criteria, the modules | Decide; propose more than the need; split on day one without a reason | Proposals (`playbooks/framing.md`) |
+| **Author** | An agent | Deliver one deliverable, in one module, within its criteria | Widen the scope; verify or approve its own work | The pull request and its oracle |
+| **Challenger** | An agent session other than the framer's, or a human | Attack a discovery: pre-mortem, the four risks, counter-evidence | Rewrite the document; soften an objection | Objections with their evidence (`playbooks/discovery.md`) |
+| **Verifier** | An agent session other than the author's, or a human | Run the test sheet against the change, before reading the diff | Fix the code; report a preference as a gap | Results and evidence (`playbooks/verification.md`) |
+| **Approver** | A human code owner | Decide the merge on the evidence | Approve without the sheet where one is required | The approval |
+| **Decider** | The human who owns the project | Validate the charter, the cycle and its appetite; accept a change of scope; choose at the circuit breaker | Extend a cycle silently | Decisions recorded in `docs/project/` |
+| **Owners** | The foundation team, a module's owner | Own the project's rules, or one module | Write a project rule into a framework file | The project's and the module's documents |

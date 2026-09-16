@@ -2,7 +2,7 @@
 
 ## Before you start
 
-1. Pick a **Ready** issue (the forms guarantee the DoR).
+1. Pick a **Ready** issue, tied to a deliverable of the current cycle (`docs/project/`).
 2. Identify **the** target module — exactly one.
 3. Read its `MANIFEST.yaml`, then its `AGENTS.md`.
 4. `nstack bootstrap <name> && nstack check <name>`
@@ -61,6 +61,7 @@ The template applies the Definition of Done. Three things not to skate over:
 |---|---|---|
 | `cross-module` | A PR touching several modules, with a justification | Allowed, counted |
 | `over-budget` | Generation, mechanical migration, mass rename | Allowed, counted |
+| `out-of-cycle` | An incident, a production defect, with "Out of cycle: <reason>" | Allowed, counted |
 
 Exceptions are **visible**, never silent. Their rate is a health indicator for the
 boundaries.

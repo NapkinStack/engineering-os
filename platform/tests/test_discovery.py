@@ -61,7 +61,7 @@ def test_discover_refuses(tmp_path, capsys, prepare, name, expected):
 
 def decided(decision: str, **changes) -> dict:
     data = {"decision": decision, "decider": "@alice", "decided_on": TODAY.isoformat(),
-            "idea": "docs/project/inputs/idea.md"}
+            "challenger": "@bob", "idea": "docs/project/inputs/idea.md"}
     return {key: value for key, value in {**data, **changes}.items() if value is not None}
 
 
@@ -70,6 +70,7 @@ DISCOVERY_CASES = {
     "C7 decided without a decider": (lambda r: write(r, "discovery.md", decided("kill", decider="")), "C7", True),
     "C7 decided without a date": (lambda r: write(r, "discovery.md", decided("clarify", decided_on=None)), "C7", True),
     "C7 charter accepted before a go": (lambda r: (write(r, "discovery.md", decided("clarify")), framed(r)), "C7", True),
+    "C7 go without a challenger": (lambda r: write(r, "discovery.md", decided("go", challenger="")), "C7", True),
     "C1 discovery without front matter": (lambda r: write(r, "discovery.md", "# Discovery"), "C1", True),
 }
 

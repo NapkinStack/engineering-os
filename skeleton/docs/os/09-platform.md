@@ -91,12 +91,15 @@ project/
 ├── docs/
 │   ├── os/                        # this documentation
 │   ├── architecture/              # overview, system diagrams
+│   ├── project/                   # the discovery, the charter and the cycles: what the framework cannot know
 │   ├── adr/                       # cross-cutting technical decisions
 │   ├── pdr/                       # product decisions
 │   ├── runbooks/                  # cross-cutting operations
 │   └── tooling-profile.md         # mapping capabilities → the tools of the moment
 │
 ├── playbooks/                     # AI instruction modules, loaded on demand
+│   ├── discovery.md
+│   ├── framing.md
 │   ├── security.md
 │   ├── tests.md
 │   ├── verification.md
@@ -184,6 +187,7 @@ usefully without a spoken conversation.**
 The expected path:
 
 ```
+0. read the charter and the current cycle → who it is for, what is being delivered now
 1. read the module's MANIFEST      → what it is for, who owns it, what it consumes
 2. read the local AGENTS.md        → specific conventions and traps
 3. run bootstrap then check        → a working environment, validations green

@@ -52,6 +52,24 @@ skills:
       skill should be used when a task touches observability, error handling, deployment
       or a call to an external dependency.
 
+  discovery:
+    source: playbooks/discovery.md
+    description: >
+      The project's discovery rules: turning an idea into a decision — intake, sourced
+      market research, definition, the value hypothesis and no-gos, a challenge by another
+      session (pre-mortem, four risks), then go, clarify or kill. This skill should be used
+      when a project starts from an idea, when an idea must be tested or challenged before
+      a charter, or when a discovery document is to be challenged or decided.
+
+  framing:
+    source: playbooks/framing.md
+    description: >
+      The project's framing rules: interviewing the decider, writing the charter, planning
+      a bounded cycle with its deliverables, acceptance criteria and appetite, handling new
+      ideas, and closing a cycle at its end or at its circuit breaker. This skill should be
+      used when a task asks to frame a project, start a project from an idea or a
+      specification, plan or re-plan a cycle, or write a cycle's closure.
+
   verification:
     source: playbooks/verification.md
     description: >

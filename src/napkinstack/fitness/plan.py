@@ -12,7 +12,8 @@ Rules:
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
   C6  a closed or stopped cycle records its outcome and the date it ended
-  C7  discovery: a known decision, its decider and date once decided; a charter follows a go
+  C7  discovery: a known decision, its decider and date once decided, a challenger for a go;
+      a charter follows a go
 
 Templates, whose file name starts with "_", are not checked.
 
@@ -174,6 +175,9 @@ def _check_discovery(path: Path, fail) -> str | None:
             fail("C7", path, f"a decision ({decision}) names its decider")
         if as_date(data.get("decided_on")) is None:
             fail("C7", path, f"a decision ({decision}) records decided_on, YYYY-MM-DD")
+        if decision == "go" and not str(data.get("challenger") or "").strip():
+            fail("C7", path, "a go names its challenger: another session, or a human, challenged the "
+                             "document first (playbooks/discovery.md, stage 5)")
     return decision if isinstance(decision, str) else None
 
 

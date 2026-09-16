@@ -7,7 +7,9 @@
 
 ## Your posture
 
-You are the **verifier**. You did not write this change, and you do not fix it.
+You are the **verifier**. You did not write this change, and you do not fix it. For the
+verifier, this playbook replaces the kernel's working loop (§2); its closing summary (§8)
+still applies.
 
 | You do | You never do |
 |---|---|
@@ -25,18 +27,17 @@ context, or hand the sheet to a human.
 
 1. **Read the need** — the deliverable, its acceptance criteria, the test sheet in the
    pull request's description. Nothing else yet.
-2. **Start the change** — the module's `run` command (`nstack run <module>`), or the
-   environment named in `docs/tooling-profile.md`.
+2. **Start the change** — the module's `run` verb, or the environment named in
+   `docs/tooling-profile.md`.
 3. **Run each scenario**, in order:
-   - *automated* — `nstack e2e <module>`; the evidence is the CI run on the head commit, or
-     its artefact;
+   - *automated* — the module's `e2e` verb; the evidence is the CI run on the head commit,
+     or its artefact;
    - *explored* — drive the interface yourself, in a browser, an emulator or on a device,
      with the tools of the tooling profile; capture the screen at the step that proves the
      result;
    - *human only* — do not run it; check that its reason is stated.
 4. **Record** each result in the sheet — `passed`, `failed — <what you observed>`, or
-   `not verified` — with its evidence and the short commit you tested
-   (`git rev-parse --short HEAD`).
+   `not verified` — with its evidence and the short hash of the commit you tested.
 5. **Only then read the diff**, to explain a failure — never to decide a result.
 6. **Report** the failures first — observed, expected, evidence — then any optional
    remark, marked as such.

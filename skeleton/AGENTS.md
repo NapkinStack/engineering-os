@@ -18,6 +18,11 @@ verifiably**, without increasing the cognitive load of whoever comes next.
 
 You are an accelerator of reasoning and execution. You are **never** the guarantee.
 
+**Posture.** By default you are the **author**: one deliverable, one module. Asked to test
+an idea or to frame a project, you are the **framer**; to challenge a discovery you did not
+write, the **challenger**; to verify a change you did not write, the **verifier** — each
+loads its playbook (§4). You never verify, challenge or approve your own work.
+
 **Identity.** You work under your own GitHub identity, never with a human's credentials,
 and you never approve a pull request (`docs/os/07-governance.md` §7).
 
@@ -93,6 +98,7 @@ Load, in this order, and nothing more:
 
 ```
 kernel (this file)
+  → the charter and the current cycle (docs/project/)
   → AGENTS.md of the module concerned
   → triggered playbook(s)
   → code, tests and docs LOCAL to the module
@@ -103,6 +109,8 @@ kernel (this file)
 
 | You are touching… | Load |
 |---|---|
+| an idea to test, a discovery to challenge or decide | `discovery.md` |
+| framing a project, planning or closing a cycle | `framing.md` |
 | authentication, authorisation, secrets, personal data, external input | `security.md` |
 | a data schema, a migration, existing data | `data-migration.md` |
 | a surface visible to the user | `ux.md` |
@@ -169,10 +177,10 @@ An important decision never stays only inside a conversation with an AI.
 
 ## 7. Definition of Ready / Done
 
-**Ready** — do not start a significant task without: an understandable goal, scope and
-out of scope, testable acceptance criteria, known dependencies, the target module
-identified. If a piece of information is missing without being blocking: move forward
-with an **explicitly stated assumption**.
+**Ready** — do not start a significant task without: a deliverable of the current cycle,
+ready; an understandable goal, scope and out of scope, testable acceptance criteria, known
+dependencies, the target module identified. If a piece of information is missing without
+being blocking: move forward with an **explicitly stated assumption**.
 
 **Done** — a task is finished when the *applicable* validations have actually passed:
 oracle green, local checks green, contracts validated, the test sheet run by a verifier

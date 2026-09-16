@@ -61,7 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph (B1-B5)",
          lambda a: boundaries.run(a.root))
-    _add(sub, "plan", "the charter and the cycles (C1-C6)", lambda a: plan.run(a.root))
+    _add(sub, "plan", "the discovery, the charter and the cycles (C1-C7)", lambda a: plan.run(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
