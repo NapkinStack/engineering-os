@@ -19,9 +19,12 @@ runbook, tests and configuration.
 | `src/napkinstack/project.py` | Project creation and update, through Copier |
 | `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
 | `src/napkinstack/pull_request.py` | The rules read from the pull request description: test sheet, cycle |
+| `src/napkinstack/fitness/plan.py` | The discovery, the charter and the cycles |
+| `src/napkinstack/discovery.py` | `nstack discover`: a discovery started from an idea file, no model called |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |
 | `tests/test_guardrails.py` | Rules M, B, S, P: one failing case per rule (pytest, run by `run.sh`) |
 | `tests/test_pull_request.py` | Rules T and K: one failing case per rule |
+| `tests/test_plan.py`, `tests/test_discovery.py` | Rules C: one failing case per rule; `nstack discover` |
 
 ## Fitness functions
 
@@ -30,10 +33,11 @@ runbook, tests and configuration.
 | `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
 | `nstack boundaries` | B1-B5: declared graph vs real graph, internal imports, cycles, data access |
 | `nstack pr-scope` | P1-P2: one PR = one module, review budget |
-| `nstack pr-check` | T1-T5: the test sheet, read from the pull request description |
+| `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
+| `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 
 ```bash
-uv run nstack fitness                      # manifests + boundaries + skills
+uv run nstack fitness                      # manifests + boundaries + skills + plan
 uv run nstack pr-scope --base origin/main
 uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review

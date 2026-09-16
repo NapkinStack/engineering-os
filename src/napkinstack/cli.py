@@ -7,8 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from napkinstack import __version__, doctor, modules, pull_request, skills
-from napkinstack.fitness import boundaries, manifests
+from napkinstack import __version__, discovery, doctor, modules, pull_request, skills
+from napkinstack.fitness import boundaries, manifests, plan
 
 PACKAGE = Path(__file__).resolve().parent
 
@@ -26,7 +26,7 @@ def _script(relative: str, *args: str, root: Path) -> int:
 
 
 def _fitness(root: Path) -> int:
-    results = [manifests.run(root), boundaries.run(root), skills.run(root, check_only=True)]
+    results = [manifests.run(root), boundaries.run(root), skills.run(root, check_only=True), plan.run(root)]
     return 1 if any(results) else 0
 
 
@@ -61,10 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph (B1-B5)",
          lambda a: boundaries.run(a.root))
+    _add(sub, "plan", "the charter and the cycles (C1-C6)", lambda a: plan.run(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
-    _add(sub, "fitness", "manifests + boundaries + skills",
+    _add(sub, "fitness", "manifests + boundaries + skills + plan",
          lambda a: _fitness(a.root))
     _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
          lambda a: doctor.run(a.root))
@@ -88,10 +89,13 @@ def build_parser() -> argparse.ArgumentParser:
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
-    pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5)",
+    pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5, K1-K4)",
               lambda a: pull_request.run(a.root, a.base, a.body_file))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
+    ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent (PDR-0002)",
+              lambda a: discovery.run(a.root, a.idea))
+    ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
     ini = sub.add_parser("init", help="creates a project from the skeleton (PDR-0001)")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")

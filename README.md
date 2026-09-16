@@ -72,7 +72,9 @@ the commit of this repository
 | `nstack doctor` | Checks the workstation and the GitHub settings, read-only |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
-| `nstack fitness` | Manifests, boundaries between modules, skills |
+| `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
+| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures |
+| `nstack fitness` | Manifests, boundaries between modules, skills, plan |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |

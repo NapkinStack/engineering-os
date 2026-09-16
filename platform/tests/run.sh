@@ -570,7 +570,19 @@ if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack
   echo "FAIL: a user-facing change with the template's empty sheet went green."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [T1] Test sheet missing: this pull request touches modules/face (user-facing)" \
-  || { echo "FAIL: expected T1 message missing."; echo "$OUT"; exit 1; }
+  && echo "$OUT" | grep -qF "FAIL [K1] the project is not framed" \
+  || { echo "FAIL: expected T1 and K1 messages missing."; echo "$OUT"; exit 1; }
+
+echo "-> plan: a new project is not framed yet; its templates are not checked (PDR-0002)"
+(cd "$CLONE" && nstack plan --root .) | grep -qF "the project is not framed yet" \
+  || { echo "FAIL: nstack plan does not report an unframed project."; exit 1; }
+
+echo "-> discover: an idea starts a discovery, no model called (PDR-0002, extension)"
+printf 'A place where neighbours lend each other tools.\n' > "$GN/idea.md"
+(cd "$CLONE" && nstack discover "$GN/idea.md" --root .) | grep -qF "Follow playbooks/discovery.md on docs/project/inputs/idea.md" \
+  && grep -qF 'idea: "docs/project/inputs/idea.md"' "$CLONE/docs/project/discovery.md" \
+  && (cd "$CLONE" && nstack plan --root .) >/dev/null \
+  || { echo "FAIL: nstack discover did not start the discovery."; exit 1; }
 
 # Updates: throwaway template with three versions, built from the working tree.
 TPL="$GN/template"
@@ -697,7 +709,8 @@ rules = [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
         {"context": "Test sheet and cycle"}]}},
 ]
-labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"}}
+labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"},
+          "/labels/out-of-cycle": {"name": "out-of-cycle"}}
 ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
 active = {"status": "enabled"}
 compliant = {

@@ -101,8 +101,8 @@ Settings → Actions → General:
 
 Issues → Labels:
 
-- [ ] Labels `cross-module` and `over-budget` — they make the exceptions visible **and
-  countable** (`docs/os/10-measurement.md` §3)
+- [ ] Labels `cross-module`, `over-budget` and `out-of-cycle` — they make the exceptions
+  visible **and countable** (`docs/os/10-measurement.md` §3)
 
 Settings → Developer settings → GitHub Apps → New GitHub App, then install it on this
 repository — **the identity your agents work under** (`docs/os/07-governance.md` §7):
@@ -150,7 +150,9 @@ token, the GitHub part stays "not verified", never compliant.
 
 ```bash
 nstack --help        # lists the commands
-nstack fitness       # manifests + boundaries + skills — before every commit
+nstack fitness       # manifests + boundaries + skills + plan — before every commit
+nstack discover <idea-file>   # starts a discovery, for your agent
+nstack plan          # the discovery, the charter and the cycles (docs/project/)
 nstack skills        # generates the Claude Code skills from the playbooks
 nstack new-module <name> <owner> <criticality>
 nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
