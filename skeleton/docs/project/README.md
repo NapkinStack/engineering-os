@@ -6,6 +6,7 @@ cycle before working (`AGENTS.md` §4).
 
 | File | Holds | Written by | Accepted by |
 |---|---|---|---|
+| `discovery.md` | An idea tested: evidence, value hypothesis, challenge, decision | The framer, then the challenger (`playbooks/discovery.md`) | The decider |
 | `charter.md` | Users, problem, constraints, risks, success criteria, out of scope | The framer (`playbooks/framing.md`) | The decider |
 | `cycles/NN-<slug>.md` | One goal, a finite list of deliverables, an appetite, an end date, the closure | The framer | The decider |
 | `_CHARTER_TEMPLATE.md`, `cycles/_TEMPLATE.md` | The templates | — | — |
@@ -32,7 +33,7 @@ red: the circuit breaker and what it can lead to.
 
 | Command | When | Rules |
 |---|---|---|
-| `nstack plan` | Every push, in `nstack fitness` | Formats; one accepted cycle at a time, under an accepted charter; `end` = `start` + the appetite; acceptance criteria once a deliverable is ready; closures recorded |
+| `nstack plan` | Every push, in `nstack fitness` | Formats; one accepted cycle at a time, under an accepted charter; `end` = `start` + the appetite; acceptance criteria once a deliverable is ready; closures recorded; a discovery decided with its decider and date, a charter only after a go |
 | `nstack pr-check` | Every pull request changing a module | An accepted cycle; not past its end date; a ready or in-progress deliverable named — or the `out-of-cycle` label with its justification |
 
 The charter changes only through a PDR (`docs/os/06-decisions.md` §4). A cycle is never

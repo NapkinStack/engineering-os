@@ -23,8 +23,11 @@ them, and reads nothing else of what was said.
 
 ## 1. Frame the project: the charter
 
-Start from what the decider gives you — an idea, a specification, notes. Read it entirely,
-then interview, one subject at a time, asking only what you cannot infer:
+Start from what the decider gives you. When `docs/project/discovery.md` exists, its decision
+must be **go**: the charter reuses its users, problem, success signals, no-gos and risks, and
+you ask only what it leaves open. Otherwise — an idea alone — propose a discovery first
+(`discovery.md`); a specification already challenged can be framed directly. Read the source
+entirely, then interview, one subject at a time, asking only what you cannot infer:
 
 | Subject | Ask | The charter records |
 |---|---|---|
