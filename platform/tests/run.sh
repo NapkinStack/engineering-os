@@ -441,7 +441,7 @@ echo "→ init : projet créé et commité sur main, réponses rendues, sans fic
 if ! OUT=$(nstack init "$PROJET" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
   echo "ÉCHEC : nstack init a échoué."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Projet créé dans" \
+echo "$OUT" | grep -qF "Project created in" \
   || { echo "ÉCHEC : nstack init ne confirme pas la création."; echo "$OUT"; exit 1; }
 [ "$(git -C "$PROJET" branch --show-current)" = main ] && [ -z "$(git -C "$PROJET" status --porcelain)" ] \
   || { echo "ÉCHEC : le projet n'est pas commité sur main."; git -C "$PROJET" status; exit 1; }
@@ -468,7 +468,7 @@ mkdir -p "$GN/occupe" && echo garde > "$GN/occupe/garde.txt"
 if OUT=$(nstack init "$GN/occupe" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
   echo "ÉCHEC : init dans un dossier non vide accepté."; exit 1
 fi
-echo "$OUT" | grep -qF "n'est pas vide" \
+echo "$OUT" | grep -qF "is not empty" \
   || { echo "ÉCHEC : refus sans explication."; echo "$OUT"; exit 1; }
 [ "$(ls -A "$GN/occupe")" = garde.txt ] || { echo "ÉCHEC : init a écrit dans le dossier refusé."; exit 1; }
 
@@ -482,7 +482,7 @@ for question in github_repo owner_team; do
   if OUT=$(nstack init "$GN/refus-$question" --source "$REPO" --ref HEAD "${reponses[@]}" 2>&1); then
     echo "ÉCHEC : $question sans « / » accepté."; exit 1
   fi
-  echo "$OUT" | grep -qF "ÉCHEC [init] Réponse refusée pour $question" \
+  echo "$OUT" | grep -qF "FAIL [init] Answer rejected for $question" \
     || { echo "ÉCHEC : refus de $question sans message explicatif."; echo "$OUT"; exit 1; }
 done
 
@@ -496,7 +496,7 @@ git "${GIT_ID[@]}" -C "$UNSAFE" commit -q --no-verify -m unsafe
 if OUT=$(nstack init "$GN/unsafe" --source "$UNSAFE" --ref HEAD "${REPONSES[@]}" 2>&1); then
   echo "ÉCHEC : gabarit unsafe accepté."; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [init] Le gabarit $UNSAFE exécute du code" \
+echo "$OUT" | grep -qF "FAIL [init] Template $UNSAFE runs code" \
   || { echo "ÉCHEC : refus unsafe sans message explicatif."; echo "$OUT"; exit 1; }
 [ ! -e "$GN/unsafe" ] || { echo "ÉCHEC : le gabarit refusé a créé des fichiers."; exit 1; }
 
@@ -504,7 +504,7 @@ echo "→ init : une version de gabarit introuvable DOIT être expliquée (P6)"
 if OUT=$(nstack init "$GN/absente" --source "$REPO" --ref v9.9.9 "${REPONSES[@]}" 2>&1); then
   echo "ÉCHEC : version introuvable acceptée."; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [init] Gabarit $REPO en version v9.9.9 inaccessible" \
+echo "$OUT" | grep -qF "FAIL [init] Template $REPO at version v9.9.9 unreachable" \
   || { echo "ÉCHEC : version introuvable sans message explicatif."; echo "$OUT"; exit 1; }
 
 echo "→ squelette : hooks et règles YAML identiques à ceux du dépôt (P3)"
@@ -602,7 +602,7 @@ echo "→ update : un projet déjà à jour ne crée pas de branche"
 if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
   echo "ÉCHEC : projet à jour refusé."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Déjà à jour" \
+echo "$OUT" | grep -qF "Already up to date" \
   && [ "$(git -C "$A" branch --list 'nstack/*' | wc -l)" -eq 1 ] \
   || { echo "ÉCHEC : projet à jour mal traité."; echo "$OUT"; exit 1; }
 
@@ -610,7 +610,7 @@ echo "→ update : une version antérieure DOIT être refusée, sans rien modifi
 if OUT=$(nstack update --root "$A" --ref v0.1.0 2>&1); then
   echo "ÉCHEC : retour arrière accepté."; exit 1
 fi
-echo "$OUT" | grep -qF "antérieure à celle du projet (0.2.0)" \
+echo "$OUT" | grep -qF "older than the project version (0.2.0)" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
   || { echo "ÉCHEC : retour arrière mal refusé."; echo "$OUT"; exit 1; }
 
@@ -619,7 +619,7 @@ echo "modification locale" >> "$A/README.md"
 if OUT=$(nstack update --root "$A" --ref v0.3.0 2>&1); then
   echo "ÉCHEC : mise à jour acceptée sur un arbre modifié."; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [update] Arbre de travail modifié" \
+echo "$OUT" | grep -qF "FAIL [update] Working tree modified" \
   && [ "$(git -C "$A" diff --name-only)" = README.md ] \
   && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v0.3.0 >/dev/null \
   || { echo "ÉCHEC : arbre modifié mal refusé."; echo "$OUT"; exit 1; }
@@ -629,7 +629,7 @@ echo "→ update : hors d'un projet, la commande DOIT l'expliquer"
 if OUT=$(nstack update --root "$GN/occupe" 2>&1); then
   echo "ÉCHEC : update accepté hors d'un projet."; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [update] .copier-answers.yml introuvable" \
+echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
   || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
 
 B="$GN/projet-b"
@@ -641,7 +641,7 @@ echo "→ update : versions sautées d'un coup, conflit marqué et laissé à l'
 if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
   echo "ÉCHEC : conflit passé sous silence."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "ÉCHEC [update] NapkinStack v0.1.0 → v0.3.0 : conflits" \
+echo "$OUT" | grep -qF "FAIL [update] NapkinStack v0.1.0 -> v0.3.0: conflicts" \
   && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
   || { echo "ÉCHEC : conflit sans liste des fichiers."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
