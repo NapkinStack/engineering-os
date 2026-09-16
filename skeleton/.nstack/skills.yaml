@@ -1,55 +1,53 @@
-# Correspondance playbooks → skills Claude Code.
+# Mapping from playbooks to Claude Code skills.
 #
-# Les playbooks de `playbooks/` sont la SOURCE DE VÉRITÉ : markdown pur, portable,
-# utilisable par n'importe quel agent. Les skills en sont dérivées.
-# Ce fichier ne contient que le frontmatter à ajouter — jamais de contenu.
+# The playbooks in `playbooks/` are the SOURCE OF TRUTH: plain markdown, portable,
+# usable by any agent. The skills are derived from them.
+# This file holds nothing but the frontmatter to add — never any content.
 #
-# Règles sur la `description` (c'est elle qui déclenche la skill) :
-#   - dit QUOI et QUAND, à la troisième personne
-#   - aucune instruction comportementale : elles vont dans le corps du playbook
-#   - reprend les mots-clés que l'agent rencontrera réellement dans une tâche
+# Rules for `description` (it is what triggers the skill):
+#   - says WHAT and WHEN, in the third person
+#   - no behavioural instruction: those go in the body of the playbook
+#   - uses the keywords an agent will actually meet in a task
 #
-# Un playbook sans entrée ici fait échouer `nstack skills --check`.
+# A playbook with no entry here fails `nstack skills --check`.
 
 skills:
   security:
     source: playbooks/security.md
     description: >
-      Règles de sécurité du projet : authentification, autorisation, secrets,
-      validation des entrées, données personnelles, dépendances et actions à haut
-      risque. Cette skill doit être utilisée lorsqu'une tâche touche à l'authn/authz,
-      des secrets, des données sensibles, des entrées externes, un upload de fichier
-      ou une exposition réseau.
+      The project's security rules: authentication, authorisation, secrets, input
+      validation, personal data, dependencies and high-risk actions. This skill should
+      be used when a task touches authn/authz, secrets, sensitive data, external input,
+      a file upload or a network exposure.
 
   tests:
     source: playbooks/tests.md
     description: >
-      Stratégie de test du projet : choix du niveau de test, écriture de l'oracle,
-      cas limites, doublures et traitement des tests flaky. Cette skill doit être
-      utilisée lorsque la stratégie de test n'est pas évidente, qu'une zone n'est pas
-      testée, qu'un test est instable ou qu'un comportement est difficile à isoler.
+      The project's test strategy: choosing the test level, writing the oracle, edge
+      cases, doubles and handling flaky tests. This skill should be used when the test
+      strategy is not obvious, when an area is untested, when a test is unstable or when
+      a behaviour is hard to isolate.
 
   data-migration:
     source: playbooks/data-migration.md
     description: >
-      Règles du projet sur les données et les migrations : expand/contract de schéma,
-      backfill, suppression de données, propriété des données par module. Cette skill
-      doit être utilisée lorsqu'une tâche touche un schéma de données, une migration,
-      une transformation ou une suppression de données existantes.
+      The project's rules on data and migrations: schema expand/contract, backfill,
+      data deletion, data ownership by module. This skill should be used when a task
+      touches a data schema, a migration, a transformation or the deletion of existing
+      data.
 
   ux:
     source: playbooks/ux.md
     description: >
-      Règles UX/UI du projet : primauté de la convention et du design system, les huit
-      états d'une interface, messages d'erreur, accessibilité, performance perçue et
-      comportement mobile. Cette skill doit être utilisée lorsqu'une tâche touche une
-      surface visible par l'utilisateur.
+      The project's UX/UI rules: the primacy of convention and of the design system,
+      the eight states of an interface, error messages, accessibility, perceived
+      performance and mobile behaviour. This skill should be used when a task touches a
+      surface visible to the user.
 
   operations:
     source: playbooks/operations.md
     description: >
-      Règles d'exploitation et de fiabilité du projet : timeouts, retries, logs
-      structurés, métriques, alertes, health checks, rollback et dégradation
-      contrôlée. Cette skill doit être utilisée lorsqu'une tâche touche
-      l'observabilité, la gestion d'erreur, le déploiement ou un appel vers une
-      dépendance externe.
+      The project's operations and reliability rules: timeouts, retries, structured
+      logs, metrics, alerts, health checks, rollback and controlled degradation. This
+      skill should be used when a task touches observability, error handling, deployment
+      or a call to an external dependency.
