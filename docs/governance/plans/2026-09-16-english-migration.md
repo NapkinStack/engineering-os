@@ -223,22 +223,39 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
 - [x] `cross-module`, `feature`, `architecture`, `spike` created; seven unused default
       labels deleted. Detail and rationale in §5.1.
 
-### Task 1 — ADR-0003, English as the repository language
+### Task 1 — ADR-0003, English as the repository language (done)
 
-- [ ] `docs/adr/0003-adopt-english-as-the-repository-language.md`, from `_TEMPLATE.md`.
-- [ ] Prior art, at least two named references: Django, Kubernetes, the Linux kernel —
-      canonical English source, localisation left downstream to the user's project.
-      No deviation from the convention, so no dated success criterion is required.
-- [ ] Consequences state the breaking value changes and the v0.2.0 bump.
-- [ ] `docs/adr/README.md` index updated.
-- [ ] The planned agent-identity ADR shifts to **ADR-0004**; the reference in
-      `docs/governance/chantiers.md` is renumbered (one-line edit, file still French).
+- [x] `docs/adr/0003-adopt-english-as-the-repository-language.md`, from `_TEMPLATE.md`.
+- [x] Prior art, five named references: Django, Rails, Vue.js, Kubernetes, the Linux
+      kernel — canonical English source, localisation left downstream to the user's
+      project. No deviation, so no dated success criterion is required; one is given
+      anyway, checkable at the v0.2.0 release.
+- [x] Consequences state the breaking value changes and the v0.2.0 bump.
+- [x] `docs/adr/README.md` index updated.
+- [x] **Rule to automate**: the §2 arbitration of `07-gouvernance.md` is applied
+      explicitly — mechanically checkable but at high cost and low risk, therefore
+      *automation backlog*, not *review*. Entry added to
+      `docs/governance/backlog-automatisation.md`, triggered by the first outside
+      contribution in another language.
+- [x] The planned agent-identity ADR shifts to **ADR-0004**; renumbered in
+      `chantiers.md` (three places) and in the M1→M5 plan (one forward reference).
+- [x] M7 added to the `chantiers.md` sequence, table and diagram, with a new `encours`
+      class and its legend. M7d therefore only translates that file, it does not add M7.
 
-### Task 2 — Glossary in `PRODUCT.md` §1
+### Task 2 — The rule where agents read it (done, adjusted)
 
-- [ ] The §2 table replaces the current terminology table, in English.
-- [ ] `AGENTS.md` and `CONTRIBUTING.md` state the rule: everything in this repository is
-      written in English.
+- [x] `AGENTS.md` translated in full and given a fourth kernel item: everything written
+      here is English, history is not rewritten, translate what you touch and never add
+      French. This file is eight lines and is the kernel — the §2 arbitration of
+      `07-gouvernance.md` sends a rule that applies to *every* task here, and the file is
+      short enough that leaving it half-French would be worse than translating it now.
+- [x] **Adjustment:** the canonical glossary stays in §2 of this plan, which is normative
+      and already merged into the branch, instead of landing in `PRODUCT.md` §1 now.
+      `PRODUCT.md` is French until M7c; writing an English table into it today would mean
+      rewriting its surrounding prose twice. M7c moves the glossary to its permanent home.
+- [x] Same reasoning for `CONTRIBUTING.md`: translated whole in M7c rather than given one
+      English bullet in a French list. Its audience is outside contributors, of whom
+      there are none yet; the agent audience is covered by `AGENTS.md`.
 
 ### Task 3 — `lifecycle` and `criticality` (TDD)
 
@@ -341,8 +358,10 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 ### Task 2 — Root documents
 
-- [ ] `README.md`, `PRODUCT.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, mermaid
-      diagrams and legends included.
+- [ ] `README.md`, `PRODUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, mermaid diagrams and
+      legends included. `AGENTS.md` was done in M7a.
+- [ ] The canonical glossary (§2) replaces the terminology table of `PRODUCT.md` §1 and
+      becomes its permanent home.
 
 ### Task 3 — Decisions
 
@@ -373,7 +392,8 @@ No code, no guardrail. The largest volume, the lowest risk — deliberately last
 
 - [ ] `git mv` per §4; `chantiers.md` → `workstreams.md`, `revues.md` → `reviews.md`,
       `backlog-automatisation.md` → `automation-backlog.md`.
-- [ ] Content translated, M7 added to the workstream sequence and its diagram.
+- [ ] Content translated. M7 is already in the sequence, table and diagram (added in
+      M7a); this task only turns them English.
 
 ### Task 2 — The M1→M5 plan
 
