@@ -554,15 +554,15 @@ template_version() {  # $1 = tag, the template changes having been made
   git "${GIT_ID[@]}" -C "$TPL" commit -q --no-verify -m "$1"
   git -C "$TPL" tag "$1"
 }
-template_version v0.1.0
-printf '\nFix v0.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests.md"
-printf '\nFix v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
-printf '\nFix v0.2.\n' >> "$TPL/skeleton/modules/README.md"
-template_version v0.2.0
+template_version v90.1.0
+printf '\nFix v90.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests.md"
+printf '\nFix v90.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
+printf '\nFix v90.2.\n' >> "$TPL/skeleton/modules/README.md"
+template_version v90.2.0
 sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/security.md"
-template_version v0.3.0
+template_version v90.3.0
 projet_v01() {
-  nstack init "$1" --source "$TPL" --ref v0.1.0 "${ANSWERS[@]}" >/dev/null \
+  nstack init "$1" --source "$TPL" --ref v90.1.0 "${ANSWERS[@]}" >/dev/null \
     || { echo "FAIL: nstack init from the throwaway template ($1)."; exit 1; }
 }
 commit_project() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --no-verify -m "$2"; }
@@ -576,17 +576,17 @@ commit_project "$A" "Adaptations and first module"
 MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
 
 echo "-> update: fix and adaptation merged, committed on a branch (criterion 4)"
-if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
   echo "FAIL: nstack update failed."; echo "$OUT"; exit 1
 fi
-[ "$(git -C "$A" branch --show-current)" = nstack/update-v0.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
-  || { echo "FAIL: update not committed on nstack/update-v0.2.0."; git -C "$A" status; exit 1; }
+[ "$(git -C "$A" branch --show-current)" = nstack/update-v90.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
+  || { echo "FAIL: update not committed on nstack/update-v90.2.0."; git -C "$A" status; exit 1; }
 [ "$(head -1 "$A/playbooks/tests.md")" = "# Tests — adaptation locale" ] \
-  && grep -qF "Fix v0.2, at the end of the file." "$A/playbooks/tests.md" \
+  && grep -qF "Fix v90.2, at the end of the file." "$A/playbooks/tests.md" \
   || { echo "FAIL: adaptation or fix lost in playbooks/tests.md."; exit 1; }
-grep -qF "_commit: v0.2.0" "$A/.copier-answers.yml" \
+grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
   || { echo "FAIL: project version not bumped."; exit 1; }
-echo "$OUT" | grep -qF "git push -u origin nstack/update-v0.2.0" \
+echo "$OUT" | grep -qF "git push -u origin nstack/update-v90.2.0" \
   || { echo "FAIL: next step missing."; echo "$OUT"; exit 1; }
 
 echo "-> update: a file the team deleted is not recreated (criterion 6)"
@@ -595,11 +595,11 @@ echo "-> update: a file the team deleted is not recreated (criterion 6)"
 echo "-> update: no module file changed, the skeleton README follows (criterion 7)"
 [ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_AVANT" ] \
   || { echo "FAIL: modules/demo changed by the update (PDR-0001 R4)."; exit 1; }
-grep -qF "Fix v0.2." "$A/modules/README.md" \
+grep -qF "Fix v90.2." "$A/modules/README.md" \
   || { echo "FAIL: modules/README.md did not follow the version."; exit 1; }
 
 echo "-> update: a project already up to date creates no branch"
-if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
+if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
   echo "FAIL: up-to-date project refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "Already up to date" \
@@ -607,21 +607,21 @@ echo "$OUT" | grep -qF "Already up to date" \
   || { echo "FAIL: up-to-date project mishandled."; echo "$OUT"; exit 1; }
 
 echo "-> update: an older version MUST be refused, without changing anything"
-if OUT=$(nstack update --root "$A" --ref v0.1.0 2>&1); then
+if OUT=$(nstack update --root "$A" --ref v90.1.0 2>&1); then
   echo "FAIL: downgrade accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "older than the project version (0.2.0)" \
+echo "$OUT" | grep -qF "older than the project version (90.2.0)" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
   || { echo "FAIL: downgrade badly refused."; echo "$OUT"; exit 1; }
 
 echo "-> update: a modified working tree MUST be refused, without changing anything"
 echo "modification locale" >> "$A/README.md"
-if OUT=$(nstack update --root "$A" --ref v0.3.0 2>&1); then
+if OUT=$(nstack update --root "$A" --ref v90.3.0 2>&1); then
   echo "FAIL: update accepted on a modified tree."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] Working tree modified" \
   && [ "$(git -C "$A" diff --name-only)" = README.md ] \
-  && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v0.3.0 >/dev/null \
+  && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v90.3.0 >/dev/null \
   || { echo "FAIL: modified tree badly refused."; echo "$OUT"; exit 1; }
 git -C "$A" checkout -q -- README.md
 
@@ -638,15 +638,15 @@ sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/security.md"
 commit_project "$B" "Adaptation"
 
 echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
-if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
+if OUT=$(nstack update --root "$B" --ref v90.3.0 2>&1); then
   echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [update] NapkinStack v0.1.0 -> v0.3.0: conflicts" \
+echo "$OUT" | grep -qF "FAIL [update] NapkinStack v90.1.0 -> v90.3.0: conflicts" \
   && echo "$OUT" | grep -qF "  - playbooks/security.md" \
   || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
-[ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
+[ "$(git -C "$B" branch --show-current)" = nstack/update-v90.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
-  && grep -qF "Fix v0.2, at the end of the file." "$B/playbooks/tests.md" \
+  && grep -qF "Fix v90.2, at the end of the file." "$B/playbooks/tests.md" \
   || { echo "FAIL: branch, commit or skipped version incorrect."; exit 1; }
 
 echo "-> update: the commit stays refused while a marker remains (criterion 5)"
@@ -736,7 +736,10 @@ for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
 export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
 
 V=$(nstack --version | cut -d' ' -f2)
-# Tag of the engine version; it already exists when it coincides with a throwaway template version.
+# Tag of the engine version. The throwaway template uses v90.x so that its versions can
+# never be mistaken for a real engine version: project A must stay behind the installed
+# engine for the L1 gap to exist, and project C must match it exactly. The guard below
+# keeps the suite working even then, should the engine ever reach v90.x.
 if ! git -C "$TPL" rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
   git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
   git -C "$TPL" tag "v$V"
@@ -763,6 +766,10 @@ if absents:
 EOF
 
 echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5)"
+# L1 compares the installed engine with the project version. The condition is built here
+# rather than inherited from project A, whose version would otherwise have to differ from
+# the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
+sed -i 's#^_commit: .*#_commit: v0.0.1#' "$A/.copier-answers.yml"
 echo "# Produit" > "$A/PRODUCT.md"
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
