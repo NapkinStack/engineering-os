@@ -64,5 +64,9 @@ No secret is stored: GitHub proves its identity to PyPI at every publication. A 
 version is never replaced; a mistake is fixed by the next version, and a faulty version is
 yanked on PyPI.
 
+A skeleton file renamed between two versions comes back, under its new name, in every
+project that had deleted it: `nstack update` sees a new file. Rename only when the gain is
+worth that cost, and say so in the version pull request.
+
 Leak barriers and exceptions (`cross-module`, `over-budget`): the same as in the projects,
 described in [`skeleton/CONTRIBUTING.md`](skeleton/CONTRIBUTING.md).

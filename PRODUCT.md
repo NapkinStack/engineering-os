@@ -156,12 +156,15 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.1.0 is published on PyPI (2026-09-15), with a provenance attestation:
-`nstack init`, `update`, `doctor`, `new-module`, the module verbs and the fitness
-functions; every check has a test that proves its failure. What remains is the pilot
-project, private, the first real use. The checks the handbook describes without them being
-automated are marked as such and listed in the automation backlog.
+NapkinStack v0.2.0 is published on PyPI (2026-09-16), with a provenance attestation, and
+written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
+the module verbs and the fitness functions; every check has a test that proves its
+failure. `nstack update` has carried a project from v0.1.0 to v0.2.0, both published. What
+remains is the pilot project, private, the first real use. The checks the handbook
+describes without them being automated are marked as such and listed in the automation
+backlog.
 
-Roadmap: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`. Defects and decisions:
+Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
+`docs/governance/plans/2026-09-16-english-migration.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.

@@ -131,6 +131,16 @@ None.
 a `git grep` for accented letters returns nothing outside git history, and the pilot's
 `nstack init` produces a project containing no French.
 
+**Observed on 2026-09-16**, at the v0.2.0 release:
+
+- `git grep` finds 18 lines in three documents, all of them quotation: the glossary's
+  French column and the old values in the migration plan, this ADR's §Context, and the
+  titles of past pull requests and one past commit message in the engine plan. The letter
+  of "returns nothing" was too strict, as M7d recorded: a record that may not quote what
+  it replaced is not a record;
+- `nstack init` from the published tag, on a fresh workstation: no accented letter in any
+  tracked file of the project. To confirm on the pilot's own `nstack init`.
+
 ---
 
 ## Consequences

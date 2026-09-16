@@ -277,16 +277,16 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
 
 ### Task 4 — Python identifiers and output strings
 
-- [ ] `modules.py`: `nouveau` → `create`, `verbe` → `run_verb`, `criticite` →
+- [x] `modules.py`: `nouveau` → `create`, `verbe` → `run_verb`, `criticite` →
       `criticality`, `GABARIT` → `TEMPLATE`, `NOM` → `NAME`, `EQUIPE` → `TEAM`,
       `FACULTATIFS` → `OPTIONAL`.
-- [ ] `doctor.py`: `MARQUEUR` → `PLACEHOLDER`, `PUBLIEE` → `PUBLISHED`, `SECURITE` →
+- [x] `doctor.py`: `MARQUEUR` → `PLACEHOLDER`, `PUBLIEE` → `PUBLISHED`, `SECURITE` →
       `SECURITY`, `ACTIONS_TIERCES` → `THIRD_PARTY_ACTIONS`, `PUBLIC_SEULEMENT` →
       `PUBLIC_ONLY`, `OFFRE_PRIVEE` → `PRIVATE_PLAN`, `NonVerifie` → `NotVerified`,
       `_regle`, `_parametres`, `_securite`, `_actions_autorisees`, `_poste`, `_prive`,
       `_afficher`. `JOBS` keeps its current values — the CI job names it checks only
       change in M7c, and the three must move together (§5.2).
-- [ ] `fitness/manifests.py`: `TYPES` values `dictionnaire · liste` → `mapping · list`.
+- [x] `fitness/manifests.py`: `TYPES` values `dictionnaire · liste` → `mapping · list`.
 - [x] `fitness/pr_scope.sh`, `fitness/boundaries.py`, `skills.py`, `project.py`,
       `doctor.py`, `cli.py`: all help text, comments and messages. `ÉCHEC` → `FAIL`,
       `AVERTISSEMENT` → `WARNING`.
@@ -411,7 +411,7 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 ### Task 0 — Human action: ruleset, before merge
 
-- [ ] In ruleset `main`, replace the two required checks `Périmètre et budget de revue`
+- [x] In ruleset `main`, replace the two required checks `Périmètre et budget de revue`
       and `Hooks et secrets` with **`PR scope and review budget`** and
       **`Hooks and secrets`**. The pull request reports the new names as soon as it is
       pushed; until the ruleset is updated it stays blocked on two checks that will never
@@ -458,9 +458,9 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 ### Task 5 — Human action: labels, after merge
 
-- [ ] `hors-budget` → `over-budget`. `pr_scope.sh` and `CONTRIBUTING.md` already expect
+- [x] `hors-budget` → `over-budget`. `pr_scope.sh` and `CONTRIBUTING.md` already expect
       the new name once this pull request is merged.
-- [ ] Create `debt`, matching `05-debt.yml`. This closes the last phantom label; after it,
+- [x] Create `debt`, matching `05-debt.yml`. This closes the last phantom label; after it,
       every label an issue form or a guardrail names exists on the repository.
 
 ---
@@ -529,12 +529,54 @@ After M7c, `nstack doctor` must report the ruleset as compliant with the new job
 Minor bump, not a patch: `lifecycle`, `criticality` and skill keys change, so a manifest
 valid in v0.1.0 is invalid in v0.2.0.
 
-- [ ] Version PR (`uv version --bump minor`), merged.
-- [ ] Annotated tag `v0.2.0` pushed via the SSH alias — **only with explicit consent**.
-- [ ] The `pypi` deployment approved by the user in GitHub.
-- [ ] Verification: PyPI JSON and Integrity API, isolated `uv tool install`, `nstack init`
+- [x] Version PR (`uv version --bump minor`), merged (#28).
+- [x] Annotated tag `v0.2.0` pushed via the SSH alias — **only with explicit consent**.
+- [x] The `pypi` deployment approved by the user in GitHub.
+- [x] Verification: PyPI JSON and Integrity API, isolated `uv tool install`, `nstack init`
       in a clean directory.
+- [x] `nstack update` from v0.1.0 to v0.2.0, both published: the last unverified item of
+      PDR-0001.
 - [ ] The pilot project starts from v0.2.0.
+
+**Observed on 2026-09-16** (run 35090582865, tag `v0.2.0` on `d78cebe`):
+
+| Verification | Result |
+|---|---|
+| `Release`, its first run since M7c renamed its jobs | `Build` green, the tag check included; `Publish to PyPI` green once approved |
+| PyPI | `napkinstack` 0.2.0, MIT licence, a wheel and a source archive |
+| Attestations | `pypi-attestations verify pypi --repository https://github.com/NapkinStack/engineering-os`: OK for both files; the certificate names `release.yml@refs/tags/v0.2.0` and commit `d78cebe` |
+| A fresh workstation (`UV_TOOL_DIR`, `UV_TOOL_BIN_DIR`, `UV_CACHE_DIR` isolated, `UV_NO_CONFIG`) | `uv tool install napkinstack==0.2.0 --with-executables-from pre-commit`: `nstack 0.2.0` and `pre-commit`. The first attempt, minutes after publication, found no 0.2.0 in PyPI's cached index; `--refresh` resolved it |
+| `nstack init` from GitHub | `_commit: v0.2.0`, the commit "Project created, NapkinStack v0.2.0", no accented letter in any tracked file |
+| The generated project, its CI replayed | `nstack fitness`, the hooks, the history scan and `pr-scope` green; `doctor` L1–L5 green once `pre-commit install` is run and the README sentence written; `new-module` creates the module and its CODEOWNERS line; `nstack check` fails explicitly while the command is not declared |
+
+**`nstack update` from v0.1.0 to v0.2.0.** A project created by `nstack` 0.1.0 from its
+published tag, adapted by the team (the README sentence, a section appended to
+`AGENTS.md`, a `billing` module), then `nstack` 0.2.0 installed over it. Against the
+PDR-0001 criteria:
+
+| Criterion | Result |
+|---|---|
+| The update branch | `nstack/update-v0.2.0`, `main` untouched, `_commit: v0.2.0` |
+| 4. Fix and adaptation merged | Not exercised by this pair: v0.2.0 translated the whole skeleton, so each adapted file conflicts. `README.md`, `AGENTS.md` and `.github/CODEOWNERS` listed, with the action |
+| 5. A blocking conflict | Commit refused by `check-merge-conflict` while a marker remains; accepted once resolved, the adaptations kept |
+| 6. A deleted file | `playbooks/ux.md`, deleted by the team, is not recreated. `playbooks/securite.md`, deleted by the team, **comes back as `playbooks/security.md`** |
+| 7. Modules untouched | `modules/billing/` unchanged; the skeleton's `modules/README.md` updated |
+| After resolution | `nstack fitness` fails on the module's v0.1.0 `lifecycle` value and names the expected ones; once the value is migrated, fitness, hooks, history scan and `doctor` L1–L5 green; `pr-scope` warns over budget (7 538 lines, 60 files) and accepts the `over-budget` label |
+
+**What it teaches.**
+
+- **A renamed skeleton file comes back** in a project that deleted it. Copier has no
+  notion of a rename: the new name is a new file. A skeleton rename is therefore a cost
+  for every project that removed the file; `CONTRIBUTING.md` says so.
+- **Criterion 4 rests on the prototype and the `run.sh` scenarios** only. The first
+  published pair is the worst case, a translated skeleton; the next version exercises it.
+- **A module's machine values are the team's to migrate**: `update` never touches
+  `modules/` (criterion 7), and the failure names the invalid value and the expected ones.
+  No v0.1.0 project exists, so no migration guide is written (ADR-0003).
+
+**Not verifiable in this workstream:** a generated project's CI running on GitHub, the
+timed `nstack init` of PDR-0001's success criterion, and an update with no conflict
+between two published versions — all three belong to the pilot project.
 
 ---
 
