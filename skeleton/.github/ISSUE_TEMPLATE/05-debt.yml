@@ -1,36 +1,36 @@
-name: Dette technique
-description: Dette identifiée, avec son coût et son déclencheur
-labels: ["dette"]
+name: Technical debt
+description: Identified debt, with its cost and its trigger
+labels: ["debt"]
 body:
   - type: input
     id: module
     attributes:
-      label: Module concerné
+      label: Module concerned
     validations: { required: true }
 
   - type: textarea
-    id: dette
+    id: debt
     attributes:
-      label: Nature de la dette
+      label: Nature of the debt
     validations: { required: true }
 
   - type: textarea
-    id: cout
+    id: cost
     attributes:
-      label: Coût actuel
-      description: Ce qu'elle coûte AUJOURD'HUI. Sans coût constaté, ce n'est pas une dette prioritaire.
+      label: Current cost
+      description: What it costs TODAY. Without an observed cost, it is not priority debt.
     validations: { required: true }
 
   - type: textarea
-    id: declencheur
+    id: trigger
     attributes:
-      label: Déclencheur de traitement
-      description: Qu'est-ce qui la rendra prioritaire ? Sans déclencheur, elle ne sera jamais traitée.
+      label: Trigger for dealing with it
+      description: What will make it a priority? Without a trigger, it will never be dealt with.
     validations: { required: true }
 
   - type: checkboxes
-    id: automatisable
+    id: automatable
     attributes:
-      label: Backlog d'automatisation (docs/os/07-governance.md §9)
+      label: Automation backlog (docs/os/07-governance.md §9)
       options:
-        - label: Cette dette vient d'une règle qui vit dans le prompt et devrait être automatisée
+        - label: This debt comes from a rule living in the prompt that should be automated

@@ -1,4 +1,4 @@
-# <titre : ce que ça change, du point de vue du comportement>
+# <title: what this changes, from the behaviour's point of view>
 
 Closes #
 
@@ -6,103 +6,103 @@ Closes #
 
 ## Module
 
-`modules/<nom>` — **un seul**.
+`modules/<name>` — **exactly one**.
 
-- [ ] Cette PR ne touche qu'un module
-- [ ] ⚠️ Cross-module — label `cross-module` requis, justification ci-dessous
+- [ ] This pull request touches a single module
+- [ ] ⚠️ Cross-module — the `cross-module` label is required, justification below
 
-<Justification si cross-module. Rappel : un changement de contrat se fait en
-séquence expand/contract, pas en une PR (`docs/os/03-contracts.md`).>
+<Justification when cross-module. Reminder: a contract change goes through an
+expand/contract sequence, not a single PR (`docs/os/03-contracts.md`).>
 
-## Ce que ça change
+## What it changes
 
-<Le comportement, pas la liste des fichiers. Le diff dit déjà ce qui a changé ;
-cette section dit pourquoi.>
+<The behaviour, not the list of files. The diff already says what changed; this section
+says why.>
 
 ## Oracle
 
 > `docs/os/05-workflow.md` §3
 
-- [ ] Le critère de réussite a été écrit **avant** l'implémentation
-- [ ] Il a été vu **échouer**, pour la bonne raison
-- [ ] Il passe maintenant
+- [ ] The success criterion was written **before** the implementation
+- [ ] It was seen **failing**, for the right reason
+- [ ] It passes now
 
-Nature de l'oracle : test unitaire · intégration · contract test · fitness function ·
-budget · autre : <préciser>
+Kind of oracle: unit test · integration · contract test · fitness function · budget ·
+other: <specify>
 
 ---
 
-## Budget de revue
+## Review budget
 
 > `docs/os/05-workflow.md` §4
 
-- Lignes modifiées (hors généré) : <n>
-- Fichiers touchés : <n>
-- [ ] Dans le budget
-- [ ] ⚠️ Hors budget — label requis, justification : <génération, migration mécanique,
-  renommage massif…>
+- Lines changed (excluding generated): <n>
+- Files touched: <n>
+- [ ] Within budget
+- [ ] ⚠️ Over budget — label required, justification: <generation, mechanical migration,
+  mass rename…>
 
 ---
 
-## Contrats
+## Contracts
 
-- [ ] Aucun contrat impacté
-- [ ] Contrat consommé — version déclarée dans le manifest
-- [ ] Contrat modifié, **additif** — contract tests verts
-- [ ] Contrat modifié, **breaking** — étape expand/contract n° <1|2|3|4>, ADR lié,
-  date de retrait fixée
+- [ ] No contract affected
+- [ ] Contract consumed — the version is declared in the manifest
+- [ ] Contract changed, **additive** — contract tests green
+- [ ] Contract changed, **breaking** — expand/contract step no. <1|2|3|4>, ADR linked,
+  removal date set
 
 ---
 
 ## Definition of Done
 
-> Cocher ce qui est **applicable** selon la criticité du module
-> (`docs/os/05-workflow.md` §7). Ne jamais cocher une case sans avoir réellement exécuté.
+> Tick what is **applicable** for the module's criticality
+> (`docs/os/05-workflow.md` §7). Never tick a box without having actually run it.
 
-- [ ] Oracle vert
+- [ ] Oracle green
 - [ ] Lint, format, types
-- [ ] Tests unitaires
+- [ ] Unit tests
 - [ ] Build
-- [ ] Contract tests *(si contrat)*
+- [ ] Contract tests *(when there is a contract)*
 - [ ] Fitness functions
-- [ ] Tests d'intégration *(selon risque)*
-- [ ] Analyse de sécurité
-- [ ] Accessibilité *(si UI)*
-- [ ] E2E parcours critiques *(criticité élevée+)*
-- [ ] Observabilité ajoutée *(criticité élevée+)*
-- [ ] Rollback vérifié *(criticité critique)*
-- [ ] Documentation impactée mise à jour
-- [ ] Diff auto-relu ligne à ligne
+- [ ] Integration tests *(per risk)*
+- [ ] Security analysis
+- [ ] Accessibility *(when there is UI)*
+- [ ] E2E on critical journeys *(criticality high and above)*
+- [ ] Observability added *(criticality high and above)*
+- [ ] Rollback verified *(criticality critical)*
+- [ ] Affected documentation updated
+- [ ] Diff self-reviewed line by line
 
 ---
 
-## Résumé
+## Summary
 
-> Format imposé. Les trois dernières sections sont les plus importantes et les plus
-> souvent escamotées. (`docs/os/05-workflow.md` §8)
+> An imposed format. The last three sections are the most important and the most often
+> skated over. (`docs/os/05-workflow.md` §8)
 
-**FAIT**
-<une phrase par changement>
+**DONE**
+<one sentence per change>
 
-**VÉRIFIÉ**
-<checks réellement exécutés, avec leur résultat>
+**VERIFIED**
+<checks actually run, with their result>
 
-**SUPPOSÉ**
-<hypothèses prises faute d'information>
+**ASSUMED**
+<assumptions taken for lack of information>
 
-**NON VÉRIFIÉ**
-<ce qui n'a pas été testé, et pourquoi>
+**NOT VERIFIED**
+<what was not tested, and why>
 
-**RISQUES**
-<effets de bord possibles, dette introduite, suites nécessaires>
+**RISKS**
+<possible side effects, debt introduced, follow-ups needed>
 
 ---
 
-## Signaux à remonter
+## Signals to report
 
-- [ ] J'ai dû regarder l'implémentation d'un autre module → **signal de mauvaise
-  frontière** (`docs/os/02-modules.md` §9)
-- [ ] Une règle du kernel ou d'un playbook m'a gêné sans raison valable
-- [ ] Une quality gate a bloqué sans améliorer la qualité
-- [ ] Une règle appliquée manuellement mériterait d'être automatisée
-  → backlog d'automatisation (`docs/os/07-governance.md` §9)
+- [ ] I had to look at another module's implementation → **a signal of a bad boundary**
+  (`docs/os/02-modules.md` §9)
+- [ ] A kernel or playbook rule got in my way for no good reason
+- [ ] A quality gate blocked without improving quality
+- [ ] A rule applied by hand would be worth automating
+  → the automation backlog (`docs/os/07-governance.md` §9)

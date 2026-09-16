@@ -1,40 +1,40 @@
 name: Bug
-description: Comportement incorrect en production ou en test
+description: Incorrect behaviour in production or in test
 labels: ["bug"]
 body:
   - type: input
     id: module
     attributes:
-      label: Module concerné
+      label: Module concerned
     validations: { required: true }
 
   - type: textarea
-    id: attendu
+    id: expected
     attributes:
-      label: Comportement attendu vs observé
+      label: Expected vs observed behaviour
     validations: { required: true }
 
   - type: textarea
     id: repro
     attributes:
       label: Reproduction
-      description: Étapes minimales. Si non reproductible, le dire — c'est une information.
+      description: Minimal steps. If it is not reproducible, say so — that is information.
     validations: { required: true }
 
   - type: input
     id: impact
     attributes:
       label: Impact
-      description: Qui est affecté, depuis quand, avec quelle gravité.
+      description: Who is affected, since when, and how badly.
     validations: { required: true }
 
   - type: checkboxes
-    id: garde-fou
+    id: guardrail
     attributes:
-      label: Boucle de feedback (docs/os/10-measurement.md §4)
-      description: Corriger le bug ne suffit pas — améliorer le système qui l'a laissé passer.
+      label: Feedback loop (docs/os/10-measurement.md §4)
+      description: Fixing the bug is not enough — improve the system that let it through.
       options:
-        - label: Un test reproduisant le bug sera ajouté (il doit échouer AVANT le correctif)
+        - label: A test reproducing the bug will be added (it must fail BEFORE the fix)
           required: true
-        - label: J'ai identifié pourquoi le système ne l'a pas détecté
+        - label: I have identified why the system did not catch it
           required: true
