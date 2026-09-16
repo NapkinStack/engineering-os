@@ -1,4 +1,4 @@
-"""NapkinStack — moteur : fitness functions, skills et scaffold de module."""
+"""NapkinStack - engine: fitness functions, skills and module scaffolding."""
 
 from importlib.metadata import version
 

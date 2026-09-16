@@ -102,6 +102,7 @@ What changes:
 
 | French | Canonical English | Note |
 |---|---|---|
+| framework de travail | **engineering framework** | matches the repository name `engineering-os`; used in the package description |
 | squelette | **skeleton** | already the directory name |
 | moteur | **engine** | the `nstack` command |
 | socle | **foundation** | `platform` is taken twice: `platform/` here, `09-platform.md` in the skeleton |
