@@ -1,125 +1,127 @@
 # NapkinStack
 
-Framework de travail pour faire travailler plusieurs équipes et leurs agents sur un même
-dépôt : modules, contrats, garde-fous en CI. Sur le modèle de Django ou Rails, une commande
-crée le projet, qui reçoit ensuite les nouvelles versions à sa demande ; aucune stack
-applicative n'est imposée. Positionnement et vocabulaire : [`PRODUCT.md`](PRODUCT.md) §1.
+An engineering framework for several teams and their agents working in one repository:
+modules, contracts, guardrails in CI. On the Django or Rails model, one command creates
+the project, which then receives new versions on demand; no application stack is imposed.
+Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **État : v0.1.0, première version publiée** ([PyPI](https://pypi.org/project/napkinstack/)).
-> Un premier projet pilote, privé, l'éprouve avant la suite. Suivi :
-> [feuille de route](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
+> **Status: v0.1.0, the first published version** ([PyPI](https://pypi.org/project/napkinstack/)).
+> A first pilot project, private, puts it to the test before the rest. Tracking:
+> [roadmap](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
 > [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
-## Le parcours d'un projet
+## A project's journey
 
 ```mermaid
 flowchart LR
-    I["Installer<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
-    N --> G["Publier sur GitHub<br/>appliquer la checklist"]:::humain
-    G --> D["nstack doctor<br/>lecture seule"]:::cmd
+    I["Install<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
+    N --> G["Publish on GitHub<br/>apply the checklist"]:::human
+    G --> D["nstack doctor<br/>read-only"]:::cmd
     D --> M["nstack new-module"]:::cmd
-    M --> W["Travail en PR<br/>l'équipe et son agent"]:::humain
-    W --> U["nstack update<br/>branche fusionnée"]:::cmd
-    U --> P["PR relue<br/>validée par la CI"]:::humain
-    P -->|"version suivante"| U
+    M --> W["Work in pull requests<br/>the team and its agent"]:::human
+    W --> U["nstack update<br/>merged branch"]:::cmd
+    U --> P["PR reviewed<br/>validated by CI"]:::human
+    P -->|"next version"| U
 
     classDef cmd fill:#1f2937,color:#fff
-    classDef humain fill:#065f46,color:#fff
+    classDef human fill:#065f46,color:#fff
 ```
 
-**Légende** — gris : commande NapkinStack · vert : action de l'équipe. Décision :
+**Legend** — grey: a NapkinStack command · green: the team's action. Decision:
 [PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md).
 
-Le projet possède son squelette et l'adapte librement. Chaque nouvelle version lui arrive
-à sa demande, fusionnée avec ses adaptations ; les conflits restent à l'équipe.
+The project owns its skeleton and adapts it freely. Every new version reaches it on
+demand, merged with its adaptations; the conflicts are left to the team.
 
 ```mermaid
 flowchart LR
-    V1["Squelette v0.1<br/>base commune"]:::ref --> F{"Fusion<br/>à 3 voies"}
-    V2["Squelette v0.2<br/>correctifs NapkinStack"]:::ns --> F
-    PR["Projet<br/>adaptations de l'équipe"]:::equipe --> F
-    F -->|"lignes différentes"| B["Branche de mise à jour<br/>correctifs + adaptations"]:::ok
-    F -->|"même ligne modifiée"| X["Conflit marqué<br/>commit refusé"]:::ko
+    V1["Skeleton v0.1<br/>common base"]:::ref --> F{"Three-way<br/>merge"}
+    V2["Skeleton v0.2<br/>NapkinStack fixes"]:::ns --> F
+    PR["Project<br/>the team's adaptations"]:::team --> F
+    F -->|"different lines"| B["Update branch<br/>fixes + adaptations"]:::ok
+    F -->|"same line changed"| X["Conflict marked<br/>commit refused"]:::ko
 
     classDef ref fill:#374151,color:#fff
     classDef ns fill:#1e3a8a,color:#fff
-    classDef equipe fill:#065f46,color:#fff
+    classDef team fill:#065f46,color:#fff
     classDef ok fill:#065f46,color:#fff
     classDef ko fill:#7c2d12,color:#fff
 ```
 
-**Légende** — gris : version dont le projet est issu · bleu : nouvelle version · vert :
-travail de l'équipe et résultat accepté · rouge : conflit laissé à l'équipe.
+**Legend** — grey: the version the project came from · blue: the new version · green: the
+team's work and the accepted result · red: a conflict left to the team.
 
-## Installer
+## Install
 
 ```bash
-uv tool install napkinstack --with-executables-from pre-commit   # prérequis : uv et git
-nstack init mon-projet
+uv tool install napkinstack --with-executables-from pre-commit   # prerequisites: uv and git
+nstack init my-project
 ```
 
-Chaque projet épingle ensuite sa version et la change par `nstack update`. Toute version
-publiée porte une attestation de provenance, visible sur PyPI, qui la relie au workflow et
-au commit de ce dépôt ([ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md)).
+Each project then pins its version and changes it through `nstack update`. Every published
+version carries a provenance attestation, visible on PyPI, tying it to the workflow and
+the commit of this repository
+([ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md)).
 
-## Les commandes
+## The commands
 
-| Commande | Rôle |
+| Command | Role |
 |---|---|
-| `nstack init <dossier>` | Crée le projet : squelette, dépôt git, commit initial, checklist GitHub |
-| `nstack doctor` | Vérifie le poste et les réglages GitHub, en lecture seule |
-| `nstack new-module <nom> <organisation>/<équipe> <criticité>` | Crée un module, sans stack imposée |
-| `nstack check`, `test`, `bootstrap` `[module]` ; `nstack run <module>` | Exécutent les commandes déclarées dans le manifest du module |
-| `nstack fitness` | Manifests, frontières entre modules, skills |
-| `nstack pr-scope` | Une PR = un module, budget de revue |
-| `nstack skills` | Expose les playbooks en skills pour l'agent |
-| `nstack update` | Pose la nouvelle version sur une branche à relire |
+| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, GitHub checklist |
+| `nstack doctor` | Checks the workstation and the GitHub settings, read-only |
+| `nstack new-module <name> <organisation>/<team> <criticality>` | Creates a module, with no imposed stack |
+| `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
+| `nstack fitness` | Manifests, boundaries between modules, skills |
+| `nstack pr-scope` | One PR = one module, review budget |
+| `nstack skills` | Exposes the playbooks as skills for the agent |
+| `nstack update` | Lays the new version on a branch to review |
 
-**Prérequis** : uv et git. Les garde-fous bloquent vraiment sur un dépôt GitHub public, ou
-privé sous l'offre Team ou Pro ; sur un dépôt privé de l'offre Free, la CI informe sans
-bloquer ([précision de PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md)).
+**Prerequisites**: uv and git. The guardrails really block on a public GitHub repository,
+or on a private one under the Team or Pro plan; on a private repository on the Free plan
+CI informs without blocking
+([a clarification of PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md)).
 
-**IA** : NapkinStack n'en embarque aucune. L'agent de l'équipe (Claude Code, Codex,
-Copilot…) lit le kernel et les playbooks, lance les commandes, et la CI accepte ou refuse
-ses propositions comme celles de n'importe quel contributeur.
+**AI**: NapkinStack embeds none. The team's agent (Claude Code, Codex, Copilot…) reads the
+kernel and the playbooks, runs the commands, and CI accepts or refuses its proposals
+exactly as it would any other contributor's.
 
-## Ce dépôt
+## This repository
 
 ```mermaid
 flowchart LR
-    S["skeleton/<br/>squelette de projet"]:::livre -->|"copier.yml"| P["Projet d'une équipe"]:::projet
-    E["src/napkinstack/<br/>moteur nstack"]:::livre -.->|"version épinglée"| P
-    A["PRODUCT.md · docs/governance/<br/>platform/ · CI du dépôt"]:::interne
+    S["skeleton/<br/>the project skeleton"]:::shipped -->|"copier.yml"| P["A team's project"]:::project
+    E["src/napkinstack/<br/>the nstack engine"]:::shipped -.->|"pinned version"| P
+    A["PRODUCT.md · docs/governance/<br/>platform/ · this repository's CI"]:::internal
 
-    classDef livre fill:#1e3a8a,color:#fff
-    classDef projet fill:#065f46,color:#fff
-    classDef interne fill:#374151,color:#fff
+    classDef shipped fill:#1e3a8a,color:#fff
+    classDef project fill:#065f46,color:#fff
+    classDef internal fill:#374151,color:#fff
 ```
 
-**Légende** — bleu : livré aux projets · vert : projet généré, qui possède son squelette ·
-gris : développement de NapkinStack, jamais copié (PDR-0001 R6). Trait plein : génération ;
-pointillé : dépendance versionnée.
+**Legend** — blue: shipped to projects · green: a generated project, which owns its
+skeleton · grey: developing NapkinStack itself, never copied (PDR-0001 R6). Solid line:
+generation; dotted: a versioned dependency.
 
-| Chemin | Rôle |
+| Path | Role |
 |---|---|
-| `skeleton/` | Ce que reçoit chaque projet : kernel, playbooks, manuel, CI, hooks |
-| `copier.yml` | Questions posées à la création (gabarit Copier, ADR-0001) |
-| `src/napkinstack/` | Le moteur, commande `nstack` |
-| `platform/` | Enveloppe du module moteur : manifest, runbook, tests |
-| `PRODUCT.md`, `docs/governance/` | Contexte de travail sur NapkinStack |
-| `docs/adr/`, `docs/pdr/` | Décisions de NapkinStack |
+| `skeleton/` | What every project receives: kernel, playbooks, handbook, CI, hooks |
+| `copier.yml` | The questions asked at creation (a Copier template, ADR-0001) |
+| `src/napkinstack/` | The engine, the `nstack` command |
+| `platform/` | The engine module's envelope: manifest, runbook, tests |
+| `PRODUCT.md`, `docs/governance/` | The working context for NapkinStack itself |
+| `docs/adr/`, `docs/pdr/` | NapkinStack's decisions |
 
-## Développer NapkinStack
+## Developing NapkinStack
 
 ```bash
-uv sync                               # prérequis : uv
+uv sync                               # prerequisite: uv
 uv run pre-commit install
-uv run nstack fitness                 # garde-fous du dépôt
-uv run bash platform/tests/run.sh     # oracle : chaque garde-fou prouve qu'il sait échouer
-uv run nstack init /tmp/essai --source . --ref HEAD   # projet d'essai depuis l'arbre de travail
-uv run nstack doctor --root /tmp/essai                # poste et réglages GitHub, en lecture seule
+uv run nstack fitness                 # this repository's guardrails
+uv run bash platform/tests/run.sh     # the oracle: every guardrail proves it can fail
+uv run nstack init /tmp/trial --source . --ref HEAD   # a trial project from the working tree
+uv run nstack doctor --root /tmp/trial                # workstation and GitHub settings, read-only
 ```
 
-Contribuer : [`CONTRIBUTING.md`](CONTRIBUTING.md), après [`PRODUCT.md`](PRODUCT.md).
+Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md), after [`PRODUCT.md`](PRODUCT.md).
 
-Licence : [MIT](LICENSE).
+Licence: [MIT](LICENSE).

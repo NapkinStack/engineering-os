@@ -1,67 +1,68 @@
-# Contribuer à NapkinStack
+# Contributing to NapkinStack
 
-Ce dépôt développe le framework ; il en est aussi le premier utilisateur. Lire d'abord
-[`PRODUCT.md`](PRODUCT.md), en particulier §5.
+This repository develops the framework; it is also its first user. Read
+[`PRODUCT.md`](PRODUCT.md) first, §5 in particular.
 
-## Le parcours d'un chantier
+## A workstream's journey
 
 ```mermaid
 flowchart LR
-    C["Chantier<br/>chantiers.md"]:::suivi --> P["Plan détaillé<br/>plans/"]:::suivi
-    P --> T["Test qui échoue<br/>platform/tests/run.sh"]:::code
-    T --> I["Implémentation<br/>test vert"]:::code
-    I --> V["Vérifications<br/>hooks · fitness · clone vierge"]:::code
-    V --> R["PR<br/>résumé en 5 blocs"]:::revue
-    R --> CI["CI et relecture"]:::revue
-    CI --> M["Merge<br/>squash"]:::fin
+    C["Workstream<br/>chantiers.md"]:::tracking --> P["Detailed plan<br/>plans/"]:::tracking
+    P --> T["A failing test<br/>platform/tests/run.sh"]:::code
+    T --> I["Implementation<br/>test green"]:::code
+    I --> V["Verifications<br/>hooks · fitness · fresh clone"]:::code
+    V --> R["Pull request<br/>summary in 5 blocks"]:::review
+    R --> CI["CI and review"]:::review
+    CI --> M["Merge<br/>squash"]:::done
 
-    classDef suivi fill:#374151,color:#fff
+    classDef tracking fill:#374151,color:#fff
     classDef code fill:#1f2937,color:#fff
-    classDef revue fill:#1e3a8a,color:#fff
-    classDef fin fill:#065f46,color:#fff
+    classDef review fill:#1e3a8a,color:#fff
+    classDef done fill:#065f46,color:#fff
 ```
 
-**Légende** — gris clair : suivi (`docs/governance/`) · gris foncé : travail sur la branche ·
-bleu : revue · vert : intégré à `main`.
+**Legend** — light grey: tracking (`docs/governance/`) · dark grey: work on the branch ·
+blue: review · green: merged into `main`.
 
-## Les règles du lot
+## The rules of the batch
 
-- **Un chantier = une PR**, jamais deux ensemble. Dans les modèles d'issue et de PR, « le
-  module » se lit « le chantier ».
-- **Le test d'abord** : chaque contrôle a un test qui prouve qu'il échoue (P5), vu rouge
-  avant l'implémentation ; chaque échec nomme la règle, l'endroit et l'action (P6).
-- **Budget de revue** : 400 lignes et 15 fichiers ; au-delà, label `hors-budget` justifié
-  dans la PR (migration mécanique, plan détaillé, génération).
-- **Résumé de PR** : `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES`.
-- **Documentation dans le même lot** : un changement de commande, de statut ou de décision
-  met à jour toutes les pages concernées, schémas légendés compris.
-- **Definition of Done** : [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+- **One workstream = one pull request**, never two together. In the issue and pull
+  request templates, "the module" reads "the workstream".
+- **The test first**: every check has a test that proves it fails (P5), seen red before
+  the implementation; every failure names the rule, the place and the action (P6).
+- **Review budget**: 400 lines and 15 files; beyond that, the `over-budget` label,
+  justified in the pull request (mechanical migration, detailed plan, generation).
+- **Pull request summary**: `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
+- **Documentation in the same batch**: a change of command, of status or of decision
+  updates every page concerned, diagrams and their legends included.
+- **Definition of Done**: [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
 
-## Publier une version
+## Publishing a version
 
 ```mermaid
 flowchart LR
-    V["PR de version<br/>uv version --bump"]:::humain --> T["Tag vX.Y.Z<br/>sur main"]:::humain
-    T --> C["Construction<br/>tag = version, sinon arrêt"]:::ci
-    C --> A{"Approbation<br/>environnement pypi"}:::humain
+    V["Version PR<br/>uv version --bump"]:::human --> T["Tag vX.Y.Z<br/>on main"]:::human
+    T --> C["Build<br/>tag = version, otherwise stop"]:::ci
+    C --> A{"Approval<br/>pypi environment"}:::human
     A --> P["PyPI<br/>Trusted Publishing, attestation"]:::pypi
 
-    classDef humain fill:#065f46,color:#fff
+    classDef human fill:#065f46,color:#fff
     classDef ci fill:#1f2937,color:#fff
     classDef pypi fill:#1e3a8a,color:#fff
 ```
 
-**Légende** — vert : action d'un mainteneur · gris : `.github/workflows/release.yml` ·
-bleu : PyPI. Décision : [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md).
+**Legend** — green: a maintainer's action · grey: `.github/workflows/release.yml` ·
+blue: PyPI. Decision: [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md).
 
-1. Monter la version dans une PR : `uv version --bump patch` (ou `minor`), puis la fusionner.
-2. Poser le tag sur le commit fusionné : `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>`,
-   puis `git push origin vX.Y.Z`.
-3. Approuver le déploiement dans GitHub Actions (« Review deployments »).
+1. Bump the version in a pull request: `uv version --bump patch` (or `minor`), then merge
+   it.
+2. Tag the merged commit: `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>`, then
+   `git push origin vX.Y.Z`.
+3. Approve the deployment in GitHub Actions ("Review deployments").
 
-Aucun secret n'est stocké : GitHub prouve son identité à PyPI à chaque publication. Une
-version publiée ne se remplace pas ; une erreur se corrige par la version suivante, et une
-version défectueuse se retire (*yank*) sur PyPI.
+No secret is stored: GitHub proves its identity to PyPI at every publication. A published
+version is never replaced; a mistake is fixed by the next version, and a faulty version is
+yanked on PyPI.
 
-Barrières contre les fuites et exceptions (`cross-module`, `hors-budget`) : les mêmes que
-dans les projets, décrites dans [`skeleton/CONTRIBUTING.md`](skeleton/CONTRIBUTING.md).
+Leak barriers and exceptions (`cross-module`, `over-budget`): the same as in the projects,
+described in [`skeleton/CONTRIBUTING.md`](skeleton/CONTRIBUTING.md).

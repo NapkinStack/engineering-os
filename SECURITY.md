@@ -1,35 +1,34 @@
-# Sécurité
+# Security
 
-## Signaler une vulnérabilité
+## Reporting a vulnerability
 
-**Ne jamais ouvrir d'issue publique pour une vulnérabilité.**
+**Never open a public issue for a vulnerability.**
 
-Utiliser le signalement privé de la forge : sur GitHub, onglet **Security**, puis
-**Report a vulnerability**. Le rapport n'est visible que des mainteneurs.
+Use the forge's private reporting: on GitHub, the **Security** tab, then **Report a
+vulnerability**. The report is visible only to the maintainers.
 
-Délai de première réponse visé : **7 jours**.
+Target time to first response: **7 days**.
 
-## Règles absolues du projet
+## The project's absolute rules
 
-| # | Règle |
+| # | Rule |
 |---|---|
-| S1 | Aucun secret dans le dépôt — ni en clair, ni encodé, ni dans un test |
-| S2 | Toute entrée externe est hostile jusqu'à validation explicite |
-| S3 | Moindre privilège par défaut, y compris pour la CI et les agents |
-| S4 | Refus par défaut en autorisation |
-| S5 | Jamais de mécanisme cryptographique ou d'authentification maison |
+| S1 | No secret in the repository — not in clear text, not encoded, not in a test |
+| S2 | All external input is hostile until explicitly validated |
+| S3 | Least privilege by default, including for CI and for agents |
+| S4 | Deny by default in authorisation |
+| S5 | Never a homemade cryptographic or authentication mechanism |
 
-Détail opérationnel : `skeleton/playbooks/security.md`.
+Operational detail: `skeleton/playbooks/security.md`.
 
-## Secret exposé
+## An exposed secret
 
-Un secret exposé, même brièvement, même dans un commit réécrit depuis :
-**rotation immédiate**. Le retirer de l'historique ne suffit pas. C'est un incident,
-pas un correctif.
+A secret exposed, even briefly, even in a commit since rewritten: **rotate it
+immediately**. Removing it from history is not enough. That is an incident, not a fix.
 
-## Actions à haut risque
+## High-risk actions
 
-Modification de permissions, accès à des secrets, exposition d'un nouveau service,
-migration irréversible : jamais d'exécution silencieuse. Risque nommé, impact décrit,
-procédure sûre et rollback proposés, confirmation explicite demandée
+Changing permissions, accessing secrets, exposing a new service, an irreversible
+migration: never a silent execution. The risk named, the impact described, a safe
+procedure and a rollback proposed, explicit confirmation asked for
 (`skeleton/AGENTS.md` §5).
