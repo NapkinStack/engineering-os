@@ -1,43 +1,43 @@
-# 07 — Gouvernance
+# 07 — Governance
 
-## 1. Le principe
+## 1. The principle
 
-> Si une règle peut être vérifiée automatiquement, elle ne doit **pas** dépendre de la
-> vigilance de l'IA ou du développeur.
+> If a rule can be checked automatically, it must **not** depend on the vigilance of the
+> AI or of the developer.
 
-C'est le passage d'une *gouvernance par inspection* — quelqu'un relit et repère — à une
-*gouvernance par règle* : le système refuse l'état invalide.
+This is the move from *governance by inspection* — somebody reviews and spots things — to
+*governance by rule*: the system refuses the invalid state.
 
-Corollaire : **une règle importante qui n'est contrôlée que par la mémoire humaine
-dérivera.** Pas peut-être, pas si l'équipe est négligente. Elle dérivera.
+Corollary: **an important rule checked only by human memory will drift.** Not maybe, not
+if the team is careless. It will drift.
 
 ---
 
-## 2. Où vit cette règle ?
+## 2. Where does this rule live?
 
-C'est l'arbitrage central de l'OS et il doit être fait explicitement, à chaque nouvelle
-règle.
+This is the central arbitration of the OS and it must be made explicitly, for every new
+rule.
 
 ```mermaid
 flowchart TD
-    A["Nouvelle règle<br/>ou convention"] --> B{"Vérifiable<br/>mécaniquement ?"}
+    A["New rule<br/>or convention"] --> B{"Mechanically<br/>checkable?"}
 
-    B -->|Oui| C{"Coût de mise<br/>en place ?"}
-    B -->|Non| G{"Structurelle<br/>ou situationnelle ?"}
+    B -->|Yes| C{"Cost of setting<br/>it up?"}
+    B -->|No| G{"Structural<br/>or situational?"}
 
-    C -->|Faible| D["CI : check bloquant<br/>+ hook local pour le feedback"]
-    C -->|Élevé| E{"Risque si<br/>violée ?"}
+    C -->|Low| D["CI: blocking check<br/>+ local hook for feedback"]
+    C -->|High| E{"Risk if<br/>violated?"}
 
-    E -->|Élevé| D
-    E -->|Faible| F["Backlog d'automatisation<br/>+ règle temporaire dans un playbook"]
+    E -->|High| D
+    E -->|Low| F["Automation backlog<br/>+ a temporary rule in a playbook"]
 
-    G -->|Structurelle| H["Frontière : repo, package,<br/>ownership, CODEOWNERS"]
-    G -->|Situationnelle| I{"S'applique à<br/>TOUTE tâche ?"}
+    G -->|Structural| H["A boundary: repo, package,<br/>ownership, CODEOWNERS"]
+    G -->|Situational| I{"Does it apply to<br/>EVERY task?"}
 
-    I -->|Oui| J["KERNEL<br/>budget strictement limité"]
-    I -->|Non| K["PLAYBOOK<br/>chargé par déclencheur"]
+    I -->|Yes| J["KERNEL<br/>strictly limited budget"]
+    I -->|No| K["PLAYBOOK<br/>loaded by trigger"]
 
-    D --> L["RETIRER la règle du prompt"]
+    D --> L["REMOVE the rule from the prompt"]
     H --> L
 
     style D fill:#065f46,color:#fff
@@ -46,41 +46,44 @@ flowchart TD
     style L fill:#7c2d12,color:#fff
 ```
 
-Le nœud `L` est le plus important et le plus oublié : **une fois automatisée, la règle
-quitte le prompt**. Sinon le kernel grossit indéfiniment et finit par coûter, à chaque
-tâche, plus de contexte qu'il n'en protège.
+**Legend** — green: the deterministic destinations · dark grey: the expensive,
+probabilistic one · red: the step everyone forgets.
 
-Le nœud `H` mérite aussi attention : une règle non vérifiable mais structurelle se
-résout souvent par la **structure** plutôt que par le texte. « N'importez pas le code de
-l'autre module » est une règle faible ; mettre les deux modules dans des packages
-distincts avec des dépendances déclarées la rend inutile.
+Node `L` is the most important and the most forgotten: **once automated, the rule leaves
+the prompt**. Otherwise the kernel grows indefinitely and ends up costing, on every task,
+more context than it protects.
+
+Node `H` also deserves attention: a rule that is not checkable but is structural is often
+solved by **structure** rather than by text. "Do not import the other module's code" is a
+weak rule; putting the two modules in distinct packages with declared dependencies makes
+it unnecessary.
 
 ---
 
-## 3. Les fitness functions
+## 3. Fitness functions
 
-> Une règle importante ne doit pas rester dans le prompt ; elle doit devenir un test
-> automatisé qui échoue si l'architecture dérive.
+> An important rule must not stay in the prompt; it must become an automated test that
+> fails when the architecture drifts.
 
-C'est le mécanisme qui transforme les principes de cet OS en contraintes réelles.
+This is the mechanism that turns this OS's principles into real constraints.
 
 ```mermaid
 flowchart LR
-    subgraph SRC["Sources — déjà présentes"]
-        S1["MANIFEST<br/>des modules"]
-        S2["Graphe réel extrait<br/>du code"]
-        S3["Contrats<br/>versionnés"]
-        S4["Métriques<br/>build & runtime"]
+    subgraph SRC["Sources — already present"]
+        S1["The modules'<br/>MANIFESTs"]
+        S2["The real graph extracted<br/>from the code"]
+        S3["Versioned<br/>contracts"]
+        S4["Build & runtime<br/>metrics"]
     end
 
     subgraph FF["Fitness functions"]
-        F1["Dépendances :<br/>déclaré = réel"]
-        F2["Absence de cycles"]
-        F3["Respect des couches"]
-        F4["Pas d'accès base<br/>d'un autre module"]
-        F5["Contrats : compat.<br/>et consommateurs"]
-        F6["Budgets : perf,<br/>taille, temps"]
-        F7["Cycle de vie :<br/>statuts et dates"]
+        F1["Dependencies:<br/>declared = real"]
+        F2["No cycles"]
+        F3["Layering respected"]
+        F4["No access to another<br/>module's database"]
+        F5["Contracts: compatibility<br/>and consumers"]
+        F6["Budgets: performance,<br/>size, time"]
+        F7["Lifecycle:<br/>statuses and dates"]
     end
 
     S1 --> F1
@@ -92,166 +95,168 @@ flowchart LR
     S1 --> F7
     S4 --> F6
 
-    FF --> CI["CI — bloquant"]
+    FF --> CI["CI — blocking"]
 
     style CI fill:#065f46,color:#fff
     style FF fill:#1f2937,color:#fff
 ```
 
-### Les fitness functions de base
+**Legend** — dark grey: the checks themselves · green: the blocking verdict.
 
-À mettre en place dès le deuxième module, par ordre de rentabilité :
+### The basic fitness functions
 
-| # | Fonction | Détecte |
+To put in place from the second module onwards, in order of return:
+
+| # | Function | Detects |
 |---|---|---|
-| 1 | Graphe déclaré (manifest) = graphe réel (code) | Dépendance cachée, import sauvage |
-| 2 | Absence de dépendance circulaire | Modules devenus inséparables |
-| 3 | Aucun accès direct aux données d'un autre module | Couplage par la base |
-| 4 | Compatibilité ascendante des contrats | Rupture involontaire |
-| 5 | Consommateurs d'une version dépréciée = 0 avant retrait | Rupture volontaire mal séquencée |
-| 6 | Cohérence des statuts de cycle de vie | Contrat gelé modifié, module déprécié réutilisé |
-| 7 | Dates de dépréciation non dépassées | États intermédiaires permanents |
-| 8 | Une PR = un module | Érosion des frontières |
-| 9 | Enveloppe de module complète (manifest, owner, tests) | Module orphelin |
-| 10 | Budgets de performance et de taille | Régression silencieuse |
+| 1 | Declared graph (manifest) = real graph (code) | A hidden dependency, a stray import |
+| 2 | No circular dependency | Modules that have become inseparable |
+| 3 | No direct access to another module's data | Coupling through the database |
+| 4 | Backward compatibility of contracts | An unintentional breakage |
+| 5 | Consumers of a deprecated version = 0 before removal | A deliberate breakage, badly sequenced |
+| 6 | Consistency of lifecycle statuses | A frozen contract changed, a deprecated module reused |
+| 7 | Deprecation dates not passed | Permanent intermediate states |
+| 8 | One PR = one module | Boundary erosion |
+| 9 | Complete module envelope (manifest, owner, tests) | An orphan module |
+| 10 | Performance and size budgets | A silent regression |
 
-Les six premières sont peu coûteuses : elles se calculent sur des données déjà
-présentes (manifests, imports, schémas de contrats). Il n'y a **aucune analyse
-sémantique** — ce sont des comparaisons de graphes et de schémas.
+The first six are cheap: they are computed from data already present (manifests, imports,
+contract schemas). There is **no semantic analysis** — these are comparisons of graphs
+and schemas.
 
-### Écrire une fitness function
+### Writing a fitness function
 
-Une bonne fitness function est : rapide (elle tourne à chaque PR), déterministe (pas de
-faux positifs aléatoires), et **explicative en cas d'échec**. Une fonction qui dit
-seulement « violation d'architecture » sera contournée ; une qui dit « le module A
-importe `B/internal/x.ts`, or le manifest de A ne déclare pas B ; utilisez le contrat
-`b-api@v2` » sera respectée.
+A good fitness function is fast (it runs on every pull request), deterministic (no random
+false positives), and **explanatory when it fails**. One that says only "architecture
+violation" will be worked around; one that says "module A imports `B/internal/x.ts`, but
+A's manifest does not declare B; use contract `b-api@v2`" will be respected.
 
 ---
 
-## 4. Ce qu'il faut automatiser
+## 4. What to automate
 
-Par ordre de rentabilité décroissante :
+In decreasing order of return:
 
 ```
-Immédiat, coût quasi nul
-  format · lint · type checking · détection de secrets · conventions de commit
+Immediately, at almost no cost
+  format · lint · type checking · secret detection · commit conventions
 
-Dès le 2e module
-  tests unitaires · build · fitness functions 1 à 3 · une PR = un module
+From the 2nd module
+  unit tests · build · fitness functions 1 to 3 · one PR = one module
 
-Dès le 1er contrat inter-équipes
-  validation de schéma · contract tests · compatibilité · consommateurs
+From the 1st inter-team contract
+  schema validation · contract tests · compatibility · consumers
 
-Dès la mise en production
-  analyse de sécurité · dépendances/CVE · smoke tests · vérification post-déploiement
+From going to production
+  security analysis · dependencies/CVE · smoke tests · post-deployment verification
 
-Quand le volume le justifie
-  tests d'intégration · E2E ciblés · budgets de performance · merge queue
+When the volume justifies it
+  integration tests · targeted E2E · performance budgets · merge queue
 ```
 
-**Les contrôles critiques tournent en CI.** Les hooks locaux donnent un feedback rapide
-mais ne sont **jamais** l'unique barrière : ils sont contournables, désactivables, et
-absents chez le nouvel arrivant.
+**The critical checks run in CI.** Local hooks give fast feedback but are **never** the
+only barrier: they are bypassable, disableable, and absent on a newcomer's machine.
 
 ---
 
 ## 5. Quality gates
 
-Une quality gate doit être : **objective · compréhensible · reproductible · automatisée
-si possible · utile**.
+A quality gate must be: **objective · understandable · reproducible · automated where
+possible · useful**.
 
-Le dernier critère est le plus souvent oublié, et c'est celui qui tue l'adhésion.
+The last criterion is the most often forgotten, and it is the one that kills buy-in.
 
-| Situation | Réponse |
+| Situation | Response |
 |---|---|
-| Une gate bloque souvent sans jamais améliorer la qualité | La réévaluer ou la supprimer |
-| Une règle importante jamais respectée | L'automatiser, la supprimer, ou reconsidérer explicitement |
-| Une gate systématiquement contournée par label | Le problème est la gate, pas les gens |
-| Une gate lente au point qu'on la saute | La rendre rapide ou la déplacer plus tard dans le pipeline |
+| A gate blocks often without ever improving quality | Re-evaluate it or remove it |
+| An important rule never respected | Automate it, remove it, or explicitly reconsider |
+| A gate systematically bypassed by label | The problem is the gate, not the people |
+| A gate so slow that people skip it | Make it fast, or move it later in the pipeline |
 
-> Éviter les gates bureaucratiques sans valeur. Chaque gate a un coût permanent payé par
-> toutes les PR ; elle doit être rentable.
+> Avoid bureaucratic gates with no value. Every gate has a permanent cost paid by every
+> pull request; it must earn its keep.
 
-**Jamais de contournement silencieux.** Pas de `skip`, pas de `--no-verify`, pas de test
-désactivé « temporairement », pas de seuil abaissé pour faire passer. Un contournement
-nécessaire passe par un label visible et laisse une trace comptée.
+**Never a silent bypass.** No `skip`, no `--no-verify`, no test disabled "temporarily",
+no threshold lowered to make things pass. A necessary bypass goes through a visible label
+and leaves a counted trace.
 
 ---
 
-## 6. Gouvernance proportionnelle
+## 6. Proportionate governance
 
-Le niveau d'exigence dépend de la **criticité déclarée dans le manifest**, pas d'une
-règle uniforme. Ne jamais imposer à un petit module la cérémonie d'un système critique ;
-ne jamais traiter un système critique comme un prototype.
+The level of requirement depends on the **criticality declared in the manifest**, not on
+a uniform rule. Never impose the ceremony of a critical system on a small module; never
+treat a critical system like a prototype.
 
 ```mermaid
 flowchart TD
-    A["Module"] --> B{"Criticité<br/>déclarée"}
+    A["Module"] --> B{"Declared<br/>criticality"}
 
-    B -->|"Prototype / interne"| P["MINIMAL<br/>lint · types · tests unitaires<br/>manifest · owner"]
-    B -->|"Standard"| S["STRUCTURÉ<br/>+ contrats validés · fitness functions<br/>+ ADR structurants · revue"]
-    B -->|"Élevée"| E["RENFORCÉ<br/>+ intégration · E2E critiques<br/>+ observabilité · sécurité · runbook"]
-    B -->|"Critique / sensible"| C["MAXIMAL<br/>+ revue par l'owner · UAT<br/>+ rollback vérifié · post-déploiement<br/>+ exigences de conformité"]
+    B -->|"prototype / internal"| P["MINIMAL<br/>lint · types · unit tests<br/>manifest · owner"]
+    B -->|"standard"| S["STRUCTURED<br/>+ validated contracts · fitness functions<br/>+ structuring ADRs · review"]
+    B -->|"high"| E["REINFORCED<br/>+ integration · critical E2E<br/>+ observability · security · runbook"]
+    B -->|"critical / sensitive"| C["MAXIMAL<br/>+ review by the owner · UAT<br/>+ verified rollback · post-deployment<br/>+ compliance requirements"]
 
     style P fill:#1f2937,color:#fff
     style C fill:#7c2d12,color:#fff
 ```
 
-La criticité est déclarée dans le manifest, donc la CI sait quels checks appliquer à
-quel module. Elle n'est pas décidée PR par PR, ce qui éviterait toute discussion au
-mauvais moment.
+**Legend** — dark grey: the lightest level · red: the heaviest.
 
-**Elle est révisable**, par ADR : un module qui passe en production change de niveau.
+Criticality is declared in the manifest, so CI knows which checks to apply to which
+module. It is not decided pull request by pull request, which would trigger the
+discussion at the worst possible moment.
+
+**It is revisable**, by ADR: a module going to production changes level.
 
 ---
 
-## 7. Le repository comme organe de gouvernance
+## 7. The repository as an organ of governance
 
-Le dépôt n'est pas un espace de stockage : c'est là que les règles deviennent
-non contournables. Mécanismes à utiliser (formulation GitHub, transposable) :
+The repository is not storage space: it is where rules become non-bypassable. Mechanisms
+to use (GitHub wording, transposable elsewhere):
 
-| Mécanisme | Ce qu'il garantit |
+| Mechanism | What it guarantees |
 |---|---|
-| Pull requests obligatoires | Aucun changement direct sur la branche protégée |
-| Required checks | Une CI rouge bloque le merge, sans exception |
-| CODEOWNERS | Le bon owner est sollicité automatiquement |
-| Rulesets / branch protection | Les règles ne dépendent pas de la bonne volonté |
-| Issue forms | Le DoR est structurellement rempli |
-| PR template | Le DoD est visible au moment de la revue |
-| Labels | Les exceptions sont visibles et comptées |
-| Environnements protégés | Le déploiement passe par une approbation |
-| Dependency / security automation | Les CVE ne dépendent pas d'une veille manuelle |
-| Merge queue | Évite les merges qui se cassent mutuellement |
+| Pull requests required | No direct change on the protected branch |
+| Required checks | A red CI blocks the merge, without exception |
+| CODEOWNERS | The right owner is asked automatically |
+| Rulesets / branch protection | The rules do not depend on goodwill |
+| Issue forms | The DoR is structurally filled in |
+| PR template | The DoD is visible at review time |
+| Labels | Exceptions are visible and counted |
+| Protected environments | Deployment goes through an approval |
+| Dependency / security automation | CVEs do not depend on manual watching |
+| Merge queue | Avoids merges that break each other |
 
-> **Les règles critiques ne doivent pas être contournables par une instruction donnée à
-> l'IA.** C'est le test ultime de la gouvernance : si demander gentiment à un agent
-> suffit à passer outre, la règle n'existe pas.
+> **Critical rules must not be bypassable by an instruction given to the AI.** That is
+> the ultimate test of governance: if asking an agent nicely is enough to get around it,
+> the rule does not exist.
 
 ---
 
-## 8. Le pipeline CI
+## 8. The CI pipeline
 
-Ordre conceptuel, du plus rapide au plus coûteux — le feedback utile arrive tôt.
+Conceptual order, from the fastest to the most expensive — useful feedback arrives early.
 
 ```mermaid
 flowchart TD
-    CH["Changement"] --> F1["Format · Lint"]
+    CH["Change"] --> F1["Format · Lint"]
     F1 --> F2["Types"]
-    F2 --> F3["Tests unitaires"]
+    F2 --> F3["Unit tests"]
     F3 --> F4["Build"]
-    F4 --> F5["Fitness functions<br/>architecture"]
-    F5 --> F6["Contrats :<br/>schéma · compatibilité"]
-    F6 --> F7["Sécurité :<br/>secrets · dépendances · SAST"]
-    F7 --> F8["Tests d'intégration"]
-    F8 --> F9["E2E · visuel · accessibilité<br/>selon criticité"]
+    F4 --> F5["Architecture<br/>fitness functions"]
+    F5 --> F6["Contracts:<br/>schema · compatibility"]
+    F6 --> F7["Security:<br/>secrets · dependencies · SAST"]
+    F7 --> F8["Integration tests"]
+    F8 --> F9["E2E · visual · accessibility<br/>per criticality"]
     F9 --> AR["Artefact"]
-    AR --> DE["Déploiement"]
+    AR --> DE["Deployment"]
     DE --> SM["Smoke tests"]
-    SM --> OB["Vérification par<br/>l'observabilité"]
+    SM --> OB["Verification through<br/>observability"]
 
-    F1 -.->|"échec = arrêt immédiat"| STOP["Feedback < 2 min"]
-    F5 -.->|"échec = violation<br/>architecturale"| STOP2["Explication précise<br/>+ règle violée"]
+    F1 -.->|"failure = immediate stop"| STOP["Feedback under 2 min"]
+    F5 -.->|"failure = architectural<br/>violation"| STOP2["A precise explanation<br/>+ the rule broken"]
 
     style F5 fill:#065f46,color:#fff
     style F6 fill:#065f46,color:#fff
@@ -259,25 +264,27 @@ flowchart TD
     style STOP2 fill:#1f2937,color:#fff
 ```
 
-**Ne pas appliquer mécaniquement toutes les étapes à tous les modules.** Le niveau de
-validation est proportionnel au risque (§6).
+**Legend** — green: the architecture gates · dark grey: what a failure must give back.
 
-**Le temps de feedback est une propriété de qualité.** Une CI de trente minutes est une
-CI qu'on contourne, qu'on lance en fin de journée, et dont on ignore les résultats. Le
-temps de feedback est un indicateur suivi (`10-measurement.md`).
+**Do not apply every step mechanically to every module.** The level of validation is
+proportionate to the risk (§6).
+
+**Feedback time is a quality property.** A thirty-minute CI is a CI people work around,
+launch at the end of the day, and whose results they ignore. Feedback time is a tracked
+indicator (`10-measurement.md`).
 
 ---
 
-## 9. Le backlog d'automatisation
+## 9. The automation backlog
 
-Toute règle qui *devrait* être automatisée mais ne l'est pas encore est une dette
-identifiée, pas une fatalité. Elle figure dans un backlog dédié, avec :
+Every rule that *should* be automated but is not yet is identified debt, not a fact of
+life. It sits in a dedicated backlog, with:
 
-- la règle et où elle vit temporairement (playbook, AGENTS.md local) ;
-- le risque en cas de violation ;
-- le coût estimé d'automatisation ;
-- le déclencheur qui la rendra prioritaire.
+- the rule and where it lives temporarily (a playbook, a local AGENTS.md);
+- the risk if it is violated;
+- the estimated cost of automating it;
+- the trigger that will make it a priority.
 
-Ce backlog est revu au même rythme que la revue des décisions (`06-decisions.md` §6).
-C'est le mécanisme qui empêche le kernel de grossir : chaque règle ajoutée au prompt
-arrive avec sa date de sortie prévue.
+That backlog is reviewed on the same rhythm as the decision review (`06-decisions.md`
+§6). It is the mechanism that stops the kernel growing: every rule added to the prompt
+arrives with its planned exit date.
