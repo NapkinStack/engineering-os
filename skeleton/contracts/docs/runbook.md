@@ -1,16 +1,15 @@
 # Runbook — contracts
 
-## Un consommateur casse après un changement de contrat
+## A consumer breaks after a contract change
 
-1. Vérifier l'étape expand/contract en cours (1 à 4).
-2. Si le retrait de v1 a eu lieu trop tôt : le restaurer immédiatement — c'est un
-   rollback, pas une correction.
-3. Post-mortem : pourquoi le check « consommateurs v1 = 0 » n'a-t-il pas bloqué ?
+1. Check which expand/contract step is in progress (1 to 4).
+2. If v1 was removed too early: restore it immediately — that is a rollback, not a fix.
+3. Post-mortem: why did the "v1 consumers = 0" check not block?
 
-## Contraction en retard
+## An overdue contraction
 
-Version dépréciée dont la date de retrait est dépassée. La CI est rouge, et c'est
-voulu : c'est un état intermédiaire permanent en train de s'installer.
+A deprecated version whose removal date has passed. CI is red, and deliberately so: a
+permanent intermediate state is settling in.
 
-Deux issues possibles : terminer la migration du dernier consommateur, ou repousser la
-date **explicitement**, avec justification.
+Two ways out: finish migrating the last consumer, or push the date back **explicitly**,
+with a justification.
