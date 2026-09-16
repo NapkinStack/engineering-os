@@ -20,9 +20,9 @@ a three-way merge on a live repository. This window closes when the pilot opens.
 to verify `nstack update` between two tags — the last unverified item of PDR-0001.
 
 **Decision record:** ADR-0003 (written in M7a). Existing specification unchanged:
-[PDR-0001](../../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md),
-[ADR-0001](../../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md),
-[ADR-0002](../../adr/0002-distribuer-napkinstack-sur-pypi.md).
+[PDR-0001](../../pdr/0001-create-a-project-and-receive-updates.md),
+[ADR-0001](../../adr/0001-adopt-copier-to-generate-and-update-projects.md),
+[ADR-0002](../../adr/0002-distribute-napkinstack-on-pypi.md).
 
 ---
 
@@ -175,9 +175,9 @@ already English. Only help text, messages and the `eleve` value of `new-module` 
 | `docs/governance/revues.md` | `reviews.md` |
 | `docs/governance/backlog-automatisation.md` | `automation-backlog.md` |
 | `docs/governance/plans/2026-09-15-moteur-v0.1.0.md` | `2026-09-15-engine-v0.1.0.md` |
-| `docs/adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md` | `0001-adopt-copier-to-generate-and-update-projects.md` |
-| `docs/adr/0002-distribuer-napkinstack-sur-pypi.md` | `0002-distribute-napkinstack-on-pypi.md` |
-| `docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md` | `0001-create-a-project-and-receive-updates.md` |
+| `docs/adr/0001-adopt-copier-to-generate-and-update-projects.md` | `0001-adopt-copier-to-generate-and-update-projects.md` |
+| `docs/adr/0002-distribute-napkinstack-on-pypi.md` | `0002-distribute-napkinstack-on-pypi.md` |
+| `docs/pdr/0001-create-a-project-and-receive-updates.md` | `0001-create-a-project-and-receive-updates.md` |
 
 Unchanged: `02-modules.md`, `05-workflow.md`, `06-decisions.md`, `playbooks/tests.md`,
 `playbooks/ux.md`, and every directory name — they are already English.

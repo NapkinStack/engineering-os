@@ -22,6 +22,6 @@ Voir `skeleton/docs/os/06-decisions.md`.
 
 | N° | Titre | Statut | Critère à vérifier le |
 |---|---|---|---|
-| [0001](./0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Adopter Copier pour générer et mettre à jour les projets | Accepté | Validé au prototype (2026-09-15) |
-| [0002](./0002-distribuer-napkinstack-sur-pypi.md) | Distribuer NapkinStack sur PyPI | Accepté | Validé à la publication de la v0.1.0 (2026-09-15) |
+| [0001](./0001-adopt-copier-to-generate-and-update-projects.md) | Adopter Copier pour générer et mettre à jour les projets | Accepté | Validé au prototype (2026-09-15) |
+| [0002](./0002-distribute-napkinstack-on-pypi.md) | Distribuer NapkinStack sur PyPI | Accepté | Validé à la publication de la v0.1.0 (2026-09-15) |
 | [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepté | À vérifier à la publication de la v0.2.0 |

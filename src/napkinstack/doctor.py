@@ -45,7 +45,7 @@ API_VERSION = "2026-03-10"
 PLACEHOLDER = "<One sentence: what this project does.>"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets")
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
-LABELS = ("cross-module", "hors-budget")
+LABELS = ("cross-module", "over-budget")
 PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
 
 RULESET = "Settings → Rules → Rulesets, main branch"

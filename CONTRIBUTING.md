@@ -52,7 +52,7 @@ flowchart LR
 ```
 
 **Légende** — vert : action d'un mainteneur · gris : `.github/workflows/release.yml` ·
-bleu : PyPI. Décision : [ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pypi.md).
+bleu : PyPI. Décision : [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md).
 
 1. Monter la version dans une PR : `uv version --bump patch` (ou `minor`), puis la fusionner.
 2. Poser le tag sur le commit fusionné : `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>`,

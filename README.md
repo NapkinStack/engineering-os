@@ -28,7 +28,7 @@ flowchart LR
 ```
 
 **Légende** — gris : commande NapkinStack · vert : action de l'équipe. Décision :
-[PDR-0001](docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
+[PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md).
 
 Le projet possède son squelette et l'adapte librement. Chaque nouvelle version lui arrive
 à sa demande, fusionnée avec ses adaptations ; les conflits restent à l'équipe.
@@ -60,7 +60,7 @@ nstack init mon-projet
 
 Chaque projet épingle ensuite sa version et la change par `nstack update`. Toute version
 publiée porte une attestation de provenance, visible sur PyPI, qui la relie au workflow et
-au commit de ce dépôt ([ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pypi.md)).
+au commit de ce dépôt ([ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md)).
 
 ## Les commandes
 
@@ -77,7 +77,7 @@ au commit de ce dépôt ([ADR-0002](docs/adr/0002-distribuer-napkinstack-sur-pyp
 
 **Prérequis** : uv et git. Les garde-fous bloquent vraiment sur un dépôt GitHub public, ou
 privé sous l'offre Team ou Pro ; sur un dépôt privé de l'offre Free, la CI informe sans
-bloquer ([précision de PDR-0001](docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md)).
+bloquer ([précision de PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md)).
 
 **IA** : NapkinStack n'en embarque aucune. L'agent de l'équipe (Claude Code, Codex,
 Copilot…) lit le kernel et les playbooks, lance les commandes, et la CI accepte ou refuse

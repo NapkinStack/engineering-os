@@ -1,10 +1,10 @@
-# Rattache chaque changement à un owner (skeleton/docs/os/07-governance.md §7).
-# Mis à jour automatiquement par nstack new-module.
+# Ties every change to an owner (skeleton/docs/os/07-governance.md §7).
+# Updated automatically by nstack new-module.
 
-# Socle : toute modification de l'OS lui-même passe par un ADR.
+# Foundation: any change to the OS itself goes through an ADR.
 /skeleton/                     @NapkinStack/maintainers
 /copier.yml                    @NapkinStack/maintainers
 /platform/                     @NapkinStack/maintainers
 /.github/                      @NapkinStack/maintainers
 
-# Modules — une ligne par module, ajoutée par le scaffold.
+# Modules — one line per module, added by the scaffolding.
