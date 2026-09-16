@@ -776,7 +776,7 @@ echo "$OUT" | grep -qF "Action: pre-commit install" \
 rm "$A/PRODUCT.md"
 
 (cd "$C" && pre-commit install >/dev/null)
-sed -i 's#<Une phrase : ce que fait ce projet.>#Demo project.#' "$C/README.md"
+sed -i 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
 
 echo "-> doctor: GitHub repository without settings, every gap listed with its action (criterion 2)"
 repo_c acme/bare

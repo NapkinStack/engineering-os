@@ -1,207 +1,207 @@
 # {{ project_name }}
 
-<Une phrase : ce que fait ce projet.>
+<One sentence: what this project does.>
 
 ---
 
-> **Ce projet a été créé par `nstack init`**, la commande du framework de travail
-> NapkinStack. Cette section est le mode d'emploi du socle. Remplace-la par le README de
-> ton projet une fois l'installation terminée — la méthode reste dans `docs/os/`.
+> **This project was created by `nstack init`**, the command of the NapkinStack
+> engineering framework. This section is the manual for the foundation. Replace it with
+> your project's own README once the installation is finished — the method stays in
+> `docs/os/`.
 
 ```mermaid
 flowchart LR
-    I["nstack init<br/>projet créé et commité"]:::cmd --> G["Dépôt GitHub<br/>checklist appliquée"]:::equipe
-    G --> D["nstack doctor<br/>poste et réglages"]:::cmd
-    D --> M["nstack new-module<br/>premier module"]:::cmd
-    M --> W["Travail en PR<br/>CI : fitness, hooks, secrets"]:::equipe
-    W --> U["nstack update<br/>nouvelle version, branche relue"]:::cmd
+    I["nstack init<br/>project created and committed"]:::cmd --> G["GitHub repository<br/>checklist applied"]:::team
+    G --> D["nstack doctor<br/>workstation and settings"]:::cmd
+    D --> M["nstack new-module<br/>first module"]:::cmd
+    M --> W["Work in pull requests<br/>CI: fitness, hooks, secrets"]:::team
+    W --> U["nstack update<br/>new version, reviewed branch"]:::cmd
     U --> W
 
     classDef cmd fill:#1f2937,color:#fff
-    classDef equipe fill:#065f46,color:#fff
+    classDef team fill:#065f46,color:#fff
 ```
 
-**Légende** — gris : commande `nstack` · vert : travail de l'équipe et de son agent.
-La CI tranche dès que les rulesets l'exigent : ce qui n'y passe pas ne fusionne pas
-(voir « Prérequis »).
+**Legend** — grey: an `nstack` command · green: the work of the team and its agent.
+CI decides as soon as the rulesets require it: what does not pass does not merge (see
+"Prerequisites").
 
-## Prérequis
+## Prerequisites
 
-- **Poste** : uv et git ; accès en lecture à GitHub (squelette NapkinStack) et à PyPI.
-- **Dépôt GitHub.** Les workflows informent ; seuls les rulesets et la protection au push
-  bloquent. Ce que chaque cas permet :
+- **Workstation**: uv and git; read access to GitHub (the NapkinStack skeleton) and to
+  PyPI.
+- **GitHub repository.** Workflows inform; only rulesets and push protection block. What
+  each case allows:
 
-| Réglage | Dépôt public | Privé, offre Free | Privé, Team ou Pro |
+| Setting | Public repository | Private, Free plan | Private, Team or Pro |
 |---|---|---|---|
-| Rulesets : PR, relecture, CODEOWNERS, checks requis | Oui | **Non : rien ne bloque la fusion** | Oui |
-| Scan de secrets et protection au push | Oui | Non | Option payante Secret Protection |
-| Signalement privé de vulnérabilités | Oui | N'existe pas | N'existe pas |
-| Minutes de CI | Illimitées | 2 000 par mois | Selon l'offre |
+| Rulesets: PR, review, CODEOWNERS, required checks | Yes | **No: nothing blocks the merge** | Yes |
+| Secret scanning and push protection | Yes | No | Paid Secret Protection option |
+| Private vulnerability reporting | Yes | Does not exist | Does not exist |
+| CI minutes | Unlimited | 2 000 per month | Per the plan |
 
-`nstack doctor` suit la visibilité du dépôt et nomme l'offre requise pour chaque réglage absent.
+`nstack doctor` follows the repository's visibility and names the plan required for every
+missing setting.
 
 ## Installation
 
 ```bash
-# 1. Outillage à la version de NapkinStack du projet (prérequis : uv)
+# 1. Tooling at the project's NapkinStack version (prerequisite: uv)
 uv tool install "napkinstack=={{ _copier_answers._commit | regex_replace('^v', '') }}" --with-executables-from pre-commit
 
-# 2. Hooks, une fois par clone
+# 2. Hooks, once per clone
 pre-commit install
 
-# 3. Créer le premier module
-nstack new-module facturation acme/facturation standard
+# 3. Create the first module
+nstack new-module billing acme/billing standard
 
-# 4. Vérifier que les garde-fous répondent
+# 4. Check that the guardrails answer
 nstack fitness
 ```
 
-Cette version est celle de `.copier-answers.yml` ; elle ne change que par `nstack update`,
-en PR relue.
+That version is the one in `.copier-answers.yml`; it only changes through `nstack update`,
+in a reviewed pull request.
 
-## Recevoir une nouvelle version de NapkinStack
+## Receiving a new version of NapkinStack
 
 ```bash
-uv tool install "napkinstack==X.Y.Z" --with-executables-from pre-commit  # la version voulue
-nstack update                            # branche nstack/update-vX.Y.Z, fusionnée et commitée
-git push -u origin nstack/update-vX.Y.Z  # puis la PR, validée par la CI
+uv tool install "napkinstack==X.Y.Z" --with-executables-from pre-commit  # the version you want
+nstack update                            # branch nstack/update-vX.Y.Z, merged and committed
+git push -u origin nstack/update-vX.Y.Z  # then the PR, validated by CI
 ```
 
-La fusion garde les adaptations du projet et ne touche jamais au code des modules. Un
-conflit reste marqué dans le fichier, sans commit : l'équipe arbitre, et le hook comme la CI
-refusent tout marqueur restant.
+The merge keeps the project's adaptations and never touches the modules' code. A conflict
+stays marked in the file, uncommitted: the team decides, and both the hook and CI reject
+any remaining marker.
 
-## À faire une fois sur GitHub — sinon rien n'est garanti
+## To do once on GitHub — otherwise nothing is guaranteed
 
-Les workflows **informent** ; ce sont les rulesets qui **bloquent**. Sans cette
-étape, tout l'édifice repose sur la bonne volonté, ce que l'OS interdit
-(`docs/os/07-governance.md`).
+Workflows **inform**; it is the rulesets that **block**. Without this step the whole
+edifice rests on goodwill, which the OS forbids (`docs/os/07-governance.md`).
 
-Settings → Rules → Rulesets → sur la branche principale (dépôt privé : offre Team ou Pro) :
+Settings → Rules → Rulesets → on the main branch (private repository: Team or Pro plan):
 
 - [ ] Pull request required: no direct push to main
 - [ ] At least 1 approving review
 - [ ] Code owner review required
 - [ ] Required checks: `Fitness functions`, `Périmètre et budget de revue`, `Hooks et secrets`
 
-Settings → Advanced Security (dépôt privé : option Secret Protection) :
+Settings → Advanced Security (private repository: the Secret Protection option):
 
 - [ ] Secret Protection and push protection
 - [ ] Private vulnerability reporting, public repository (the `SECURITY.md` channel)
 
-Settings → Actions → General :
+Settings → Actions → General:
 
 - [ ] Allowed actions: GitHub's own, plus `astral-sh/setup-uv`
 - [ ] SHA-pinned actions required
 - [ ] Workflow approval for every outside contributor
 - [ ] Workflow token read-only; Actions neither creates nor approves pull requests
 
-Issues → Labels :
+Issues → Labels:
 
-- [ ] Labels `cross-module` and `hors-budget` : ils rendent les exceptions visibles **et
-  comptables** (`docs/os/10-measurement.md` §3)
+- [ ] Labels `cross-module` and `hors-budget` — they make the exceptions visible **and
+  countable** (`docs/os/10-measurement.md` §3)
 
-Puis vérifier, en lecture seule :
+Then check, read-only:
 
 ```bash
 nstack doctor
 ```
 
-`nstack doctor` lit le jeton dans `GH_TOKEN`, sinon `GITHUB_TOKEN` : un jeton à grain fin,
-limité au dépôt, permission **Administration : lecture**. Sans jeton, la partie GitHub reste
-« non vérifiée », jamais conforme.
+`nstack doctor` reads the token from `GH_TOKEN`, otherwise `GITHUB_TOKEN`: a fine-grained
+token, limited to the repository, with the **Administration: read** permission. Without a
+token, the GitHub part stays "not verified", never compliant.
 
 ---
 
-## Ce qu'il y a dans ce dépôt
+## What is in this repository
 
-| Chemin | Rôle | Qui le lit |
+| Path | Role | Who reads it |
 |---|---|---|
-| `AGENTS.md` | **Kernel** : les règles chargées à chaque tâche | Les agents, à chaque fois |
-| `playbooks/` | Règles chargées **par déclencheur** (sécu, données, UX…) | Les agents, quand déclenché |
-| `modules/` | Le code — une unité de parallélisme par dossier | Humains et agents, scopé |
-| `contracts/` | Le **seul** canal entre modules | Producteurs et consommateurs |
-| `.nstack/` | Configuration de l'outillage : playbooks exposés en skills | L'équipe socle |
-| `docs/os/` | **Le manuel** : le pourquoi de chaque règle | Les humains, une fois |
-| `docs/adr/`, `docs/pdr/` | Les décisions prises, avec leur critère de succès | Tout le monde, à la demande |
-| `.copier-answers.yml` | Version de NapkinStack et réponses de création | `nstack update`, seul à le modifier |
-| `.github/` | Ce qui rend les règles non contournables | GitHub |
+| `AGENTS.md` | **The kernel**: the rules loaded for every task | Agents, every time |
+| `playbooks/` | Rules loaded **by trigger** (security, data, UX…) | Agents, when triggered |
+| `modules/` | The code — one unit of parallelism per folder | Humans and agents, scoped |
+| `contracts/` | The **only** channel between modules | Producers and consumers |
+| `.nstack/` | Tooling configuration: playbooks exposed as skills | The foundation team |
+| `docs/os/` | **The handbook**: the why behind every rule | Humans, once |
+| `docs/adr/`, `docs/pdr/` | The decisions taken, with their success criterion | Everyone, on demand |
+| `.copier-answers.yml` | The NapkinStack version and the creation answers | `nstack update`, the only thing that changes it |
+| `.github/` | What makes the rules non-bypassable | GitHub |
 
-> **`docs/os/` n'est jamais chargé dans le contexte d'un agent.** C'est la référence
-> humaine. Un agent charge : le kernel, le `AGENTS.md` du module, un playbook si
-> déclenché. C'est toute la différence entre un manuel et un système d'exploitation.
-
----
-
-## Les commandes
-
-```bash
-nstack --help        # liste les commandes
-nstack fitness       # manifests + frontières + skills — avant chaque commit
-nstack skills        # génère les skills Claude Code depuis les playbooks
-nstack new-module <nom> <organisation>/<équipe> <criticité>
-nstack check [module]   # commandes du MANIFEST : check, test, bootstrap ; défaut : tous
-nstack run <module>     # démarrage local, si commands.run est déclarée
-# check, test, run d'un module : section `commands` de son MANIFEST.yaml
-```
-
-Chaque module expose les **mêmes verbes**, quelle que soit sa technologie. C'est ce qui
-permet à quelqu'un de changer de module sans rien réapprendre
-(`docs/os/09-platform.md` §2).
+> **`docs/os/` is never loaded into an agent's context.** It is the human reference. An
+> agent loads: the kernel, the module's `AGENTS.md`, a playbook when triggered. That is
+> the whole difference between a handbook and an operating system.
 
 ---
 
-## Skills Claude Code
-
-Les playbooks sont exposés comme skills, dont le chargement à la demande est alors
-assuré par le runtime plutôt que par une instruction du kernel.
+## The commands
 
 ```bash
-nstack skills           # génère .claude/skills/ depuis playbooks/
-nstack skills --check   # vérifie la synchronisation (tourne en CI)
+nstack --help        # lists the commands
+nstack fitness       # manifests + boundaries + skills — before every commit
+nstack skills        # generates the Claude Code skills from the playbooks
+nstack new-module <name> <organisation>/<team> <criticality>
+nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
+nstack run <module>     # local start, when commands.run is declared
+# check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```
 
-**`playbooks/` reste la source de vérité.** Les skills sont générées, gitignorées, et
-jamais éditées à la main — on modifie le playbook, puis on régénère. Un playbook sans
-entrée dans `.nstack/skills.yaml` fait échouer la CI ; une skill générée puis
-désynchronisée fait échouer `nstack skills --check` en local.
+Every module exposes the **same verbs**, whatever its technology. That is what lets
+someone move between modules without relearning anything (`docs/os/09-platform.md` §2).
 
-Cette indirection a une raison : un outil est un **adaptateur**, jamais une fondation
-(`docs/tooling-profile.md`). Si les règles n'existaient que sous forme de skills,
-l'OS cesserait de fonctionner avec tout autre agent — et le tableau des déclencheurs
-du kernel §4 reste là précisément pour ce cas.
+---
 
-L'enforcement, lui, **ne descend jamais dans un plugin**. Un hook côté agent est un
-feedback rapide, pas une garantie : les checks bloquants restent en CI
+## Claude Code skills
+
+The playbooks are exposed as skills, so that loading them on demand becomes the runtime's
+job rather than a kernel instruction.
+
+```bash
+nstack skills           # generates .claude/skills/ from playbooks/
+nstack skills --check   # checks they are in sync (runs in CI)
+```
+
+**`playbooks/` stays the source of truth.** The skills are generated, gitignored, and
+never edited by hand — you change the playbook, then regenerate. A playbook with no entry
+in `.nstack/skills.yaml` fails CI; a generated skill that has drifted fails
+`nstack skills --check` locally.
+
+This indirection has a reason: a tool is an **adapter**, never a foundation
+(`docs/tooling-profile.md`). If the rules existed only as skills, the OS would stop
+working with any other agent — and the trigger table of kernel §4 is there for exactly
+that case.
+
+Enforcement, on the other hand, **never moves down into a plugin**. An agent-side hook is
+fast feedback, not a guarantee: the blocking checks stay in CI
 (`docs/os/07-governance.md` §4).
 
 ---
 
-## Les trois règles à retenir
+## The three rules to remember
 
-1. **Une PR = un module.** Un changement qui en touche deux passe par une séquence
-   expand/contract sur le contrat (`docs/os/03-contracts.md` §4).
-2. **L'oracle avant le code.** Le critère de réussite est exécutable et rouge avant la
-   première ligne générée (`docs/os/05-workflow.md` §3).
-3. **La convention est le choix par défaut.** Elle ne se justifie pas ; toute déviation
-   se justifie par une valeur utilisateur observable (`docs/os/06-decisions.md` §2).
+1. **One PR = one module.** A change touching two goes through an expand/contract
+   sequence on the contract (`docs/os/03-contracts.md` §4).
+2. **The oracle before the code.** The success criterion is executable and red before the
+   first generated line (`docs/os/05-workflow.md` §3).
+3. **Convention is the default choice.** It needs no justification; every deviation is
+   justified by an observable user value (`docs/os/06-decisions.md` §2).
 
 ---
 
-## Ce qui n'est pas fourni — et pourquoi
+## What is not provided — and why
 
-Aucune stack : ni langage, ni framework applicatif, ni base de données. L'OS impose une **méthode
-de sélection** et une trace de décision, pas une liste de technologies
-(`docs/os/06-decisions.md` §7).
+No stack: no language, no application framework, no database. The OS imposes a **selection
+method** and a decision trail, not a list of technologies (`docs/os/06-decisions.md` §7).
 
-Un module neuf déclare donc des commandes « à déclarer », qui échouent : c'est à toi
-de câbler `check`, `test` et `run` sur ton outillage. Les **noms** ne changent jamais,
-le **contenu** t'appartient.
+A new module therefore declares commands "to be declared", which fail: wiring `check`,
+`test` and `run` onto your own tooling is your job. The **names** never change, the
+**content** is yours.
 
-## Ce qui reste à câbler après l'installation
+## What is left to wire after the installation
 
-- [ ] Commandes `check` et `test` de chaque module, dans son `MANIFEST.yaml`
-- [ ] Format de contrat retenu, et les contract tests associés
-- [ ] Valeurs du budget de revue (400 lignes / 15 fichiers sont un point de départ)
-- [ ] Relire les `description` de `.nstack/skills.yaml` — ce sont elles qui
-      déclenchent les skills, elles doivent parler le vocabulaire de ton domaine
+- [ ] The `check` and `test` commands of every module, in its `MANIFEST.yaml`
+- [ ] The contract format chosen, and the contract tests that go with it
+- [ ] The review budget values (400 lines / 15 files are a starting point)
+- [ ] Re-read the `description` fields in `.nstack/skills.yaml` — they are what triggers
+      the skills, and they must speak your domain's vocabulary
