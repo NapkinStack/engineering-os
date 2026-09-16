@@ -289,6 +289,17 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
 - [ ] `fitness/pr_scope.sh`, `fitness/boundaries.py`, `skills.py`, `project.py`,
       `cli.py`: all help text, comments and messages. `ÉCHEC` → `FAIL`,
       `AVERTISSEMENT` → `WARNING`.
+- [x] **Rule M4 was language-bound and untested.** It warned when a responsibility
+      contained `" et "`, a French conjunction, in a rule that a project writes in its
+      own language. Left as is it would have been French residue inside English code;
+      extended to every language it would have been over-engineering. It now tests
+      `" and "`, matching the framework's language, and the sentence-count heuristic
+      beside it stays language-agnostic. A test case was added first — the branch had
+      none, so P5 was not actually held for M4 — and verified red against the French
+      rule before the change.
+- [ ] **Paths inside the sources** (`docs/os/03-contrats.md`, `07-gouvernance.md`,
+      `08-qualite.md`, `09-plateforme.md`) stay French until M7b renames those files.
+      M7b must update these references too, not only the markdown ones.
 - [ ] `copier.yml` questions and validator messages.
 - [ ] `pyproject.toml` description.
 

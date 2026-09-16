@@ -75,6 +75,8 @@ CAS_MANIFESTS = {
     "M3 cycle de vie": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="unknown")), "M3", True),
     "M3 criticité": (lambda r: ecrire_module(r, "facturation", degrade(module__criticality="severe")), "M3", True),
     "M4 deux phrases": (lambda r: ecrire_module(r, "facturation", degrade(module__responsibility="Facture. Relance.")), "M4", False),
+    "M4 conjonction": (lambda r: ecrire_module(r, "facturation", degrade(
+        module__responsibility="Bills customers and sends the monthly statements to the accounting team every single month.")), "M4", False),
     "M5 déprécié sans date": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="deprecated")), "M5", True),
     "M5 date dépassée": (lambda r: ecrire_module(r, "facturation", degrade(
         module__lifecycle="deprecated", module__deprecation={"removal_date": HIER})), "M5", True),
