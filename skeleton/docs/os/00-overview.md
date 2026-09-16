@@ -137,6 +137,18 @@ delivery: it lengthens the queue and degrades the quality of the review itself.
 - **No uniform level of ceremony.** Governance is proportionate to the module's declared
   criticality. See `07-governance.md`.
 
+### What the framework cannot know: three levels of rules
+
+| Level | Holds | Maintained by |
+|---|---|---|
+| **Framework** — identical in every project, received through updates | Postures, the five laws, the working loop, stopping rules, framing, the test discipline, templates, checks | The framework |
+| **Project** | Users, problem, constraints, success criteria, cycles, the project's decisions, its tools | The foundation team and the decider: `docs/project/`, `docs/adr/`, `docs/pdr/`, `docs/tooling-profile.md` |
+| **Module** | Its capability, commands, contracts, scenarios | Its owner: `MANIFEST.yaml`, local `AGENTS.md` |
+
+**The framework never names a stack, a tool or a business domain.** A project rule is
+written in a project document, never in the kernel or a playbook: the framework's files
+keep merging cleanly at every update.
+
 ---
 
 ## 6. Glossary
@@ -157,6 +169,14 @@ These terms have a precise meaning in the OS. Using them differently creates amb
 | **Prior Art Gate** | The mandatory procedure before a structuring decision: identify the convention of the field, adopt it by default, deviate only against an observable user value. |
 | **Expand / Contract** | The sequence of pull requests that lets a contract evolve between teams without temporal synchronisation. |
 | **ADR / PDR** | Architecture / Product Decision Record. A durable trail of a structuring decision. |
+| **Appetite** | The calendar time the decider chooses to spend on a cycle — not an estimate. It sets the cycle's end date. |
+| **Charter** | The project's founding document: users, problem, constraints, success criteria, out of scope (`docs/project/charter.md`). |
+| **Circuit breaker** | A cycle's end date: past it, delivery work stops and the decider chooses — ship, re-frame or stop. No automatic extension. |
+| **Cycle** | A bounded unit of work: one goal, a finite list of deliverables, an appetite, an end. |
+| **Deliverable** | An outcome a user can observe, with acceptance criteria, in one module. |
+| **Discovery** | An idea tested before any charter: sourced evidence, a value hypothesis, a challenge by another session, then go, clarify or kill (`docs/project/discovery.md`). |
+| **Posture** | What a participant does, and never does: framer, challenger, author, verifier, approver, decider, owner (`05-workflow.md` §10). |
+| **Test sheet** | The scenarios of a change, written before the code and run by a verifier who is not the author, each with its evidence (`05-workflow.md` §7). |
 
 > **Note.** The **FDR** (Functional Design Record) format does not exist in this OS. It
 > overlapped the PDR and an issue's acceptance criteria without adding distinct value.
