@@ -1,167 +1,164 @@
-# ADR-0001 — Adopter Copier pour générer et mettre à jour les projets
+# ADR-0001 — Adopt Copier to generate and update projects
 
-- **Statut** : Accepté (2026-09-15, après prototype)
-- **Date** : 2026-09-15
-- **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
-- **Portée** : projet (moteur et squelette de projet)
-- **Réversibilité** : facile pour les projets générés, qui ne contiennent que leurs
-  fichiers et un fichier de réponses ; coûteuse pour le moteur, qui devrait remplacer
-  l'outil
+- **Status**: Accepted (2026-09-15, after the prototype)
+- **Date**: 2026-09-15
+- **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
+- **Scope**: project (the engine and the project skeleton)
+- **Reversibility**: easy for the generated projects, which contain only their own files
+  and an answers file; costly for the engine, which would have to replace the tool
 
 ---
 
-## Contexte
+## Context
 
-PDR-0001 (Proposé) fixe le comportement : `nstack init` génère un projet qui possède son
-squelette ; `nstack update` lui apporte, à sa demande, une nouvelle version fusionnée
-avec ses adaptations ; les conflits restent à l'équipe ; une version de NapkinStack
-couvre moteur et squelette (R2) ; le poste et la CI exécutent la version épinglée par le
-projet (R3). L'outillage est en Python, installé par uv.
+PDR-0001 (Proposed) fixes the behaviour: `nstack init` generates a project that owns its
+skeleton; `nstack update` brings it, on demand, a new version merged with its adaptations;
+the conflicts are left to the team; one NapkinStack version covers the engine and the
+skeleton (R2); the workstation and CI run the version the project pins (R3). The tooling
+is Python, installed by uv.
 
-Aujourd'hui, le squelette se copie à la main et le seul générateur est
-`platform/scaffold/new-module.sh`, qui substitue des marqueurs avec `sed`.
+Today the skeleton is copied by hand and the only generator is
+`platform/scaffold/new-module.sh`, which substitutes markers with `sed`.
 
-## Problème
+## Problem
 
-Quel outil génère le squelette d'un projet et fusionne les versions suivantes avec les
-adaptations locales ?
+Which tool generates a project's skeleton and merges the versions that follow with the
+local adaptations?
 
-## Contraintes
+## Constraints
 
-- **Fusion à 3 voies** entre la version d'origine, la nouvelle version et le projet
+- **A three-way merge** between the original version, the new version and the project
   (PDR-0001, option A).
-- **Aucune exécution de code** venant du gabarit lors d'une mise à jour : un projet ne
-  doit pas avoir à faire confiance à du code distant pour recevoir des règles.
-- **Python, installable par uv** ; licence permissive ; maintenance active.
-- **Un seul dépôt** tant qu'un besoin de le scinder n'est pas démontré (PDR-0001).
+- **No code execution** coming from the template during an update: a project must not have
+  to trust remote code in order to receive rules.
+- **Python, installable by uv**; a permissive licence; active maintenance.
+- **A single repository** until the need to split it is demonstrated (PDR-0001).
 
 ---
 
 ## Prior art
 
-**Convention dominante du domaine :** un générateur de projet à gabarit
-(Cookiecutter, Yeoman, modèles de dépôt GitHub). Seule une minorité d'outils sait mettre
-à jour un projet déjà généré ; parmi eux, la fusion à 3 voies est la référence.
+**Dominant convention of the field:** a template-based project generator (Cookiecutter,
+Yeoman, GitHub repository templates). Only a minority of tools can update an already
+generated project; among those, the three-way merge is the reference.
 
-**Références examinées :**
+**References examined:**
 
-| Référence | Ce qu'elle fait | Applicable ici ? |
+| Reference | What it does | Applicable here? |
 |---|---|---|
-| Copier (MIT, v9.18.2 du 2026-09-07, Python ≥ 3.10) | `copy` puis `update` : fusion à 3 voies via `git merge-file`, conflits marqués, refus si l'arbre est sale ou si la version recule, fichiers supprimés non recréés, fonctions exécutant du code refusées sans `--trust` | **Oui**, couvre toutes les contraintes |
-| cruft (MIT) | Mise à jour des projets Cookiecutter, diff à valider | Non : aucune activité depuis 2024-12 (filtre maintenance) |
-| Cookiecutter (BSD-3) | Génération seule | Non : aucune mise à jour |
-| Yeoman (Node) | Chaque réécriture de fichier existant demande validation, sans fusion | Non : pas de fusion, et un runtime Node en plus d'uv |
-| projen (Node) | Fichiers synthétisés, non modifiables | Non : c'est l'option C écartée par PDR-0001 |
-| Modèles de dépôt GitHub | Copie initiale | Non : aucune mise à jour |
+| Copier (MIT, v9.18.2 of 2026-09-07, Python ≥ 3.10) | `copy` then `update`: a three-way merge through `git merge-file`, conflicts marked, refusal when the tree is dirty or the version goes backwards, deleted files not recreated, code-executing features refused without `--trust` | **Yes**, covers every constraint |
+| cruft (MIT) | Updates Cookiecutter projects, a diff to approve | No: no activity since 2024-12 (maintenance filter) |
+| Cookiecutter (BSD-3) | Generation only | No: no update |
+| Yeoman (Node) | Every rewrite of an existing file asks for approval, with no merge | No: no merge, and a Node runtime on top of uv |
+| projen (Node) | Synthesised files, not modifiable | No: that is option C, rejected by PDR-0001 |
+| GitHub repository templates | The initial copy | No: no update |
 
 ---
 
-## Options considérées
+## Options considered
 
-### Option 1 — Copier, piloté par le moteur
-- Description : le squelette est **le** gabarit Copier de ce dépôt (`_subdirectory`) ;
-  ses versions sont les tags du dépôt ; le moteur appelle l'API publique `run_copy` et
-  `run_update`, sans jamais activer `unsafe`.
-- Avantages : fusion à 3 voies éprouvée ; refus natifs (arbre sale, retour arrière,
-  code distant) ; une version unique pour moteur et squelette ; fichier de réponses
-  standard.
-- Inconvénients : `update` télécharge le gabarit depuis GitHub ; les fichiers qui
-  contiennent des variables prennent le suffixe `.jinja`.
-- Coût de mise en place : faible · de maintenance : suivre les versions de Copier ·
-  **de sortie** : réécrire `init` et `update` ; les projets générés restent intacts.
+### Option 1 — Copier, driven by the engine
+- Description: the skeleton is **the** Copier template of this repository
+  (`_subdirectory`); its versions are the repository's tags; the engine calls the public
+  API `run_copy` and `run_update`, never enabling `unsafe`.
+- Advantages: a proven three-way merge; native refusals (dirty tree, downgrade, remote
+  code); a single version for engine and skeleton; a standard answers file.
+- Drawbacks: `update` downloads the template from GitHub; files containing variables take
+  the `.jinja` suffix.
+- Setup cost: low · maintenance: follow Copier's versions · **exit**: rewrite `init` and
+  `update`; the generated projects stay intact.
 
-### Option 2 — Cookiecutter et cruft
-- Description : génération par Cookiecutter, mise à jour par cruft.
-- Avantages : Cookiecutter est très adopté.
-- Inconvénients : cruft n'est plus maintenu (aucune activité depuis 2024-12).
-- Coût de sortie : identique à l'option 1, avec un risque d'abandon déjà matérialisé.
+### Option 2 — Cookiecutter and cruft
+- Description: generation by Cookiecutter, updates by cruft.
+- Advantages: Cookiecutter is very widely adopted.
+- Drawbacks: cruft is no longer maintained (no activity since 2024-12).
+- Exit cost: identical to option 1, with an abandonment risk already realised.
 
-### Option 3 — Construire la fusion dans le moteur
-- Description : générer les versions et appeler `git merge-file` nous-mêmes.
-- Avantages : aucune dépendance.
-- Inconvénients : réimplémente Copier, cas limites compris (fichiers supprimés,
-  renommés, versions sautées). Échoue au filtre de proportionnalité
-  (`docs/os/06-decisions.md` §3).
+### Option 3 — Build the merge into the engine
+- Description: generate the versions and call `git merge-file` ourselves.
+- Advantages: no dependency.
+- Drawbacks: reimplements Copier, edge cases included (deleted files, renames, skipped
+  versions). Fails the proportionality filter (`skeleton/docs/os/06-decisions.md` §3).
 
-### Option 4 — Ne rien faire
-- Copie manuelle : contraire à PDR-0001, qui existe pour sortir des copies figées.
+### Option 4 — Do nothing
+- Copy by hand: contrary to PDR-0001, which exists to get out of frozen copies.
 
 ---
 
-## Décision
+## Decision
 
-**Option 1.** Parmi les références examinées, Copier est le seul outil maintenu qui
-réalise exactement le comportement de PDR-0001, refus de sécurité compris ; c'est l'adoption d'une convention, pas une
-construction. Il est piloté par le moteur, pour qu'une version de NapkinStack soit
-toujours la même pour le moteur et pour le squelette (R2, R3).
+**Option 1.** Among the references examined, Copier is the only maintained tool that does
+exactly what PDR-0001 describes, safety refusals included; this is adopting a convention,
+not building something. It is driven by the engine, so that one NapkinStack version is
+always the same for the engine and for the skeleton (R2, R3).
 
-Règles d'usage :
+Rules of use:
 
-1. **Un seul gabarit dans ce dépôt : le squelette de projet.** Copier recommande un
-   gabarit par dépôt, car les tags sont partagés. L'enveloppe de module n'est donc pas un
-   second gabarit Copier ; `new-module` reste un scaffold du moteur (D19 à corriger à
-   part).
-2. **Versions = tags du dépôt**, au format PEP 440 exigé par Copier.
-3. **Aucune fonction « unsafe »** (tâches, migrations, extensions Jinja) : le moteur
-   n'active jamais `unsafe`, et Copier refuse ces fonctions par défaut.
-4. **Conflits en ligne** (défaut de Copier) : le hook `check-merge-conflict`, avec
-   `--assume-in-merge` comme le recommande Copier, et la CI du projet refusent tout
-   marqueur restant. Sans cet argument, le hook ignore les marqueurs écrits hors merge
-   git (D20, constaté par le prototype).
-5. **Suffixe `.jinja` uniquement** sur les fichiers qui contiennent une variable ; tous
-   les autres sont copiés tels quels et restent lisibles et vérifiables.
+1. **A single template in this repository: the project skeleton.** Copier recommends one
+   template per repository, because tags are shared. The module envelope is therefore not
+   a second Copier template; `new-module` stays an engine scaffold (D19, to be fixed
+   separately).
+2. **Versions = the repository's tags**, in the PEP 440 format Copier requires.
+3. **No "unsafe" feature** (tasks, migrations, Jinja extensions): the engine never enables
+   `unsafe`, and Copier refuses those features by default.
+4. **Inline conflicts** (Copier's default): the `check-merge-conflict` hook, with
+   `--assume-in-merge` as Copier recommends, and the project's CI refuse any remaining
+   marker. Without that argument the hook ignores markers written outside a git merge
+   (D20, observed by the prototype).
+5. **The `.jinja` suffix only** on files that contain a variable; every other file is
+   copied as is and stays readable and checkable.
 
-### Déviation par rapport à la convention
+### Deviation from the convention
 
-Aucune.
-
----
-
-## Critère de succès
-
-*(Convention adoptée : critère non obligatoire.)* Validation par le prototype de
-PDR-0001 : ses critères d'acceptation 1 et 4 à 7 passent avec Copier, sans code de
-fusion propre à NapkinStack.
-
-**Constaté le 2026-09-15** : critères 1, 4, 6 et 7 validés, critère 5 validé avec
-`--assume-in-merge` ; refus natifs de Copier confirmés (arbre sale, retour arrière).
-
-Si ce n'est pas le cas : superséder par une option documentée dans une nouvelle ADR.
+None.
 
 ---
 
-## Conséquences
+## Success criterion
 
-**Positives :**
+*(Convention adopted: criterion not mandatory.)* Validation by the PDR-0001 prototype: its
+acceptance criteria 1 and 4 to 7 pass with Copier, with no merge code specific to
+NapkinStack.
 
-- Aucun mécanisme de fusion maison à maintenir.
-- Un projet ne peut pas exécuter de code venu du gabarit lors d'une mise à jour.
-- Le fichier de réponses de Copier enregistre la version d'origine du projet, sans format
-  propre à NapkinStack.
+**Observed on 2026-09-15**: criteria 1, 4, 6 and 7 validated, criterion 5 validated with
+`--assume-in-merge`; Copier's native refusals confirmed (dirty tree, downgrade).
 
-**Négatives et dette acceptée :**
-
-- `update` exige un accès au dépôt GitHub public de NapkinStack.
-- Un fichier YAML contenant des variables devient un `.jinja` que les hooks YAML ne
-  vérifient plus : c'est le projet généré, testé en CI, qui est vérifié à sa place.
-- Les versions de Copier suivent Dependabot, comme toute dépendance.
-
-**Impacts sur d'autres modules ou contrats :** `platform/` devient le moteur qui pilote
-Copier ; le squelette est extrait dans un sous-dossier ; `new-module.sh` est conservé.
-
-**Règle à automatiser :** aucun check nouveau. Le refus des fonctions « unsafe » est
-natif (Copier sort en code 4) et sera exercé par le test de génération d'un projet dans
-la CI de NapkinStack, prévu au plan d'implémentation. `docs/os/07-governance.md` §2
+If that is not the case: supersede with an option documented in a new ADR.
 
 ---
 
-## Alternatives rejetées
+## Consequences
 
-- **cruft** : bon modèle, mais sans activité depuis décembre 2024 ; adopter un outil déjà
-  abandonné crée une dette de sortie immédiate.
-- **Yeoman** : validation fichier par fichier sans fusion, et un runtime Node en plus.
-- **projen** : fichiers non modifiables, contraire au besoin d'adapter les règles.
-- **Construire la fusion** : réimplémenter Copier coûte plus cher à maintenir que de
-  suivre ses versions.
-- **Plusieurs gabarits Copier dans ce dépôt** (squelette et enveloppe de module) :
-  contraire à la recommandation de l'outil, les tags étant partagés.
+**Positive:**
+
+- No homemade merge mechanism to maintain.
+- A project cannot execute code coming from the template during an update.
+- Copier's answers file records the project's original version, with no format specific to
+  NapkinStack.
+
+**Negative and accepted debt:**
+
+- `update` requires access to NapkinStack's public GitHub repository.
+- A YAML file containing variables becomes a `.jinja` that the YAML hooks no longer check:
+  the generated project, tested in CI, is checked in its place.
+- Copier's versions follow Dependabot, like any dependency.
+
+**Impacts on other modules or contracts:** `platform/` becomes the engine that drives
+Copier; the skeleton is extracted into a subfolder; `new-module.sh` is kept.
+
+**Rule to automate:** no new check. The refusal of "unsafe" features is native (Copier
+exits with code 4) and will be exercised by the project generation test in NapkinStack's
+CI, planned in the implementation plan. `skeleton/docs/os/07-governance.md` §2
+
+---
+
+## Rejected alternatives
+
+- **cruft**: a good model, but no activity since December 2024; adopting an already
+  abandoned tool creates immediate exit debt.
+- **Yeoman**: file-by-file approval with no merge, and a Node runtime on top.
+- **projen**: files that cannot be modified, contrary to the need to adapt the rules.
+- **Building the merge**: reimplementing Copier costs more to maintain than following its
+  versions.
+- **Several Copier templates in this repository** (the skeleton and the module envelope):
+  contrary to the tool's recommendation, since tags are shared.

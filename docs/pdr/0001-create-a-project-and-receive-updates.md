@@ -1,269 +1,270 @@
-# PDR-0001 — Créer un projet et recevoir les évolutions de NapkinStack
+# PDR-0001 — Create a project and receive NapkinStack's updates
 
-- **Statut** : Accepté (2026-09-15, après prototype) ; précisé le 2026-09-15 (dépôts privés)
-- **Date** : 2026-09-15
-- **Décideurs** : mainteneurs NapkinStack (`@NapkinStack/maintainers`)
-- **Modules impactés** : `platform/` (devient le moteur), squelette de projet, gouvernance
+- **Status**: Accepted (2026-09-15, after the prototype); clarified on 2026-09-15 (private repositories)
+- **Date**: 2026-09-15
+- **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
+- **Modules affected**: `platform/` (becomes the engine), the project skeleton, governance
 
-> Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son implémentation.
-> Le comment relève des ADR listés en fin de document.
+> The PDR describes **what the product must do and why**, never its implementation.
+> The how belongs to the ADRs listed at the end of this document.
 
 ---
 
-## Problème utilisateur
+## User problem
 
-Le tech lead qui démarre un projet copie aujourd'hui le socle à la main (`cp -r`),
-remplace des marqueurs lui-même, ne peut lancer ni `make` ni `pip` sur le poste de
-référence, et doit deviner que les réglages GitHub, seule vraie barrière, ne se copient
-pas.
+The tech lead starting a project today copies the foundation by hand (`cp -r`), replaces
+markers themselves, cannot run `make` or `pip` on the reference workstation, and has to
+guess that the GitHub settings, the only real barrier, are not copied.
 
-Surtout, **la copie est figée**. Aucun correctif de NapkinStack ne lui parvient : un
-projet copié avant C0 porterait encore les défauts D1 à D14 — CI rouge sur clone vierge,
-workflows injectables, skills au YAML invalide, aucun scan de secrets — sans que personne
-ne le sache.
+Above all, **the copy is frozen**. No NapkinStack fix ever reaches it: a project copied
+before C0 would still carry defects D1 to D14 — a red CI on a fresh clone, injectable
+workflows, skills with invalid YAML, no secret scanning — with nobody knowing.
 
-## Objectif
+## Goal
 
-Un tech lead crée un projet conforme en moins de 30 minutes, puis reçoit chaque version
-de NapkinStack à sa demande, en une PR relisible qui préserve ses adaptations.
+A tech lead creates a compliant project in under 30 minutes, then receives every
+NapkinStack version on demand, as a reviewable pull request that preserves their
+adaptations.
 
-## Hors périmètre
+## Out of scope
 
-- Cadrage et découpage guidés d'un projet : PDR-0002.
-- Nom du paquet, distribution, outil de gabarit, identité de l'agent : ADR.
-- Application automatique des réglages GitHub : checklist et vérification seulement.
-- Mise à jour déclenchée par un bot : à la demande seulement.
-- Toute modification du code des modules : NapkinStack fait évoluer le socle, jamais le
-  code de l'équipe.
-- Presets de stack au-delà de celui du premier projet réel.
-- Forges autres que GitHub ; interface web ou service.
-- Retour à une version antérieure.
+- Guided framing and splitting of a project: PDR-0002.
+- Package name, distribution, template tool, agent identity: ADRs.
+- Applying the GitHub settings automatically: checklist and verification only.
+- An update triggered by a bot: on demand only.
+- Any change to the modules' code: NapkinStack evolves the foundation, never the team's
+  code.
+- Stack presets beyond the one of the first real project.
+- Forges other than GitHub; a web interface or a service.
+- Going back to an earlier version.
 
 ---
 
 ## Prior art
 
-| Produit / référence | Solution retenue | Ce qu'on en garde |
+| Product / reference | Solution chosen | What we keep from it |
 |---|---|---|
-| Django (`startproject`) | Squelette possédé par le projet ; le framework est une dépendance épinglée, montée de version à la demande | Moteur versionné et épinglé, squelette possédé |
-| Rails (`rails new`, `app:update`) | Mise à jour du squelette à la demande, diff proposé à l'humain | Mise à jour déclenchée et relue par l'équipe |
-| Copier (`copy`, `update`) | Fusion à 3 voies entre ancienne version, nouvelle version et projet ; conflits marqués ; refus si l'arbre est sale ou si la version recule | Le comportement de mise à jour, délégué à l'outil (ADR-0001) |
-| GitHub Spec Kit (`specify init`) | CLI installée par `uv tool`, fichiers du projet suivis par manifeste, arrêt sur fichier modifié | Installation par uv, seul prérequis ; son modèle de mise à jour est écarté (voir options) |
+| Django (`startproject`) | A skeleton owned by the project; the framework is a pinned dependency, upgraded on demand | A versioned, pinned engine and an owned skeleton |
+| Rails (`rails new`, `app:update`) | Skeleton updates on demand, a diff offered to the human | An update triggered and reviewed by the team |
+| Copier (`copy`, `update`) | A three-way merge between the old version, the new version and the project; conflicts marked; refusal when the tree is dirty or the version goes backwards | The update behaviour, delegated to the tool (ADR-0001) |
+| GitHub Spec Kit (`specify init`) | A CLI installed by `uv tool`, project files tracked by a manifest, a stop on any modified file | Installation through uv, the only prerequisite; its update model is rejected (see options) |
 
-**Convention que l'utilisateur connaît déjà :** « `<outil> new`, puis monter la version
-quand on le décide, en relisant ce qui change ».
+**The convention the user already knows:** "`<tool> new`, then bump the version when you
+decide to, reviewing what changes".
 
 ---
 
-## Options envisagées
+## Options considered
 
-| Option | Ce que vit l'utilisateur | Coût | Retenue ? |
+| Option | What the user experiences | Cost | Chosen? |
 |---|---|---|---|
-| Ne rien faire | Copie manuelle, règles figées, défauts jamais corrigés | 0 | Non |
-| A. Squelette possédé, mise à jour par fusion à 3 voies | Modifie librement ses règles ; chaque version arrive en PR qui fusionne correctifs et adaptations ; arbitre les conflits | Faible, fusion déléguée à un outil établi | **Oui** |
-| B. Fichiers gérés, arrêt sur modification (Spec Kit) | Mises à jour des fichiers intacts ; tout fichier adapté bloque ou s'écrase | Faible, mais dérive vers les copies figées | Non |
-| C. Règles de référence en lecture seule, ajouts locaux (projen) | Toujours à jour, jamais de conflit, mais règles génériques non modifiables | Moyen ; contraire au besoin d'adapter les règles | Non |
+| Do nothing | A manual copy, frozen rules, defects never fixed | 0 | No |
+| A. An owned skeleton, updates through a three-way merge | Changes its rules freely; every version arrives as a PR merging fixes and adaptations; the team settles the conflicts | Low, the merge delegated to an established tool | **Yes** |
+| B. Managed files, a stop on modification (Spec Kit) | Untouched files get updated; any adapted file blocks or is overwritten | Low, but it drifts back towards frozen copies | No |
+| C. Read-only reference rules, local additions (projen) | Always up to date, never a conflict, but generic rules that cannot be changed | Medium; contrary to the need to adapt the rules | No |
 
-## Décision
+## Decision
 
-NapkinStack se crée par une commande et se met à jour par une autre. Le projet possède
-tout son squelette et l'adapte librement ; chaque version de NapkinStack lui est proposée
-à sa demande, fusionnée avec ses adaptations, sous forme de branche relue en PR et validée
-par sa CI. Les conflits restent à l'équipe : NapkinStack ne tranche jamais à sa place.
+NapkinStack is created by one command and updated by another. The project owns its whole
+skeleton and adapts it freely; every NapkinStack version is offered to it on demand, merged
+with its adaptations, as a branch reviewed in a pull request and validated by its CI. The
+conflicts are left to the team: NapkinStack never decides in its place.
 
 ```mermaid
 flowchart LR
-    I["Installer<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
-    N --> G["Publier sur GitHub<br/>appliquer la checklist"]:::humain
-    G --> D["nstack doctor<br/>lecture seule"]:::cmd
+    I["Install<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
+    N --> G["Publish on GitHub<br/>apply the checklist"]:::human
+    G --> D["nstack doctor<br/>read-only"]:::cmd
     D --> M["nstack new-module"]:::cmd
-    M --> U["nstack update<br/>branche fusionnée"]:::cmd
-    U --> P["PR relue<br/>validée par la CI"]:::humain
-    P -->|"version suivante"| U
+    M --> U["nstack update<br/>merged branch"]:::cmd
+    U --> P["PR reviewed<br/>validated by CI"]:::human
+    P -->|"next version"| U
 
     classDef cmd fill:#1f2937,color:#fff
-    classDef humain fill:#065f46,color:#fff
+    classDef human fill:#065f46,color:#fff
 ```
 
-**Légende** — gris : commande NapkinStack · vert : action humaine. Les noms de commandes
-sont provisoires (ADR-0002).
+**Legend** — grey: a NapkinStack command · green: a human action. The command names are
+provisional (ADR-0002).
 
 ```mermaid
 flowchart LR
-    V1["Squelette v0.1<br/>base commune"]:::ref --> F{"Fusion<br/>à 3 voies"}
-    V2["Squelette v0.2<br/>correctifs NapkinStack"]:::ns --> F
-    PR["Projet<br/>adaptations de l'équipe"]:::equipe --> F
-    F -->|"lignes différentes"| B["Branche de mise à jour<br/>correctifs + adaptations"]:::ok
-    F -->|"même ligne modifiée"| X["Conflit marqué<br/>commit refusé"]:::ko
+    V1["Skeleton v0.1<br/>common base"]:::ref --> F{"Three-way<br/>merge"}
+    V2["Skeleton v0.2<br/>NapkinStack fixes"]:::ns --> F
+    PR["Project<br/>the team's adaptations"]:::team --> F
+    F -->|"different lines"| B["Update branch<br/>fixes + adaptations"]:::ok
+    F -->|"same line changed"| X["Conflict marked<br/>commit refused"]:::ko
 
     classDef ref fill:#374151,color:#fff
     classDef ns fill:#1e3a8a,color:#fff
-    classDef equipe fill:#065f46,color:#fff
+    classDef team fill:#065f46,color:#fff
     classDef ok fill:#065f46,color:#fff
     classDef ko fill:#7c2d12,color:#fff
 ```
 
-**Légende** — gris : version dont le projet est issu · bleu : nouvelle version ·
-vert : travail de l'équipe et résultat accepté · rouge : conflit laissé à l'équipe.
+**Legend** — grey: the version the project came from · blue: the new version · green: the
+team's work and the accepted result · red: a conflict left to the team.
 
 ---
 
-## Comportement attendu
+## Expected behaviour
 
-**Parcours nominal :**
+**Nominal journey:**
 
-1. **Installer** : uv est le seul prérequis ; il fournit Python et les outils.
-2. **Créer** : `nstack init` pose les questions de niveau projet (nom, équipe socle de la
-   forme `org/équipe`), génère un dépôt git avec le squelette — règles, CI, hooks,
-   gouvernance, aucun module — enregistre la version de NapkinStack et affiche la
-   checklist des réglages GitHub.
-3. **Publier** : l'humain crée le dépôt GitHub et applique la checklist.
-4. **Vérifier** : `nstack doctor` contrôle le poste (outils, hooks, marqueurs restants) et
-   les réglages GitHub en lecture seule ; chaque écart donne la règle, l'endroit et
-   l'action.
-5. **Premier module** : `nstack new-module` pose les questions de stack ; avec un preset,
-   il délègue au générateur officiel de l'écosystème ; sans preset, il crée l'enveloppe
-   NapkinStack avec des commandes à déclarer.
-6. **Mettre à jour** : `nstack update`, sur un arbre de travail propre, crée une branche où
-   la nouvelle version, moteur et squelette ensemble, est fusionnée avec les adaptations
-   locales ; l'équipe ouvre la PR, la CI la valide.
+1. **Install**: uv is the only prerequisite; it provides Python and the tools.
+2. **Create**: `nstack init` asks the project-level questions (name, foundation team in
+   the form `org/team`), generates a git repository with the skeleton — rules, CI, hooks,
+   governance, no module — records the NapkinStack version and prints the checklist of
+   GitHub settings.
+3. **Publish**: the human creates the GitHub repository and applies the checklist.
+4. **Check**: `nstack doctor` checks the workstation (tools, hooks, leftover markers) and
+   the GitHub settings, read-only; every gap gives the rule, the place and the action.
+5. **First module**: `nstack new-module` asks the stack questions; with a preset it
+   delegates to the ecosystem's official generator; without one it creates the NapkinStack
+   envelope with commands to declare.
+6. **Update**: `nstack update`, on a clean working tree, creates a branch where the new
+   version, engine and skeleton together, is merged with the local adaptations; the team
+   opens the pull request, CI validates it.
 
-**Cas limites et états dégradés :**
+**Edge cases and degraded states:**
 
-- Arbre de travail sale : refus expliqué, rien n'est modifié.
-- Adaptation locale et correctif sur la même ligne : conflit marqué dans le fichier,
-  commit refusé tant qu'un marqueur subsiste.
-- Versions sautées (v0.1 → v0.3) : mise à jour directe vers la version cible.
-- Version cible antérieure à celle du projet : refus.
-- Fichier du squelette supprimé par l'équipe : il reste supprimé, la décision de l'équipe
-  est respectée.
-- API GitHub injoignable ou jeton absent : la partie GitHub de `doctor` est « non
-  vérifiée », jamais « conforme ».
+- A dirty working tree: an explained refusal, nothing is changed.
+- A local adaptation and a fix on the same line: a conflict marked in the file, the commit
+  refused while a marker remains.
+- Skipped versions (v0.1 → v0.3): a direct update to the target version.
+- A target version older than the project's: refused.
+- A skeleton file deleted by the team: it stays deleted, the team's decision is respected.
+- The GitHub API unreachable or no token: the GitHub part of `doctor` is "not verified",
+  never "compliant".
 
-**Règles métier :**
+**Business rules:**
 
-- **R1** — Le projet possède tout son squelette. NapkinStack ne modifie jamais un fichier
-  du projet autrement que par une branche relue.
-- **R2** — Une version de NapkinStack couvre moteur et squelette ; ils montent ensemble.
-- **R3** — Le projet épingle sa version ; le poste et la CI exécutent exactement celle-là.
-- **R4** — `update` ne touche jamais au code des modules.
-- **R5** — Aucune stack n'est imposée aux modules. L'outillage NapkinStack a ses propres
-  prérequis, isolés du code du projet.
-- **R6** — Le contexte de développement de NapkinStack (`PRODUCT.md`,
-  `docs/governance/`) n'est jamais copié dans un projet.
+- **R1** — The project owns its whole skeleton. NapkinStack never changes a project file
+  except through a reviewed branch.
+- **R2** — One NapkinStack version covers the engine and the skeleton; they move up
+  together.
+- **R3** — The project pins its version; the workstation and CI run exactly that one.
+- **R4** — `update` never touches the modules' code.
+- **R5** — No stack is imposed on the modules. NapkinStack's own tooling has its own
+  prerequisites, isolated from the project's code.
+- **R6** — NapkinStack's own development context (`PRODUCT.md`, `docs/governance/`) is
+  never copied into a project.
 
-**Permissions :** l'outil n'écrit jamais les réglages GitHub et n'exige aucun droit
-d'administration. `doctor` lit les réglages avec un jeton en lecture seule fourni par
-l'humain ; sans jeton, la partie GitHub est signalée non vérifiée.
+**Permissions:** the tool never writes the GitHub settings and requires no administration
+right. `doctor` reads the settings with a read-only token supplied by the human; without a
+token, the GitHub part is reported as not verified.
 
-**Critères d'acceptation** *(oracle de l'implémentation, `docs/os/05-workflow.md` §3 ;
-le prototype du 2026-09-15 a validé le mécanisme, voir « Validation »)* :
+**Acceptance criteria** *(the implementation's oracle,
+`skeleton/docs/os/05-workflow.md` §3; the 2026-09-15 prototype validated the mechanism, see
+"Validation")*:
 
-- [ ] Étant donné un poste avec uv et git uniquement, quand le tech lead lance `init`,
-  alors la CI du dépôt généré est verte sur clone vierge, sans retouche manuelle.
-- [ ] Étant donné un dépôt GitHub sans ruleset, quand `doctor` est lancé, alors chaque
-  réglage manquant est listé avec son action et la commande sort en échec ; la checklist
-  appliquée, elle sort en succès.
-- [ ] Étant donné `new-module` sans preset, alors le module passe les fitness functions
-  sans qu'aucune stack ne soit imposée.
-- [ ] Étant donné un projet v0.1 dont un playbook est adapté localement, quand v0.2
-  corrige une autre partie de ce playbook et que `update` est lancé, alors la branche
-  contient le correctif et l'adaptation, sans conflit.
-- [ ] Étant donné un correctif et une adaptation sur la même ligne, quand `update` est
-  lancé, alors le conflit est marqué et le commit refusé tant qu'il subsiste.
-- [ ] Étant donné un fichier du squelette supprimé par l'équipe, quand `update` est lancé,
-  alors le fichier n'est pas recréé.
-- [ ] Quand `update` est lancé, alors aucun fichier d'un module (`modules/<nom>/`) n'est
-  modifié ; les fichiers du squelette placés sous `modules/`, comme son README, suivent
-  les versions.
+- [ ] Given a workstation with only uv and git, when the tech lead runs `init`, then the
+  generated repository's CI is green on a fresh clone, with no manual touch-up.
+- [ ] Given a GitHub repository with no ruleset, when `doctor` runs, then every missing
+  setting is listed with its action and the command exits in failure; with the checklist
+  applied, it exits successfully.
+- [ ] Given `new-module` with no preset, then the module passes the fitness functions with
+  no stack imposed.
+- [ ] Given a v0.1 project with one playbook adapted locally, when v0.2 fixes another part
+  of that playbook and `update` runs, then the branch contains both the fix and the
+  adaptation, with no conflict.
+- [ ] Given a fix and an adaptation on the same line, when `update` runs, then the conflict
+  is marked and the commit refused while it remains.
+- [ ] Given a skeleton file deleted by the team, when `update` runs, then the file is not
+  recreated.
+- [ ] When `update` runs, then no file of a module (`modules/<name>/`) is changed; the
+  skeleton files placed under `modules/`, such as its README, do follow the versions.
 
 ---
 
-## Critère de succès
+## Success criterion
 
-> On considérera que c'était le bon choix si **le premier projet réel est créé par
-> `nstack init` en moins de 30 minutes avant le 2026-10-31, puis reçoit au moins une
-> nouvelle version de NapkinStack par `nstack update`, fusionnée sans perte d'adaptation
-> locale, avant le 2026-12-31**.
+> We will consider this was the right call if **the first real project is created by
+> `nstack init` in under 30 minutes before 2026-10-31, then receives at least one new
+> NapkinStack version through `nstack update`, merged with no loss of local adaptation,
+> before 2026-12-31**.
 
-Comment on l'observe : session d'initialisation chronométrée ; PR de mise à jour dans le
-projet ; aucune règle recopiée à la main depuis le dépôt NapkinStack.
+How it is observed: a timed initialisation session; an update pull request in the project;
+no rule copied by hand from the NapkinStack repository.
 
-Si le critère n'est pas atteint : ajuster si l'écart vient de la friction d'installation ;
-superséder par l'option B si la fusion échoue.
+If the criterion is not met: adjust if the gap comes from installation friction; supersede
+with option B if the merge fails.
 
 ### Validation
 
-Prototype jetable du 2026-09-15, non mergé : conteneur avec uv et git seulement (ni
-Python système, ni Go), gabarit construit à partir du squelette réel, v0.1.0 puis
-v0.2.0, trois projets générés.
+A throwaway prototype of 2026-09-15, never merged: a container with only uv and git (no
+system Python, no Go), a template built from the real skeleton, v0.1.0 then v0.2.0, three
+projects generated.
 
-| Critère | Résultat |
+| Criterion | Result |
 |---|---|
-| 1. `init`, CI verte sur clone vierge | Validé : fitness, hooks et scan d'historique verts |
-| 2. `doctor` | Validé : 5 écarts listés et sortie en échec sans ruleset ; succès sur un dépôt conforme |
-| 3. Module sans preset | Partiel : fitness verte, mais le gabarit de module impose `make` (R5) |
-| 4. Fusion sans conflit | Validé : correctif et adaptation présents, commit accepté par les hooks |
-| 5. Conflit bloquant | Validé après correctif : le hook ignorait les marqueurs hors merge git (D20) |
-| 6. Fichier supprimé | Validé : non recréé, même modifié par la nouvelle version |
-| 7. Modules intacts | Validé après reformulation : code du module intact, README du squelette mis à jour |
+| 1. `init`, CI green on a fresh clone | Validated: fitness, hooks and the history scan green |
+| 2. `doctor` | Validated: 5 gaps listed and a failing exit with no ruleset; success on a compliant repository |
+| 3. A module with no preset | Partial: fitness green, but the module template imposes `make` (R5) |
+| 4. A merge with no conflict | Validated: fix and adaptation both present, commit accepted by the hooks |
+| 5. A blocking conflict | Validated after a fix: the hook ignored markers outside a git merge (D20) |
+| 6. A deleted file | Validated: not recreated, even when the new version changed it |
+| 7. Modules untouched | Validated after rewording: the module's code untouched, the skeleton README updated |
 
-Écarts reportés au plan d'implémentation : gabarit de module sans commande imposée
-(C1) ; moteur qui reçoit la racine du projet au lieu de supposer y vivre (D21) ; erreurs
-de Copier traduites en messages explicatifs (P6).
+Gaps carried into the implementation plan: a module template with no imposed command
+(C1); an engine that receives the project root instead of assuming it lives there (D21);
+Copier's errors translated into explanatory messages (P6).
 
 ---
 
-## Précision du 2026-09-15 — dépôts privés
+## Clarification of 2026-09-15 — private repositories
 
-Ajoutée sans changer la décision ci-dessus, quand le projet pilote s'est annoncé **privé**.
+Added without changing the decision above, when the pilot project announced itself as
+**private**.
 
-**Constat** (documentation GitHub, vérifiée le 2026-09-15) : plusieurs barrières de la
-checklist dépendent de la visibilité du dépôt et de l'offre GitHub.
+**Observation** (GitHub documentation, checked on 2026-09-15): several barriers of the
+checklist depend on the repository's visibility and on the GitHub plan.
 
-| Réglage | Dépôt public | Privé, offre Free | Privé, Team ou Pro |
+| Setting | Public repository | Private, Free plan | Private, Team or Pro |
 |---|---|---|---|
-| Rulesets : PR, relecture, CODEOWNERS, checks requis | Oui | Non | Oui |
-| Scan de secrets et protection au push | Oui | Non | Option payante Secret Protection |
-| Signalement privé de vulnérabilités | Oui | N'existe pas | N'existe pas |
-| Minutes de CI | Illimitées | 2 000 par mois | Selon l'offre |
+| Rulesets: PR, review, CODEOWNERS, required checks | Yes | No | Yes |
+| Secret scanning and push protection | Yes | No | Paid Secret Protection option |
+| Private vulnerability reporting | Yes | Does not exist | Does not exist |
+| CI minutes | Unlimited | 2 000 per month | Per the plan |
 
-**Précision :**
+**Clarification:**
 
-- Un projet peut être privé ; GitHub reste la seule forge.
-- La promesse « non contournable » exige un dépôt public, ou un dépôt privé sous GitHub Team
-  (organisation) ou Pro (compte personnel). Le README du squelette l'écrit dans ses prérequis.
-- `nstack doctor` suit la visibilité du dépôt : le signalement privé est « non applicable »
-  hors dépôt public ; un réglage absent d'un dépôt privé nomme l'offre ou l'option requise ;
-  sur l'offre Free, ces écarts restent des écarts, car aucune barrière n'existe.
-- Usage sans forge, projet uniquement local : hors périmètre tant qu'un vrai projet ne le
-  demande pas.
+- A project may be private; GitHub remains the only forge.
+- The "not bypassable" promise requires a public repository, or a private one under GitHub
+  Team (organisation) or Pro (personal account). The skeleton README states it in its
+  prerequisites.
+- `nstack doctor` follows the repository's visibility: private reporting is "not
+  applicable" outside a public repository; a setting missing from a private repository
+  names the plan or option required; on the Free plan those gaps stay gaps, because no
+  barrier exists.
+- Use with no forge, a purely local project: out of scope until a real project asks for it.
 
 ---
 
-## Condition de retrait
+## Removal condition
 
-> Ce modèle sera retiré si, **sur les 3 premières mises à jour d'un projet réel, plus
-> d'une oblige à réappliquer des adaptations à la main**, ou si **aucun projet n'utilise
-> `update` six mois après sa création**.
+> This model will be removed if, **out of the first 3 updates of a real project, more than
+> one forces adaptations to be reapplied by hand**, or if **no project uses `update` six
+> months after its creation**.
 
 ---
 
 ## Impacts
 
-- **Utilisateurs existants** : aucun projet n'a été créé par copie ; pas de migration.
-- **Modules et contrats** : `platform/` devient le moteur versionné ; le squelette est
-  extrait en gabarit ; le dépôt reste unique tant qu'aucun besoin de le scinder n'est
-  démontré (structure fixée par ADR).
-- **Support et documentation**, à l'acceptation :
-  - `PRODUCT.md` : §1 (« généré par `init` » au lieu de « copié comme racine ») ; §2 (« ni
-    framework applicatif ») ; P1 précisé selon R5 ; §6 (un preset n'existe qu'après avoir
-    servi à un vrai projet) ;
-  - README réécrit avec les schémas de ce PDR ;
-  - chantiers replanifiés : C1 devient la CLI du moteur, C5 est absorbé par `init` et
-    `doctor`, D18 est résolu par uv, D19 est traité par `new-module`.
-- **Données** : aucune collecte, aucune télémétrie. Le critère de succès se mesure dans le
-  projet lui-même.
+- **Existing users**: no project was created by copy; no migration.
+- **Modules and contracts**: `platform/` becomes the versioned engine; the skeleton is
+  extracted into a template; the repository stays single until a need to split it is
+  demonstrated (structure fixed by an ADR).
+- **Support and documentation**, on acceptance:
+  - `PRODUCT.md`: §1 ("generated by `init`" instead of "copied as a root"); §2 ("nor an
+    application framework"); P1 clarified per R5; §6 (a preset only exists after it has
+    served a real project);
+  - the README rewritten with this PDR's diagrams;
+  - workstreams replanned: C1 becomes the engine's CLI, C5 is absorbed by `init` and
+    `doctor`, D18 is solved by uv, D19 is handled by `new-module`.
+- **Data**: no collection, no telemetry. The success criterion is measured in the project
+  itself.
 
-**Décisions suivantes, dans l'ordre** : ADR-0001 outil de gabarit · ADR-0002 distribution
-et nom · prototype · ADR-0003 identité de l'agent · PDR-0002 cadrage guidé.
+**Next decisions, in order**: ADR-0001 template tool · ADR-0002 distribution and name ·
+prototype · ADR-0003 repository language · ADR-0004 agent identity · PDR-0002 guided
+framing.
