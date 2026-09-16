@@ -23,7 +23,7 @@ TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
-OPTIONAL = {"bootstrap"}  # absent: nothing to prepare
+OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
 NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
 
 RUNBOOK = """# Runbook - {name}
@@ -127,7 +127,7 @@ def run_verb(root: Path, verb: str, name: str | None) -> int:
         command = commands.get(verb)
         if not command:
             if verb in OPTIONAL:
-                print(f"-> {target}: {verb} not declared, nothing to prepare.")
+                print(f"-> {target}: {verb} not declared, {OPTIONAL[verb]}.")
                 continue
             print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
                   "      Action: declare the module stack's command there (docs/os/09-platform.md §2).")

@@ -216,9 +216,11 @@ fi
 echo "$OUT" | grep -qx "stack-free" && echo "$OUT" | grep -qF "FAIL [check] module 'zeta'" \
   || { echo "FAIL: modules not walked, or failure not named."; echo "$OUT"; exit 1; }
 
-echo "-> verbs: bootstrap optional; an undeclared run and an unknown module MUST fail"
+echo "-> verbs: bootstrap and e2e optional; an undeclared run and an unknown module MUST fail"
 uv run nstack bootstrap demo --root "$SC" | grep -qF "nothing to prepare" \
   || { echo "FAIL: missing bootstrap mishandled."; exit 1; }
+uv run nstack e2e demo --root "$SC" | grep -qF "no end-to-end scenario" \
+  || { echo "FAIL: missing e2e mishandled."; exit 1; }
 for case in "run demo|commands.run not declared" "test unknown|module 'unknown' not found"; do
   IFS='|' read -r arguments message <<<"$case"
   # shellcheck disable=SC2086

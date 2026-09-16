@@ -15,6 +15,9 @@ coverage/
 # Skills generated from playbooks/ — the source of truth is playbooks/
 .claude/skills/
 
+# Evidence of the end-to-end scenarios: a CI artefact, never committed
+.evidence/
+
 # Editors and IDEs
 .idea/
 *.iml

@@ -78,7 +78,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="a user sees this module: its pull requests carry a test sheet")
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
-                            ("test", "tests of one module, or of all of them (commands.test)")):
+                            ("test", "tests of one module, or of all of them (commands.test)"),
+                            ("e2e", "end-to-end scenarios of one module, or of all (commands.e2e)")):
         vb = _add(sub, verb, help_text, lambda a, v=verb: modules.run_verb(a.root, v, a.module))
         vb.add_argument("module", nargs="?", help="module name (default: all)")
     rn = _add(sub, "run", "starts a module locally (commands.run)",
