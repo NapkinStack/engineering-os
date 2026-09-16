@@ -1,6 +1,6 @@
 # PDR-0002 — Frame and bound a project
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, templates,
@@ -314,6 +314,133 @@ change or a handbook correction, none of which delivers a user outcome.
 a module. The others are exempt; they stay visible in the history like any change. The
 circuit breaker stops delivery work only, so that an `out-of-cycle` incident fix remains
 possible.
+
+---
+
+## Extension of 2026-09-16 — discovery, before the charter
+
+Added at the maintainer's request, before the implementation, without changing the
+decision above: the framing assumed an idea worth a charter. Many projects start from less.
+
+### User problem
+
+Someone has an idea and an agent. Before any charter, they want the idea tested: stated
+clearly, compared with what already exists, challenged, its difference found — or dropped.
+Done freely with an AI, that conversation has no protocol and no end: the agent agrees too
+easily, invents market facts, and each session opens new directions. The framing then
+writes a careful charter for an idea nobody challenged.
+
+### Prior art
+
+> Checked on 2026-09-16.
+
+| Reference | Solution chosen | What we keep from it |
+|---|---|---|
+| GitHub Spec Kit, `assess` extension | An opt-in workflow run in the agent: intake → research → define → shape → decide, which renders a go/no-go decision; a go hands over to the specification | **The convention**: its five stages and a decision at the end, run by the agent, not by a CLI |
+| BMad Method, Analyst agent | "Brainstorm; market, domain, and technical research; technology selection; competitive teardown; user-voice research; product brief; PRFAQ challenge" | Research and a competitive look as a distinct step, before the product document |
+| Amazon, Working Backwards (PR/FAQ) | A short narrative — a press release from the future and its FAQ — written before building; an idea whose release does not convince is reworked or killed | The outcome told from the user's side, and the right to kill |
+| SVPG, the four big risks (Marty Cagan) | Value, usability, feasibility, business viability — tackled "early", "especially value risk and business risk" | The four risks as the challenge's frame |
+| Pre-mortem (Gary Klein, Harvard Business Review, 2007) | The team assumes the project "has just failed" and generates plausible reasons | The challenge's first move |
+| Shape Up, the pitch | Problem, appetite, solution, rabbit holes, no-gos | No-gos and an appetite before the first cycle |
+| Claude Code best practices (Anthropic) | "Have Claude interview you"; a fresh session to execute; a verifier in a fresh context "so the agent doing the work isn't the one grading it" | An interview one question at a time; a challenge from a session that did not write the brief |
+
+**The convention the user knows:** an idea assessed in stages, ending with go or no-go,
+before any specification.
+
+**Why depart from it — two additions, one limit:**
+
+- **The challenge comes from another session.** In a single conversation the agent
+  challenges its own synthesis, and agrees with it; the independence PDR-0003 applies to
+  verification applies here.
+- **The discovery is bounded**: one document, a decision at the end of each round, a round
+  or two — the same rule as the cycles.
+- **Nothing more.** No personas beyond the framer and the challenger, no canvas to fill, no
+  market-sizing model: they add ceremony, not evidence.
+
+### Decision
+
+A project may start from an idea alone. The team's agent runs a **discovery** — a
+playbook, exposed as a skill — and writes **one document**, `docs/project/discovery.md`,
+that ends with the decider's decision: **go** (the framing writes the charter from it),
+**clarify** (another round on the open questions), or **kill**.
+
+| Stage | What happens | Who | What the document records |
+|---|---|---|---|
+| 1. Intake | The agent restates the idea in one paragraph; the decider corrects it | Framer, decider | The idea as understood, and its source file |
+| 2. Research | Alternatives, competitors, what users do today, business models, legal constraints — each fact with its source | Framer | Evidence for and against, facts apart from assumptions |
+| 3. Define | For whom, which problem, what success looks like, measurable | Framer, decider | Users, problem, success signals |
+| 4. Shape | The differentiating value — the reason a user would switch — told as a short press release; the no-gos | Framer, decider | The value hypothesis, the no-gos |
+| 5. Challenge | A pre-mortem, then the four risks; counter-evidence searched for | **Challenger**: an agent session that did not write the document, or a human | The objections, and for each risk the riskiest assumption and the cheapest test |
+| 6. Decide | Go, clarify or kill | **Decider** | The decision, its date, its reasons |
+
+**The command.** `nstack discover <idea-file>` is deterministic and calls no model: it
+keeps the idea in `docs/project/inputs/`, creates `docs/project/discovery.md` from its
+template, and prints the instruction to give the team's agent — whatever the agent. The
+conversation happens in the agent (Out of scope: "An AI inside `nstack`").
+
+**The postures** gain the **challenger**: an agent session other than the framer's, or a
+human; it attacks the document before reading the framer's reasoning, reports objections
+with their evidence, and never rewrites the document.
+
+**The bounds.** Each round ends with a decision; a second `clarify` is the decider's
+explicit choice, recorded. A go carries its riskiest assumptions into the first cycle, as
+*spike* deliverables when a test is needed before building.
+
+### Expected behaviour
+
+**Nominal journey:** `nstack init` → `nstack discover idea.md` → in the agent, the
+discovery, stages 1 to 4 → a new session challenges (stage 5) → the decider decides → on
+go, the framing (§3 and §4 above) writes the charter and the first cycle from
+`discovery.md`.
+
+**Edge cases:**
+
+- A specification already written and challenged: no discovery; the framing starts from it.
+- A fact the agent cannot source: written as an assumption, never as a fact.
+- A kill: the document stays, with its reasons — the cheapest outcome of all.
+- `nstack discover` on a project whose discovery already exists: refused, naming the file;
+  a new idea is a new round in the same document, or a new project.
+
+**Business rules:**
+
+- Discovery is optional; when `docs/project/discovery.md` exists, a charter is accepted
+  only after a **go**.
+- The challenger is never the session that wrote the document.
+- The framework names no market, no domain, no tool: sources come from the project's
+  research capability (`docs/tooling-profile.md`).
+
+**Acceptance criteria:**
+
+- [ ] Given a project and an idea file, when `nstack discover` runs, then the idea is kept in
+  `docs/project/inputs/`, `docs/project/discovery.md` is created with `decision: proposed`,
+  and the agent's instruction is printed; no model is called.
+- [ ] Given an existing `discovery.md`, when `nstack discover` runs, then it refuses, naming
+  the file and the action.
+- [ ] Given a `discovery.md` whose decision is not `go`, when the charter is accepted, then
+  `nstack plan` fails, naming the discovery's decision.
+- [ ] Given a decided discovery without its decider or its date, then `nstack plan` fails.
+- [ ] Given a generated project, then the discovery playbook and its template exist, name no
+  tool, market or domain, and describe the six stages and the challenger.
+
+### Success criterion and removal
+
+> We will consider this extension right if, **in the pilot project, the discovery reaches a
+> decision within two working sessions, and the challenge changes at least one thing the
+> charter or the first cycle would otherwise have contained** — a no-go, a risk turned into
+> a spike, a scope cut — observed before **2026-12-31**.
+
+> The challenger stage will be removed if **it changes nothing in the pilot's charter or
+> first cycle**, and the whole discovery if the pilot's decider judges it slower than
+> framing directly.
+
+### Impacts
+
+- **Engine**: `nstack discover`; `nstack plan` reads `discovery.md` (decision, decider,
+  date; a charter accepted only after a go).
+- **Skeleton**: `playbooks/discovery.md` and its skill; `docs/project/_DISCOVERY_TEMPLATE.md`;
+  the challenger in the postures; the README's journey; `framing.md` starting from the
+  discovery when there is one.
+- **Plan**: workstreams M8d (engine) and M8e (rules).
 
 ---
 
