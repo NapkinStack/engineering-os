@@ -1,118 +1,121 @@
-# Playbook — Données et migrations
+# Playbook — Data and migrations
 
-> **Déclencheur.** Charge ce playbook si la tâche touche à : schéma de données,
-> migration, suppression ou transformation de données existantes, propriété des données.
+> **Trigger.** Load this playbook when the task touches: a data schema, a migration, the
+> deletion or transformation of existing data, data ownership.
 
 ---
 
-## Règles absolues
+## Absolute rules
 
-| # | Règle |
+| # | Rule |
 |---|---|
-| D1 | **Une migration est un changement de production**, pas une modification de code. Elle relève des actions à haut risque (kernel §5). |
-| D2 | **Chaque module possède ses données.** Aucun accès direct à la base d'un autre module — on passe par son contrat. |
-| D3 | **Jamais de renommage ni de suppression en place.** On ajoute, on fait coexister, on migre, on retire. |
-| D4 | **Toute migration a un plan de retour arrière**, ou une justification écrite de son absence. |
-| D5 | **Ne jamais exécuter une migration destructive sans confirmation explicite.** |
+| D1 | **A migration is a production change**, not a code change. It falls under high-risk actions (kernel §5). |
+| D2 | **Each module owns its data.** No direct access to another module's database — you go through its contract. |
+| D3 | **Never rename or delete in place.** You add, you let both coexist, you migrate, you remove. |
+| D4 | **Every migration has a rollback plan**, or a written justification for not having one. |
+| D5 | **Never run a destructive migration without explicit confirmation.** |
 
 ---
 
-## 1. Expand / Contract appliqué au schéma
+## 1. Expand / Contract applied to the schema
 
-Même logique que les contrats (`docs/os/03-contracts.md`), pour la même raison : l'ancien et
-le nouveau code coexistent pendant le déploiement.
+The same logic as contracts (`docs/os/03-contracts.md`), for the same reason: the old and
+the new code coexist during the deployment.
 
 ```mermaid
 flowchart TD
-    A["Besoin : renommer un champ<br/>ou changer son type"] --> B["1 · EXPAND schéma<br/>ajouter le nouveau champ<br/>nullable, sans rien toucher"]
-    B --> C["2 · Double écriture<br/>le code écrit les deux"]
-    C --> D["3 · Backfill<br/>remplir l'existant<br/>par lots, idempotent, reprenable"]
-    D --> E["4 · Bascule en lecture<br/>le code lit le nouveau champ"]
-    E --> F{"Stable en<br/>production ?"}
-    F -->|Non| E2["Retour en lecture<br/>sur l'ancien champ"] --> D
-    F -->|Oui| G["5 · Arrêt de l'écriture<br/>sur l'ancien champ"]
-    G --> H["6 · CONTRACT<br/>suppression de l'ancien champ"]
+    A["Need: rename a field<br/>or change its type"] --> B["1 · EXPAND the schema<br/>add the new field,<br/>nullable, touching nothing"]
+    B --> C["2 · Double write<br/>the code writes both"]
+    C --> D["3 · Backfill<br/>fill in the existing rows,<br/>in batches, idempotent, resumable"]
+    D --> E["4 · Switch reads<br/>the code reads the new field"]
+    E --> F{"Stable in<br/>production?"}
+    F -->|No| E2["Read from the<br/>old field again"] --> D
+    F -->|Yes| G["5 · Stop writing<br/>the old field"]
+    G --> H["6 · CONTRACT<br/>drop the old field"]
 
     style B fill:#065f46,color:#fff
     style D fill:#1f2937,color:#fff
     style H fill:#7c2d12,color:#fff
 ```
 
-Chaque étape est **une PR déployable indépendamment**. À aucun moment le système n'est
-dans un état où un rollback casserait les données.
+**Legend** — green: the additive step, always safe · dark grey: the operational step ·
+red: the irreversible step, the one that gets forgotten.
 
-L'étape 6 est la plus oubliée. Comme pour les contrats : elle porte une date, et un
-check échoue quand la date est dépassée.
+Each step is **a pull request deployable on its own**. At no point is the system in a
+state where a rollback would break the data.
+
+Step 6 is the most forgotten. As with contracts: it carries a date, and a check fails
+once that date has passed.
 
 ---
 
-## 2. Avant toute migration
+## 2. Before any migration
 
-| Question | Si la réponse manque |
+| Question | If the answer is missing |
 |---|---|
-| Combien de lignes sont concernées ? | Mesurer avant d'écrire la migration |
-| Verrouille-t-elle une table ? Combien de temps ? | Tester sur un volume représentatif |
-| L'ancien code fonctionne-t-il après ? | C'est obligatoire pendant le déploiement |
-| Le nouveau code fonctionne-t-il avant ? | Idem, dans l'autre sens |
-| Que deviennent les données non conformes ? | Les compter, décider explicitement |
-| Comment revenir en arrière ? | Écrire le plan, ou justifier son absence |
-| Comment savoir que ça s'est bien passé ? | Définir la vérification avant de lancer |
+| How many rows are affected? | Measure before writing the migration |
+| Does it lock a table? For how long? | Test on a representative volume |
+| Does the old code still work afterwards? | It must, during the deployment |
+| Does the new code work beforehand? | Same, the other way round |
+| What happens to non-conforming data? | Count it, decide explicitly |
+| How do you roll back? | Write the plan, or justify its absence |
+| How will you know it went well? | Define the verification before starting |
 
 ---
 
 ## 3. Backfill
 
-Un backfill sur un volume important est une opération d'exploitation, pas un script.
+A backfill over a large volume is an operational procedure, not a script.
 
-- **Par lots**, avec pause entre les lots — ne jamais tout traiter d'un coup.
-- **Idempotent** : relançable sans effet de bord.
-- **Reprenable** : mémorise sa progression, survit à une interruption.
-- **Observable** : progression, erreurs, durée estimée.
-- **Interruptible** : on doit pouvoir l'arrêter sans corrompre l'état.
-- **Mesuré avant** : nombre de lignes, durée estimée, impact sur la charge.
-
----
-
-## 4. Suppression de données
-
-C'est irréversible. Procédure obligatoire :
-
-```
-1. compter exactement ce qui sera supprimé
-2. vérifier le critère de sélection sur un échantillon
-3. sauvegarder ou archiver ce qui est supprimé
-4. exécuter en mode simulation d'abord
-5. demander confirmation explicite, avec le nombre exact
-6. supprimer par lots, avec point d'arrêt
-7. vérifier après
-```
-
-Une suppression déclenchée par une règle de rétention est une décision produit : elle
-relève d'un PDR, pas d'une tâche technique.
+- **In batches**, with a pause between batches — never process everything at once.
+- **Idempotent**: re-runnable with no side effect.
+- **Resumable**: remembers its progress, survives an interruption.
+- **Observable**: progress, errors, estimated duration.
+- **Interruptible**: it must be possible to stop it without corrupting the state.
+- **Measured beforehand**: row count, estimated duration, impact on load.
 
 ---
 
-## 5. Propriété des données
+## 4. Deleting data
 
-Le partage implicite de données est la forme de couplage la plus difficile à défaire,
-parce qu'elle est invisible dans le code.
+This is irreversible. Mandatory procedure:
 
-| Situation | Traitement |
+```
+1. count exactly what will be deleted
+2. check the selection criterion against a sample
+3. back up or archive what is being deleted
+4. run in dry-run mode first
+5. ask for explicit confirmation, with the exact count
+6. delete in batches, with a stopping point
+7. verify afterwards
+```
+
+A deletion triggered by a retention rule is a product decision: it belongs to a PDR, not
+to a technical task.
+
+---
+
+## 5. Data ownership
+
+Implicit data sharing is the hardest form of coupling to undo, because it is invisible
+in the code.
+
+| Situation | Handling |
 |---|---|
-| Un module lit la table d'un autre | Violation — détectée par fitness function |
-| Base partagée entre deux modules | ADR obligatoire, avec propriété explicite par table |
-| Donnée dupliquée entre modules | Acceptable si une source de vérité est désignée et la synchronisation contractuelle |
-| Jointure entre domaines nécessaire | Signal de mauvaise frontière — ne pas la contourner par un accès direct |
+| A module reads another's table | A violation — detected by a fitness function |
+| Database shared between two modules | ADR required, with explicit ownership per table |
+| Data duplicated across modules | Acceptable when a source of truth is designated and the synchronisation is contractual |
+| A join across domains is needed | A signal of a bad boundary — do not work around it with direct access |
 
 ---
 
-## 6. Checklist de fin
+## 6. Closing checklist
 
-- [ ] Migration testée sur un volume représentatif
-- [ ] Ancien et nouveau code fonctionnent pendant la transition
-- [ ] Backfill par lots, idempotent, reprenable
-- [ ] Plan de retour arrière écrit, ou absence justifiée
-- [ ] Vérification post-migration définie **avant** l'exécution
-- [ ] Étape de contraction planifiée, avec date et propriétaire
-- [ ] Action destructive confirmée explicitement, avec le nombre exact
-- [ ] Ce qui n'a pas pu être vérifié figure dans `NON VÉRIFIÉ` du résumé
+- [ ] Migration tested on a representative volume
+- [ ] Old and new code both work during the transition
+- [ ] Backfill in batches, idempotent, resumable
+- [ ] Rollback plan written, or its absence justified
+- [ ] Post-migration verification defined **before** the run
+- [ ] Contraction step planned, with a date and an owner
+- [ ] Destructive action explicitly confirmed, with the exact count
+- [ ] Whatever could not be verified appears under `NOT VERIFIED` in the summary

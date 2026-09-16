@@ -1,39 +1,38 @@
-# Playbook — Exploitation et fiabilité
+# Playbook — Operations and reliability
 
-> **Déclencheur.** Charge ce playbook si la tâche touche à : logs, métriques, alertes,
-> retries, timeouts, rollback, health checks, déploiement, ou tout appel vers une
-> dépendance externe.
+> **Trigger.** Load this playbook when the task touches: logs, metrics, alerts, retries,
+> timeouts, rollback, health checks, deployment, or any call to an external dependency.
 
 ---
 
-## Règles absolues
+## Absolute rules
 
-| # | Règle |
+| # | Rule |
 |---|---|
-| E1 | **Jamais de retry automatique sans analyser les effets de bord.** |
-| E2 | **Tout appel externe a un timeout explicite.** Un appel sans timeout est une panne en attente. |
-| E3 | **Aucun secret ni donnée personnelle dans les logs.** |
-| E4 | **Une erreur silencieusement avalée est un incident futur.** |
-| E5 | **Un module en production sans moyen de savoir qu'il va mal n'est pas prêt.** |
+| E1 | **Never an automatic retry without analysing the side effects.** |
+| E2 | **Every external call has an explicit timeout.** A call without one is an outage waiting to happen. |
+| E3 | **No secret and no personal data in the logs.** |
+| E4 | **An error quietly swallowed is a future incident.** |
+| E5 | **A module in production with no way of knowing it is unwell is not ready.** |
 
 ---
 
-## 1. Retries — le piège classique
+## 1. Retries — the classic trap
 
 ```mermaid
 flowchart TD
-    A["Envisager un retry"] --> B{"L'opération est-elle<br/>idempotente ?"}
-    B -->|Non| C["NE PAS RETRY.<br/>Rendre idempotent d'abord<br/>clé d'idempotence"]
-    B -->|Oui| D{"L'erreur est-elle<br/>transitoire ?"}
+    A["Considering a retry"] --> B{"Is the operation<br/>idempotent?"}
+    B -->|No| C["DO NOT RETRY.<br/>Make it idempotent first,<br/>with an idempotency key"]
+    B -->|Yes| D{"Is the error<br/>transient?"}
 
-    D -->|"Non : 4xx, validation,<br/>autorisation"| E["NE PAS RETRY.<br/>Le résultat sera identique."]
-    D -->|"Oui : réseau, 5xx,<br/>timeout"| F{"Backoff<br/>exponentiel + jitter ?"}
+    D -->|"No: 4xx, validation,<br/>authorisation"| E["DO NOT RETRY.<br/>The result will be identical."]
+    D -->|"Yes: network, 5xx,<br/>timeout"| F{"Exponential backoff<br/>with jitter?"}
 
-    F -->|Non| G["NE PAS RETRY.<br/>Un retry synchronisé transforme<br/>un incident local en panne globale"]
-    F -->|Oui| H{"Nombre maximal<br/>et budget total<br/>définis ?"}
+    F -->|No| G["DO NOT RETRY.<br/>A synchronised retry turns<br/>a local incident into a global outage"]
+    F -->|Yes| H{"Maximum count<br/>and total budget<br/>defined?"}
 
-    H -->|Non| G
-    H -->|Oui| I["Retry acceptable<br/>+ métrique sur le taux de retry"]
+    H -->|No| G
+    H -->|Yes| I["Retry acceptable,<br/>with a metric on the retry rate"]
 
     style C fill:#7c2d12,color:#fff
     style E fill:#7c2d12,color:#fff
@@ -41,132 +40,134 @@ flowchart TD
     style I fill:#065f46,color:#fff
 ```
 
-Trois effets de bord à vérifier systématiquement :
+**Legend** — red: do not retry, and why · green: the only branch where a retry is safe.
 
-- **Duplication** — un retry sur une opération non idempotente crée deux fois l'effet.
-- **Amplification** — N clients qui retryent simultanément multiplient la charge sur un
-  service déjà en difficulté.
-- **Masquage** — un retry qui réussit cache une dégradation réelle. Le taux de retry est
-  donc une métrique, pas un détail d'implémentation.
+Three side effects to check every time:
+
+- **Duplication** — a retry on a non-idempotent operation applies the effect twice.
+- **Amplification** — N clients retrying at the same time multiply the load on a service
+  already in trouble.
+- **Masking** — a retry that succeeds hides a real degradation. The retry rate is
+  therefore a metric, not an implementation detail.
 
 ---
 
 ## 2. Timeouts
 
-| Règle | Pourquoi |
+| Rule | Why |
 |---|---|
-| Tout appel externe a un timeout explicite | Un appel sans timeout bloque un thread indéfiniment |
-| Le timeout est plus court en amont qu'en aval | Sinon l'appelant abandonne avant l'appelé, et le travail est perdu |
-| Un budget total existe pour la requête | Empêche l'accumulation de timeouts en cascade |
-| Le timeout est une valeur configurée, pas une constante enfouie | Il devra être ajusté en production |
+| Every external call has an explicit timeout | A call without one blocks a thread indefinitely |
+| The timeout is shorter upstream than downstream | Otherwise the caller gives up before the callee, and the work is lost |
+| A total budget exists for the request | Prevents cascading timeouts from accumulating |
+| The timeout is a configured value, not a buried constant | It will need adjusting in production |
 
 ---
 
 ## 3. Logs
 
-| À faire | À éviter |
+| Do | Avoid |
 |---|---|
-| Structurés, exploitables par machine | Chaînes concaténées non parsables |
-| Identifiant de corrélation propagé | Logs impossibles à relier entre eux |
-| Contexte utile : quoi, où, quel identifiant | « Erreur » sans contexte |
-| Niveaux cohérents et respectés | Tout en `info`, ou tout en `error` |
-| Masquage des données sensibles **à la source** | Masquage au moment de l'affichage |
+| Structured, machine-readable | Concatenated strings nothing can parse |
+| A correlation identifier propagated | Logs impossible to tie together |
+| Useful context: what, where, which identifier | "Error" with no context |
+| Consistent levels, actually respected | Everything at `info`, or everything at `error` |
+| Masking sensitive data **at the source** | Masking at display time |
 
-Un log qui ne permet pas de reconstituer ce qui s'est passé n'a servi qu'à occuper de
-l'espace disque. Question de contrôle : *à 3 h du matin, ce log me permet-il de
-comprendre sans lire le code ?*
+A log that does not let you reconstruct what happened has only occupied disk space.
+Control question: *at 3 a.m., does this log let me understand without reading the code?*
 
 ---
 
-## 4. Métriques et alertes
+## 4. Metrics and alerts
 
-| Type | Exemple |
+| Type | Example |
 |---|---|
-| Trafic | Requêtes, messages traités |
-| Erreurs | Taux d'erreur, par type |
-| Latence | Distribution, pas seulement la moyenne |
-| Saturation | File d'attente, connexions, mémoire |
-| Métier | Ce que le module est censé produire |
+| Traffic | Requests, messages processed |
+| Errors | Error rate, by type |
+| Latency | The distribution, not only the mean |
+| Saturation | Queue, connections, memory |
+| Business | What the module is supposed to produce |
 
-**La moyenne masque tout.** Une latence moyenne correcte peut cacher 5 % d'utilisateurs
-en attente de dix secondes. Toujours regarder la distribution.
+**The mean hides everything.** A healthy average latency can conceal 5 % of users waiting
+ten seconds. Always look at the distribution.
 
-### Alertes
+### Alerts
 
-| Règle | Raison |
+| Rule | Reason |
 |---|---|
-| Alerter sur un **symptôme utilisateur**, pas sur une cause technique | Les causes changent, le symptôme reste pertinent |
-| Toute alerte est **actionnable** | Une alerte sans action à faire sera ignorée |
-| Toute alerte pointe vers un **runbook** | Sinon la connaissance est dans une seule tête |
-| Une alerte qui se déclenche sans action est **supprimée ou corrigée** | Le bruit détruit la valeur de toutes les alertes |
+| Alert on a **user-visible symptom**, not on a technical cause | Causes change, the symptom stays relevant |
+| Every alert is **actionable** | An alert with nothing to do will be ignored |
+| Every alert points to a **runbook** | Otherwise the knowledge sits in one person's head |
+| An alert that fires with no action taken is **removed or fixed** | Noise destroys the value of every alert |
 
 ---
 
 ## 5. Health checks
 
-| Type | Répond à | Piège |
+| Type | Answers | Trap |
 |---|---|---|
-| *Liveness* | Le processus doit-il être redémarré ? | Ne doit **pas** dépendre des dépendances externes — sinon une panne externe provoque des redémarrages en boucle |
-| *Readiness* | Peut-il recevoir du trafic ? | Doit vérifier les dépendances critiques |
-| *Startup* | A-t-il fini de démarrer ? | Évite les redémarrages pendant une initialisation lente |
+| *Liveness* | Should the process be restarted? | Must **not** depend on external dependencies — otherwise an external outage causes a restart loop |
+| *Readiness* | Can it take traffic? | Must check the critical dependencies |
+| *Startup* | Has it finished starting? | Avoids restarts during a slow initialisation |
 
 ---
 
-## 6. Déploiement et rollback
+## 6. Deployment and rollback
 
 ```mermaid
 flowchart TD
-    A["Changement prêt"] --> B{"Compatible avec<br/>la version précédente ?"}
-    B -->|Non| C["Découper : rendre compatible<br/>d'abord, puis basculer"]
-    B -->|Oui| D["Déployer"]
+    A["Change ready"] --> B{"Compatible with<br/>the previous version?"}
+    B -->|No| C["Split it: make it compatible<br/>first, then switch over"]
+    B -->|Yes| D["Deploy"]
     D --> E["Smoke tests"]
-    E --> F{"Verts ?"}
-    F -->|Non| G["ROLLBACK immédiat"]
-    F -->|Oui| H["Vérification par<br/>l'observabilité<br/>erreurs · latence · métier"]
-    H --> I{"Conforme ?"}
-    I -->|Non| G
-    I -->|Oui| J["Terminé"]
+    E --> F{"Green?"}
+    F -->|No| G["Immediate ROLLBACK"]
+    F -->|Yes| H["Verification through<br/>observability:<br/>errors · latency · business"]
+    H --> I{"As expected?"}
+    I -->|No| G
+    I -->|Yes| J["Done"]
 
     style G fill:#7c2d12,color:#fff
     style J fill:#065f46,color:#fff
     style C fill:#1f2937,color:#fff
 ```
 
-- **Le rollback se teste**, il ne se suppose pas. Un rollback jamais exécuté ne
-  fonctionne probablement pas.
-- **Un déploiement n'est pas terminé au déploiement** : il est terminé quand
-  l'observabilité confirme le comportement attendu.
-- **Compatibilité descendante obligatoire** : pendant le déploiement, deux versions
-  coexistent. Un changement incompatible se découpe (`docs/os/03-contracts.md`).
+**Legend** — red: roll back · green: done · dark grey: split the change instead.
+
+- **Rollback is tested**, not assumed. A rollback never executed probably does not work.
+- **A deployment is not finished at deploy time**: it is finished when observability
+  confirms the expected behaviour.
+- **Backward compatibility is mandatory**: during the deployment two versions coexist. An
+  incompatible change is split up (`docs/os/03-contracts.md`).
 
 ---
 
-## 7. Dégradation contrôlée
+## 7. Controlled degradation
 
-Décider **à l'avance** de ce qui se passe quand une dépendance est indisponible :
+Decide **in advance** what happens when a dependency is unavailable:
 
-| Stratégie | Quand |
+| Strategy | When |
 |---|---|
-| Échouer proprement | La fonctionnalité n'a pas de sens sans la dépendance |
-| Servir une valeur par défaut | Une approximation vaut mieux que rien |
-| Servir depuis un cache, même périmé | La fraîcheur est moins critique que la disponibilité |
-| Désactiver la fonctionnalité, garder le reste | La dépendance est secondaire |
-| Mettre en file pour traitement différé | L'opération peut être asynchrone |
+| Fail cleanly | The feature makes no sense without the dependency |
+| Serve a default value | An approximation beats nothing |
+| Serve from a cache, even a stale one | Freshness matters less than availability |
+| Disable the feature, keep the rest | The dependency is secondary |
+| Queue for deferred processing | The operation can be asynchronous |
 
-Le choix est explicite et testé. Sans décision préalable, le comportement par défaut est
-toujours le pire : une erreur opaque au pire moment.
+The choice is explicit and tested. Without a prior decision, the default behaviour is
+always the worst one: an opaque error at the worst possible moment.
 
 ---
 
-## 8. Checklist de fin
+## 8. Closing checklist
 
-- [ ] Timeouts explicites sur tous les appels externes
-- [ ] Retries justifiés, idempotents, avec backoff et plafond — ou absents
-- [ ] Logs structurés, corrélés, sans secrets ni données personnelles
-- [ ] Erreurs jamais avalées silencieusement
-- [ ] Métriques et alertes actionnables, pointant vers un runbook
-- [ ] Health checks corrects (liveness sans dépendances externes)
-- [ ] Compatibilité descendante vérifiée
-- [ ] Rollback documenté et testé
-- [ ] Comportement en cas d'indisponibilité décidé explicitement
-- [ ] Ce qui n'a pas pu être vérifié figure dans `NON VÉRIFIÉ` du résumé
+- [ ] Explicit timeouts on every external call
+- [ ] Retries justified, idempotent, with backoff and a ceiling — or absent
+- [ ] Logs structured, correlated, free of secrets and personal data
+- [ ] Errors never swallowed quietly
+- [ ] Metrics and alerts actionable, pointing at a runbook
+- [ ] Health checks correct (liveness with no external dependencies)
+- [ ] Backward compatibility verified
+- [ ] Rollback documented and tested
+- [ ] Behaviour on unavailability decided explicitly
+- [ ] Whatever could not be verified appears under `NOT VERIFIED` in the summary
