@@ -78,7 +78,7 @@ n'augmentent.
 ### Contractions en retard
 
 Nombre de versions de contrat dépréciées dont la date de retrait est dépassée
-(`03-contrats.md` §4). C'est la mesure directe des **états intermédiaires permanents**.
+(`03-contracts.md` §4). C'est la mesure directe des **états intermédiaires permanents**.
 Elle ne devrait jamais croître durablement.
 
 ### Temps de feedback CI
@@ -144,7 +144,7 @@ système ne l'a-t-il pas vu ? » produit un garde-fou.
 
 Noter le traitement du cas `E5` : quand une gate a été contournée, le réflexe de blâmer
 l'individu est une impasse. Une gate systématiquement contournée est une gate mal
-conçue — trop lente, trop bruyante, ou sans valeur perçue (`07-gouvernance.md` §5).
+conçue — trop lente, trop bruyante, ou sans valeur perçue (`07-governance.md` §5).
 
 ---
 

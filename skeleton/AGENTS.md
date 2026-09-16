@@ -104,11 +104,11 @@ kernel (ce fichier)
 
 | Tu touches à… | Charge |
 |---|---|
-| authentification, autorisation, secrets, données personnelles, entrées externes | `securite.md` |
-| schéma de données, migration, données existantes | `donnees-migration.md` |
+| authentification, autorisation, secrets, données personnelles, entrées externes | `security.md` |
+| schéma de données, migration, données existantes | `data-migration.md` |
 | une surface visible par l'utilisateur | `ux.md` |
 | une stratégie de test non triviale, un test flaky | `tests.md` |
-| logs, métriques, alertes, retries, timeouts, rollback | `exploitation.md` |
+| logs, métriques, alertes, retries, timeouts, rollback | `operations.md` |
 
 **Franchissement de frontière.** Si la tâche nécessite de modifier un second module :
 
@@ -117,7 +117,7 @@ kernel (ce fichier)
 3. vérifie si le **contrat** existant suffit — dans 80 % des cas, oui ;
 4. si le contrat suffit : reste dans ton module, consomme le contrat ;
 5. si le contrat ne suffit pas : c'est un **changement de contrat**. Il se traite en
-   séquence expand/contract (`docs/os/03-contrats.md`), jamais en une seule PR.
+   séquence expand/contract (`docs/os/03-contracts.md`), jamais en une seule PR.
 
 L'incapacité à travailler via le contrat seul est un **signal de mauvaise frontière**.
 Signale-le, ne le contourne pas.
@@ -177,7 +177,7 @@ une **hypothèse explicitement déclarée**.
 **Done** — une tâche est terminée quand les validations *applicables* sont réellement
 passées : oracle vert, checks locaux verts, contrats validés, documentation impactée à
 jour, diff auto-relu, résumé produit. Le niveau exigé dépend de la criticité déclarée
-dans le manifest du module (`docs/os/07-gouvernance.md` § gouvernance proportionnelle).
+dans le manifest du module (`docs/os/07-governance.md` § gouvernance proportionnelle).
 
 ---
 

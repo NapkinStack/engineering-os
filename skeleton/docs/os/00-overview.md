@@ -33,11 +33,11 @@ flowchart TB
 
     subgraph L1["PLAYBOOKS — chargés par déclencheur"]
         direction LR
-        M1["securite.md"]
+        M1["security.md"]
         M2["tests.md"]
         M3["ux.md"]
-        M4["donnees-migration.md"]
-        M5["exploitation.md"]
+        M4["data-migration.md"]
+        M5["operations.md"]
     end
 
     subgraph L2["CONTEXTE LOCAL — scopé par frontière"]
@@ -70,7 +70,7 @@ La flèche en pointillés est le mécanisme central de l'OS :
 
 Une règle qui reste dans le prompt alors qu'elle est mécaniquement vérifiable est une
 **dette**. Elle doit apparaître dans le backlog d'automatisation
-(`07-gouvernance.md`).
+(`07-governance.md`).
 
 ---
 
@@ -133,9 +133,9 @@ revue elle-même.
 - **Aucune structure interne de module.** Deux modules peuvent avoir des architectures
   internes différentes. Seule leur *enveloppe* est uniforme. Voir `02-modules.md`.
 - **Aucune liste d'outils IA.** L'OS décrit des *capacités* nécessaires ; un profil
-  d'outillage les mappe sur les outils du moment. Voir `09-plateforme.md`.
+  d'outillage les mappe sur les outils du moment. Voir `09-platform.md`.
 - **Aucun niveau de cérémonie uniforme.** La gouvernance est proportionnelle à la
-  criticité déclarée du module. Voir `07-gouvernance.md`.
+  criticité déclarée du module. Voir `07-governance.md`.
 
 ---
 

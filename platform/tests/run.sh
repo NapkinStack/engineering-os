@@ -559,7 +559,7 @@ printf '\nFix v0.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests
 printf '\nFix v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
 printf '\nFix v0.2.\n' >> "$TPL/skeleton/modules/README.md"
 template_version v0.2.0
-sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/securite.md"
+sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/security.md"
 template_version v0.3.0
 projet_v01() {
   nstack init "$1" --source "$TPL" --ref v0.1.0 "${ANSWERS[@]}" >/dev/null \
@@ -634,7 +634,7 @@ echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
 
 B="$GN/project-b"
 projet_v01 "$B"
-sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/securite.md"
+sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/security.md"
 commit_project "$B" "Adaptation"
 
 echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
@@ -642,7 +642,7 @@ if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
   echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] NapkinStack v0.1.0 -> v0.3.0: conflicts" \
-  && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
+  && echo "$OUT" | grep -qF "  - playbooks/security.md" \
   || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \

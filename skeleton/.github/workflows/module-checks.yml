@@ -3,7 +3,7 @@ name: Modules
 # Exécute les verbes standards sur les seuls modules touchés : nstack lit leurs
 # commandes dans le MANIFEST.yaml du module, sans supposer aucune stack (P1).
 # Le niveau de validation est proportionnel à la criticité déclarée dans le MANIFEST
-# (docs/os/07-gouvernance.md §6).
+# (docs/os/07-governance.md §6).
 #
 # Les noms de modules viennent des chemins modifiés par la PR : ils ne sont jamais
 # insérés dans un script, seulement lus depuis une variable d'environnement.

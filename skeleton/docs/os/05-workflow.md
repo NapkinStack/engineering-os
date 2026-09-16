@@ -111,7 +111,7 @@ plus que le chiffre : **le lot doit être relisable en une session d'attention**
 modules touchés, où il bloque). Un dépassement justifié — génération de code, migration
 mécanique, renommage massif — passe par un label explicite. Ce qui compte est que le
 dépassement soit **visible et compté** : le taux de PR hors budget est un indicateur de
-santé (`10-mesure.md`).
+santé (`10-measurement.md`).
 
 Ne jamais produire une énorme PR simplement parce que l'agent peut générer beaucoup de
 code rapidement.
@@ -176,7 +176,7 @@ empêche le glissement progressif et le refactoring opportuniste.
 
 Une tâche est terminée quand les validations **applicables** sont réellement passées.
 Le niveau applicable dépend de la criticité déclarée du module
-(`07-gouvernance.md` § gouvernance proportionnelle).
+(`07-governance.md` § gouvernance proportionnelle).
 
 | Validation | Standard | Élevée | Critique |
 |---|---|---|---|

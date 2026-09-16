@@ -15,7 +15,7 @@ module:
   # proposed | active | maintenance | deprecated | retired   (docs/os/02-modules.md §6)
   lifecycle: proposed
 
-  # prototype | standard | high | critical              (docs/os/07-gouvernance.md §6)
+  # prototype | standard | high | critical              (docs/os/07-governance.md §6)
   criticality: "{{CRITICALITY}}"
 
   # The module's name in the code, when it differs from the folder (package, namespace).
@@ -56,7 +56,7 @@ dependencies: []
 #    exit_strategy:
 
 # Standard verbs: the same names everywhere, running this module's stack commands
-# (docs/os/09-plateforme.md §2). `nstack <verb> <module>` runs them from this folder.
+# (docs/os/09-platform.md §2). `nstack <verb> <module>` runs them from this folder.
 # No stack is imposed: replace every "to be declared" command.
 commands:
   check: "echo 'commands.check to be declared in MANIFEST.yaml' >&2; exit 1"  # under 2 min: format, lint, types

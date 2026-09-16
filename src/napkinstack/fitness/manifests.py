@@ -3,7 +3,7 @@
 Fitness function 1 — Manifest validation.
 
 Checks that every module declares what it must declare and that its lifecycle
-state is coherent (docs/os/02-modules.md §6, docs/os/07-gouvernance.md §3).
+state is coherent (docs/os/02-modules.md §6, docs/os/07-governance.md §3).
 
 Rules:
   M1  every module has a MANIFEST.yaml
@@ -141,21 +141,21 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                 fail(rel, "M6", f"deprecated contract {name} without a removal_date")
             elif removal < today:
                 fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
-                                "Finish the contraction (docs/os/03-contrats.md §4).")
+                                "Finish the contraction (docs/os/03-contracts.md §4).")
 
     # M7 - standard verbs
     commands = data.get("commands") or {}
     for verb in REQUIRED_COMMANDS:
         if not commands.get(verb):
             fail(rel, "M7", f"standard verb missing: commands.{verb} "
-                            "(docs/os/09-plateforme.md §2)")
+                            "(docs/os/09-platform.md §2)")
 
     # M8 - runbook when criticality is high
     if criticality in {"high", "critical"}:
         runbook = (data.get("docs") or {}).get("runbook")
         if not runbook or not (path.parent / runbook).is_file():
             fail(rel, "M8", f"criticality={criticality} requires an existing runbook "
-                            "(docs/os/08-qualite.md §7)")
+                            "(docs/os/08-quality.md §7)")
 
     # M9 - file envelope
     for expected in ["AGENTS.md", "README.md"]:
@@ -188,7 +188,7 @@ def run(root: Path) -> int:
         print(f"  FAIL {f}")
 
     if failures:
-        print(f"\n{len(failures)} violation(s). See docs/os/02-modules.md and docs/os/07-gouvernance.md.")
+        print(f"\n{len(failures)} violation(s). See docs/os/02-modules.md and docs/os/07-governance.md.")
         return 1
     print("Manifests: compliant.")
     return 0

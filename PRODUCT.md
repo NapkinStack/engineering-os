@@ -146,7 +146,7 @@ Ne construis pas, ne propose pas :
 - un preset de stack qu'aucun vrai projet n'utilise encore ;
 - un plugin ou un marketplace Claude Code — l'enforcement reste en CI (P3) ;
 - des fitness functions au-delà du chantier en cours — les suivantes sont priorisées
-  dans `skeleton/docs/os/07-gouvernance.md` §3, et leur besoin n'est pas démontré ;
+  dans `skeleton/docs/os/07-governance.md` §3, et leur besoin n'est pas démontré ;
 - de l'abstraction ou de la configuration pour un usage unique ;
 - une interface web, un tableau de bord, un service ;
 - une IA intégrée à `nstack` (clé d'API, appel de modèle) : l'agent de l'équipe utilise le

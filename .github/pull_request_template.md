@@ -12,7 +12,7 @@ Closes #
 - [ ] ⚠️ Cross-module — label `cross-module` requis, justification ci-dessous
 
 <Justification si cross-module. Rappel : un changement de contrat se fait en
-séquence expand/contract, pas en une PR (`skeleton/docs/os/03-contrats.md`).>
+séquence expand/contract, pas en une PR (`skeleton/docs/os/03-contracts.md`).>
 
 ## Ce que ça change
 
@@ -105,4 +105,4 @@ budget · autre : <préciser>
 - [ ] Une règle du kernel ou d'un playbook m'a gêné sans raison valable
 - [ ] Une quality gate a bloqué sans améliorer la qualité
 - [ ] Une règle appliquée manuellement mériterait d'être automatisée
-  → backlog d'automatisation (`skeleton/docs/os/07-gouvernance.md` §9)
+  → backlog d'automatisation (`skeleton/docs/os/07-governance.md` §9)

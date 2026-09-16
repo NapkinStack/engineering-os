@@ -42,10 +42,10 @@ autour de leur préservation.
 | Vous êtes… | Lisez, dans l'ordre |
 |-----------|---------------------|
 | **Un agent IA** | `AGENTS.md` (kernel) + l'`AGENTS.md` local du module + les playbooks déclenchés |
-| **Un nouveau développeur** | `00-vue-ensemble.md` → `02-modules.md` → `05-workflow.md` |
-| **Un tech lead / architecte** | `00-vue-ensemble.md` → `02` → `03` → `07` |
-| **Un product owner** | `00-vue-ensemble.md` → `06-decisions.md` |
-| **Celui qui crée le projet** | Le `README.md` du projet, puis `09-plateforme.md` |
+| **Un nouveau développeur** | `00-overview.md` → `02-modules.md` → `05-workflow.md` |
+| **Un tech lead / architecte** | `00-overview.md` → `02` → `03` → `07` |
+| **Un product owner** | `00-overview.md` → `06-decisions.md` |
+| **Celui qui crée le projet** | Le `README.md` du projet, puis `09-platform.md` |
 
 ### Contenu du projet
 
@@ -58,17 +58,17 @@ autour de leur préservation.
 ├── docs/
 │   ├── os/                       ← ce manuel
 │   │   ├── README.md             vous êtes ici
-│   │   ├── 00-vue-ensemble.md    Architecture de l'OS, les 4 couches, glossaire
-│   │   ├── 01-principes.md       Principes non négociables et anti-patterns
+│   │   ├── 00-overview.md    Architecture de l'OS, les 4 couches, glossaire
+│   │   ├── 01-principles.md       Principes non négociables et anti-patterns
 │   │   ├── 02-modules.md         Frontières, manifest, cycle de vie, une PR = un module
-│   │   ├── 03-contrats.md        Versioning, expand/contract, contract tests
-│   │   ├── 04-contexte-ia.md     Context firewall, budget de contexte, franchissement
+│   │   ├── 03-contracts.md        Versioning, expand/contract, contract tests
+│   │   ├── 04-ai-context.md     Context firewall, budget de contexte, franchissement
 │   │   ├── 05-workflow.md        Boucle verification-first, DoR/DoD, budget de revue
 │   │   ├── 06-decisions.md       ADR/PDR, Prior Art Gate, critères de succès datés
-│   │   ├── 07-gouvernance.md     Où vit une règle, fitness functions, CI, quality gates
-│   │   ├── 08-qualite.md         Tests, sécurité, fiabilité, données, UX, QA, UAT
-│   │   ├── 09-plateforme.md      Verbes standards, arborescence, outillage, onboarding
-│   │   └── 10-mesure.md          Métriques, boucle de feedback, revue des décisions
+│   │   ├── 07-governance.md     Où vit une règle, fitness functions, CI, quality gates
+│   │   ├── 08-quality.md         Tests, sécurité, fiabilité, données, UX, QA, UAT
+│   │   ├── 09-platform.md      Verbes standards, arborescence, outillage, onboarding
+│   │   └── 10-measurement.md          Métriques, boucle de feedback, revue des décisions
 │   ├── tooling-profile.md        Capacités → outils du moment
 │   ├── adr/, pdr/                Décisions, et leurs modèles _TEMPLATE.md
 │   └── architecture/, runbooks/
@@ -93,7 +93,7 @@ Ce qu'un agent charge, c'est :
 - un ou plusieurs `playbooks/` (uniquement si déclenchés).
 
 Si vous avez besoin de mettre une règle dans le kernel, relisez d'abord
-`07-gouvernance.md` § « Où vit cette règle ? ». La réponse est très souvent
+`07-governance.md` § « Où vit cette règle ? ». La réponse est très souvent
 « en CI », pas « dans le prompt ».
 
 ---
@@ -102,4 +102,4 @@ Si vous avez besoin de mettre une règle dans le kernel, relisez d'abord
 
 Cet OS est lui-même soumis à ses propres règles : il évolue par petits pas, ses
 changements structurants font l'objet d'un ADR, et toute règle qu'il contient est
-candidate à l'automatisation. Voir `docs/10-mesure.md` § « Amélioration de l'OS ».
+candidate à l'automatisation. Voir `docs/10-measurement.md` § « Amélioration de l'OS ».

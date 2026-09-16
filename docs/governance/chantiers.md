@@ -293,7 +293,7 @@ vérifier qu'au moins un fichier sous un dossier de test est touché.
 
 **Avertissement, pas blocage** — le proxy attrape le cas franc, pas le cas subtil, et
 une gate qui bloque à tort sera contournée. Documenter cette limite dans
-`docs/os/07-gouvernance.md`.
+`docs/os/07-governance.md`.
 
 ## C5 — Amorçage, `doctor` et marque
 

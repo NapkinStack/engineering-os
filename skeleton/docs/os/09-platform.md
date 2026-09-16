@@ -96,11 +96,11 @@ project/
 │   └── tooling-profile.md         # mapping capacités → outils du moment
 │
 ├── playbooks/                     # modules d'instructions IA, chargés à la demande
-│   ├── securite.md
+│   ├── security.md
 │   ├── tests.md
-│   ├── donnees-migration.md
+│   ├── data-migration.md
 │   ├── ux.md
-│   └── exploitation.md
+│   └── operations.md
 │
 ├── contracts/                     # ← module à part entière, owner dédié
 │   ├── MANIFEST.yaml
@@ -192,7 +192,7 @@ Le parcours attendu :
 
 Si l'une de ces étapes nécessite de demander à quelqu'un, c'est un défaut du système,
 pas du nouvel arrivant. Le temps jusqu'à la première contribution est un indicateur
-suivi (`10-mesure.md`).
+suivi (`10-measurement.md`).
 
 Le repository doit pouvoir répondre seul à : qui possède quoi · comment contribuer ·
 comment tester · comment livrer · quelles règles s'appliquent · quelles validations sont
@@ -218,7 +218,7 @@ les mappe sur les outils du moment. Changer d'outil se fait alors sans toucher �
 | Capacité | À quoi elle sert |
 |---|---|
 | Recherche et navigation dans le repository | Inventaire local sans tout charger |
-| Recherche documentaire fiable | Vérifier plutôt que supposer (`04-contexte-ia.md` §6) |
+| Recherche documentaire fiable | Vérifier plutôt que supposer (`04-ai-context.md` §6) |
 | Accès aux sources officielles | Versions, API, contraintes réelles |
 | Exécution de commandes et de tests | Rendre l'oracle réellement exécutable |
 | Interaction Git, issues, PR | Traçabilité et petits lots |
@@ -248,7 +248,7 @@ Ce que le squelette et son moteur fournissent dès le premier jour :
 - le kernel et les playbooks ;
 - l'exécution des verbes standards déclarés dans les manifests ;
 - les templates ADR, PDR, issue, PR ;
-- les fitness functions de base (1 à 3 de `07-gouvernance.md` §3) ;
+- les fitness functions de base (1 à 3 de `07-governance.md` §3) ;
 - la CI avec les checks du niveau `standard` ;
 - le CODEOWNERS, et la checklist des réglages de la forge, que le moteur vérifie en
   lecture seule ;

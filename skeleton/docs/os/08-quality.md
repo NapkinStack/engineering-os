@@ -149,7 +149,7 @@ rate limiting · isolation · sauvegardes · récupération après incident
 - Les contrôles automatisables sont **intégrés au cycle de livraison**, pas exécutés
   ponctuellement.
 
-Le détail opérationnel est dans `playbooks/securite.md`, chargé dès qu'une tâche touche
+Le détail opérationnel est dans `playbooks/security.md`, chargé dès qu'une tâche touche
 à l'authentification, l'autorisation, des secrets, des données personnelles ou des
 entrées externes.
 
@@ -180,7 +180,7 @@ Un module destiné à la production doit être **opérable**. Selon sa criticit�
 > incident local en panne généralisée. Un retry qui masque une erreur empêche de la
 > détecter.
 
-Détail : `playbooks/exploitation.md`.
+Détail : `playbooks/operations.md`.
 
 ---
 
@@ -206,9 +206,9 @@ intégrité · sécurité · observabilité
 > décrit, procédure sûre proposée, confirmation demandée.
 
 Le schéma évolue selon la même logique expand/contract que les contrats
-(`03-contrats.md`) : ajouter, faire coexister, migrer, retirer. Jamais renommer en place.
+(`03-contracts.md`) : ajouter, faire coexister, migrer, retirer. Jamais renommer en place.
 
-Détail : `playbooks/donnees-migration.md`.
+Détail : `playbooks/data-migration.md`.
 
 ---
 

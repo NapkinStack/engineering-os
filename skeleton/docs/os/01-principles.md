@@ -16,7 +16,7 @@ se marcher dessus, et un agent doit charger un contexte non borné pour être s�
 rien casser.
 
 **Conséquence.** Le franchissement de frontière n'est pas interdit — il est rendu
-**explicite et coûteux**, donc rare et tracé. Voir `04-contexte-ia.md`.
+**explicite et coûteux**, donc rare et tracé. Voir `04-ai-context.md`.
 
 ### Loi 2 — Oracle
 
@@ -85,7 +85,7 @@ d'une tâche. Ils restent opposables en revue et en ADR.
 | 10 | Sécurité et fiabilité dès la conception | Qu'est-ce qui casse, et que se passe-t-il alors ? |
 | 11 | Décisions réversibles quand c'est possible | Combien coûte le retour en arrière ? |
 | 12 | Évolution incrémentale plutôt que big-bang | Le système reste-t-il cohérent à chaque étape ? |
-| 13 | Toute règle importante doit devenir vérifiable | Où vit cette règle ? (voir `07-gouvernance.md`) |
+| 13 | Toute règle importante doit devenir vérifiable | Où vit cette règle ? (voir `07-governance.md`) |
 | 14 | Le contexte IA reste volontairement borné | Ai-je chargé plus que nécessaire ? |
 | 15 | Jamais de complexité sans raison mesurable | Quel chiffre ou quel comportement justifie ce surcoût ? |
 

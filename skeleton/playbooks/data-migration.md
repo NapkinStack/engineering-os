@@ -19,7 +19,7 @@
 
 ## 1. Expand / Contract appliqué au schéma
 
-Même logique que les contrats (`docs/os/03-contrats.md`), pour la même raison : l'ancien et
+Même logique que les contrats (`docs/os/03-contracts.md`), pour la même raison : l'ancien et
 le nouveau code coexistent pendant le déploiement.
 
 ```mermaid

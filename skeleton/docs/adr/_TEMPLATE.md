@@ -97,7 +97,7 @@ Que fait-on si ce n'est pas le cas : <corriger · superséder · revenir en arri
 **Impacts sur d'autres modules ou contrats :**
 
 **Règle à automatiser :** <quelle fitness function ou quel check découle de cette
-décision ? Si aucun n'est possible, expliquer pourquoi. `docs/os/07-gouvernance.md` §2>
+décision ? Si aucun n'est possible, expliquer pourquoi. `docs/os/07-governance.md` §2>
 
 ---
 

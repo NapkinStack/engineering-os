@@ -97,7 +97,7 @@ def run(root: Path, check_only: bool = False) -> int:
             failures.append(
                 f"[S1] {playbook.relative_to(root)} has no entry in "
                 f"{MAPPING}.\n      Add a description, or remove the "
-                f"playbook if it is no longer used (docs/os/10-mesure.md §6)."
+                f"playbook if it is no longer used (docs/os/10-measurement.md §6)."
             )
 
     # S2 - every entry must point at an existing playbook

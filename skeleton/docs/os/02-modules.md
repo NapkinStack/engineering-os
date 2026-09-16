@@ -66,14 +66,14 @@ La règle tient en une phrase :
 
 | Catégorie | Uniforme ? | Détail |
 |---|---|---|
-| Verbes de commande | **Oui, imposé** | `09-plateforme.md` |
+| Verbes de commande | **Oui, imposé** | `09-platform.md` |
 | Enveloppe de fichiers | **Oui, imposé** | §4 ci-dessous |
-| Checks obligatoires | **Oui, imposé** | `07-gouvernance.md` |
-| Format des contrats | **Oui, imposé** | `03-contrats.md` |
+| Checks obligatoires | **Oui, imposé** | `07-governance.md` |
+| Format des contrats | **Oui, imposé** | `03-contracts.md` |
 | Formats ADR / PDR | **Oui, imposé** | `06-decisions.md` |
 | Langage, framework, base de données | Non | Décision locale, ADR si structurante |
 | Architecture interne, patterns | Non | Décision locale |
-| Stratégie de test détaillée | Non | Guidée par le risque, `08-qualite.md` |
+| Stratégie de test détaillée | Non | Guidée par le risque, `08-quality.md` |
 | Conventions de nommage internes | Non | Locales, décrites dans l'`AGENTS.md` du module |
 
 **Attention au coût de l'hétérogénéité.** L'autonomie technique n'est pas gratuite :
@@ -258,13 +258,13 @@ sont visibles, tracées et comptées.
 
 | Exception | Traitement |
 |---|---|
-| Changement de contrat | Séquence expand/contract, jamais une PR unique (`03-contrats.md`) |
-| Changement du socle | Fichiers du squelette : équipe socle, revue élargie ; module `platform/` s'il existe (`09-plateforme.md` §1) |
+| Changement de contrat | Séquence expand/contract, jamais une PR unique (`03-contracts.md`) |
+| Changement du socle | Fichiers du squelette : équipe socle, revue élargie ; module `platform/` s'il existe (`09-platform.md` §1) |
 | Correction d'incident critique | Autorisée, label obligatoire, ADR ou post-mortem sous 5 jours |
 
 Le déblocage passe par un label explicite sur la PR. Cela rend le taux de changements
 cross-module **mesurable gratuitement** — c'est l'un des meilleurs indicateurs de
-qualité des frontières (`10-mesure.md`).
+qualité des frontières (`10-measurement.md`).
 
 ---
 

@@ -137,7 +137,7 @@ flowchart TD
 - **Un déploiement n'est pas terminé au déploiement** : il est terminé quand
   l'observabilité confirme le comportement attendu.
 - **Compatibilité descendante obligatoire** : pendant le déploiement, deux versions
-  coexistent. Un changement incompatible se découpe (`docs/os/03-contrats.md`).
+  coexistent. Un changement incompatible se découpe (`docs/os/03-contracts.md`).
 
 ---
 

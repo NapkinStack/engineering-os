@@ -28,11 +28,11 @@ flowchart TD
     S -->|Oui| U["Charger : kernel<br/>+ AGENTS.md et MANIFEST du module"]
 
     U --> N{"Playbooks<br/>déclenchés ?"}
-    N -->|"authn · secrets · données perso"| N1["+ securite.md"]
-    N -->|"schéma · migration"| N2["+ donnees-migration.md"]
+    N -->|"authn · secrets · données perso"| N1["+ security.md"]
+    N -->|"schéma · migration"| N2["+ data-migration.md"]
     N -->|"surface utilisateur"| N3["+ ux.md"]
     N -->|"stratégie de test · flaky"| N4["+ tests.md"]
-    N -->|"logs · retries · rollback"| N5["+ exploitation.md"]
+    N -->|"logs · retries · rollback"| N5["+ operations.md"]
     N -->|Aucun| V
 
     N1 --> V["Inventaire LOCAL :<br/>code, tests, contrats, décisions"]
@@ -100,7 +100,7 @@ ces quatre réponses — dans cet ordre de préférence :
 | Réponse | Quand | Coût |
 |---|---|---|
 | **1. Le contrat suffit déjà** | Cas le plus fréquent. L'information existe, elle n'avait pas été cherchée. | Nul |
-| **2. Le contrat doit s'étendre** | Besoin réel côté consommateur. | Expand/contract (`03-contrats.md`) |
+| **2. Le contrat doit s'étendre** | Besoin réel côté consommateur. | Expand/contract (`03-contracts.md`) |
 | **3. La tâche était mal découpée** | Elle contenait en réalité deux tâches. | Redécoupage, deux issues |
 | **4. La frontière est mauvaise** | Le contrat ne peut structurellement pas suffire. | Issue *Architecture*, ne pas contourner |
 

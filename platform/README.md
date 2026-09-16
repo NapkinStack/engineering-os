@@ -72,6 +72,6 @@ getting through.
 ## Adding a fitness function
 
 In order of return, the next ones to write are listed in
-`skeleton/docs/os/07-gouvernance.md` §3. A good fitness function is fast, deterministic,
+`skeleton/docs/os/07-governance.md` §3. A good fitness function is fast, deterministic,
 and **explanatory when it fails**: one that only says "architecture violation" will be
 worked around.

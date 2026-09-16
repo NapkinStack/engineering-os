@@ -264,7 +264,7 @@ validation est proportionnel au risque (§6).
 
 **Le temps de feedback est une propriété de qualité.** Une CI de trente minutes est une
 CI qu'on contourne, qu'on lance en fin de journée, et dont on ignore les résultats. Le
-temps de feedback est un indicateur suivi (`10-mesure.md`).
+temps de feedback est un indicateur suivi (`10-measurement.md`).
 
 ---
 

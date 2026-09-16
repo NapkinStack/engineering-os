@@ -158,18 +158,18 @@ already English. Only help text, messages and the `eleve` value of `new-module` 
 
 | Before | After |
 |---|---|
-| `skeleton/docs/os/00-vue-ensemble.md` | `00-overview.md` |
-| `skeleton/docs/os/01-principes.md` | `01-principles.md` |
-| `skeleton/docs/os/03-contrats.md` | `03-contracts.md` |
-| `skeleton/docs/os/04-contexte-ia.md` | `04-ai-context.md` |
-| `skeleton/docs/os/07-gouvernance.md` | `07-governance.md` |
-| `skeleton/docs/os/08-qualite.md` | `08-quality.md` |
-| `skeleton/docs/os/09-plateforme.md` | `09-platform.md` |
-| `skeleton/docs/os/10-mesure.md` | `10-measurement.md` |
-| `skeleton/playbooks/securite.md` | `security.md` |
-| `skeleton/playbooks/donnees-migration.md` | `data-migration.md` |
-| `skeleton/playbooks/exploitation.md` | `operations.md` |
-| `.github/ISSUE_TEMPLATE/05-dette.yml` *(and skeleton copy)* | `05-debt.yml` |
+| `skeleton/docs/os/00-overview.md` | `00-overview.md` |
+| `skeleton/docs/os/01-principles.md` | `01-principles.md` |
+| `skeleton/docs/os/03-contracts.md` | `03-contracts.md` |
+| `skeleton/docs/os/04-ai-context.md` | `04-ai-context.md` |
+| `skeleton/docs/os/07-governance.md` | `07-governance.md` |
+| `skeleton/docs/os/08-quality.md` | `08-quality.md` |
+| `skeleton/docs/os/09-platform.md` | `09-platform.md` |
+| `skeleton/docs/os/10-measurement.md` | `10-measurement.md` |
+| `skeleton/playbooks/security.md` | `security.md` |
+| `skeleton/playbooks/data-migration.md` | `data-migration.md` |
+| `skeleton/playbooks/operations.md` | `operations.md` |
+| `.github/ISSUE_TEMPLATE/05-debt.yml` *(and skeleton copy)* | `05-debt.yml` |
 | `platform/tests/test_controles.py` | `test_guardrails.py` |
 | `docs/governance/chantiers.md` | `workstreams.md` |
 | `docs/governance/revues.md` | `reviews.md` |
@@ -233,7 +233,7 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
       anyway, checkable at the v0.2.0 release.
 - [x] Consequences state the breaking value changes and the v0.2.0 bump.
 - [x] `docs/adr/README.md` index updated.
-- [x] **Rule to automate**: the §2 arbitration of `07-gouvernance.md` is applied
+- [x] **Rule to automate**: the §2 arbitration of `07-governance.md` is applied
       explicitly — mechanically checkable but at high cost and low risk, therefore
       *automation backlog*, not *review*. Entry added to
       `docs/governance/backlog-automatisation.md`, triggered by the first outside
@@ -248,7 +248,7 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
 - [x] `AGENTS.md` translated in full and given a fourth kernel item: everything written
       here is English, history is not rewritten, translate what you touch and never add
       French. This file is eight lines and is the kernel — the §2 arbitration of
-      `07-gouvernance.md` sends a rule that applies to *every* task here, and the file is
+      `07-governance.md` sends a rule that applies to *every* task here, and the file is
       short enough that leaving it half-French would be worse than translating it now.
 - [x] **Adjustment:** the canonical glossary stays in §2 of this plan, which is normative
       and already merged into the branch, instead of landing in `PRODUCT.md` §1 now.
@@ -298,8 +298,8 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
       beside it stays language-agnostic. A test case was added first — the branch had
       none, so P5 was not actually held for M4 — and verified red against the French
       rule before the change.
-- [x] **Paths inside the sources** (`docs/os/03-contrats.md`, `07-gouvernance.md`,
-      `08-qualite.md`, `09-plateforme.md`) stay French until M7b renames those files.
+- [x] **Paths inside the sources** (`docs/os/03-contracts.md`, `07-governance.md`,
+      `08-quality.md`, `09-platform.md`) stay French until M7b renames those files.
       M7b must update these references too, not only the markdown ones.
 - [x] `copier.yml` questions and validator messages.
 - [x] `pyproject.toml` description (it reaches PyPI at the next release).
@@ -335,7 +335,7 @@ moves later, and removing it early would break a guardrail:
 | `<Une phrase : ce que fait ce projet.>` | `doctor.py` `PLACEHOLDER`, `run.sh` | M7b, with the skeleton README |
 | `Tag et version identiques` | `run.sh` | M7c, with `release.yml` |
 | `docs/os/0X-*.md` paths | fitness functions, module templates | M7b, with the file renames |
-| `skeleton/playbooks/securite.md` path | `run.sh` | M7b, with the playbook renames |
+| `skeleton/playbooks/security.md` path | `run.sh` | M7b, with the playbook renames |
 
 ---
 
@@ -415,7 +415,7 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 ### Task 4 — Templates
 
-- [ ] `git mv .github/ISSUE_TEMPLATE/05-dette.yml 05-debt.yml` (the repository's copy;
+- [ ] `git mv .github/ISSUE_TEMPLATE/05-debt.yml 05-debt.yml` (the repository's copy;
       the skeleton's was renamed in M7b).
 - [ ] `.github/ISSUE_TEMPLATE/*`, `pull_request_template.md`, `config.yml`,
       `dependabot.yml` comments, `CODEOWNERS`, `.yamllint.yaml` comments, `.gitignore`.

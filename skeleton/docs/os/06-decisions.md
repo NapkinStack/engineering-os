@@ -264,7 +264,7 @@ une règle qui n'est qu'un texte ne produit aucun comportement.
 | Échéance dépassée sans revue | Warning en CI, remonté au rituel trimestriel |
 
 Tant qu'un de ces contrôles n'est pas automatisé, il se fait en revue et figure au backlog
-d'automatisation (`07-gouvernance.md` §9) : écrire « rouge » ne suffit pas à le rendre vrai.
+d'automatisation (`07-governance.md` §9) : écrire « rouge » ne suffit pas à le rendre vrai.
 
 Formulation courte, pour le kernel :
 

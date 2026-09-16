@@ -22,7 +22,7 @@ contracts/
 **Additif** (champ optionnel, nouvel endpoint) → PR simple, contract tests verts.
 
 **Breaking** → séquence expand/contract en 4 PR, jamais une seule
-(`docs/os/03-contrats.md` §4) :
+(`docs/os/03-contracts.md` §4) :
 
 1. contrat v2 déclaré, additif — v1 intacte, tests des deux versions verts
 2. le producteur sert v1 **et** v2

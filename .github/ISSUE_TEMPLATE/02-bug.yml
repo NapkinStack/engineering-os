@@ -31,7 +31,7 @@ body:
   - type: checkboxes
     id: garde-fou
     attributes:
-      label: Boucle de feedback (docs/os/10-mesure.md §4)
+      label: Boucle de feedback (docs/os/10-measurement.md §4)
       description: Corriger le bug ne suffit pas — améliorer le système qui l'a laissé passer.
       options:
         - label: Un test reproduisant le bug sera ajouté (il doit échouer AVANT le correctif)

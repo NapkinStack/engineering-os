@@ -40,7 +40,7 @@ déjà public : c'est un incident, il se révoque immédiatement (`SECURITY.md`)
 - **Changement minimal.** Pas de refactoring opportuniste : il fait sa propre PR.
 - **Rester dans le module.** Besoin d'un autre module ? Passer par son contrat.
   Le contrat ne suffit pas ? C'est un changement de contrat, donc une séquence
-  expand/contract (`docs/os/03-contrats.md` §4) — jamais une PR unique.
+  expand/contract (`docs/os/03-contracts.md` §4) — jamais une PR unique.
 - `nstack fitness` avant chaque commit.
 
 ## Ouvrir la PR
@@ -50,7 +50,7 @@ Le template applique la Definition of Done. Deux choses à ne pas escamoter :
 - **Le résumé** — `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES`.
   Un résumé sans rien sous `SUPPOSÉ` et `NON VÉRIFIÉ` est presque toujours incomplet.
 - **Les signaux à remonter** — c'est ainsi que le système s'améliore
-  (`docs/os/10-mesure.md`).
+  (`docs/os/10-measurement.md`).
 
 ## Exceptions
 

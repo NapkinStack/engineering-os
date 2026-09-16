@@ -19,7 +19,7 @@ Délai de première réponse visé : **7 jours**.
 | S4 | Refus par défaut en autorisation |
 | S5 | Jamais de mécanisme cryptographique ou d'authentification maison |
 
-Détail opérationnel : `skeleton/playbooks/securite.md`.
+Détail opérationnel : `skeleton/playbooks/security.md`.
 
 ## Secret exposé
 

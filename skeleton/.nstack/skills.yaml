@@ -12,8 +12,8 @@
 # Un playbook sans entrée ici fait échouer `nstack skills --check`.
 
 skills:
-  securite:
-    source: playbooks/securite.md
+  security:
+    source: playbooks/security.md
     description: >
       Règles de sécurité du projet : authentification, autorisation, secrets,
       validation des entrées, données personnelles, dépendances et actions à haut
@@ -29,8 +29,8 @@ skills:
       utilisée lorsque la stratégie de test n'est pas évidente, qu'une zone n'est pas
       testée, qu'un test est instable ou qu'un comportement est difficile à isoler.
 
-  donnees-migration:
-    source: playbooks/donnees-migration.md
+  data-migration:
+    source: playbooks/data-migration.md
     description: >
       Règles du projet sur les données et les migrations : expand/contract de schéma,
       backfill, suppression de données, propriété des données par module. Cette skill
@@ -45,8 +45,8 @@ skills:
       comportement mobile. Cette skill doit être utilisée lorsqu'une tâche touche une
       surface visible par l'utilisateur.
 
-  exploitation:
-    source: playbooks/exploitation.md
+  operations:
+    source: playbooks/operations.md
     description: >
       Règles d'exploitation et de fiabilité du projet : timeouts, retries, logs
       structurés, métriques, alertes, health checks, rollback et dégradation

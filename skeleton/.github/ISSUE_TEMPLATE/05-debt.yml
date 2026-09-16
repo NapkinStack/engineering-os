@@ -31,6 +31,6 @@ body:
   - type: checkboxes
     id: automatisable
     attributes:
-      label: Backlog d'automatisation (docs/os/07-gouvernance.md §9)
+      label: Backlog d'automatisation (docs/os/07-governance.md §9)
       options:
         - label: Cette dette vient d'une règle qui vit dans le prompt et devrait être automatisée

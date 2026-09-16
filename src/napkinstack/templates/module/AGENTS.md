@@ -25,7 +25,7 @@
 ## Known traps
 
 <What has already broken here. Every entry should become a test - see
-docs/os/10-mesure.md §4.>
+docs/os/10-measurement.md §4.>
 
 ## Areas not to change without approval
 
