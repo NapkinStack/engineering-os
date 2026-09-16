@@ -54,8 +54,9 @@ Write `docs/project/charter.md` from `docs/project/_CHARTER_TEMPLATE.md`, with
    (`verification.md`).
 3. **Unknowns** — a blocking unknown becomes a *spike* deliverable, whose output is
    knowledge (`docs/os/05-workflow.md` §3).
-4. **Modules** — name each deliverable's module. Propose a new module only against the
-   tree of `docs/os/02-modules.md` §3: one module is often enough to start.
+4. **Modules** — name each deliverable's module; a spike run outside the code — a sign-up
+   form, interviews — has none. Propose a new module only against the tree of
+   `docs/os/02-modules.md` §3: one module is often enough to start.
 5. **Appetite** — ask the decider how many weeks they **want** to spend, not how long it
    will take. When the deliverables do not fit, cut the scope; never stretch the appetite.
 6. **Later** — everything else goes to the *later* list, visibly.

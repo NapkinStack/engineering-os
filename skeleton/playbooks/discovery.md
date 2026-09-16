@@ -14,7 +14,7 @@ playbook replaces the kernel's working loop (§2); its closing summary (§8) sti
 
 | You do | You never do |
 |---|---|
-| Ask one question at a time, only what you cannot infer | Agree to please; soften an objection |
+| Framer: ask one question at a time, only what you cannot infer | Agree to please; soften an objection |
 | Give every market fact its source | State a fact you cannot source — write it as an assumption |
 | Keep the document to what could change the decision | Fill a canvas, size a market, invent personas |
 | End each round with a decision | Open a new direction before the round is decided |
@@ -66,32 +66,39 @@ if the idea is right. If this stage changes the users or the model, revisit stag
 
 ## 5. Challenge — in another session
 
-A session that did not write stages 1 to 4, or a human. The challenger reads the idea file
-and the document, then:
+A session that did not write stages 1 to 4, or a human; it starts once section 1 is
+confirmed — otherwise it names the reading it challenges. The challenger does not interview
+the decider: its questions go into its objections. It reads the idea file and the document,
+then:
 
-1. **Pre-mortem** — the product launched a year ago and failed: list the plausible reasons.
+1. **Pre-mortem** — the product launched a year ago and failed: the plausible reasons, each
+   tagged with its risk.
 2. **The four risks** — *value*: will they use it, or buy it? *usability*: can they use it?
    *feasibility*: can it be built with the means at hand? *viability*: does it hold for the
-   business — cost, law, operations? For each, the riskiest assumption and the cheapest
-   test that could refute it.
-3. **Counter-evidence** — search for what contradicts the value hypothesis: failed products,
-   closed competitors, regulatory refusals.
+   business — cost, law, operations? For each, the riskiest assumption and the cheapest test
+   that could refute it: what is done, for how long, and the result that refutes it — a
+   threshold proposed, for the decider to set.
+3. **Counter-evidence** — what contradicts the value hypothesis or the riskiest assumptions:
+   failed products, closed competitors, regulatory refusals. Research as in stage 2 — same
+   tools, same marking, the same stopping rule; an unsourced claim is marked *assumption*.
+4. **Flaws in stages 1 to 4** — each citing the line it objects to.
 
-Report the objections with their evidence, in section 5. Never rewrite stages 1 to 4.
+These are the objections, written in section 5 with the challenger's name and date. Never
+rewrite stages 1 to 4.
 
 ## 6. Decide
 
-The framer's session presents to the decider, in this order: the challenger's objections,
-the riskiest assumptions, the value hypothesis. The decider chooses:
+A framer session presents section 5 unchanged, then the riskiest assumptions and the value
+hypothesis. The decider chooses:
 
 | Decision | What follows |
 |---|---|
-| **go** | The framing writes the charter from this document (`framing.md`); the riskiest assumptions of section 5 that need a test become spike deliverables of the first cycle |
-| **clarify** | A new round on the open questions only; `round` goes up |
+| **go** | The framing writes the charter from this document (`framing.md`); the tests the decider keeps become spike deliverables of the first cycle |
+| **clarify** | A new round on the open questions, and on the cheap tests the decider picks before any charter; `round` goes up, section 5 is kept under its round, and the changed sections are challenged again |
 | **kill** | The document stays, with its reasons — the cheapest outcome of all |
 
-Record `decision` and `decided_on` in the front matter, the reasons in section 6, then run
-the fitness functions.
+Section 6 records the reasons, and for a go, why each objection does not block it. Record
+`decision` and `decided_on` in the front matter, then run the fitness functions.
 
 ---
 

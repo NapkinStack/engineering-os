@@ -2,6 +2,7 @@
 decision: proposed          # proposed | go | clarify | kill — the decider decides
 decider: "@<github-handle>" # the human who decides, recorded at intake
 decided_on:                 # YYYY-MM-DD, with the decision
+challenger: ""              # stage 5: @human, or the agent session — required for a go
 idea: "<idea file>"         # the idea as given, kept in docs/project/inputs/
 round: 1
 ---
@@ -52,11 +53,13 @@ the decider confirms it.>
 
 ## 5. Challenge
 
-**Challenger:** <another session, or @human>
+**Challenger:** <@human, or the agent session> · <date>
 
-**Pre-mortem:**
+**Pre-mortem:** <the reasons, each tagged with its risk>
 
-| Risk | Riskiest assumption | Cheapest test |
+**The four risks:**
+
+| Risk | Riskiest assumption | Cheapest test — and the result that refutes it |
 |---|---|---|
 | Value | | |
 | Usability | | |
@@ -65,6 +68,9 @@ the decider confirms it.>
 
 **Counter-evidence:**
 
+**Flaws in stages 1 to 4:** <each citing its line>
+
 ## 6. Decision
 
-<go · clarify · kill; the reasons; what the first cycle carries: spikes, no-gos.>
+<go · clarify · kill; the reasons; for a go, why each objection does not block it, and what
+the first cycle carries: spikes, no-gos.>
