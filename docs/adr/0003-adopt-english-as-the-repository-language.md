@@ -140,6 +140,10 @@ a `git grep` for accented letters returns nothing outside git history, and the p
   it replaced is not a record;
 - `nstack init` from the published tag, on a fresh workstation: no accented letter in any
   tracked file of the project. To confirm on the pilot's own `nstack init`.
+- *Correction, workstream M8.0:* "no accented letter" was true, "no French" was not. The
+  skeleton's `CONTRIBUTING.md` still named the CI job `Hooks et secrets`, and the test
+  suite kept French identifiers and fixtures; a search for accents cannot see them. Fixed
+  in M8.0, observed again at the v0.3.0 release.
 
 ---
 

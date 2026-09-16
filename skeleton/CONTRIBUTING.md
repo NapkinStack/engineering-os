@@ -16,7 +16,7 @@ flowchart LR
     H -->|refused| X1["Commit blocked"]
     H -->|ok| P["git push"] --> PP{"2 · GitHub push<br/>protection"}
     PP -->|refused| X2["Push blocked"]
-    PP -->|ok| PR["Pull request"] --> CI{"3 · CI 'Hooks et secrets'<br/>same hooks + full history"}
+    PP -->|ok| PR["Pull request"] --> CI{"3 · CI 'Hooks and secrets'<br/>same hooks + full history"}
     CI -->|red| X3["Merge impossible"]
     CI -->|green| M["main"]
 
