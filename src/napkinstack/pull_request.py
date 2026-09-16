@@ -1,5 +1,6 @@
 """
-Pull request rules read from its description: the test sheet (PDR-0003).
+Pull request rules read from its description: the test sheet (PDR-0003) and the cycle
+(PDR-0002).
 
 Rules:
   T1  a test sheet when the pull request touches a user-facing module, or one of
@@ -9,6 +10,13 @@ Rules:
   T3  no scenario passed without its evidence and the commit it was verified on
   T4  evidence produced on the pull request's head commit: the others are to run again
   T5  no scenario failed; none left not verified, unless it is human only
+  K1  delivery work needs an accepted charter and an accepted cycle
+  K2  delivery work stops once the cycle is past its end date: the circuit breaker
+  K3  delivery work names a ready or in-progress deliverable of the cycle
+  K4  the out-of-cycle label carries its justification
+
+Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml.
+The out-of-cycle label lifts K1 to K3, visibly and countably (docs/os/10-measurement.md).
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
 In CI :  PR_BODY, PR_LABELS and PR_HEAD_SHA come from the pull_request event.
@@ -17,6 +25,7 @@ Output:  0 when every applicable rule passes, 1 otherwise.
 
 from __future__ import annotations
 
+import datetime
 import os
 import re
 import subprocess
@@ -25,8 +34,12 @@ from pathlib import Path
 
 import yaml
 
+from napkinstack.fitness import plan
 from napkinstack.fitness.manifests import find_manifests
 
+LABEL = "out-of-cycle"
+DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
+JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
 SHEET_CRITICALITIES = {"high", "critical"}
 COLUMNS = ("#", "given · when · then", "kind", "result", "evidence", "commit")
 KINDS = {"automated", "explored"}
@@ -157,6 +170,40 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail) -> list[st
     return human_only
 
 
+def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, fail: Fail) -> None:
+    """K1 to K4, for delivery work."""
+    if LABEL in labels:
+        if not JUSTIFICATION.search(body):
+            fail("K4", f"label {LABEL} without its justification.\n      Action: add "
+                       "\"Out of cycle: <reason>\" to the description — an incident, a production defect.")
+        return
+    cycle = plan.accepted_cycle(root)
+    if not plan.charter_accepted(root) or cycle is None:
+        fail("K1", "the project is not framed: no accepted charter and cycle in docs/project/.\n"
+                   "      Action: frame it with your agent (playbooks/framing.md), or add the "
+                   f"{LABEL} label with a justification.")
+        return
+    path, data = cycle
+    end = plan.as_date(data.get("end"))
+    if end is not None and today > end:
+        fail("K2", f"circuit breaker: {path.name} ended on {end}, with no automatic extension.\n"
+                   "      Action: the decider chooses — ship what is accepted (status: closed), "
+                   "frame a new cycle with a new appetite, or stop the project (status: stopped).")
+        return
+    match = DELIVERABLE.search(body)
+    states = {str(item.get("id")): item.get("state") for item in data.get("deliverables") or []
+              if isinstance(item, dict)}
+    if not match:
+        fail("K3", f"no deliverable named.\n      Action: \"Deliverable: D<n>\" in the description, "
+                   f"a deliverable of {path.name}.")
+    elif match[1] not in states:
+        fail("K3", f"deliverable {match[1]} is not in {path.name}.\n      Action: name one of "
+                   f"{', '.join(states) or 'its deliverables'}, or re-frame the cycle with the decider.")
+    elif states[match[1]] not in {"ready", "in-progress"}:
+        fail("K3", f"deliverable {match[1]} is '{states[match[1]]}': work starts on a ready "
+                   "deliverable (definition of ready).")
+
+
 def run(root: Path, base: str, body_file: Path | None = None) -> int:
     if body_file is not None:
         body = body_file.read_text(encoding="utf-8")
@@ -171,6 +218,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     files = _git(root, "diff", "--name-only", f"{base}...HEAD").stdout.split()
     head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
     modules = touched_modules(root, files)
+    labels = {label.strip() for label in os.environ.get("PR_LABELS", "").split(",") if label.strip()}
 
     failures: list[str] = []
 
@@ -179,6 +227,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
 
     reasons = [reason for folder, data in modules.items() if (reason := sheet_reason(folder, data))]
     human_only = check_sheet(body, head, reasons, fail)
+    if modules:
+        check_cycle(root, body, labels, datetime.date.today(), fail)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}")

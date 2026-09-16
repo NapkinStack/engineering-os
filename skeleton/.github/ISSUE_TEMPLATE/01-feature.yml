@@ -16,6 +16,15 @@ body:
       placeholder: modules/billing
     validations: { required: true }
 
+  - type: input
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: >-
+        The deliverable of the current cycle this issue delivers (docs/project/cycles/).
+        Empty only for work outside the cycle.
+      placeholder: D1
+
   - type: textarea
     id: goal
     attributes:

@@ -14,6 +14,14 @@ Closes #
 <Justification when cross-module. Reminder: a contract change goes through an
 expand/contract sequence, not a single PR (`docs/os/03-contracts.md`).>
 
+## Deliverable
+
+Deliverable: D<n>
+
+> A deliverable of the current cycle (`docs/project/cycles/`), ready or in progress. Work
+> outside the cycle — an incident, a production defect — carries the `out-of-cycle` label,
+> and replaces the line above with `Out of cycle: <reason>`.
+
 ## What it changes
 
 <The behaviour, not the list of files. The diff already says what changed; this section

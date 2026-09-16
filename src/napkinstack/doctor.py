@@ -46,7 +46,7 @@ API_VERSION = "2026-03-10"
 PLACEHOLDER = "<One sentence: what this project does.>"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", "Test sheet and cycle")
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
-LABELS = ("cross-module", "over-budget")
+LABELS = ("cross-module", "over-budget", "out-of-cycle")
 PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
 
 RULESET = "Settings → Rules → Rulesets, main branch"
@@ -72,8 +72,8 @@ CHECKLIST = [  # (rule, setting, action)
      f"{ACTIONS}: require approval for all external contributors"),
     ("G10", "Workflow token read-only; Actions neither creates nor approves pull requests",
      f"{ACTIONS}: workflow permissions read-only, with no pull request creation or approval"),
-    ("G11", "Labels " + " and ".join(f"`{label}`" for label in LABELS),
-     "Issues → Labels: create " + " and ".join(LABELS)),
+    ("G11", "Labels " + ", ".join(f"`{label}`" for label in LABELS[:-1]) + f" and `{LABELS[-1]}`",
+     "Issues → Labels: create " + ", ".join(LABELS[:-1]) + f" and {LABELS[-1]}"),
     ("G12", "Bypass list empty: nobody merges around the rules, administrators included",
      f"{RULESET}: remove every bypass actor"),
 ]

@@ -5,6 +5,7 @@ fails (P5) and names itself (P6). Run by platform/tests/run.sh.
 
 from __future__ import annotations
 
+import datetime
 import os
 import subprocess
 
@@ -12,6 +13,7 @@ import pytest
 
 from napkinstack import cli
 from test_guardrails import VALID, degrade, write_module
+from test_plan import CHARTER, cycle, deliverable, framed
 
 IDENTITY = {"GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
             "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
@@ -24,14 +26,17 @@ def git(root, *args: str) -> str:
                           capture_output=True, text=True).stdout.strip()
 
 
-def change(root, manifest=VALID) -> tuple[str, str]:
-    """A repository whose second commit changes the module `login`; returns (base, head)."""
+def change(root, manifest=VALID, frame: bool = True) -> tuple[str, str]:
+    """A repository whose second commit changes the module `login`; returns (base, head).
+    `frame`: an accepted charter and cycle, whose deliverable D1 is ready."""
     git(root, "init", "-q", "--initial-branch=main")
     git(root, "commit", "-q", "--allow-empty", "-m", "base")
     base = git(root, "rev-parse", "HEAD")
     write_module(root, "login", manifest, {"src/page.txt": "page\n"})
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "change")
+    if frame:
+        framed(root)
     return base, git(root, "rev-parse", "HEAD")
 
 
@@ -41,8 +46,10 @@ def sheet(*rows: tuple[str, ...], verifier: str = "a fresh agent session") -> st
     return "\n".join([*lines, *(f"| {' | '.join(row)} |" for row in rows), "", "## Summary", ""])
 
 
-def check(root, base: str, head: str, body: str, monkeypatch, labels: str = "") -> int:
-    monkeypatch.setenv("PR_BODY", body.replace("{head}", head[:7]))
+def check(root, base: str, head: str, body: str, monkeypatch, labels: str = "",
+          deliverable_line: str | None = "Deliverable: D1") -> int:
+    text = body.replace("{head}", head[:7])
+    monkeypatch.setenv("PR_BODY", f"{deliverable_line}\n\n{text}" if deliverable_line else text)
     monkeypatch.setenv("PR_HEAD_SHA", head)
     monkeypatch.setenv("PR_LABELS", labels)
     return cli.main(["pr-check", "--root", str(root), "--base", base])
@@ -96,8 +103,48 @@ def test_without_a_description_nothing_is_checked(tmp_path, capsys, monkeypatch)
 def test_description_from_a_file(tmp_path, capsys, monkeypatch):
     base, head = change(tmp_path, USER_FACING)
     body = tmp_path.parent / f"{tmp_path.name}-body.md"
-    body.write_text(sheet(PASSED).replace("{head}", head[:7]), encoding="utf-8")
+    body.write_text("Deliverable: D1\n\n" + sheet(PASSED).replace("{head}", head[:7]), encoding="utf-8")
     monkeypatch.delenv("PR_BODY", raising=False)
     monkeypatch.setenv("PR_HEAD_SHA", head)
     assert cli.main(["pr-check", "--root", str(tmp_path), "--base", base, "--body-file", str(body)]) == 0, \
+        capsys.readouterr().out
+
+
+BROKEN = cycle(start=datetime.date.today() - datetime.timedelta(days=22))  # ended yesterday
+CYCLE_CASES = {
+    "K1 not framed": (None, "", "", "FAIL [K1] the project is not framed", 1),
+    "K1 charter proposed": (lambda r: framed(r, {**CHARTER, "status": "proposed"}), "Deliverable: D1", "", "FAIL [K1]", 1),
+    "K2 circuit breaker": (lambda r: framed(r, cycles={"01-first.md": BROKEN}), "Deliverable: D1", "",
+                           "FAIL [K2] circuit breaker: 01-first.md ended on", 1),
+    "K3 no deliverable named": (framed, "", "", "FAIL [K3] no deliverable named", 1),
+    "K3 deliverable outside the cycle": (framed, "Deliverable: D9", "", "FAIL [K3] deliverable D9 is not in 01-first.md", 1),
+    "K3 deliverable not ready": (lambda r: framed(r, cycles={"01-first.md": cycle(deliverables=[
+        deliverable(state="proposed", acceptance=None)])}), "Deliverable: D1", "", "FAIL [K3] deliverable D1 is 'proposed'", 1),
+    "K4 label without justification": (None, "", "out-of-cycle", "FAIL [K4] label out-of-cycle without its justification", 1),
+    "out of cycle, justified": (None, "Out of cycle: a production incident", "bug,out-of-cycle", "Pull request rules: compliant.", 0),
+    "in the cycle": (framed, "Deliverable: D1", "", "Pull request rules: compliant.", 0),
+}
+
+
+@pytest.mark.parametrize(("prepare", "body", "labels", "expected", "code"), CYCLE_CASES.values(), ids=CYCLE_CASES.keys())
+def test_cycle(tmp_path, capsys, monkeypatch, prepare, body, labels, expected, code):
+    base, head = change(tmp_path, frame=False)
+    if prepare:
+        prepare(tmp_path)
+    result = check(tmp_path, base, head, body, monkeypatch, labels, deliverable_line=None)
+    output = capsys.readouterr().out
+    assert expected in output, output
+    assert result == code, output
+
+
+def test_cycle_rules_spare_work_outside_the_modules(tmp_path, capsys, monkeypatch):
+    """Delivery work only: framing documents, updates and CI changes (PDR-0002, clarification)."""
+    git(tmp_path, "init", "-q", "--initial-branch=main")
+    git(tmp_path, "commit", "-q", "--allow-empty", "-m", "base")
+    base = git(tmp_path, "rev-parse", "HEAD")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "notes.md").write_text("notes\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "docs")
+    assert check(tmp_path, base, git(tmp_path, "rev-parse", "HEAD"), "", monkeypatch, deliverable_line=None) == 0, \
         capsys.readouterr().out
