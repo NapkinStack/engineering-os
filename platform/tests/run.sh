@@ -34,6 +34,15 @@ if DEAD=$(dead_links .); then
   echo "$DEAD"; exit 1
 fi
 
+echo "-> kernel: over its 250-line budget MUST fail (P4)"
+within_budget() { [ "$(wc -l < "$1")" -le 250 ]; }
+KB=$(mktemp)
+seq 251 > "$KB"
+if within_budget "$KB"; then echo "FAIL: a 251-line kernel passed the budget."; rm -f "$KB"; exit 1; fi
+rm -f "$KB"
+within_budget skeleton/AGENTS.md \
+  || { echo "FAIL: skeleton/AGENTS.md has $(wc -l < skeleton/AGENTS.md) lines, over 250 (P4). Move a rule to a playbook, or to CI."; exit 1; }
+
 echo "-> an invalid manifest MUST fail"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/broken"

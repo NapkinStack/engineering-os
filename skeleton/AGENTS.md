@@ -54,6 +54,7 @@ directly, run the local checks, summarise. No ceremony.
 2.  Scope        identify THE module concerned (§4)
 3.  Inventory    existing code, tests, contracts and decisions — in that module
 4.  Oracle       write the executable success criterion, watch it FAIL
+                 a user sees the change: write its test sheet too
 5.  Size         does the batch fit the review budget? if not, split it
 6.  Implement    the minimal change
 7.  Validate     actually run the local checks
@@ -107,6 +108,7 @@ kernel (this file)
 | a surface visible to the user | `ux.md` |
 | a non-trivial test strategy, a flaky test | `tests.md` |
 | logs, metrics, alerts, retries, timeouts, rollback | `operations.md` |
+| verifying a change you did not write, filling in a test sheet | `verification.md` |
 
 **Crossing a boundary.** If the task requires changing a second module:
 
@@ -173,10 +175,10 @@ identified. If a piece of information is missing without being blocking: move fo
 with an **explicitly stated assumption**.
 
 **Done** — a task is finished when the *applicable* validations have actually passed:
-oracle green, local checks green, contracts validated, affected documentation up to
-date, diff self-reviewed, summary produced. The level required depends on the
-criticality declared in the module's manifest (`docs/os/07-governance.md` §
-proportionate governance).
+oracle green, local checks green, contracts validated, the test sheet run by a verifier
+when a user sees the change, affected documentation up to date, diff self-reviewed,
+summary produced. The level required depends on the criticality declared in the module's
+manifest (`docs/os/07-governance.md` § proportionate governance).
 
 ---
 
