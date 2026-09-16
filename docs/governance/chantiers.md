@@ -18,17 +18,21 @@ flowchart LR
     A1 --> A2["ADR-0002<br/>PyPI, accepté"]:::fait
     A2 --> PT["Prototype<br/>validé"]:::fait
     PT --> RP["Moteur v0.1.0<br/>publié sur PyPI"]:::fait
-    RP --> PP["Projet pilote<br/>privé"]:::afaire
-    PT --> A3["ADR-0003<br/>identité de l'agent"]:::afaire
-    A3 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
+    RP --> M7["M7<br/>passage à l'anglais<br/>ADR-0003"]:::encours
+    M7 --> V2["Moteur v0.2.0"]:::afaire
+    V2 --> PP["Projet pilote<br/>privé"]:::afaire
+    PT --> A4["ADR-0004<br/>identité de l'agent"]:::afaire
+    A4 --> P2["PDR-0002<br/>cadrage guidé"]:::afaire
 
     classDef fait fill:#065f46,color:#fff
+    classDef encours fill:#1e3a8a,color:#fff
     classDef partiel fill:#92400e,color:#fff
     classDef afaire fill:#374151,color:#fff
     classDef bloque fill:#7c2d12,color:#fff
 ```
 
-**Légende** — vert : fait · orange : partiel · gris : à faire · rouge : attend une décision.
+**Légende** — vert : fait · bleu : en cours · orange : partiel · gris : à faire · rouge :
+attend une décision.
 
 | # | Chantier | Statut |
 |---|---|---|
@@ -41,7 +45,9 @@ flowchart LR
 | ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Accepté (2026-09-15) |
 | ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Accepté (2026-09-15), vérifié à la publication de la v0.1.0 |
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
-| ADR-0003 | Identité de l'agent et approbation obligatoire | À faire |
+| ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepté (2026-09-16) |
+| M7 | Passage du dépôt en anglais, jusqu'à la v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | En cours : M7a |
+| ADR-0004 | Identité de l'agent et approbation obligatoire | À faire |
 | PDR-0002 | Cadrage et découpage guidés | À faire |
 | C1 | Point d'entrée unique `nstack` | Traité par M1 et M4 : commande `nstack`, verbes des modules lus dans le MANIFEST |
 | C2 | Check anti-placeholder | Après le projet pilote, si le besoin est constaté |
@@ -177,7 +183,9 @@ générés », « réglages GitHub » et la révision de P1 et du §6, appliqué
 - ~~ADR-0002 — distribution et nom~~ : PyPI, paquet `napkinstack`, commande `nstack`,
   `uv_build`, publication sur tag par Trusted Publishing, accepté à la publication de la
   v0.1.0 (2026-09-15).
-- ADR-0003 — identité de l'agent (GitHub App ou compte machine), condition pour exiger
+- ~~ADR-0003 — langue du dépôt~~ : anglais partout, valeurs machine comprises ; aucun
+  mécanisme de localisation ; accepté le 2026-09-16, exécuté par le chantier M7.
+- ADR-0004 — identité de l'agent (GitHub App ou compte machine), condition pour exiger
   une approbation humaine : l'auteur d'une PR ne peut pas l'approuver.
 - PDR-0002 — cadrage et découpage guidés : à partir de l'idée ou des specs, une procédure
   suivie par l'agent propose règles, PDR, ADR, modules et contrats ; l'humain valide, le

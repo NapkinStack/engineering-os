@@ -13,6 +13,7 @@
 | Consommateurs d'une version retirée = 0 | `03-contrats.md` §4, revue | Élevé | Moyen | Premier contrat entre deux équipes | Revue post-pilote |
 | Issue de contraction ouverte dès l'expand | `03-contrats.md` §4, à la main | Moyen | Faible | Premier contrat versionné | Revue post-pilote |
 | Dépendance externe déclarée au manifest | Playbook sécurité, revue | Moyen | Moyen | Premier module avec dépendances | Revue post-pilote |
+| English is the repository's only language (ADR-0003) | `AGENTS.md`, `CONTRIBUTING.md`, review | Low | High — detection rests on accented letters: blind to English borrowings, false-positive on typographic punctuation and proper nouns | First outside contribution written in another language | Post-pilot review |
 
 ## Règles déjà automatisées — retirées du prompt
 

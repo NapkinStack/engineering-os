@@ -1,18 +1,18 @@
 # Runbook — platform
 
-## Un check bloque toute l'équipe
+## A check is blocking the whole team
 
-1. Vérifier que l'échec est réel et non un faux positif de détection.
-2. Si faux positif : corriger le motif dans `boundaries.py`, ajouter un cas au test.
-3. **Ne jamais désactiver le check** pour débloquer. Utiliser le label d'exception
-   prévu, qui laisse une trace comptée.
+1. Check that the failure is real and not a false positive of the detection.
+2. If it is a false positive: fix the pattern in `boundaries.py`, add a test case.
+3. **Never disable the check** to unblock. Use the exception label provided, which
+   leaves a counted trace.
 
 ## Rollback
 
-Les fitness functions sont sans état : `git revert` suffit. Vérifier ensuite
-`uv run nstack fitness` sur la branche principale.
+The fitness functions are stateless: `git revert` is enough. Then check
+`uv run nstack fitness` on the main branch.
 
-## Faux positif récurrent
+## A recurring false positive
 
-C'est un défaut de la plateforme, pas des équipes. Ouvrir une issue *Architecture* :
-une gate systématiquement contournée est une gate mal conçue.
+That is a platform defect, not a team one. Open an *Architecture* issue: a gate that is
+systematically worked around is a badly designed gate.

@@ -1,7 +1,7 @@
 [project]
 name = "napkinstack"
 version = "0.1.0"
-description = "Framework de travail pour faire travailler plusieurs équipes et leurs agents sur un même dépôt : modules, contrats, garde-fous en CI."
+description = "Engineering framework for several teams and their agents working in one repository: modules, contracts, guardrails in CI."
 requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]

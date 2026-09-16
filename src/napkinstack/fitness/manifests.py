@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-Fitness function 1 — Validation des manifests.
+Fitness function 1 — Manifest validation.
 
-Vérifie que chaque module déclare ce qu'il doit déclarer et que son état de
-cycle de vie est cohérent (docs/os/02-modules.md §6, docs/os/07-gouvernance.md §3).
+Checks that every module declares what it must declare and that its lifecycle
+state is coherent (docs/os/02-modules.md §6, docs/os/07-gouvernance.md §3).
 
-Contrôles :
-  M1  chaque module possède un MANIFEST.yaml
-  M2  champs obligatoires présents
-  M3  valeurs de lifecycle / criticality valides
-  M4  responsabilité en UNE phrase (pas de "et" coordonnant deux capacités)
-  M5  module Déprécié → removal_date obligatoire et non dépassée
-  M6  contrat deprecated → removal_date obligatoire et non dépassée
-  M7  verbes standards déclarés (check / test au minimum)
-  M8  runbook obligatoire si criticality >= eleve
-  M9  enveloppe de fichiers complète (AGENTS.md, README.md, tests/)
+Rules:
+  M1  every module has a MANIFEST.yaml
+  M2  required fields present
+  M3  valid lifecycle / criticality values
+  M4  responsibility in ONE sentence (no "and" joining two capabilities)
+  M5  module deprecated -> removal_date required and not passed
+  M6  contract deprecated -> removal_date required and not passed
+  M7  standard verbs declared (check / test at least)
+  M8  runbook required when criticality >= high
+  M9  complete file envelope (AGENTS.md, README.md, tests/)
 
-Usage :  nstack manifests [--root RACINE]
-Sortie :  0 si tout passe, 1 sinon. Chaque échec explique la règle violée.
+Usage :  nstack manifests [--root ROOT]
+Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
 """
 
 from __future__ import annotations
@@ -27,15 +27,15 @@ from pathlib import Path
 
 import yaml
 
-LIFECYCLES = {"Proposé", "Actif", "Maintenance", "Déprécié", "Retiré"}
-CRITICALITIES = {"prototype", "standard", "eleve", "critique"}
+LIFECYCLES = {"proposed", "active", "maintenance", "deprecated", "retired"}
+CRITICALITIES = {"prototype", "standard", "high", "critical"}
 REQUIRED_FIELDS = ["name", "responsibility", "owner", "lifecycle", "criticality"]
 REQUIRED_COMMANDS = ["check", "test"]
 MODULE_DIRS = ["modules", "services", "apps", "packages", "contracts", "platform"]
-MODULE_BASES = ["modules", "services", "apps", "packages"]  # bases dont chaque dossier est un module
+MODULE_BASES = ["modules", "services", "apps", "packages"]  # bases where every folder is a module
 SECTIONS = {"module": dict, "provides": list, "consumes": list, "data": dict,
             "commands": dict, "docs": dict, "dependencies": list}
-TYPES = {dict: "dictionnaire", list: "liste"}
+TYPES = {dict: "mapping", list: "list"}
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -64,10 +64,10 @@ def find_manifests(root: Path) -> list[Path]:
 
 
 def find_orphans(root: Path) -> list[Path]:
-    """Dossiers de module sans MANIFEST.yaml (M1)."""
-    return [enfant for base in MODULE_BASES if (root / base).is_dir()
-            for enfant in sorted((root / base).iterdir())
-            if enfant.is_dir() and not enfant.name.startswith(".") and not (enfant / "MANIFEST.yaml").is_file()]
+    """Module folders without a MANIFEST.yaml (M1)."""
+    return [child for base in MODULE_BASES if (root / base).is_dir()
+            for child in sorted((root / base).iterdir())
+            if child.is_dir() and not child.name.startswith(".") and not (child / "MANIFEST.yaml").is_file()]
 
 
 def parse_date(value) -> datetime.date | None:
@@ -84,85 +84,85 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        fail(rel, "M2", f"MANIFEST.yaml illisible : {exc}")
+        fail(rel, "M2", f"MANIFEST.yaml unreadable: {exc}")
         return
     if not isinstance(data, dict):
-        fail(rel, "M2", "MANIFEST.yaml doit être un dictionnaire YAML (sections module, commands, docs…).")
+        fail(rel, "M2", "MANIFEST.yaml must be a YAML mapping (sections module, commands, docs...).")
         return
-    for section, attendu in SECTIONS.items():
-        if data.get(section) is not None and not isinstance(data[section], attendu):
-            fail(rel, "M2", f"section {section} : {TYPES[attendu]} attendu, "
-                            f"{type(data[section]).__name__} trouvé.")
-            data[section] = attendu()
+    for section, expected_type in SECTIONS.items():
+        if data.get(section) is not None and not isinstance(data[section], expected_type):
+            fail(rel, "M2", f"section {section}: expected a {TYPES[expected_type]}, "
+                            f"found {type(data[section]).__name__}.")
+            data[section] = expected_type()
 
     mod = data.get("module") or {}
 
-    # M2 — champs obligatoires
+    # M2 - required fields
     for field in REQUIRED_FIELDS:
         if not mod.get(field):
-            fail(rel, "M2", f"champ obligatoire manquant : module.{field}")
+            fail(rel, "M2", f"required field missing: module.{field}")
 
-    # M3 — valeurs valides
+    # M3 - valid values
     lifecycle = mod.get("lifecycle")
     if lifecycle and lifecycle not in LIFECYCLES:
-        fail(rel, "M3", f"lifecycle invalide : '{lifecycle}'. Attendu : {sorted(LIFECYCLES)}")
+        fail(rel, "M3", f"invalid lifecycle: '{lifecycle}'. Expected one of: {sorted(LIFECYCLES)}")
     criticality = mod.get("criticality")
     if criticality and criticality not in CRITICALITIES:
-        fail(rel, "M3", f"criticality invalide : '{criticality}'. Attendu : {sorted(CRITICALITIES)}")
+        fail(rel, "M3", f"invalid criticality: '{criticality}'. Expected one of: {sorted(CRITICALITIES)}")
 
-    # M4 — responsabilité en une phrase
+    # M4 - responsibility in one sentence
     resp = (mod.get("responsibility") or "").strip()
     if resp:
         if resp.count(".") > 1:
-            warn(rel, "M4", "responsabilité en plusieurs phrases : le module fait-il deux choses ?")
-        if " et " in resp.lower() and len(resp.split()) > 12:
-            warn(rel, "M4", f"responsabilité contient 'et' : capacité cohérente ? → \"{resp}\"")
+            warn(rel, "M4", "responsibility spans several sentences: does the module do two things?")
+        if " and " in resp.lower() and len(resp.split()) > 12:
+            warn(rel, "M4", f"responsibility contains 'and': is the capability coherent? -> \"{resp}\"")
 
-    # M5 — dépréciation du module
-    if lifecycle == "Déprécié":
+    # M5 - module deprecation
+    if lifecycle == "deprecated":
         dep = mod.get("deprecation")
         dep = dep if isinstance(dep, dict) else {}
         removal = parse_date(dep.get("removal_date"))
         if not removal:
-            fail(rel, "M5", "module Déprécié sans module.deprecation.removal_date valide (AAAA-MM-JJ)")
+            fail(rel, "M5", "module deprecated without a valid module.deprecation.removal_date (YYYY-MM-DD)")
         elif removal < today:
-            fail(rel, "M5", f"date de retrait dépassée ({removal}). État intermédiaire permanent — "
-                            "retirer le module ou superséder la décision.")
+            fail(rel, "M5", f"removal date passed ({removal}). Permanent intermediate state - "
+                            "remove the module or supersede the decision.")
 
-    # M6 — dépréciation des contrats produits
+    # M6 - deprecation of provided contracts
     for provided in data.get("provides") or []:
         if not isinstance(provided, dict):
-            fail(rel, "M2", "entrée de provides : dictionnaire attendu (contract, version, stability).")
+            fail(rel, "M2", "entry of provides: expected a mapping (contract, version, stability).")
             continue
         if provided.get("stability") == "deprecated":
             name = f"{provided.get('contract')}@{provided.get('version')}"
             removal = parse_date(provided.get("removal_date"))
             if not removal:
-                fail(rel, "M6", f"contrat déprécié {name} sans removal_date")
+                fail(rel, "M6", f"deprecated contract {name} without a removal_date")
             elif removal < today:
-                fail(rel, "M6", f"contrat {name} : date de retrait dépassée ({removal}). "
-                                "Terminer la contraction (docs/os/03-contrats.md §4).")
+                fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
+                                "Finish the contraction (docs/os/03-contrats.md §4).")
 
-    # M7 — verbes standards
+    # M7 - standard verbs
     commands = data.get("commands") or {}
     for verb in REQUIRED_COMMANDS:
         if not commands.get(verb):
-            fail(rel, "M7", f"verbe standard manquant : commands.{verb} "
+            fail(rel, "M7", f"standard verb missing: commands.{verb} "
                             "(docs/os/09-plateforme.md §2)")
 
-    # M8 — runbook si criticité élevée
-    if criticality in {"eleve", "critique"}:
+    # M8 - runbook when criticality is high
+    if criticality in {"high", "critical"}:
         runbook = (data.get("docs") or {}).get("runbook")
         if not runbook or not (path.parent / runbook).is_file():
-            fail(rel, "M8", f"criticality={criticality} exige un runbook existant "
+            fail(rel, "M8", f"criticality={criticality} requires an existing runbook "
                             "(docs/os/08-qualite.md §7)")
 
-    # M9 — enveloppe de fichiers
+    # M9 - file envelope
     for expected in ["AGENTS.md", "README.md"]:
         if not (path.parent / expected).is_file():
-            fail(rel, "M9", f"fichier d'enveloppe manquant : {expected}")
+            fail(rel, "M9", f"envelope file missing: {expected}")
     if not (path.parent / "tests").is_dir() and criticality != "prototype":
-        fail(rel, "M9", "dossier tests/ absent")
+        fail(rel, "M9", "tests/ folder missing")
 
 
 def run(root: Path) -> int:
@@ -172,25 +172,25 @@ def run(root: Path) -> int:
     manifests = find_manifests(root)
     orphans = find_orphans(root)
     if not manifests and not orphans:
-        print("Aucun MANIFEST.yaml trouvé. Rien à valider.")
+        print("No MANIFEST.yaml found. Nothing to validate.")
         return 0
     for orphan in orphans:
-        fail(orphan.name, "M1", f"{orphan.relative_to(root)}/ n'a pas de MANIFEST.yaml. "
-                                "Action : le créer, ou créer le module avec nstack new-module.")
+        fail(orphan.name, "M1", f"{orphan.relative_to(root)}/ has no MANIFEST.yaml. "
+                                "Action: create it, or create the module with nstack new-module.")
 
     for manifest in manifests:
         check_manifest(manifest, today)
 
-    print(f"Manifests analysés : {len(manifests)}")
+    print(f"Manifests checked: {len(manifests)}")
     for w in warnings:
-        print(f"  AVERTISSEMENT {w}")
+        print(f"  WARNING {w}")
     for f in failures:
-        print(f"  ÉCHEC {f}")
+        print(f"  FAIL {f}")
 
     if failures:
-        print(f"\n{len(failures)} violation(s). Voir docs/os/02-modules.md et docs/os/07-gouvernance.md.")
+        print(f"\n{len(failures)} violation(s). See docs/os/02-modules.md and docs/os/07-gouvernance.md.")
         return 1
-    print("Manifests : conformes.")
+    print("Manifests: compliant.")
     return 0
 
 

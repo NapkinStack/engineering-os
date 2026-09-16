@@ -1,4 +1,4 @@
-"""Point d'entrée unique `nstack` (chantier C1, PDR-0001)."""
+"""Single entry point `nstack` (workstream C1, PDR-0001)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ PACKAGE = Path(__file__).resolve().parent
 def _root(value: str) -> Path:
     root = Path(value).resolve()
     if not root.is_dir():
-        raise argparse.ArgumentTypeError(f"racine introuvable : {value}")
+        raise argparse.ArgumentTypeError(f"root not found: {value}")
     return root
 
 
@@ -33,13 +33,13 @@ def _fitness(root: Path) -> int:
 def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
     parser = sub.add_parser(name, help=help_)
     parser.add_argument("--root", type=_root, default=Path.cwd(),
-                        help="racine du projet (défaut : dossier courant)")
+                        help="project root (default: current folder)")
     parser.set_defaults(func=func)
     return parser
 
 
 def _init(args: argparse.Namespace) -> int:
-    from napkinstack import project  # Copier ne se charge que pour init et update
+    from napkinstack import project  # Copier is only loaded for init and update
 
     answers = {"project_name": args.project_name, "github_repo": args.github_repo,
                "owner_team": args.owner_team}
@@ -54,47 +54,48 @@ def _update(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="nstack", description="Moteur NapkinStack.")
+    parser = argparse.ArgumentParser(prog="nstack", description="NapkinStack engine.")
     parser.add_argument("--version", action="version", version=f"nstack {__version__}")
-    sub = parser.add_subparsers(dest="command", required=True, metavar="commande")
-    _add(sub, "manifests", "manifests, cycles de vie, dépréciations (M1–M9)",
+    sub = parser.add_subparsers(dest="command", required=True, metavar="command")
+    _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M9)",
          lambda a: manifests.run(a.root))
-    _add(sub, "boundaries", "graphe déclaré contre graphe réel (B1–B5)",
+    _add(sub, "boundaries", "declared graph against real graph (B1-B5)",
          lambda a: boundaries.run(a.root))
-    sk = _add(sub, "skills", "génère ou vérifie les skills (S1–S4)",
+    sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
-    sk.add_argument("--check", action="store_true", help="vérifier sans écrire")
-    _add(sub, "fitness", "manifests + frontières + skills",
+    sk.add_argument("--check", action="store_true", help="check without writing")
+    _add(sub, "fitness", "manifests + boundaries + skills",
          lambda a: _fitness(a.root))
-    _add(sub, "doctor", "diagnostique le poste et les réglages GitHub, en lecture seule (PDR-0001)",
+    _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
          lambda a: doctor.run(a.root))
-    nm = _add(sub, "new-module", "crée un module et ses garde-fous, sans stack imposée",
-              lambda a: modules.nouveau(a.root, a.name, a.owner, a.criticality))
-    nm.add_argument("name", help="nom du module, kebab-case")
-    nm.add_argument("owner", help="équipe GitHub, organisation/équipe")
-    nm.add_argument("criticality", choices=["prototype", "standard", "eleve", "critique"])
-    for nom_verbe, aide in (("bootstrap", "prépare un module, ou tous (commands.bootstrap)"),
-                            ("check", "format, lint, types d'un module, ou de tous (commands.check)"),
-                            ("test", "tests d'un module, ou de tous (commands.test)")):
-        vb = _add(sub, nom_verbe, aide, lambda a, v=nom_verbe: modules.verbe(a.root, v, a.module))
-        vb.add_argument("module", nargs="?", help="nom du module (défaut : tous)")
-    rn = _add(sub, "run", "démarre un module en local (commands.run)",
-              lambda a: modules.verbe(a.root, "run", a.module))
+    nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
+              lambda a: modules.create(a.root, a.name, a.owner, a.criticality))
+    nm.add_argument("name", help="module name, kebab-case")
+    nm.add_argument("owner", help="GitHub team, organisation/team")
+    nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
+    for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
+                            ("check", "format, lint, types of one module, or all (commands.check)"),
+                            ("test", "tests of one module, or of all of them (commands.test)")):
+        vb = _add(sub, verb, help_text, lambda a, v=verb: modules.run_verb(a.root, v, a.module))
+        vb.add_argument("module", nargs="?", help="module name (default: all)")
+    rn = _add(sub, "run", "starts a module locally (commands.run)",
+              lambda a: modules.run_verb(a.root, "run", a.module))
     rn.add_argument("module")
-    ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
+    ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
-    ini = sub.add_parser("init", help="crée un projet à partir du squelette (PDR-0001)")
-    ini.add_argument("destination", type=Path, help="dossier du projet, absent ou vide")
-    ini.add_argument("--project-name", help="nom du projet (demandé si absent)")
-    ini.add_argument("--github-repo", help="dépôt GitHub, organisation/nom (demandé si absent)")
-    ini.add_argument("--owner-team", help="équipe GitHub du socle, organisation/équipe (demandé si absent)")
-    ini.add_argument("--source", help="gabarit : URL ou chemin (défaut : dépôt NapkinStack)")
-    ini.add_argument("--ref", help="version du squelette, tag vX.Y.Z (défaut : celle de nstack)")
+    ini = sub.add_parser("init", help="creates a project from the skeleton (PDR-0001)")
+    ini.add_argument("destination", type=Path, help="project folder, missing or empty")
+    ini.add_argument("--project-name", help="project name (asked when absent)")
+    ini.add_argument("--github-repo", help="GitHub repository, organisation/name (asked when absent)")
+    ini.add_argument("--owner-team", help="GitHub team owning the foundation, organisation/team "
+                                          "(asked when absent)")
+    ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
+    ini.add_argument("--ref", help="skeleton version, tag vX.Y.Z (default: the one of nstack)")
     ini.set_defaults(func=_init)
-    up = _add(sub, "update", "fusionne une version de NapkinStack sur une branche à relire (PDR-0001)",
+    up = _add(sub, "update", "merges a NapkinStack version onto a branch to review (PDR-0001)",
               _update)
-    up.add_argument("--ref", help="version cible, tag vX.Y.Z (défaut : celle de nstack)")
+    up.add_argument("--ref", help="target version, tag vX.Y.Z (default: the one of nstack)")
     return parser
 
 

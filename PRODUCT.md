@@ -128,7 +128,7 @@ est le chantier listé dans `docs/governance/chantiers.md`. Un chantier, une PR,
 commit. Jamais deux chantiers ensemble.
 
 **L'oracle, ici, c'est `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`), qui
-lance aussi les tests pytest des règles M, B, S et P (`platform/tests/test_controles.py`).
+lance aussi les tests pytest des règles M, B, S et P (`platform/tests/test_guardrails.py`).
 Pour chaque nouveau contrôle, écris d'abord le cas qui prouve qu'il échoue quand la
 règle est violée, et vois-le échouer. Le pattern existe dans ces deux fichiers : une
 règle de fitness function y gagne un cas paramétré, un comportement de commande un bloc
