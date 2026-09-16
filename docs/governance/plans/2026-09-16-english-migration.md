@@ -355,42 +355,53 @@ pre-commit configuration and in a workflow *step*, never in a job name.
 
 What every generated project receives. File names and delivered prose.
 
-### Task 1 — File renames
+### Task 1 — File renames (done)
 
-- [ ] `git mv` on `docs/os/` and `playbooks/` per §4, plus `05-dette.yml`.
-- [ ] Every internal link updated: `docs/os/README.md` navigation map, cross-references
-      between chapters, `AGENTS.md`, `README.md.jinja`.
+- [x] `git mv` on `docs/os/` and `playbooks/` per §4, plus `05-dette.yml`.
+- [x] Every reference updated across 58 files: the navigation map, cross-references
+      between chapters, the fitness function messages, the issue forms, the skill
+      mapping. The bare filenames (`securite.md` without its folder) needed a second
+      pass — the first only matched the path-prefixed form.
 
-### Task 2 — Skills and playbooks
+### Task 2 — Skills and playbooks (done)
 
-- [ ] `.nstack/skills.yaml`: keys `security`, `data-migration`, `operations`; `source`
+- [x] `.nstack/skills.yaml`: keys `security`, `data-migration`, `operations`; `source`
       paths follow the renames; descriptions in English, keeping the rule that a
       description says what and when, in the third person.
-- [ ] The five playbooks translated.
-- [ ] `uv run nstack skills --check` green (S1–S4).
+- [x] The five playbooks translated.
+- [x] `nstack skills` green, and the five skills generate correctly in a real project.
 
-### Task 3 — The handbook
+### Task 3 — The handbook (done)
 
-- [ ] The eleven `docs/os/` chapters and their `README.md`, mermaid diagrams and legends
-      included.
-- [ ] `docs/tooling-profile.md`, `docs/adr/`, `docs/pdr/` templates and indexes.
+- [x] The eleven `docs/os/` chapters and their `README.md`. Every mermaid diagram now
+      carries the legend the repository requires; a good half of them had none, so this
+      pass added them rather than translating an absence.
+- [x] `docs/tooling-profile.md`, `docs/adr/`, `docs/pdr/` templates and indexes. The
+      repository's own copies differ only by their path prefix; M7c aligns them.
 
-### Task 4 — Skeleton root
+### Task 4 — Skeleton root (done)
 
-- [ ] `AGENTS.md` (the kernel), `README.md.jinja`, `CONTRIBUTING.md`, `SECURITY.md`,
-      `modules/README.md`, `contracts/` (README, AGENTS, MANIFEST template, runbook).
-- [ ] `.github/`: workflow display names, job names, issue and PR templates,
-      `CODEOWNERS.jinja`, `config.yml.jinja`.
-- [ ] PR summary blocks: `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES` →
+- [x] `AGENTS.md` (the kernel, still inside its 250-line budget), `README.md.jinja`,
+      `CONTRIBUTING.md`, `SECURITY.md`, `modules/README.md`, `contracts/` (README,
+      AGENTS, MANIFEST template, runbook).
+- [x] `.github/`: both workflows, the five issue forms, the pull request template,
+      `CODEOWNERS.jinja`, `config.yml.jinja`, `dependabot.yml`, `.gitignore`.
+- [x] The two shared configurations, `.pre-commit-config.yaml` and `.yamllint.yaml`,
+      translated in both byte-identical copies as rule P3 requires.
+- [x] PR summary blocks: `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES` →
       `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
+- [x] `05-debt.yml` labels with `debt`, and that label was created on the repository. It
+      was the last phantom one: every label an issue form or a guardrail names now
+      exists.
 
-### Task 5 — Verification
+### Task 5 — Verification (done)
 
-- [ ] `nstack init` into a scratch directory from the working tree; the generated project
-      contains no French and no `PRODUCT.md`.
-- [ ] In the generated project: `nstack fitness` green, `nstack new-module` then
-      `nstack check` behave as documented.
-- [ ] `run.sh` generated-project assertions updated and green.
+- [x] `nstack init` into a scratch directory from the working tree: the generated project
+      contains **no French at all** and no `PRODUCT.md`.
+- [x] In the generated project: `nstack fitness` green, `nstack new-module billing
+      acme/billing high` writes its runbook and passes `nstack manifests`, and
+      `nstack skills` generates the five skills under their new names.
+- [x] Full `run.sh` suite green throughout, including its generated-project assertions.
 
 ---
 
