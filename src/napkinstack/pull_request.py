@@ -1,0 +1,192 @@
+"""
+Pull request rules read from its description: the test sheet (PDR-0003).
+
+Rules:
+  T1  a test sheet when the pull request touches a user-facing module, or one of
+      criticality high or critical
+  T2  a verifier named, and every scenario row filled in: id, given · when · then, a kind
+      (automated, explored, human only — reason), a result (passed, failed, not verified)
+  T3  no scenario passed without its evidence and the commit it was verified on
+  T4  evidence produced on the pull request's head commit: the others are to run again
+  T5  no scenario failed; none left not verified, unless it is human only
+
+Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
+In CI :  PR_BODY, PR_LABELS and PR_HEAD_SHA come from the pull_request event.
+Output:  0 when every applicable rule passes, 1 otherwise.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+from collections.abc import Callable
+from pathlib import Path
+
+import yaml
+
+from napkinstack.fitness.manifests import find_manifests
+
+SHEET_CRITICALITIES = {"high", "critical"}
+COLUMNS = ("#", "given · when · then", "kind", "result", "evidence", "commit")
+KINDS = {"automated", "explored"}
+RESULTS = {"passed", "failed", "not verified"}
+SECTION = re.compile(r"^##[ \t]+Test sheet[ \t]*$", re.I | re.M)
+NEXT_SECTION = re.compile(r"^#{1,2}[ \t]", re.M)
+VERIFIER = re.compile(r"^Verifier:[ \t]*(.*)$", re.I | re.M)
+HUMAN_ONLY = re.compile(r"human only[ \t]*[—–-][ \t]*(\S.*)", re.I)
+PLACEHOLDER = re.compile(r"<[^<>]*>")
+EMPTY = {"", "—", "-"}
+SHA = re.compile(r"[0-9a-f]{7,40}")
+
+Fail = Callable[[str, str], None]
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+
+
+def touched_modules(root: Path, files: list[str]) -> dict[str, dict]:
+    """Folder, relative to the root, to manifest, for every module the files change."""
+    touched = {}
+    for manifest in find_manifests(root):
+        folder = manifest.parent.relative_to(root).as_posix()
+        if any(path.startswith(f"{folder}/") for path in files):
+            try:
+                data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                data = {}
+            touched[folder] = data if isinstance(data, dict) else {}
+    return touched
+
+
+def sheet_reason(folder: str, manifest: dict) -> str | None:
+    """Why a module requires a test sheet (T1), or None."""
+    module = manifest.get("module") if isinstance(manifest.get("module"), dict) else {}
+    if module.get("user_facing") is True:
+        return f"{folder} (user-facing)"
+    if module.get("criticality") in SHEET_CRITICALITIES:
+        return f"{folder} (criticality {module['criticality']})"
+    return None
+
+
+def _cells(line: str) -> list[str]:
+    inner = line.strip().removeprefix("|").removesuffix("|")
+    return [cell.strip().replace("\\|", "|") for cell in re.split(r"(?<!\\)\|", inner)]
+
+
+def read_sheet(body: str) -> tuple[str, list[str], list[dict[str, str]]]:
+    """(verifier, header, filled rows) of the "Test sheet" section; empty when absent."""
+    match = SECTION.search(body)
+    if not match:
+        return "", [], []
+    section = body[match.end():]
+    if following := NEXT_SECTION.search(section):
+        section = section[:following.start()]
+    found = VERIFIER.search(section)
+    verifier = found[1].strip() if found else ""
+    verifier = "" if PLACEHOLDER.fullmatch(verifier) else verifier
+    lines = [line for line in section.splitlines() if line.strip().startswith("|")]
+    if len(lines) < 2:
+        return verifier, [], []
+    header = [" ".join(cell.lower().split()) for cell in _cells(lines[0])]
+    rows = []
+    for line in lines[2:]:
+        values = _cells(line)
+        if all(value in EMPTY or PLACEHOLDER.fullmatch(value) for value in values[1:]):
+            continue  # the template's example row
+        rows.append(dict(zip(header, values)))
+    return verifier, header, rows
+
+
+def _result(cell: str) -> str:
+    return re.split(r"[ \t]+[—–-][ \t]+", cell.replace("*", "").strip(), maxsplit=1)[0].lower()
+
+
+def check_sheet(body: str, head: str, reasons: list[str], fail: Fail) -> list[str]:
+    """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
+    verifier, header, rows = read_sheet(body)
+    if reasons and not rows:
+        fail("T1", f"Test sheet missing: this pull request touches {', '.join(reasons)}.\n"
+                   "      Action: fill in the \"Test sheet\" section of the description — scenarios "
+                   "from the acceptance criteria, run by a verifier who is not the author "
+                   "(docs/os/05-workflow.md §7).")
+        return []
+    if not rows:
+        return []
+    missing = [column for column in COLUMNS if column not in header]
+    if missing:
+        fail("T2", f"Test sheet: columns missing: {', '.join(missing)}.\n"
+                   f"      Expected: | {' | '.join(COLUMNS)} |")
+        return []
+    if not verifier:
+        fail("T2", "Test sheet: no verifier named.\n      Action: \"Verifier: <agent session "
+                   "or @human>\", someone other than the author of the change.")
+    human_only, rerun = [], []
+    for row in rows:
+        ident = row["#"] or "?"
+        kind = row["kind"]
+        reason = HUMAN_ONLY.fullmatch(kind)
+        result = _result(row["result"])
+        if row["given · when · then"] in EMPTY or PLACEHOLDER.fullmatch(row["given · when · then"]):
+            fail("T2", f"scenario {ident}: given · when · then missing")
+        if kind.lower() not in KINDS and not reason:
+            fail("T2", f"scenario {ident}: kind '{kind}', expected automated, explored, "
+                       "or human only — <reason>")
+        if result not in RESULTS:
+            fail("T2", f"scenario {ident}: result '{row['result']}', expected passed, failed or "
+                       "not verified")
+            continue
+        commit = row["commit"].strip().strip("`").lower()
+        if result == "passed" and (row["evidence"] in EMPTY or not SHA.fullmatch(commit)):
+            fail("T3", f"scenario {ident}: passed without evidence and the commit verified.\n"
+                       "      Action: link the screenshot, video, trace or log, and give the commit.")
+        elif result in {"passed", "failed"} and SHA.fullmatch(commit) and not head.startswith(commit):
+            rerun.append(ident)
+        if result == "failed":
+            fail("T5", f"scenario {ident}: failed.\n      Action: fix the change, or have the decider "
+                       "change the expected result, visibly in the sheet's history.")
+        elif result == "not verified" and reason:
+            human_only.append(f"{ident} — {reason[1]}")
+        elif result == "not verified":
+            fail("T5", f"scenario {ident}: not verified.\n      Action: run it, or mark it "
+                       "human only — <reason>.")
+    if rerun:
+        fail("T4", f"scenarios verified on another commit than the head {head[:7]}: "
+                   f"{', '.join(rerun)}.\n      Action: run them again on the head commit.")
+    return human_only
+
+
+def run(root: Path, base: str, body_file: Path | None = None) -> int:
+    if body_file is not None:
+        body = body_file.read_text(encoding="utf-8")
+    elif "PR_BODY" in os.environ:
+        body = os.environ["PR_BODY"]
+    else:
+        print("Pull request description not provided (PR_BODY or --body-file): not checked.")
+        return 0
+    if _git(root, "rev-parse", "--verify", "--quiet", base).returncode:
+        print(f"Base '{base}' not found — check skipped.")
+        return 0
+    files = _git(root, "diff", "--name-only", f"{base}...HEAD").stdout.split()
+    head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
+    modules = touched_modules(root, files)
+
+    failures: list[str] = []
+
+    def fail(rule: str, message: str) -> None:
+        failures.append(f"[{rule}] {message}")
+
+    reasons = [reason for folder, data in modules.items() if (reason := sheet_reason(folder, data))]
+    human_only = check_sheet(body, head, reasons, fail)
+
+    print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
+    print(f"Test sheet      : {'required' if reasons else 'not required'}")
+    for scenario in human_only:
+        print(f"  For the approver, human only: {scenario}")
+    for failure in failures:
+        print(f"FAIL {failure}")
+    if failures:
+        return 1
+    print("Pull request rules: compliant.")
+    return 0
