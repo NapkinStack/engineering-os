@@ -1,11 +1,11 @@
 """
-Modules d'un projet : création (nstack new-module) et verbes standards (nstack bootstrap,
-check, test, run), sans stack imposée (PRODUCT.md P1, PDR-0001 R5).
+A project's modules: creation (nstack new-module) and standard verbs (nstack bootstrap,
+check, test, run), with no imposed stack (PRODUCT.md P1, PDR-0001 R5).
 
-Chaque verbe exécute la commande déclarée dans la section `commands` du MANIFEST.yaml du
-module, depuis son dossier, par le shell du système. NapkinStack ne suppose jamais un
-Makefile, un package.json ni rien d'autre : le projet déclare, nstack exécute. Conventions
-reprises de Nx (`nx test <projet>`) et de moon (`moon run projet:tâche`).
+Each verb runs the command declared in the `commands` section of the module's
+MANIFEST.yaml, from its folder, through the system shell. NapkinStack never assumes a
+Makefile, a package.json or anything else: the project declares, nstack runs. Conventions
+borrowed from Nx (`nx test <project>`) and moon (`moon run project:task`).
 """
 
 from __future__ import annotations
@@ -19,114 +19,115 @@ import yaml
 
 from napkinstack.fitness.manifests import find_manifests
 
-GABARIT = Path(__file__).resolve().parent / "templates" / "module"
-NOM = re.compile(r"[a-z][a-z0-9-]*")
-EQUIPE = re.compile(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+")  # même règle que copier.yml
-FACULTATIFS = {"bootstrap"}  # absent : rien à préparer
+TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
+NAME = re.compile(r"[a-z][a-z0-9-]*")
+TEAM = re.compile(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+")  # same rule as copier.yml
+OPTIONAL = {"bootstrap"}  # absent: nothing to prepare
+NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
 
-RUNBOOK = """# Runbook — {nom}
+RUNBOOK = """# Runbook - {name}
 
-> Obligatoire pour criticality={criticite} (docs/os/08-qualite.md §7).
-> Un runbook vide fait échouer la CI. À remplir avant la mise en production.
+> Required for criticality={criticality} (docs/os/08-qualite.md §7).
+> An empty runbook fails CI. Fill it in before going to production.
 
-## Alertes et réponses
-| Alerte | Signification | Première action |
+## Alerts and responses
+| Alert | Meaning | First action |
 |---|---|---|
 | | | |
 
 ## Rollback
-<Procédure testée, pas supposée.>
+<A tested procedure, not an assumed one.>
 
-## Vérification post-déploiement
-<Ce qu'on regarde, et pendant combien de temps.>
+## Post-deployment verification
+<What you watch, and for how long.>
 
-## Dépendances et dégradation
-<Que se passe-t-il si chaque dépendance est indisponible ?>
+## Dependencies and degradation
+<What happens when each dependency is unavailable?>
 """
 
 
-def nouveau(root: Path, nom: str, owner: str, criticite: str) -> int:
-    if not NOM.fullmatch(nom):
-        print(f"ÉCHEC [new-module] nom '{nom}' invalide : kebab-case attendu, par exemple facturation.")
+def create(root: Path, name: str, owner: str, criticality: str) -> int:
+    if not NAME.fullmatch(name):
+        print(f"FAIL [new-module] invalid name '{name}': kebab-case expected, for example billing.")
         return 1
-    if not EQUIPE.fullmatch(owner):
-        print(f"ÉCHEC [new-module] owner '{owner}' invalide : une équipe GitHub organisation/équipe, "
-              "par exemple acme/facturation (CODEOWNERS, docs/os/07-gouvernance.md §7).")
+    if not TEAM.fullmatch(owner):
+        print(f"FAIL [new-module] invalid owner '{owner}': a GitHub team, organisation/team, "
+              "for example acme/billing (CODEOWNERS, docs/os/07-gouvernance.md §7).")
         return 1
-    dossier = root / "modules" / nom
-    if dossier.exists():
-        print(f"ÉCHEC [new-module] modules/{nom} existe déjà.")
+    folder = root / "modules" / name
+    if folder.exists():
+        print(f"FAIL [new-module] modules/{name} already exists.")
         return 1
 
-    shutil.copytree(GABARIT, dossier)
-    valeurs = {"{{MODULE_NAME}}": nom, "{{OWNER}}": owner, "{{CRITICALITY}}": criticite}
-    for fichier in (f for f in dossier.rglob("*") if f.is_file()):
-        texte = fichier.read_text(encoding="utf-8")
-        for marque, valeur in valeurs.items():
-            texte = texte.replace(marque, valeur)
-        fichier.write_text(texte, encoding="utf-8")
+    shutil.copytree(TEMPLATE, folder)
+    values = {"{{MODULE_NAME}}": name, "{{OWNER}}": owner, "{{CRITICALITY}}": criticality}
+    for file_ in (f for f in folder.rglob("*") if f.is_file()):
+        text = file_.read_text(encoding="utf-8")
+        for marker, value in values.items():
+            text = text.replace(marker, value)
+        file_.write_text(text, encoding="utf-8")
 
-    runbook = criticite in {"eleve", "critique"}
+    runbook = criticality in NEEDS_RUNBOOK
     if runbook:
-        (dossier / "docs").mkdir(exist_ok=True)
-        (dossier / "docs" / "runbook.md").write_text(RUNBOOK.format(nom=nom, criticite=criticite),
-                                                      encoding="utf-8")
-        manifest = dossier / "MANIFEST.yaml"
+        (folder / "docs").mkdir(exist_ok=True)
+        (folder / "docs" / "runbook.md").write_text(
+            RUNBOOK.format(name=name, criticality=criticality), encoding="utf-8")
+        manifest = folder / "MANIFEST.yaml"
         manifest.write_text(re.sub(r"^( *)# runbook:", r"\1runbook:",
                                    manifest.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
 
     codeowners = root / ".github" / "CODEOWNERS"
-    ligne = f"/modules/{nom}/"
+    line = f"/modules/{name}/"
     if codeowners.is_file():
-        contenu = codeowners.read_text(encoding="utf-8")
-        if not any(existante.split()[:1] == [ligne] for existante in contenu.splitlines()):
-            codeowners.write_text(contenu.rstrip("\n") + f"\n{ligne:<31}@{owner}\n", encoding="utf-8")
+        content = codeowners.read_text(encoding="utf-8")
+        if not any(existing.split()[:1] == [line] for existing in content.splitlines()):
+            codeowners.write_text(content.rstrip("\n") + f"\n{line:<31}@{owner}\n", encoding="utf-8")
     else:
-        print(f"AVERTISSEMENT : .github/CODEOWNERS absent ; y ajouter « {ligne} @{owner} ».")
+        print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
 
-    print(f"Module créé : modules/{nom} (owner {owner}, criticité {criticite})"
-          + (", runbook à remplir" if runbook else "") + ".")
-    print("\nÉtapes suivantes :")
-    print("  1. ADR de création dans docs/adr/ : capacité, frontière, alternatives")
-    print("  2. MANIFEST.yaml : responsabilité en UNE phrase, puis les commandes check et test de la stack")
-    print(f"  3. modules/{nom}/AGENTS.md : le spécifique du module, jamais le kernel")
-    print(f"  4. nstack fitness, puis nstack check {nom} et nstack test {nom}")
+    print(f"Module created: modules/{name} (owner {owner}, criticality {criticality})"
+          + (", runbook to fill in" if runbook else "") + ".")
+    print("\nNext steps:")
+    print("  1. Creation ADR in docs/adr/: capability, boundary, alternatives")
+    print("  2. MANIFEST.yaml: responsibility in ONE sentence, then the stack's check and test commands")
+    print(f"  3. modules/{name}/AGENTS.md: what is specific to the module, never the kernel")
+    print(f"  4. nstack fitness, then nstack check {name} and nstack test {name}")
     return 0
 
 
 def _modules(root: Path) -> dict[str, Path]:
-    """Nom → dossier, pour chaque MANIFEST.yaml que reconnaissent les fitness functions."""
+    """Name to folder, for every MANIFEST.yaml the fitness functions recognise."""
     return {manifest.parent.name: manifest.parent for manifest in find_manifests(root)}
 
 
-def verbe(root: Path, verbe: str, nom: str | None) -> int:
-    connus = _modules(root)
-    if nom is not None and nom not in connus:
-        print(f"ÉCHEC [{verbe}] module '{nom}' introuvable dans {root} : aucun MANIFEST.yaml à ce nom.\n"
-              f"      Modules connus : {', '.join(connus) or 'aucun'}.")
+def run_verb(root: Path, verb: str, name: str | None) -> int:
+    known = _modules(root)
+    if name is not None and name not in known:
+        print(f"FAIL [{verb}] module '{name}' not found in {root}: no MANIFEST.yaml under that name.\n"
+              f"      Known modules: {', '.join(known) or 'none'}.")
         return 1
-    cibles = [nom] if nom is not None else list(connus)
-    if not cibles:
-        print(f"Aucun module dans {root} : rien à exécuter.")
+    targets = [name] if name is not None else list(known)
+    if not targets:
+        print(f"No module in {root}: nothing to run.")
         return 0
-    for cible in cibles:
-        manifest = connus[cible] / "MANIFEST.yaml"
+    for target in targets:
+        manifest = known[target] / "MANIFEST.yaml"
         try:
-            commandes = (yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}).get("commands") or {}
-        except yaml.YAMLError as erreur:
-            print(f"ÉCHEC [{verbe}] {manifest} illisible : {erreur}\n      Action : nstack manifests.")
+            commands = (yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}).get("commands") or {}
+        except yaml.YAMLError as error:
+            print(f"FAIL [{verb}] {manifest} unreadable: {error}\n      Action: nstack manifests.")
             return 1
-        commande = commandes.get(verbe)
-        if not commande:
-            if verbe in FACULTATIFS:
-                print(f"→ {cible} : {verbe} non déclaré, rien à préparer.")
+        command = commands.get(verb)
+        if not command:
+            if verb in OPTIONAL:
+                print(f"-> {target}: {verb} not declared, nothing to prepare.")
                 continue
-            print(f"ÉCHEC [{verbe}] module '{cible}' : commands.{verbe} non déclarée dans {manifest}.\n"
-                  "      Action : y déclarer la commande de la stack du module (docs/os/09-plateforme.md §2).")
+            print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
+                  "      Action: declare the module stack's command there (docs/os/09-plateforme.md §2).")
             return 1
-        print(f"→ {cible} : {commande}", flush=True)
-        code = subprocess.run(commande, shell=True, cwd=connus[cible]).returncode
+        print(f"-> {target}: {command}", flush=True)
+        code = subprocess.run(command, shell=True, cwd=known[target]).returncode
         if code:
-            print(f"ÉCHEC [{verbe}] module '{cible}' : `{commande}` sort en {code}.")
+            print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}.")
             return code
     return 0

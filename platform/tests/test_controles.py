@@ -98,6 +98,14 @@ def test_manifests(tmp_path, capsys, preparer, regle, echec):
     verifier(code, capsys.readouterr().out, regle, echec)
 
 
+def test_new_module_criticite_haute_genere_un_runbook(tmp_path, capsys):
+    """M8 exige un runbook dès criticality=high : le scaffold doit le poser lui-même."""
+    assert cli.main(["new-module", "demo", "acme/equipe-demo", "high", "--root", str(tmp_path)]) == 0
+    assert (tmp_path / "modules" / "demo" / "docs" / "runbook.md").is_file(), capsys.readouterr().out
+    capsys.readouterr()
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+
+
 CLIENTS = degrade(module__name="clients", module__owner="acme/clients")
 
 

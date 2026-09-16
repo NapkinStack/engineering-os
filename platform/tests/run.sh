@@ -181,12 +181,12 @@ uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
 
 echo "→ scaffold : un owner sans organisation ou un nom invalide DOIVENT être refusés (P6)"
-for cas in "demo2|equipe-demo|owner 'equipe-demo' invalide" "Demo|acme/equipe|nom 'Demo' invalide"; do
+for cas in "demo2|equipe-demo|invalid owner 'equipe-demo'" "Demo|acme/equipe|invalid name 'Demo'"; do
   IFS='|' read -r nom owner message <<<"$cas"
   if OUT=$(uv run nstack new-module "$nom" "$owner" standard --root "$SC" 2>&1); then
     echo "ÉCHEC : new-module $nom $owner accepté."; exit 1
   fi
-  echo "$OUT" | grep -qF "ÉCHEC [new-module] $message" \
+  echo "$OUT" | grep -qF "FAIL [new-module] $message" \
     || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
 done
 
@@ -194,7 +194,7 @@ echo "→ verbes : une commande à déclarer DOIT échouer en nommant le module 
 if OUT=$(uv run nstack check demo --root "$SC" 2>&1); then
   echo "ÉCHEC : une commande à déclarer est passée au vert."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "commands.check à déclarer" && echo "$OUT" | grep -qF "ÉCHEC [check] module 'demo'" \
+echo "$OUT" | grep -qF "commands.check to be declared" && echo "$OUT" | grep -qF "FAIL [check] module 'demo'" \
   || { echo "ÉCHEC : échec sans le module ni la commande."; echo "$OUT"; exit 1; }
 
 echo "→ verbes : la commande déclarée s'exécute depuis le dossier du module, quelle que soit la stack"
@@ -213,13 +213,13 @@ uv run nstack new-module zeta acme/equipe-zeta standard --root "$SC" >/dev/null
 if OUT=$(uv run nstack check --root "$SC" 2>&1); then
   echo "ÉCHEC : un module non déclaré est passé au vert."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qx "stack-libre" && echo "$OUT" | grep -qF "ÉCHEC [check] module 'zeta'" \
+echo "$OUT" | grep -qx "stack-libre" && echo "$OUT" | grep -qF "FAIL [check] module 'zeta'" \
   || { echo "ÉCHEC : modules non parcourus ou échec non nommé."; echo "$OUT"; exit 1; }
 
 echo "→ verbes : bootstrap facultatif ; run non déclaré et module inconnu DOIVENT échouer"
-uv run nstack bootstrap demo --root "$SC" | grep -qF "rien à préparer" \
+uv run nstack bootstrap demo --root "$SC" | grep -qF "nothing to prepare" \
   || { echo "ÉCHEC : bootstrap absent mal traité."; exit 1; }
-for cas in "run demo|commands.run non déclarée" "test inconnu|module 'inconnu' introuvable"; do
+for cas in "run demo|commands.run not declared" "test inconnu|module 'inconnu' not found"; do
   IFS='|' read -r arguments message <<<"$cas"
   # shellcheck disable=SC2086
   if OUT=$(uv run nstack $arguments --root "$SC" 2>&1); then

@@ -59,8 +59,8 @@ dependencies: []
 # (docs/os/09-plateforme.md §2). `nstack <verbe> <module>` les exécute depuis ce dossier.
 # Aucune stack n'est imposée : remplacer chaque commande « à déclarer ».
 commands:
-  check: "echo 'commands.check à déclarer dans MANIFEST.yaml' >&2; exit 1"  # < 2 min : format, lint, types
-  test: "echo 'commands.test à déclarer dans MANIFEST.yaml' >&2; exit 1"    # ne démarre JAMAIS un autre module
+  check: "echo 'commands.check to be declared in MANIFEST.yaml' >&2; exit 1"  # < 2 min : format, lint, types
+  test: "echo 'commands.test to be declared in MANIFEST.yaml' >&2; exit 1"    # ne démarre JAMAIS un autre module
   # bootstrap:                   # facultatif : rendre le module exploitable depuis un clone vierge
   # run:                         # facultatif : démarrage local, avec doublures pour les dépendances
 

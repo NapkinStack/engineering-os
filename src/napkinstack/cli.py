@@ -69,17 +69,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add(sub, "doctor", "diagnostique le poste et les réglages GitHub, en lecture seule (PDR-0001)",
          lambda a: doctor.run(a.root))
     nm = _add(sub, "new-module", "crée un module et ses garde-fous, sans stack imposée",
-              lambda a: modules.nouveau(a.root, a.name, a.owner, a.criticality))
+              lambda a: modules.create(a.root, a.name, a.owner, a.criticality))
     nm.add_argument("name", help="nom du module, kebab-case")
     nm.add_argument("owner", help="équipe GitHub, organisation/équipe")
     nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
     for nom_verbe, aide in (("bootstrap", "prépare un module, ou tous (commands.bootstrap)"),
                             ("check", "format, lint, types d'un module, ou de tous (commands.check)"),
                             ("test", "tests d'un module, ou de tous (commands.test)")):
-        vb = _add(sub, nom_verbe, aide, lambda a, v=nom_verbe: modules.verbe(a.root, v, a.module))
+        vb = _add(sub, nom_verbe, aide, lambda a, v=nom_verbe: modules.run_verb(a.root, v, a.module))
         vb.add_argument("module", nargs="?", help="nom du module (défaut : tous)")
     rn = _add(sub, "run", "démarre un module en local (commands.run)",
-              lambda a: modules.verbe(a.root, "run", a.module))
+              lambda a: modules.run_verb(a.root, "run", a.module))
     rn.add_argument("module")
     ps = _add(sub, "pr-scope", "une PR = un module, budget de revue (P1–P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
