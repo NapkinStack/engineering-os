@@ -1,253 +1,248 @@
-# 08 — Qualité et risque
+# 08 — Quality and risk
 
-> Ce document est la **référence**. Les règles opérationnelles correspondantes vivent
-> dans `playbooks/`, chargés à la demande par un agent.
-
----
-
-## 1. Le principe commun
-
-Toutes les disciplines de ce document suivent la même règle :
-
-> **On teste, on sécurise, on instrumente selon le risque — jamais selon un objectif
-> chiffré arbitraire.**
-
-Un projet à 90 % de couverture dont aucune règle métier critique n'est testée est moins
-sûr qu'un projet à 40 % qui couvre les parcours à fort impact. Un objectif chiffré
-déplace l'effort vers ce qui est facile à couvrir, c'est-à-dire vers ce qui compte le
-moins.
+> This document is the **reference**. The matching operational rules live in
+> `playbooks/`, loaded on demand by an agent.
 
 ---
 
-## 2. Stratégie de tests
+## 1. The common principle
 
-### Priorités
+Every discipline in this document follows the same rule:
 
-Par ordre décroissant, indépendamment du type de test :
+> **You test, secure and instrument according to risk — never according to an arbitrary
+> numeric target.**
+
+A project at 90 % coverage where no critical business rule is tested is less safe than
+one at 40 % that covers the high-impact journeys. A numeric target moves effort towards
+what is easy to cover, which is to say towards what matters least.
+
+---
+
+## 2. Test strategy
+
+### Priorities
+
+In decreasing order, whatever the type of test:
 
 ```
-1. règles métier
-2. parcours critiques
-3. permissions et autorisations
-4. contrats
-5. gestion des erreurs
-6. cas limites
-7. régressions déjà survenues
-8. comportements à fort impact utilisateur
+1. business rules
+2. critical journeys
+3. permissions and authorisations
+4. contracts
+5. error handling
+6. edge cases
+7. regressions that already happened
+8. behaviours with a high user impact
 ```
 
-### Types et usage
+### Types and use
 
-| Type | Utile pour | Piège |
+| Type | Useful for | Trap |
 |---|---|---|
-| Unitaire | Règles métier, cas limites, pur calcul | Tester des détails d'implémentation qui cassent à chaque refactor |
-| Intégration | Interaction avec la base, le système de fichiers, un service | Devenir un E2E déguisé, lent et fragile |
-| Contrat | Frontières inter-modules | Absent → le contrat n'est qu'un document |
-| Composant | Une unité UI isolée | Sur-mock : on teste le mock |
-| E2E | Parcours critiques uniquement | Multiplication → suite lente et flaky |
-| Régression visuelle | Design system, composants stables | Faux positifs qu'on finit par ignorer |
-| Accessibilité | Toute surface utilisateur | Vérifier l'automatisable seulement, le reste se teste au clavier |
-| Performance | Budgets déclarés | Sans budget explicite, ne mesure rien |
-| Sécurité | Entrées, authz, dépendances | Ne remplace pas la conception sécurisée |
-| Smoke | Post-déploiement | Trop large → on ne sait pas ce qui a cassé |
-| UAT | Adéquation au besoin réel | Utilisée comme substitut aux tests techniques |
+| Unit | Business rules, edge cases, pure computation | Testing implementation details that break at every refactor |
+| Integration | Interaction with the database, the filesystem, a service | Becoming a disguised E2E, slow and fragile |
+| Contract | Inter-module boundaries | Absent → the contract is only a document |
+| Component | An isolated UI unit | Over-mocking: you test the mock |
+| E2E | Critical journeys only | Multiplying them → a slow, flaky suite |
+| Visual regression | Design system, stable components | False positives people end up ignoring |
+| Accessibility | Every user surface | Check what can be automated only; the rest is tested with the keyboard |
+| Performance | Declared budgets | Without an explicit budget, it measures nothing |
+| Security | Input, authz, dependencies | Does not replace secure design |
+| Smoke | Post-deployment | Too broad → you do not know what broke |
+| UAT | Fit with the real need | Used as a substitute for technical tests |
 
-### Tests flaky
+### Flaky tests
 
-Un test flaky est un **problème d'ingénierie**, jamais une fatalité.
+A flaky test is an **engineering problem**, never a fact of life.
 
-Son coût réel n'est pas le temps perdu à relancer : c'est qu'il apprend à l'équipe à
-ignorer un échec de CI. Un seul test flaky toléré dégrade la valeur de **toute** la
+Its real cost is not the time lost re-running it: it is that it teaches the team to
+ignore a CI failure. A single tolerated flaky test degrades the value of the **whole**
 suite.
 
-Traitement : isoler, diagnostiquer, corriger ou supprimer. Jamais « relancer jusqu'à ce
-que ça passe ». Un test désactivé « temporairement » porte une issue et une date.
+Handling: isolate, diagnose, fix or delete. Never "re-run until it passes". A test
+disabled "temporarily" carries an issue and a date.
 
-Les tests doivent être déterministes autant que possible : pas de dépendance à
-l'horloge réelle, à l'ordre d'exécution, au réseau, ou à un état partagé non réinitialisé.
+Tests must be as deterministic as possible: no dependency on the real clock, on execution
+order, on the network, or on shared state that is not reset.
 
 ---
 
-## 3. QA — avant le code
+## 3. QA — before the code
 
-La QA commence au cadrage, pas à la livraison. Pour toute fonctionnalité significative,
-chercher systématiquement :
+QA starts at framing, not at delivery. For every significant feature, look systematically
+for:
 
 ```
-happy paths · cas limites · entrées invalides · permissions
-états inattendus · concurrence · erreurs réseau · erreurs externes
-données manquantes ou partielles · régressions possibles
-problèmes d'accessibilité · problèmes de compatibilité
+happy paths · edge cases · invalid input · permissions
+unexpected states · concurrency · network errors · external errors
+missing or partial data · possible regressions
+accessibility problems · compatibility problems
 ```
 
-**Les critères d'acceptation doivent être testables.** Un critère comme « l'interface
-est fluide » n'est pas un critère : c'est une intention. Il faut le traduire en
-comportement observable, ou reconnaître qu'il n'est pas vérifiable et l'assumer comme
-tel.
+**Acceptance criteria must be testable.** A criterion such as "the interface feels
+smooth" is not a criterion: it is an intention. It has to be translated into an
+observable behaviour, or acknowledged as unverifiable and owned as such.
 
-C'est la même exigence que l'oracle du workflow (`05-workflow.md`), vue côté produit.
+It is the same requirement as the workflow's oracle (`05-workflow.md`), seen from the
+product side.
 
 ---
 
 ## 4. UX/UI
 
-Pour toute fonctionnalité exposée à l'utilisateur, analyser au minimum :
+For every feature exposed to a user, analyse at least:
 
 | Dimension | Question |
 |---|---|
-| Parcours | L'utilisateur atteint-il son objectif sans détour ? |
-| Compréhension | Sait-il ce qui se passe et ce qu'on attend de lui ? |
-| Feedback | Chaque action a-t-elle une réponse perceptible ? |
-| Erreurs | Le message dit-il quoi faire, pas seulement ce qui a échoué ? |
-| Chargement | Les états d'attente sont-ils traités ? |
-| États vides | Le premier usage est-il guidé ? |
-| Responsive et mobile | Le comportement tient-il hors du poste de développement ? |
-| Accessibilité | Clavier, contraste, lecteurs d'écran, cibles tactiles |
-| Cohérence | Est-ce conforme au design system existant ? |
-| Performance perçue | Le temps ressenti, pas le temps mesuré |
+| Journey | Does the user reach their goal without a detour? |
+| Understanding | Do they know what is happening and what is expected of them? |
+| Feedback | Does every action get a perceptible response? |
+| Errors | Does the message say what to do, not only what failed? |
+| Loading | Are the waiting states handled? |
+| Empty states | Is the first use guided? |
+| Responsive and mobile | Does the behaviour hold outside the development machine? |
+| Accessibility | Keyboard, contrast, screen readers, touch targets |
+| Consistency | Does it match the existing design system? |
+| Perceived performance | The felt time, not the measured time |
 
-> **« L'interface fonctionne » n'est pas équivalent à « l'expérience est correcte ».**
+> **"The interface works" is not the same as "the experience is decent".**
 
-Le Prior Art Gate s'applique pleinement ici, et c'est même son terrain le plus
-rentable : sur les patterns d'interface, la convention est presque toujours le bon
-choix, parce que sa valeur vient précisément du fait que l'utilisateur la connaît déjà.
-Une innovation d'interface non demandée est un coût d'apprentissage imposé.
+The Prior Art Gate applies fully here, and this is even its most profitable ground: on
+interface patterns the convention is almost always the right choice, because its value
+comes precisely from the fact that the user already knows it. An unrequested interface
+innovation is an imposed learning cost.
 
 ---
 
 ## 5. UAT
 
-L'UAT valide que le produit répond **réellement** au besoin attendu.
+UAT validates that the product **actually** answers the expected need.
 
-Elle **ne remplace pas** les tests unitaires, d'intégration, de sécurité ou techniques.
-Une UAT utilisée comme filet de sécurité technique est le symptôme d'une suite de tests
-insuffisante — et elle arrive trop tard et coûte trop cher pour ce rôle.
+It **does not replace** unit, integration, security or technical tests. A UAT used as a
+technical safety net is the symptom of an insufficient test suite — and it arrives too
+late and costs too much for that role.
 
-Elle part des critères d'acceptation du PDR ou de l'issue et des parcours utilisateurs
-réels, pas d'une exploration libre de l'interface.
-
----
-
-## 6. Sécurité — secure by design
-
-Approche par la conception, pas par l'inspection finale. Selon le risque, considérer :
-
-```
-authentification · autorisation · moindre privilège
-secrets · validation des entrées · données sensibles · confidentialité
-journalisation · audit · dépendances · supply chain
-exposition réseau · injections · gestion des fichiers
-rate limiting · isolation · sauvegardes · récupération après incident
-```
-
-**Règles absolues :**
-
-- **Aucun secret dans le repository.** Jamais. La détection est automatisée, et une
-  fuite déclenche une rotation, pas seulement une suppression du commit.
-- **Toute entrée externe est hostile** jusqu'à validation.
-- **Le moindre privilège par défaut**, y compris pour les agents et la CI.
-- Les contrôles automatisables sont **intégrés au cycle de livraison**, pas exécutés
-  ponctuellement.
-
-Le détail opérationnel est dans `playbooks/security.md`, chargé dès qu'une tâche touche
-à l'authentification, l'autorisation, des secrets, des données personnelles ou des
-entrées externes.
+It starts from the acceptance criteria of the PDR or the issue and from real user
+journeys, not from free exploration of the interface.
 
 ---
 
-## 7. Fiabilité et exploitation
+## 6. Security — secure by design
 
-Un module destiné à la production doit être **opérable**. Selon sa criticité :
+An approach through design, not through a final inspection. Depending on the risk,
+consider:
 
-| Capacité | Standard | Élevée | Critique |
+```
+authentication · authorisation · least privilege
+secrets · input validation · sensitive data · confidentiality
+logging · audit · dependencies · supply chain
+network exposure · injections · file handling
+rate limiting · isolation · backups · disaster recovery
+```
+
+**Absolute rules:**
+
+- **No secret in the repository.** Ever. Detection is automated, and a leak triggers a
+  rotation, not just a removal from the commit.
+- **All external input is hostile** until validated.
+- **Least privilege by default**, including for agents and for CI.
+- The checks that can be automated are **built into the delivery cycle**, not run
+  occasionally.
+
+The operational detail is in `playbooks/security.md`, loaded as soon as a task touches
+authentication, authorisation, secrets, personal data or external input.
+
+---
+
+## 7. Reliability and operations
+
+A module destined for production must be **operable**. Depending on its criticality:
+
+| Capability | standard | high | critical |
 |---|---|---|---|
-| Logs structurés | ✔ | ✔ | ✔ |
-| Gestion des erreurs explicite | ✔ | ✔ | ✔ |
+| Structured logs | ✔ | ✔ | ✔ |
+| Explicit error handling | ✔ | ✔ | ✔ |
 | Health checks | ✔ | ✔ | ✔ |
-| Métriques | — | ✔ | ✔ |
-| Traces | — | selon besoin | ✔ |
-| Alertes | — | ✔ | ✔ |
-| Timeouts explicites | ✔ | ✔ | ✔ |
-| Retries contrôlés | selon cas | ✔ | ✔ |
-| Idempotence | selon cas | ✔ | ✔ |
-| SLI / SLO | — | selon besoin | ✔ |
+| Metrics | — | ✔ | ✔ |
+| Traces | — | as needed | ✔ |
+| Alerts | — | ✔ | ✔ |
+| Explicit timeouts | ✔ | ✔ | ✔ |
+| Controlled retries | case by case | ✔ | ✔ |
+| Idempotence | case by case | ✔ | ✔ |
+| SLI / SLO | — | as needed | ✔ |
 | Runbook | — | ✔ | ✔ |
-| Rollback testé | — | ✔ | ✔ |
-| Dégradation contrôlée | — | selon besoin | ✔ |
+| Tested rollback | — | ✔ | ✔ |
+| Controlled degradation | — | as needed | ✔ |
 
-> **Ne jamais ajouter de retries automatiques sans analyser les effets de bord.** Un
-> retry sur une opération non idempotente duplique. Un retry sans backoff transforme un
-> incident local en panne généralisée. Un retry qui masque une erreur empêche de la
-> détecter.
+> **Never add automatic retries without analysing the side effects.** A retry on a
+> non-idempotent operation duplicates. A retry without backoff turns a local incident
+> into a general outage. A retry that masks an error prevents it being detected.
 
-Détail : `playbooks/operations.md`.
-
----
-
-## 8. Données
-
-**Chaque domaine possède ses données.** Pas de données partagées implicitement, pas
-d'accès direct à la base d'un autre module — c'est la forme de couplage la plus
-difficile à défaire, parce qu'elle est invisible dans le code.
-
-Toute modification importante de données ou de schéma prend en compte :
-
-```
-compatibilité (ancienne et nouvelle version du code coexistent-elles ?)
-migration (comment ? combien de temps ? bloquante ?)
-données existantes (que deviennent les cas non conformes ?)
-rollback ou stratégie de récupération
-performance pendant la migration
-intégrité · sécurité · observabilité
-```
-
-> **Une migration de données est un changement de production, pas une modification de
-> code.** Elle relève des actions à haut risque (kernel §5) : risque nommé, impact
-> décrit, procédure sûre proposée, confirmation demandée.
-
-Le schéma évolue selon la même logique expand/contract que les contrats
-(`03-contracts.md`) : ajouter, faire coexister, migrer, retirer. Jamais renommer en place.
-
-Détail : `playbooks/data-migration.md`.
+Detail: `playbooks/operations.md`.
 
 ---
 
-## 9. Dépendances
+## 8. Data
 
-Avant d'ajouter une dépendance significative, appliquer le **filtre niche**
-(`06-decisions.md` §3) : adoption, maintenance, licence et sécurité, **stratégie de
-sortie**.
+**Each domain owns its data.** No implicitly shared data, no direct access to another
+module's database — it is the hardest form of coupling to undo, because it is invisible
+in the code.
 
-Deux erreurs symétriques, aussi coûteuses l'une que l'autre :
+Every significant change to data or to a schema takes into account:
 
-| Erreur | Exemple | Coût |
+```
+compatibility (do the old and new versions of the code coexist?)
+migration (how? how long? blocking?)
+existing data (what happens to non-conforming rows?)
+rollback or recovery strategy
+performance during the migration
+integrity · security · observability
+```
+
+> **A data migration is a production change, not a code change.** It falls under
+> high-risk actions (kernel §5): the risk named, the impact described, a safe procedure
+> proposed, confirmation asked for.
+
+The schema evolves through the same expand/contract logic as contracts
+(`03-contracts.md`): add, let both coexist, migrate, remove. Never rename in place.
+
+Detail: `playbooks/data-migration.md`.
+
+---
+
+## 9. Dependencies
+
+Before adding a significant dependency, apply the **niche filter**
+(`06-decisions.md` §3): adoption, maintenance, licence and security, **exit strategy**.
+
+Two symmetrical mistakes, each as expensive as the other:
+
+| Mistake | Example | Cost |
 |---|---|---|
-| Dépendance pour du trivial | Une librairie pour trois lignes de code | Surface d'attaque, supply chain, maintenance |
-| Réimplémentation du non-trivial | Cryptographie, parsing de dates, authentification | Bugs subtils, failles, temps perdu |
+| A dependency for something trivial | A library for three lines of code | Attack surface, supply chain, maintenance |
+| Reimplementing the non-trivial | Cryptography, date parsing, authentication | Subtle bugs, vulnerabilities, wasted time |
 
-La ligne de partage : **est-ce que ce problème est subtil ?** Le formatage d'une chaîne
-ne l'est pas. La gestion des fuseaux horaires, la cryptographie, l'analyse syntaxique et
-l'authentification le sont — on prend la convention établie, toujours.
+The dividing line: **is this problem subtle?** Formatting a string is not. Time zones,
+cryptography, parsing and authentication are — you take the established convention,
+always.
 
-Toute dépendance significative est déclarée dans le manifest du module, avec sa
-stratégie de sortie.
+Every significant dependency is declared in the module's manifest, with its exit
+strategy.
 
 ---
 
-## 10. Changements architecturaux
+## 10. Architectural changes
 
-Tout changement qui augmente significativement le couplage, le nombre de dépendances,
-la surface d'attaque, la complexité opérationnelle, la charge cognitive, la criticité ou
-le coût de migration doit être **explicitement évalué** — ADR, avec les alternatives
-rejetées.
+Any change that significantly increases coupling, the number of dependencies, the attack
+surface, operational complexity, cognitive load, criticality or the cost of migration
+must be **explicitly assessed** — an ADR, with the rejected alternatives.
 
-Deux règles :
+Two rules:
 
-**L'architecture évolue par petits pas.** Chaque évolution laisse le système dans un
-état au moins aussi cohérent qu'avant. Un grand saut qui laisse le système incohérent
-« le temps de finir » ne finit jamais tout à fait.
+**Architecture evolves in small steps.** Each evolution leaves the system at least as
+coherent as before. A big leap that leaves the system incoherent "until we finish" never
+quite finishes.
 
-**Éviter les états intermédiaires permanents.** Quand un nouveau chemin remplace un
-ancien, la suppression de l'ancien est planifiée dès le départ, avec une date et un
-propriétaire — sinon les deux chemins coexistent indéfiniment, et personne ne sait plus
-lequel fait autorité.
+**Avoid permanent intermediate states.** When a new path replaces an old one, the removal
+of the old one is planned from the start, with a date and an owner — otherwise both paths
+coexist indefinitely, and nobody knows which is authoritative any more.
