@@ -1,115 +1,115 @@
-# 09 — Plateforme
+# 09 — Platform
 
-## 1. Le rôle de la plateforme
+## 1. The platform's role
 
-La plateforme est ce qui permet à plusieurs équipes de travailler « de la même manière »
-**sans** partager leur code ni leurs choix techniques.
+The platform is what lets several teams work "the same way" **without** sharing their
+code or their technical choices.
 
-Son objectif est de **réduire la charge cognitive**, pas de contrôler. Chaque fois
-qu'une équipe doit reconstruire un mécanisme que d'autres ont déjà construit — pipeline,
-templates, checks, bootstrap — c'est un échec de la plateforme.
+Its purpose is to **reduce cognitive load**, not to control. Every time a team has to
+rebuild a mechanism others have already built — pipeline, templates, checks, bootstrap —
+that is a platform failure.
 
-> La plateforme fournit un chemin standardisé, automatisé et sûr.
-> Elle ne fournit pas une prison.
+> The platform provides a standardised, automated, safe path.
+> It does not provide a prison.
 
-Elle a deux étages, chacun avec son propriétaire :
+It has two storeys, each with its owner:
 
 ```mermaid
 flowchart TB
-    M["Moteur<br/>outil versionné, épinglé par le projet<br/>génère · met à jour · contrôle · exécute les verbes"]:::moteur
-    S["Socle du projet<br/>squelette possédé par l'équipe socle<br/>kernel · playbooks · manuel · CI · hooks"]:::socle
-    P["Module platform/<br/>facultatif : mécanismes partagés propres au projet"]:::option
-    MOD["Modules<br/>stack choisie par chaque équipe"]:::module
+    M["Engine<br/>a versioned tool, pinned by the project<br/>generates · updates · checks · runs the verbs"]:::engine
+    S["The project's foundation<br/>the skeleton, owned by the foundation team<br/>kernel · playbooks · handbook · CI · hooks"]:::foundation
+    P["A platform/ module<br/>optional: shared mechanisms specific to the project"]:::optional
+    MOD["Modules<br/>each team picks its own stack"]:::module
 
-    M -->|"génère, puis propose<br/>chaque nouvelle version en PR"| S
-    M -.->|"exécute les verbes<br/>déclarés dans les manifests"| MOD
-    S -->|"règles et garde-fous"| MOD
-    P -.->|"si le projet en construit"| MOD
+    M -->|"generates, then offers<br/>each new version as a PR"| S
+    M -.->|"runs the verbs<br/>declared in the manifests"| MOD
+    S -->|"rules and guardrails"| MOD
+    P -.->|"when the project builds one"| MOD
 
-    classDef moteur fill:#1e3a8a,color:#fff
-    classDef socle fill:#1f2937,color:#fff
-    classDef option fill:#6b7280,color:#fff
+    classDef engine fill:#1e3a8a,color:#fff
+    classDef foundation fill:#1f2937,color:#fff
+    classDef optional fill:#6b7280,color:#fff
     classDef module fill:#065f46,color:#fff
 ```
 
-**Légende** — bleu : le moteur, outil externe nommé dans `docs/tooling-profile.md` · gris
-foncé : le socle, que le projet possède et adapte · gris clair : un module `platform/`,
-seulement si le projet construit ses propres mécanismes partagés · vert : les modules des
-équipes. Trait plein : génération et règles ; pointillés : exécution ou usage.
+**Legend** — blue: the engine, an external tool named in `docs/tooling-profile.md` · dark
+grey: the foundation, which the project owns and adapts · light grey: a `platform/`
+module, only when the project builds its own shared mechanisms · green: the teams'
+modules. Solid line: generation and rules; dotted: execution or use.
 
-Le moteur ne se copie pas : il se met à jour en changeant de version, et le socle reçoit
-les nouvelles versions du squelette en PR relue. Un module `platform/`, s'il existe, est un
-**module** à part entière, avec un owner, un manifest, une criticité élevée et ses propres
-tests. Une plateforme orpheline devient une dette que personne n'ose toucher.
+The engine is not copied: it is updated by changing version, and the foundation receives
+new skeleton versions as a reviewed pull request. A `platform/` module, when it exists, is
+a **module** in its own right, with an owner, a manifest, a high criticality and its own
+tests. An orphan platform becomes debt nobody dares touch.
 
 ---
 
-## 2. Les verbes standards
+## 2. The standard verbs
 
-C'est la contrepartie de l'hétérogénéité interne des modules. Chaque module expose les
-mêmes verbes, quelle que soit sa technologie. Ils sont déclarés dans son manifest, section
-`commands`, avec les commandes de sa propre stack.
+This is the counterpart of the modules' internal heterogeneity. Every module exposes the
+same verbs, whatever its technology. They are declared in its manifest, in the `commands`
+section, with its own stack's commands.
 
-| Verbe | Contrat | Doit fonctionner… |
+| Verb | Contract | Must work… |
 |---|---|---|
-| `bootstrap` | Rendre le module exploitable depuis un clone vierge | Sans connaissance préalable |
-| `check` | Toutes les validations rapides : format, lint, types | En moins de 2 minutes |
-| `test` | La suite de tests du module | Sans dépendance vers un autre module |
-| `run` | Démarrer le module en local | Avec des doublures pour les dépendances |
-| `contracts` | Valider et générer les artefacts de contrat | À chaque changement de contrat |
-| `migrate` | Appliquer les migrations de données | Si le module possède des données |
-| `release` | Produire l'artefact livrable | De manière reproductible |
+| `bootstrap` | Make the module usable from a fresh clone | Without prior knowledge |
+| `check` | All the fast validations: format, lint, types | In under 2 minutes |
+| `test` | The module's test suite | With no dependency on another module |
+| `run` | Start the module locally | With doubles for the dependencies |
+| `contracts` | Validate and generate the contract artefacts | On every contract change |
+| `migrate` | Apply the data migrations | When the module owns data |
+| `release` | Produce the shippable artefact | Reproducibly |
 
-Le moteur exécute `bootstrap`, `check`, `test` et `run` : il lit la commande dans le
-manifest et la lance depuis le dossier du module, en local comme en CI. `check` et `test`
-sont obligatoires ; un module neuf les déclare « à déclarer », en échec, jusqu'à ce que
-l'équipe y mette les commandes de sa stack. `contracts`, `migrate` et `release` sont des
-noms réservés, à déclarer quand un module en a besoin.
+The engine runs `bootstrap`, `check`, `test` and `run`: it reads the command from the
+manifest and launches it from the module's folder, locally as in CI. `check` and `test`
+are mandatory; a new module declares them as "to be declared", failing, until the team
+puts its own stack's commands there. `contracts`, `migrate` and `release` are reserved
+names, to declare when a module needs them.
 
-**Pourquoi c'est le socle du multi-équipes.** Un développeur ou un agent qui arrive sur
-un module inconnu n'a pas à découvrir s'il faut lancer `npm`, `make`, `cargo`, `pytest`
-ou autre chose. Il lit le manifest et lance `check`. La CI fait exactement pareil, ce
-qui garantit que les checks locaux et distants sont les mêmes.
+**Why this is the foundation of multi-team work.** A developer or an agent arriving on an
+unknown module does not have to discover whether to run `npm`, `make`, `cargo`, `pytest`
+or something else. They read the manifest and run `check`. CI does exactly the same,
+which guarantees the local and remote checks are identical.
 
-**Règle d'isolation.** `test` d'un module ne doit jamais nécessiter de démarrer un autre
-module. Si c'est le cas, ce ne sont pas des tests unitaires ou d'intégration mais des
-tests système — et c'est un signal de mauvaise frontière (`02-modules.md` §9).
+**Isolation rule.** A module's `test` must never require starting another module. If it
+does, these are not unit or integration tests but system tests — and that is a signal of
+a bad boundary (`02-modules.md` §9).
 
 ---
 
-## 3. Arborescence du squelette
+## 3. The skeleton's layout
 
 ```
 project/
 │
-├── AGENTS.md                      # kernel de l'OS
+├── AGENTS.md                      # the OS kernel
 ├── README.md
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 │
 ├── docs/
-│   ├── os/                        # cette documentation
-│   ├── architecture/              # vue d'ensemble, diagrammes système
-│   ├── adr/                       # décisions techniques transverses
-│   ├── pdr/                       # décisions produit
-│   ├── runbooks/                  # exploitation transverse
-│   └── tooling-profile.md         # mapping capacités → outils du moment
+│   ├── os/                        # this documentation
+│   ├── architecture/              # overview, system diagrams
+│   ├── adr/                       # cross-cutting technical decisions
+│   ├── pdr/                       # product decisions
+│   ├── runbooks/                  # cross-cutting operations
+│   └── tooling-profile.md         # mapping capabilities → the tools of the moment
 │
-├── playbooks/                     # modules d'instructions IA, chargés à la demande
+├── playbooks/                     # AI instruction modules, loaded on demand
 │   ├── security.md
 │   ├── tests.md
 │   ├── data-migration.md
 │   ├── ux.md
 │   └── operations.md
 │
-├── contracts/                     # ← module à part entière, owner dédié
+├── contracts/                     # ← a module in its own right, dedicated owner
 │   ├── MANIFEST.yaml
-│   ├── <contrat>/
+│   ├── <contract>/
 │   │   ├── v1/
 │   │   └── v2/
 │   └── tests/
 │
-├── modules/                       # vide à la création
+├── modules/                       # empty at creation
 │   ├── <module-a>/
 │   │   ├── MANIFEST.yaml
 │   │   ├── AGENTS.md
@@ -127,134 +127,132 @@ project/
     └── pull_request_template.md
 ```
 
-> `modules/` peut se décliner en `services/`, `apps/`, `packages/` selon la nature du
-> projet. Ce qui compte est que chaque unité porte son manifest et son enveloppe
-> complète, pas le nom du dossier parent. Un module `platform/` et un dossier
-> `docs/governance/` (backlog d'automatisation, revues) s'ajoutent quand le projet en a
-> besoin ; le squelette ne les crée pas.
+> `modules/` can become `services/`, `apps/` or `packages/` depending on the nature of
+> the project. What matters is that each unit carries its manifest and its complete
+> envelope, not the name of the parent folder. A `platform/` module and a
+> `docs/governance/` folder (automation backlog, reviews) are added when the project
+> needs them; the skeleton does not create them.
 
 ---
 
-## 4. Créer un nouveau module
+## 4. Creating a new module
 
-C'est le test le plus révélateur de la maturité de la plateforme : **combien de temps
-entre la décision et le premier commit utile ?**
+This is the most revealing test of a platform's maturity: **how long between the decision
+and the first useful commit?**
 
 ```mermaid
 flowchart TD
-    A["ADR de création<br/>capacité · owner · criticité"]:::humain --> B["Moteur : création du module<br/>un seul appel"]:::moteur
-    B --> C1["MANIFEST pré-rempli<br/>owner organisation/équipe"]:::genere
-    B --> C2["AGENTS.md et README<br/>avec les sections attendues"]:::genere
-    B --> C3["Commandes check et test<br/>à déclarer, en échec"]:::genere
-    B --> C4["CODEOWNERS mis à jour"]:::genere
-    B --> C5["Runbook<br/>si criticité élevée ou critique"]:::genere
-    B --> C6["Fitness functions et CI<br/>actives dès le premier commit"]:::genere
-    C3 --> E["L'équipe déclare les commandes<br/>de sa stack"]:::humain
-    C1 --> D["Premier commit utile"]:::fin
+    A["Creation ADR<br/>capability · owner · criticality"]:::human --> B["Engine: the module is created<br/>in a single call"]:::engine
+    B --> C1["MANIFEST pre-filled<br/>owner organisation/team"]:::generated
+    B --> C2["AGENTS.md and README<br/>with the expected sections"]:::generated
+    B --> C3["check and test commands<br/>to be declared, failing"]:::generated
+    B --> C4["CODEOWNERS updated"]:::generated
+    B --> C5["Runbook<br/>when criticality is high or critical"]:::generated
+    B --> C6["Fitness functions and CI<br/>active from the first commit"]:::generated
+    C3 --> E["The team declares its<br/>own stack's commands"]:::human
+    C1 --> D["First useful commit"]:::done
     C2 --> D
     E --> D
     C4 --> D
     C5 --> D
     C6 --> D
 
-    classDef humain fill:#065f46,color:#fff
-    classDef moteur fill:#1e3a8a,color:#fff
-    classDef genere fill:#1f2937,color:#fff
-    classDef fin fill:#6b7280,color:#fff
+    classDef human fill:#065f46,color:#fff
+    classDef engine fill:#1e3a8a,color:#fff
+    classDef generated fill:#1f2937,color:#fff
+    classDef done fill:#6b7280,color:#fff
 ```
 
-**Légende** — vert : décision ou travail de l'équipe · bleu : le moteur · gris foncé : ce
-qui est généré · gris clair : le résultat.
+**Legend** — green: the team's decision or work · blue: the engine · dark grey: what is
+generated · light grey: the result.
 
-Le point critique est `C6` : **les garde-fous sont actifs dès le premier commit**. Un
-module créé sans fitness functions accumulera des violations qu'on découvrira trop tard,
-et qu'on finira par tolérer parce que les corriger sera devenu trop cher. `C3` en est le
-corollaire : un module dont les commandes ne sont pas déclarées échoue en CI au lieu de
-passer au vert sans rien vérifier.
+The critical point is `C6`: **the guardrails are active from the first commit**. A module
+created without fitness functions will accumulate violations discovered too late, and
+eventually tolerated because fixing them has become too expensive. `C3` is its corollary:
+a module whose commands are not declared fails in CI instead of going green while
+checking nothing.
 
 ---
 
 ## 5. Onboarding
 
-L'objectif est mesurable : **un nouvel arrivant — humain ou agent — doit pouvoir
-contribuer utilement sans conversation orale.**
+The goal is measurable: **a newcomer — human or agent — must be able to contribute
+usefully without a spoken conversation.**
 
-Le parcours attendu :
+The expected path:
 
 ```
-1. lire le MANIFEST du module        → à quoi il sert, qui le possède, ce qu'il consomme
-2. lire l'AGENTS.md local            → conventions et pièges spécifiques
-3. lancer bootstrap puis check       → environnement fonctionnel, validations vertes
-4. lire les contrats consommés       → ce sur quoi il peut s'appuyer
-5. lire les ADR du module            → pourquoi c'est comme ça
-6. prendre une issue Ready           → périmètre et critères déjà explicites
+1. read the module's MANIFEST      → what it is for, who owns it, what it consumes
+2. read the local AGENTS.md        → specific conventions and traps
+3. run bootstrap then check        → a working environment, validations green
+4. read the contracts consumed     → what it can rely on
+5. read the module's ADRs          → why it is the way it is
+6. pick up a Ready issue           → scope and criteria already explicit
 ```
 
-Si l'une de ces étapes nécessite de demander à quelqu'un, c'est un défaut du système,
-pas du nouvel arrivant. Le temps jusqu'à la première contribution est un indicateur
-suivi (`10-measurement.md`).
+If one of these steps requires asking somebody, that is a defect of the system, not of
+the newcomer. Time to first contribution is a tracked indicator (`10-measurement.md`).
 
-Le repository doit pouvoir répondre seul à : qui possède quoi · comment contribuer ·
-comment tester · comment livrer · quelles règles s'appliquent · quelles validations sont
-obligatoires.
+The repository must be able to answer, on its own: who owns what · how to contribute ·
+how to test · how to ship · which rules apply · which validations are mandatory.
 
 ---
 
-## 6. Outillage IA
+## 6. AI tooling
 
-> Les outils sont des **adaptateurs**, jamais des fondations architecturales.
+> Tools are **adapters**, never architectural foundations.
 
-L'OS ne prescrit aucun outil, pour une raison simple : l'écosystème change plus vite que
-les principes. Un squelette qui impose « utilisez tel plugin et telle extension » sera
-faux dans douze mois, alors que ses principes tiendront.
+The OS prescribes no tool, for a simple reason: the ecosystem changes faster than the
+principles do. A skeleton that imposes "use this plugin and that extension" will be wrong
+in twelve months, while its principles will still hold.
 
-L'OS n'embarque pas non plus d'IA : c'est l'agent de l'équipe qui lit le kernel et les
-playbooks, lance les verbes et propose des changements, que la CI accepte ou refuse comme
-ceux de n'importe quel contributeur.
+Nor does the OS embed an AI: it is the team's agent that reads the kernel and the
+playbooks, runs the verbs and proposes changes, which CI accepts or refuses exactly as it
+would from any other contributor.
 
-L'OS déclare donc des **capacités**, et un *profil d'outillage* (`docs/tooling-profile.md`)
-les mappe sur les outils du moment. Changer d'outil se fait alors sans toucher à l'OS.
+The OS therefore declares **capabilities**, and a *tooling profile*
+(`docs/tooling-profile.md`) maps them onto the tools of the moment. Changing tool then
+happens without touching the OS.
 
-| Capacité | À quoi elle sert |
+| Capability | What it is for |
 |---|---|
-| Recherche et navigation dans le repository | Inventaire local sans tout charger |
-| Recherche documentaire fiable | Vérifier plutôt que supposer (`04-ai-context.md` §6) |
-| Accès aux sources officielles | Versions, API, contraintes réelles |
-| Exécution de commandes et de tests | Rendre l'oracle réellement exécutable |
-| Interaction Git, issues, PR | Traçabilité et petits lots |
-| Inspection UI et captures | Validation UX au-delà du « ça compile » |
-| Analyse de sécurité | Contrôles automatisés intégrés |
-| Analyse d'architecture | Support des fitness functions |
-| Agents spécialisés | Revue indépendante, investigation isolée |
+| Searching and navigating the repository | A local inventory without loading everything |
+| Reliable documentary research | Verify rather than assume (`04-ai-context.md` §6) |
+| Access to official sources | Versions, APIs, real constraints |
+| Running commands and tests | Making the oracle actually executable |
+| Git, issue and pull request interaction | Traceability and small batches |
+| UI inspection and screenshots | UX validation beyond "it compiles" |
+| Security analysis | Integrated automated checks |
+| Architecture analysis | Support for the fitness functions |
+| Specialised agents | Independent review, isolated investigation |
 
-**Critères de choix d'un outil** : projet, sécurité, confidentialité, fiabilité, coût,
-maturité, intégration, et surtout **capacité à être automatisé**. Un outil utile
-uniquement en interactif ne peut pas devenir une garantie.
+**Criteria for choosing a tool**: the project, security, confidentiality, reliability,
+cost, maturity, integration, and above all **the ability to be automated**. A tool useful
+only interactively can never become a guarantee.
 
-> Ne jamais ajouter un outil parce qu'il est populaire. Le Prior Art Gate s'applique
-> aussi aux outils (`06-decisions.md`).
+> Never add a tool because it is popular. The Prior Art Gate applies to tools too
+> (`06-decisions.md`).
 
 ---
 
-## 7. Le squelette comme plateforme interne miniature
+## 7. The skeleton as a miniature internal platform
 
-Un nouveau projet démarre avec les conventions, les contrôles, les templates et les
-workflows **déjà prêts**. C'est ce qui rend l'OS réel plutôt que théorique : sans
-squelette, chaque projet réimplémente les mêmes mécanismes, avec des variations qui
-finissent par empêcher toute mutualisation.
+A new project starts with the conventions, the checks, the templates and the workflows
+**already in place**. That is what makes the OS real rather than theoretical: without a
+skeleton, every project reimplements the same mechanisms, with variations that eventually
+prevent any sharing.
 
-Ce que le squelette et son moteur fournissent dès le premier jour :
+What the skeleton and its engine provide from day one:
 
-- le kernel et les playbooks ;
-- l'exécution des verbes standards déclarés dans les manifests ;
-- les templates ADR, PDR, issue, PR ;
-- les fitness functions de base (1 à 3 de `07-governance.md` §3) ;
-- la CI avec les checks du niveau `standard` ;
-- le CODEOWNERS, et la checklist des réglages de la forge, que le moteur vérifie en
-  lecture seule ;
-- la création de module ;
-- les nouvelles versions du squelette, proposées en PR relue et fusionnées avec les
-  adaptations du projet.
+- the kernel and the playbooks;
+- execution of the standard verbs declared in the manifests;
+- the ADR, PDR, issue and pull request templates;
+- the basic fitness functions (1 to 3 of `07-governance.md` §3);
+- CI with the checks of the `standard` level;
+- CODEOWNERS, and the checklist of forge settings, which the engine verifies read-only;
+- module creation;
+- new skeleton versions, offered as a reviewed pull request and merged with the project's
+  adaptations.
 
-Ce qu'il ne fournit **pas** : une stack, une architecture interne, une liste d'outils,
-une IA. Ces choix appartiennent au projet et passent par une décision explicite.
+What it does **not** provide: a stack, an internal architecture, a list of tools, an AI.
+Those choices belong to the project and go through an explicit decision.
