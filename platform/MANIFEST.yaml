@@ -1,7 +1,7 @@
 module:
   name: platform
   responsibility: >
-    Fournit les verbes standards, les fitness functions et le scaffold de module.
+    Provides the standard verbs, the fitness functions and the module scaffolding.
   owner: NapkinStack/maintainers
   contact: "https://github.com/NapkinStack/engineering-os/discussions"
   lifecycle: active
@@ -14,16 +14,15 @@ data:
   shared: []
 dependencies:
   - name: PyYAML
-    purpose: "Lecture des manifests par les fitness functions"
+    purpose: "Reading the manifests from the fitness functions"
     exit_strategy: >
-      Usage limité à la lecture YAML. Remplaçable par tout autre parseur
-      en quelques heures.
+      Limited to reading YAML. Replaceable by any other parser in a few hours.
 
 commands:
   bootstrap: uv sync --locked
   check: uv run nstack fitness --root ..
   test: uv run bash tests/run.sh
-  run: "echo 'non applicable'"
+  run: "echo 'not applicable'"
 
 docs:
   readme: README.md

@@ -1,15 +1,15 @@
-# Source de vérité machine-lisible du module.
-# Lu par : les humains (onboarding), les agents (scoping), la CI (fitness functions).
-# Toute divergence entre ce fichier et le code fait échouer la CI.
+# Machine-readable source of truth for the module.
+# Read by: humans (onboarding), agents (scoping), CI (fitness functions).
+# Any divergence between this file and the code fails CI.
 
 module:
   name: "{{MODULE_NAME}}"
 
-  # UNE phrase. Si elle nécessite un "et", le module fait probablement deux choses.
+  # ONE sentence. If it needs an "and", the module probably does two things.
   responsibility: >
-    TODO — décrire la capacité métier de ce module en une phrase.
+    TODO - describe this module's business capability in one sentence.
 
-  owner: "{{OWNER}}"          # une ÉQUIPE GitHub organisation/équipe, jamais un individu
+  owner: "{{OWNER}}"          # a GitHub TEAM, organisation/team, never an individual
   contact: "@{{OWNER}}"
 
   # proposed | active | maintenance | deprecated | retired   (docs/os/02-modules.md §6)
@@ -18,60 +18,60 @@ module:
   # prototype | standard | high | critical              (docs/os/07-gouvernance.md §6)
   criticality: "{{CRITICALITY}}"
 
-  # Nom du module dans le code, s'il diffère du dossier (package, namespace).
-  # Utilisé par la détection de frontières.
+  # The module's name in the code, when it differs from the folder (package, namespace).
+  # Used by boundary detection.
   # code_name: {{MODULE_NAME}}
 
-  # Uniquement si lifecycle = deprecated. Check rouge si la date est dépassée.
+  # Only when lifecycle = deprecated. The check turns red once the date has passed.
   # deprecation:
   #   replaced_by:
-  #   removal_date: AAAA-MM-JJ
+  #   removal_date: YYYY-MM-DD
 
-# Contrats PRODUITS par ce module.
+# Contracts PROVIDED by this module.
 provides: []
 #  - contract: {{MODULE_NAME}}-api
 #    version: v1
 #    path: contracts/{{MODULE_NAME}}-api/v1
 #    stability: experimental      # experimental | stable | deprecated
-#    # removal_date: AAAA-MM-JJ   # obligatoire si stability = deprecated
+#    # removal_date: YYYY-MM-DD   # required when stability = deprecated
 
-# Contrats CONSOMMÉS — c'est le graphe DÉCLARÉ.
-# La CI le compare au graphe RÉEL extrait du code : tout écart = violation.
+# Contracts CONSUMED - this is the DECLARED graph.
+# CI compares it with the REAL graph extracted from the code: any gap is a violation.
 consumes: []
 #  - contract: identity-api
 #    version: v1
 #    module: identity
 
-# Données possédées. Personne d'autre n'y accède directement.
+# Data owned. Nobody else accesses it directly.
 data:
   owns: []
-  shared: []                     # toute exception exige un ADR nommé
+  shared: []                     # any exception requires a named ADR
 
-# Dépendances externes significatives.
-# Chacune déclare sa stratégie de sortie (docs/os/06-decisions.md §3).
+# Significant external dependencies.
+# Each one declares its exit strategy (docs/os/06-decisions.md §3).
 dependencies: []
 #  - name:
 #    purpose:
 #    adr:
 #    exit_strategy:
 
-# Verbes standards : mêmes noms partout, commandes de la stack du module
-# (docs/os/09-plateforme.md §2). `nstack <verbe> <module>` les exécute depuis ce dossier.
-# Aucune stack n'est imposée : remplacer chaque commande « à déclarer ».
+# Standard verbs: the same names everywhere, running this module's stack commands
+# (docs/os/09-plateforme.md §2). `nstack <verb> <module>` runs them from this folder.
+# No stack is imposed: replace every "to be declared" command.
 commands:
-  check: "echo 'commands.check to be declared in MANIFEST.yaml' >&2; exit 1"  # < 2 min : format, lint, types
-  test: "echo 'commands.test to be declared in MANIFEST.yaml' >&2; exit 1"    # ne démarre JAMAIS un autre module
-  # bootstrap:                   # facultatif : rendre le module exploitable depuis un clone vierge
-  # run:                         # facultatif : démarrage local, avec doublures pour les dépendances
+  check: "echo 'commands.check to be declared in MANIFEST.yaml' >&2; exit 1"  # under 2 min: format, lint, types
+  test: "echo 'commands.test to be declared in MANIFEST.yaml' >&2; exit 1"    # NEVER starts another module
+  # bootstrap:                   # optional: make the module usable from a fresh clone
+  # run:                         # optional: local start, with doubles for the dependencies
 
-# Budget de revue. Hérite du projet si absent (docs/os/05-workflow.md §4).
+# Review budget. Inherited from the project when absent (docs/os/05-workflow.md §4).
 review_budget:
   max_lines: 400
   max_files: 15
-  max_modules: 1                 # non ajustable
+  max_modules: 1                 # not adjustable
 
 docs:
   readme: README.md
   agents: AGENTS.md
   adr: docs/adr/
-  # runbook: docs/runbook.md     # obligatoire si criticality >= high
+  # runbook: docs/runbook.md     # required when criticality >= high

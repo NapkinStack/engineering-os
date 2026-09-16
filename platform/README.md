@@ -1,77 +1,77 @@
 # platform
 
-La plateforme interne du projet. Elle existe pour **réduire la charge cognitive**, pas
-pour contrôler : chaque fois qu'une équipe doit reconstruire un mécanisme déjà
-construit ailleurs, c'est un échec de la plateforme.
+The project's internal platform. It exists to **reduce cognitive load**, not to control:
+every time a team has to rebuild a mechanism already built elsewhere, that is a platform
+failure.
 
-## Contenu
+## Contents
 
-Le code du moteur vit dans `src/napkinstack/` et s'exécute par la commande `nstack`
-(`uv run nstack --help`). Ce dossier garde l'enveloppe du module : manifest, consignes,
-runbook, tests et configuration.
+The engine's code lives in `src/napkinstack/` and runs through the `nstack` command
+(`uv run nstack --help`). This folder holds the module's envelope: manifest, instructions,
+runbook, tests and configuration.
 
-| Chemin | Rôle |
+| Path | Role |
 |---|---|
-| `src/napkinstack/fitness/` | Les checks d'architecture, non contournables |
-| `src/napkinstack/modules.py` | Création d'un module et verbes standards lus dans son MANIFEST |
-| `src/napkinstack/templates/module/` | Gabarit d'un module, sans stack imposée |
-| `src/napkinstack/skills.py` | Génère les skills Claude Code depuis les playbooks |
-| `src/napkinstack/project.py` | Création et mise à jour d'un projet, par Copier |
-| `src/napkinstack/doctor.py` | Diagnostic du poste et des réglages GitHub, en lecture seule |
-| `tests/run.sh` | L'oracle : chaque garde-fou prouve qu'il sait échouer |
-| `tests/test_controles.py` | Règles M, B, S, P : un cas qui échoue par règle (pytest, lancé par `run.sh`) |
+| `src/napkinstack/fitness/` | The architecture checks, not bypassable |
+| `src/napkinstack/modules.py` | Module creation and the standard verbs read from its MANIFEST |
+| `src/napkinstack/templates/module/` | A module's template, with no imposed stack |
+| `src/napkinstack/skills.py` | Generates the Claude Code skills from the playbooks |
+| `src/napkinstack/project.py` | Project creation and update, through Copier |
+| `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
+| `tests/run.sh` | The oracle: every guardrail proves it can fail |
+| `tests/test_guardrails.py` | Rules M, B, S, P: one failing case per rule (pytest, run by `run.sh`) |
 
 ## Fitness functions
 
-| Commande | Contrôles |
+| Command | Rules |
 |---|---|
-| `nstack manifests` | M1–M9 : champs, cycles de vie, dates de dépréciation, runbook, enveloppe |
-| `nstack boundaries` | B1–B5 : graphe déclaré vs réel, imports internes, cycles, accès données |
-| `nstack pr-scope` | P1–P2 : une PR = un module, budget de revue |
+| `nstack manifests` | M1-M9: fields, lifecycles, deprecation dates, runbook, envelope |
+| `nstack boundaries` | B1-B5: declared graph vs real graph, internal imports, cycles, data access |
+| `nstack pr-scope` | P1-P2: one PR = one module, review budget |
 
 ```bash
-uv run nstack fitness                      # manifests + frontières + skills
+uv run nstack fitness                      # manifests + boundaries + skills
 uv run nstack pr-scope --base origin/main
-uv run nstack init <dossier>               # crée un projet (PDR-0001)
-uv run nstack update                       # met à jour un projet, sur une branche à relire
-uv run nstack doctor --root <projet>       # poste et réglages GitHub, en lecture seule
-uv run nstack new-module <nom> <org>/<équipe> <criticité> --root <projet>
-uv run nstack check [module] --root <projet>   # aussi test, bootstrap ; run <module>
+uv run nstack init <folder>                # creates a project (PDR-0001)
+uv run nstack update                       # updates a project, on a branch to review
+uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
+uv run nstack new-module <name> <org>/<team> <criticality> --root <project>
+uv run nstack check [module] --root <project>   # also test, bootstrap; run <module>
 ```
 
 ## Skills
 
 ```bash
-uv run nstack skills           # génère .claude/skills/
-uv run nstack skills --check   # S1, S2, S4 bloquants en CI ; S3 dès que des skills sont générées
+uv run nstack skills           # generates .claude/skills/
+uv run nstack skills --check   # S1, S2, S4 blocking in CI; S3 as soon as skills are generated
 ```
 
-| Check | Vérifie |
+| Check | Verifies |
 |---|---|
-| S1 | Chaque playbook a une entrée dans `.nstack/skills.yaml` |
-| S2 | Chaque entrée pointe vers un playbook existant, avec description non vide |
-| S3 | Les skills générées correspondent aux playbooks actuels. Non applicable sans `.claude/skills/` : un clone vierge, et donc la CI, n'en a pas |
-| S4 | Nom et description conformes à la [spécification Agent Skills](https://agentskills.io/specification) : nom de 1 à 64 caractères `a-z0-9` et tirets simples, description d'au plus 1024 caractères. Bloque aussi la génération |
+| S1 | Every playbook has an entry in `.nstack/skills.yaml` |
+| S2 | Every entry points at an existing playbook, with a non-empty description |
+| S3 | The generated skills match the current playbooks. Not applicable without `.claude/skills/`: a fresh clone, and therefore CI, has none |
+| S4 | Name and description follow the [Agent Skills specification](https://agentskills.io/specification): a name of 1 to 64 characters `a-z0-9` and single hyphens, a description of at most 1024 characters. Also blocks generation |
 
-La `description` est ce qui déclenche la skill : elle dit **quoi** et **quand**, à la
-troisième personne, sans instruction comportementale — celles-ci vivent dans le corps
-du playbook. Une description vague produit une skill qui ne se déclenche jamais, ou
-qui se déclenche tout le temps.
+The `description` is what triggers the skill: it says **what** and **when**, in the third
+person, with no behavioural instruction — those live in the body of the playbook. A vague
+description produces a skill that never triggers, or one that triggers all the time.
 
-## Calibrage
+## Calibration
 
-`boundaries.py` détecte les dépendances **textuellement**, ce qui est volontairement
-simple et donc imparfait. Deux réglages en tête de fichier :
+`boundaries.py` detects dependencies **textually**, which is deliberately simple and
+therefore imperfect. Two settings at the top of the file:
 
-- `SOURCE_SUFFIXES` — les extensions scannées
-- `IMPORT_HINTS` — ce qui ressemble à une ligne d'import dans ton langage
+- `SOURCE_SUFFIXES` — the extensions scanned
+- `IMPORT_HINTS` — what looks like an import line in your language
 
-Un faux positif se corrige en déclarant la dépendance. Un faux négatif se corrige en
-enrichissant les motifs — et mérite une issue, car c'est une violation qui passait.
+A false positive is fixed by declaring the dependency. A false negative is fixed by
+enriching the patterns — and deserves an issue, because it is a violation that was
+getting through.
 
-## Ajouter une fitness function
+## Adding a fitness function
 
-Par ordre de rentabilité, les suivantes à écrire sont listées dans
-`skeleton/docs/os/07-gouvernance.md` §3. Une bonne fitness function est rapide, déterministe,
-et **explicative en cas d'échec** : une fonction qui dit seulement « violation
-d'architecture » sera contournée.
+In order of return, the next ones to write are listed in
+`skeleton/docs/os/07-gouvernance.md` §3. A good fitness function is fast, deterministic,
+and **explanatory when it fails**: one that only says "architecture violation" will be
+worked around.

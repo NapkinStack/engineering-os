@@ -1,30 +1,30 @@
-# platform — instructions locales
+# platform — local instructions
 
-## Responsabilité
+## Responsibility
 
-Fournit les verbes standards, les fitness functions et le scaffold de module.
+Provides the standard verbs, the fitness functions and the module scaffolding.
 
-## Ce que ce module ne fait pas
+## What this module does not do
 
-Il ne contient **aucune logique métier** et ne dépend d'aucun module. Toute règle
-métier ici serait partagée par tous les modules, donc les rendrait inséparables.
+It holds **no business logic** and depends on no module. Any business rule here would be
+shared by every module, and would therefore make them inseparable.
 
 ## Invariants
 
-- Une fitness function doit être **rapide** (< 30 s), **déterministe** (aucun faux
-  positif aléatoire) et **explicative** : message d'échec nommant la règle violée,
-  le fichier, et l'action corrective.
-- Les verbes standards ne changent **jamais de nom**. Leur contenu est libre.
-- Un changement ici affecte tous les modules : le budget de revue s'applique
-  strictement, et un ADR est attendu pour toute nouvelle règle bloquante.
+- A fitness function must be **fast** (under 30 s), **deterministic** (no random false
+  positive) and **explanatory**: a failure message naming the rule broken, the file, and
+  the corrective action.
+- The standard verbs **never change name**. Their content is free.
+- A change here affects every module: the review budget applies strictly, and an ADR is
+  expected for any new blocking rule.
 
-## Pièges connus
+## Known traps
 
-- `boundaries.py` détecte textuellement. Modifier `IMPORT_HINTS` sans tester sur le
-  dépôt réel produit soit du bruit, soit des angles morts.
-- Le scaffold écrit dans `.github/CODEOWNERS` : vérifier l'absence de doublon.
+- `boundaries.py` detects textually. Changing `IMPORT_HINTS` without testing against the
+  real repository produces either noise or blind spots.
+- The scaffolding writes into `.github/CODEOWNERS`: check there is no duplicate.
 
-## Zones à ne pas modifier sans validation
+## Areas not to change without approval
 
-`src/napkinstack/fitness/` — ce sont les garde-fous eux-mêmes. Les affaiblir silencieusement
-reviendrait à contourner une quality gate.
+`src/napkinstack/fitness/` — these are the guardrails themselves. Weakening them quietly
+would amount to bypassing a quality gate.

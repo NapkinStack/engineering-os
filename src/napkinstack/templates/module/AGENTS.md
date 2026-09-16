@@ -1,36 +1,36 @@
-# {{MODULE_NAME}} — instructions locales
+# {{MODULE_NAME}} — local instructions
 
-> Uniquement ce qui est **spécifique à ce module**.
-> Ne jamais dupliquer une règle du kernel (`/AGENTS.md`) : c'est du contexte gaspillé
-> et une source de divergence.
+> Only what is **specific to this module**.
+> Never duplicate a kernel rule (`/AGENTS.md`): that is wasted context and a source of
+> divergence.
 >
-> Budget indicatif : 100 lignes.
+> Indicative budget: 100 lines.
 
-## Responsabilité
+## Responsibility
 
-<Une phrase. Identique à celle du MANIFEST.>
+<One sentence. The same as the one in the MANIFEST.>
 
-## Ce que ce module ne fait pas
+## What this module does not do
 
-<Les confusions probables, et vers quel module renvoyer.>
+<The likely confusions, and which module to point at instead.>
 
-## Conventions internes non devinables
+## Internal conventions nobody could guess
 
-<Nommage, organisation, choix qui surprendraient quelqu'un d'extérieur.>
+<Naming, layout, choices that would surprise an outsider.>
 
-## Invariants métier
+## Business invariants
 
-<Ce qui doit rester vrai en toutes circonstances. Idéalement, chacun a un test.>
+<What must stay true in every circumstance. Ideally each one has a test.>
 
-## Pièges connus
+## Known traps
 
-<Ce qui a déjà cassé ici. Chaque entrée devrait devenir un test — voir
+<What has already broken here. Every entry should become a test - see
 docs/os/10-mesure.md §4.>
 
-## Zones à ne pas modifier sans validation
+## Areas not to change without approval
 
-<Quoi, et pourquoi.>
+<What, and why.>
 
-## Commandes non standards
+## Non-standard commands
 
-<Uniquement ce qui s'écarte des verbes du MANIFEST.>
+<Only what departs from the MANIFEST verbs.>

@@ -1,27 +1,27 @@
 # {{MODULE_NAME}}
 
-<Une phrase : à quoi sert ce module.>
+<One sentence: what this module is for.>
 
-- **Owner** : {{OWNER}}
-- **Criticité** : {{CRITICALITY}}
-- **Manifest** : [MANIFEST.yaml](./MANIFEST.yaml)
+- **Owner**: {{OWNER}}
+- **Criticality**: {{CRITICALITY}}
+- **Manifest**: [MANIFEST.yaml](./MANIFEST.yaml)
 
-## Démarrer
+## Getting started
 
 ```bash
-nstack bootstrap {{MODULE_NAME}}    # depuis un clone vierge, si déclaré
-nstack check {{MODULE_NAME}}        # format, lint, types — < 2 min
-nstack test {{MODULE_NAME}}         # ne démarre aucun autre module
-nstack run {{MODULE_NAME}}          # local, avec doublures pour les dépendances
+nstack bootstrap {{MODULE_NAME}}    # from a fresh clone, when declared
+nstack check {{MODULE_NAME}}        # format, lint, types - under 2 min
+nstack test {{MODULE_NAME}}         # never starts another module
+nstack run {{MODULE_NAME}}          # locally, with doubles for the dependencies
 ```
 
-Commandes : section `commands` du MANIFEST, à déclarer pour la stack du module.
+Commands: the `commands` section of the MANIFEST, to declare for this module's stack.
 
-## Contrats
+## Contracts
 
-- Produits : voir `provides` dans le MANIFEST
-- Consommés : voir `consumes` dans le MANIFEST
+- Provided: see `provides` in the MANIFEST
+- Consumed: see `consumes` in the MANIFEST
 
-## Décisions
+## Decisions
 
-Voir `docs/adr/`.
+See `docs/adr/`.
