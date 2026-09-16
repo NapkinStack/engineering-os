@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 from napkinstack import __version__, doctor, modules, pull_request, skills
-from napkinstack.fitness import boundaries, manifests
+from napkinstack.fitness import boundaries, manifests, plan
 
 PACKAGE = Path(__file__).resolve().parent
 
@@ -26,7 +26,7 @@ def _script(relative: str, *args: str, root: Path) -> int:
 
 
 def _fitness(root: Path) -> int:
-    results = [manifests.run(root), boundaries.run(root), skills.run(root, check_only=True)]
+    results = [manifests.run(root), boundaries.run(root), skills.run(root, check_only=True), plan.run(root)]
     return 1 if any(results) else 0
 
 
@@ -61,10 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph (B1-B5)",
          lambda a: boundaries.run(a.root))
+    _add(sub, "plan", "the charter and the cycles (C1-C6)", lambda a: plan.run(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
-    _add(sub, "fitness", "manifests + boundaries + skills",
+    _add(sub, "fitness", "manifests + boundaries + skills + plan",
          lambda a: _fitness(a.root))
     _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
          lambda a: doctor.run(a.root))
