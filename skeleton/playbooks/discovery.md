@@ -9,7 +9,8 @@
 ## Your posture
 
 You run stages 1 to 4 as the **framer**, stage 5 only as the **challenger** — never both in
-the same session. The decider decides, at stage 6.
+the same session. The decider decides, at stage 6. For the framer and the challenger, this
+playbook replaces the kernel's working loop (§2); its closing summary (§8) still applies.
 
 | You do | You never do |
 |---|---|
@@ -18,39 +19,50 @@ the same session. The decider decides, at stage 6.
 | Keep the document to what could change the decision | Fill a canvas, size a market, invent personas |
 | End each round with a decision | Open a new direction before the round is decided |
 
-`nstack discover <idea-file>` created `docs/project/discovery.md`: one section per stage.
+The engine's `discover` command created `docs/project/discovery.md`: one section per stage,
+each ending with its open questions. When the decider cannot answer now, write the question
+there — most decision-changing first — and go on; never answer it in their place.
 
 ---
 
 ## 1. Intake
 
-Read the idea file entirely. Restate the idea in one paragraph — for whom, which problem,
-what the product does — and ask the decider to correct it. Nothing else until it is right.
+Read the idea file entirely. Restate the idea in one paragraph — for whom, where, which
+problem, what the product does — and ask the decider to correct it. Record the decider in
+the front matter. Until the decider confirms the paragraph, mark it *unconfirmed*: the round
+cannot be decided while it is.
 
 ## 2. Research
 
-With the research tools of `docs/tooling-profile.md`, look for:
+With the research tools of `docs/tooling-profile.md` — or, when that row is empty, the tools
+at hand, named in the document — look for:
 
 - what users do today instead, including nothing;
 - the direct and indirect alternatives, their positioning and their price;
 - the business models of the field;
 - the legal and regulatory constraints, for the countries concerned.
 
-Each finding goes in the evidence table — the claim, for or against the idea, its source.
-A claim without a source goes to *Assumptions*.
+Each finding goes in the evidence table, with what it changes for the idea and its source.
+Prefer the primary source; mark figures a company reports about itself, and claims seen only
+in a search excerpt. A claim without a source goes to *Assumptions*. Stop when each of the
+four points has at least one sourced finding, or an explicit "not found".
 
 ## 3. Define
 
-With the decider: the users, their problem in their own words, and the success signals —
-what will be observed, and by when, if the idea is right.
+With the decider: the users; their problem — quoted from users, saying who and how many,
+since words reported by the decider alone are an assumption; the constraints — who runs it,
+budget, platforms, regulation; and the success signals — what will be observed, and by when,
+if the idea is right. If this stage changes the users or the model, revisit stage 2.
 
 ## 4. Shape
 
 - **The value hypothesis** — why a user would switch from what they do today, in one or two
-  sentences. A hypothesis to test first, not a list of features.
-- **A short press release**, dated launch day: the user, the problem, the product, one
-  quote. If it does not convince the decider, say so: that is a finding.
-- **No-gos** — what the product deliberately will not do.
+  sentences, stated so that it can be proven wrong. Not a list of features.
+- **A short press release**, dated launch day — a placeholder if none is set: the user, the
+  problem, the product, one quote, labelled as imagined. Record whether it convinces the
+  decider; if it does not, that is a finding.
+- **No-gos** — what the product deliberately will not do: the decider's, and any the framer
+  proposes, marked *proposed*.
 
 ## 5. Challenge — in another session
 
@@ -69,17 +81,17 @@ Report the objections with their evidence, in section 5. Never rewrite stages 1 
 
 ## 6. Decide
 
-Present to the decider, in this order: the objections, the riskiest assumptions, the value
-hypothesis. The decider chooses:
+The framer's session presents to the decider, in this order: the challenger's objections,
+the riskiest assumptions, the value hypothesis. The decider chooses:
 
 | Decision | What follows |
 |---|---|
-| **go** | The framing writes the charter from this document (`framing.md`); the assumptions needing a test become spike deliverables of the first cycle |
+| **go** | The framing writes the charter from this document (`framing.md`); the riskiest assumptions of section 5 that need a test become spike deliverables of the first cycle |
 | **clarify** | A new round on the open questions only; `round` goes up |
 | **kill** | The document stays, with its reasons — the cheapest outcome of all |
 
-Record `decision`, `decider` and `decided_on` in the front matter, the reasons in section 6,
-then run `nstack plan`.
+Record `decision` and `decided_on` in the front matter, the reasons in section 6, then run
+the fitness functions.
 
 ---
 

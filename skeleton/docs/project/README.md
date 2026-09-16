@@ -31,10 +31,10 @@ red: the circuit breaker and what it can lead to.
 
 ## What CI checks
 
-| Command | When | Rules |
+| Check | When | Rules |
 |---|---|---|
-| `nstack plan` | Every push, in `nstack fitness` | Formats; one accepted cycle at a time, under an accepted charter; `end` = `start` + the appetite; acceptance criteria once a deliverable is ready; closures recorded; a discovery decided with its decider and date, a charter only after a go |
-| `nstack pr-check` | Every pull request changing a module | An accepted cycle; not past its end date; a ready or in-progress deliverable named — or the `out-of-cycle` label with its justification |
+| The plan, a fitness function | Every push | Formats; one accepted cycle at a time, under an accepted charter; `end` = `start` + the appetite; acceptance criteria once a deliverable is ready; closures recorded; a discovery decided with its decider and date, a charter only after a go |
+| The pull request check | Every pull request changing a module | An accepted cycle; not past its end date; a ready or in-progress deliverable named — or the `out-of-cycle` label with its justification |
 
 The charter changes only through a PDR (`docs/os/06-decisions.md` §4). A cycle is never
 extended: past its end date, delivery work stops until the decider records a decision.

@@ -228,7 +228,7 @@ criticality `high` or `critical` — carries a **test sheet** in its description
   *explored* — judged by driving the interface; *human only* — what no agent can run, with
   the reason, listed apart for the approver.
 
-`nstack pr-check` reads the sheet in CI: missing, unfilled, without evidence, verified on
+The engine's pull request check reads the sheet in CI: missing, unfilled, without evidence, verified on
 another commit, failed. The approver decides on the sheet, and notes what they found that
 the verifier had missed — that measurement decides, one day and module by module, whether
 a verifier agent's approval may count.

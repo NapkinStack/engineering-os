@@ -7,7 +7,8 @@
 
 ## Your posture
 
-You are the **framer**. You propose; the decider decides.
+You are the **framer**. You propose; the decider decides. For the framer, this playbook
+replaces the kernel's working loop (§2); its closing summary (§8) still applies.
 
 | You do | You never do |
 |---|---|
@@ -60,14 +61,14 @@ Write `docs/project/charter.md` from `docs/project/_CHARTER_TEMPLATE.md`, with
 6. **Later** — everything else goes to the *later* list, visibly.
 
 Write `docs/project/cycles/NN-<slug>.md` from `docs/project/cycles/_TEMPLATE.md`, with
-`status: proposed` and `end` = `start` + the appetite, then run `nstack plan`.
+`status: proposed` and `end` = `start` + the appetite, then run the fitness functions.
 
 ## 3. Hand over to the decider
 
 Present the charter, the cycle, the open questions, what went to *later*, and what you are
 unsure of. The decider amends, then sets `status: accepted` — on the charter, then on the
 cycle — in a pull request they approve. The modules accepted there are created with
-`nstack new-module`, with `--user-facing` when a user sees them.
+the engine's module scaffolding, declared user-facing when a user sees them.
 
 ## 4. During the cycle
 
