@@ -52,6 +52,15 @@ skills:
       skill should be used when a task touches observability, error handling, deployment
       or a call to an external dependency.
 
+  framing:
+    source: playbooks/framing.md
+    description: >
+      The project's framing rules: interviewing the decider, writing the charter, planning
+      a bounded cycle with its deliverables, acceptance criteria and appetite, handling new
+      ideas, and closing a cycle at its end or at its circuit breaker. This skill should be
+      used when a task asks to frame a project, start a project from an idea or a
+      specification, plan or re-plan a cycle, or write a cycle's closure.
+
   verification:
     source: playbooks/verification.md
     description: >
