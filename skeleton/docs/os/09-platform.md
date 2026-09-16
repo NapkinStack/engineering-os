@@ -56,13 +56,14 @@ section, with its own stack's commands.
 | `check` | All the fast validations: format, lint, types | In under 2 minutes |
 | `test` | The module's test suite | With no dependency on another module |
 | `run` | Start the module locally | With doubles for the dependencies |
+| `e2e` | The module's end-to-end scenarios; evidence written to `.evidence/` | Against the running module, in CI |
 | `contracts` | Validate and generate the contract artefacts | On every contract change |
 | `migrate` | Apply the data migrations | When the module owns data |
 | `release` | Produce the shippable artefact | Reproducibly |
 
-The engine runs `bootstrap`, `check`, `test` and `run`: it reads the command from the
-manifest and launches it from the module's folder, locally as in CI. `check` and `test`
-are mandatory; a new module declares them as "to be declared", failing, until the team
+The engine runs `bootstrap`, `check`, `test`, `run` and `e2e`: it reads the command from
+the manifest and launches it from the module's folder, locally as in CI. `check` and
+`test` are mandatory, `bootstrap` and `e2e` optional; a new module declares them as "to be declared", failing, until the team
 puts its own stack's commands there. `contracts`, `migrate` and `release` are reserved
 names, to declare when a module needs them.
 
@@ -98,6 +99,7 @@ project/
 ├── playbooks/                     # AI instruction modules, loaded on demand
 │   ├── security.md
 │   ├── tests.md
+│   ├── verification.md
 │   ├── data-migration.md
 │   ├── ux.md
 │   └── operations.md
@@ -223,6 +225,7 @@ happens without touching the OS.
 | Git, issue and pull request interaction | Traceability and small batches |
 | Agent identity | Changes arrive under the agent's own name, behind a human approval |
 | UI inspection and screenshots | UX validation beyond "it compiles" |
+| Driving a browser or an emulator | Explored scenarios of a test sheet, with their evidence |
 | Security analysis | Integrated automated checks |
 | Architecture analysis | Support for the fitness functions |
 | Specialised agents | Independent review, isolated investigation |

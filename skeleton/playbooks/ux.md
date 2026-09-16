@@ -122,4 +122,5 @@ The development machine is not representative.
 - [ ] Tested at a real mobile width
 - [ ] Visual feedback on every action
 - [ ] No component reinvented
+- [ ] The test sheet covers the 8 states, or states which are out of scope (`verification.md`)
 - [ ] Whatever could not be verified appears under `NOT VERIFIED` in the summary

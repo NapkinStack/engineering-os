@@ -45,7 +45,8 @@ flowchart TD
 
     K --> L["DOCUMENT the<br/>sources of truth affected"]
     L --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
-    M --> N["Human review + CI"]
+    M --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — user-facing change"]
+    V --> N["Human review + CI"]
 
     style D fill:#1f2937,color:#fff
     style F fill:#1f2937,color:#fff
@@ -55,7 +56,7 @@ flowchart TD
 ```
 
 **Legend** — dark grey: the oracle, written and seen red before any code · red: stop and
-go back.
+go back · the verification comes from someone other than the author.
 
 ---
 
@@ -194,6 +195,7 @@ governance).
 | Human review | ✔ | ✔ | ✔ + owner |
 | Affected documentation up to date | ✔ | ✔ | ✔ |
 | Accessibility | if UI | if UI | ✔ |
+| Test sheet run by a verifier, with evidence | if user-facing | ✔ | ✔ |
 | E2E on critical journeys | — | ✔ | ✔ |
 | Observability added | — | ✔ | ✔ |
 | Runbook / rollback verified | — | per risk | ✔ |
@@ -202,6 +204,33 @@ governance).
 
 > **Never write "tests passing" if the tests were not actually run.** It is the gravest
 > violation in the system, because it corrupts the one thing everything else rests on.
+
+### The test sheet
+
+Reading a diff tells nobody whether the product behaves as needed; an agent reads code as
+well as a human. So a pull request that changes what a user sees — or touches a module of
+criticality `high` or `critical` — carries a **test sheet** in its description:
+
+| # | Given · when · then | Kind | Result | Evidence | Commit |
+|---|---|---|---|---|---|
+| S2 | Given an account, when the password is wrong, then a message says what to do and the email stays typed | automated | passed | the CI run's trace | `a1b2c3d` |
+| S5 | Given a 375-pixel-wide phone, when the keyboard opens, then the button stays reachable | explored | failed — the button is hidden | emulator screenshot | `a1b2c3d` |
+| S8 | Given a real mailbox, when a reset is asked, then the email arrives | human only — no test mailbox | not verified | — | — |
+
+- **Written before the code**, from the acceptance criteria: it is part of the oracle.
+- **Run by a verifier who is not the author**: another agent session with a fresh
+  context, or a human (`playbooks/verification.md`). The session that wrote the code
+  shares its misunderstandings.
+- **No result without evidence**, tied to the commit tested. A new commit sends the
+  scenarios back to be run again.
+- **Kinds**: *automated* — replayable, run by CI through the module's `e2e` command;
+  *explored* — judged by driving the interface; *human only* — what no agent can run, with
+  the reason, listed apart for the approver.
+
+`nstack pr-check` reads the sheet in CI: missing, unfilled, without evidence, verified on
+another commit, failed. The approver decides on the sheet, and notes what they found that
+the verifier had missed — that measurement decides, one day and module by module, whether
+a verifier agent's approval may count.
 
 ---
 

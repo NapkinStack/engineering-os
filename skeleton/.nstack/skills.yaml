@@ -51,3 +51,11 @@ skills:
       logs, metrics, alerts, health checks, rollback and controlled degradation. This
       skill should be used when a task touches observability, error handling, deployment
       or a call to an external dependency.
+
+  verification:
+    source: playbooks/verification.md
+    description: >
+      The project's rules for verifying a change: the verifier's posture, running a test
+      sheet against the running change, the evidence expected for each result, and what
+      to report. This skill should be used when a task asks to verify, test or accept a
+      change someone else wrote, or to fill in the results of a pull request's test sheet.

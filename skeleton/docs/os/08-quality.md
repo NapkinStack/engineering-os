@@ -125,6 +125,10 @@ late and costs too much for that role.
 It starts from the acceptance criteria of the PDR or the issue and from real user
 journeys, not from free exploration of the interface.
 
+The test sheet (`05-workflow.md` §7) is the everyday form of acceptance: the acceptance
+criteria turned into scenarios, run by someone other than the author, each with its
+evidence. UAT remains for `critical` modules, on top of it.
+
 ---
 
 ## 6. Security — secure by design
