@@ -10,10 +10,10 @@ Contrôles :
   M2  champs obligatoires présents
   M3  valeurs de lifecycle / criticality valides
   M4  responsabilité en UNE phrase (pas de "et" coordonnant deux capacités)
-  M5  module Déprécié → removal_date obligatoire et non dépassée
+  M5  module deprecated → removal_date obligatoire et non dépassée
   M6  contrat deprecated → removal_date obligatoire et non dépassée
   M7  verbes standards déclarés (check / test au minimum)
-  M8  runbook obligatoire si criticality >= eleve
+  M8  runbook obligatoire si criticality >= high
   M9  enveloppe de fichiers complète (AGENTS.md, README.md, tests/)
 
 Usage :  nstack manifests [--root RACINE]
@@ -27,8 +27,8 @@ from pathlib import Path
 
 import yaml
 
-LIFECYCLES = {"Proposé", "Actif", "Maintenance", "Déprécié", "Retiré"}
-CRITICALITIES = {"prototype", "standard", "eleve", "critique"}
+LIFECYCLES = {"proposed", "active", "maintenance", "deprecated", "retired"}
+CRITICALITIES = {"prototype", "standard", "high", "critical"}
 REQUIRED_FIELDS = ["name", "responsibility", "owner", "lifecycle", "criticality"]
 REQUIRED_COMMANDS = ["check", "test"]
 MODULE_DIRS = ["modules", "services", "apps", "packages", "contracts", "platform"]
@@ -119,12 +119,12 @@ def check_manifest(path: Path, today: datetime.date) -> None:
             warn(rel, "M4", f"responsabilité contient 'et' : capacité cohérente ? → \"{resp}\"")
 
     # M5 — dépréciation du module
-    if lifecycle == "Déprécié":
+    if lifecycle == "deprecated":
         dep = mod.get("deprecation")
         dep = dep if isinstance(dep, dict) else {}
         removal = parse_date(dep.get("removal_date"))
         if not removal:
-            fail(rel, "M5", "module Déprécié sans module.deprecation.removal_date valide (AAAA-MM-JJ)")
+            fail(rel, "M5", "module deprecated sans module.deprecation.removal_date valide (AAAA-MM-JJ)")
         elif removal < today:
             fail(rel, "M5", f"date de retrait dépassée ({removal}). État intermédiaire permanent — "
                             "retirer le module ou superséder la décision.")
@@ -151,7 +151,7 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                             "(docs/os/09-plateforme.md §2)")
 
     # M8 — runbook si criticité élevée
-    if criticality in {"eleve", "critique"}:
+    if criticality in {"high", "critical"}:
         runbook = (data.get("docs") or {}).get("runbook")
         if not runbook or not (path.parent / runbook).is_file():
             fail(rel, "M8", f"criticality={criticality} exige un runbook existant "

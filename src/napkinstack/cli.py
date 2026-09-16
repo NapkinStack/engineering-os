@@ -72,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: modules.nouveau(a.root, a.name, a.owner, a.criticality))
     nm.add_argument("name", help="nom du module, kebab-case")
     nm.add_argument("owner", help="équipe GitHub, organisation/équipe")
-    nm.add_argument("criticality", choices=["prototype", "standard", "eleve", "critique"])
+    nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
     for nom_verbe, aide in (("bootstrap", "prépare un module, ou tous (commands.bootstrap)"),
                             ("check", "format, lint, types d'un module, ou de tous (commands.check)"),
                             ("test", "tests d'un module, ou de tous (commands.test)")):

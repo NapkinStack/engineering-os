@@ -12,17 +12,17 @@ module:
   owner: "{{OWNER}}"          # une ÉQUIPE GitHub organisation/équipe, jamais un individu
   contact: "@{{OWNER}}"
 
-  # Proposé | Actif | Maintenance | Déprécié | Retiré   (docs/os/02-modules.md §6)
-  lifecycle: Proposé
+  # proposed | active | maintenance | deprecated | retired   (docs/os/02-modules.md §6)
+  lifecycle: proposed
 
-  # prototype | standard | eleve | critique             (docs/os/07-gouvernance.md §6)
+  # prototype | standard | high | critical              (docs/os/07-gouvernance.md §6)
   criticality: "{{CRITICALITY}}"
 
   # Nom du module dans le code, s'il diffère du dossier (package, namespace).
   # Utilisé par la détection de frontières.
   # code_name: {{MODULE_NAME}}
 
-  # Uniquement si lifecycle = Déprécié. Check rouge si la date est dépassée.
+  # Uniquement si lifecycle = deprecated. Check rouge si la date est dépassée.
   # deprecation:
   #   replaced_by:
   #   removal_date: AAAA-MM-JJ
@@ -74,4 +74,4 @@ docs:
   readme: README.md
   agents: AGENTS.md
   adr: docs/adr/
-  # runbook: docs/runbook.md     # obligatoire si criticality >= eleve
+  # runbook: docs/runbook.md     # obligatoire si criticality >= high

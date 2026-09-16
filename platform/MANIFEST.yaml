@@ -4,8 +4,8 @@ module:
     Fournit les verbes standards, les fitness functions et le scaffold de module.
   owner: NapkinStack/maintainers
   contact: "https://github.com/NapkinStack/engineering-os/discussions"
-  lifecycle: Actif
-  criticality: eleve
+  lifecycle: active
+  criticality: high
 
 provides: []
 consumes: []

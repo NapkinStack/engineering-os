@@ -88,11 +88,11 @@ jobs:
 
       # Niveaux élevé et critique — pas encore branchés (D9)
       - name: Tests d'intégration
-        if: steps.crit.outputs.level == 'eleve' || steps.crit.outputs.level == 'critique'
+        if: steps.crit.outputs.level == 'high' || steps.crit.outputs.level == 'critical'
         run: |
           echo "Non branché : tests d'intégration (D9)"
 
       - name: E2E parcours critiques
-        if: steps.crit.outputs.level == 'critique'
+        if: steps.crit.outputs.level == 'critical'
         run: |
           echo "Non branché : parcours de bout en bout (D9)"

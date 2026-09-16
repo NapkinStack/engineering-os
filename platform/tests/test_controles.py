@@ -22,7 +22,7 @@ from napkinstack.fitness import boundaries, manifests
 HIER = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
 CONFORME = {
     "module": {"name": "facturation", "responsibility": "Facture les clients.",
-               "owner": "acme/facturation", "lifecycle": "Actif", "criticality": "standard"},
+               "owner": "acme/facturation", "lifecycle": "active", "criticality": "standard"},
     "provides": [], "consumes": [], "data": {"owns": [], "shared": []},
     "commands": {"check": "true", "test": "true"},
     "docs": {"readme": "README.md", "agents": "AGENTS.md"},
@@ -72,18 +72,18 @@ CAS_MANIFESTS = {
     "M2 manifest en liste (D8)": (lambda r: ecrire_module(r, "facturation", "- une\n- liste\n"), "M2", True),
     "M2 section module en texte (D8)": (lambda r: ecrire_module(r, "facturation", degrade(module="texte")), "M2", True),
     "M2 section commands en texte (D8)": (lambda r: ecrire_module(r, "facturation", degrade(commands="make")), "M2", True),
-    "M3 cycle de vie": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="Inconnu")), "M3", True),
-    "M3 criticité": (lambda r: ecrire_module(r, "facturation", degrade(module__criticality="haute")), "M3", True),
+    "M3 cycle de vie": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="unknown")), "M3", True),
+    "M3 criticité": (lambda r: ecrire_module(r, "facturation", degrade(module__criticality="severe")), "M3", True),
     "M4 deux phrases": (lambda r: ecrire_module(r, "facturation", degrade(module__responsibility="Facture. Relance.")), "M4", False),
-    "M5 déprécié sans date": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="Déprécié")), "M5", True),
+    "M5 déprécié sans date": (lambda r: ecrire_module(r, "facturation", degrade(module__lifecycle="deprecated")), "M5", True),
     "M5 date dépassée": (lambda r: ecrire_module(r, "facturation", degrade(
-        module__lifecycle="Déprécié", module__deprecation={"removal_date": HIER})), "M5", True),
+        module__lifecycle="deprecated", module__deprecation={"removal_date": HIER})), "M5", True),
     "M6 contrat déprécié sans date": (lambda r: ecrire_module(r, "facturation", degrade(
         provides=[{"contract": "factures-api", "version": "v1", "stability": "deprecated"}])), "M6", True),
     "M6 date dépassée": (lambda r: ecrire_module(r, "facturation", degrade(provides=[
         {"contract": "factures-api", "version": "v1", "stability": "deprecated", "removal_date": HIER}])), "M6", True),
     "M7 verbe manquant": (lambda r: ecrire_module(r, "facturation", degrade(commands={"check": "true"})), "M7", True),
-    "M8 runbook absent": (lambda r: ecrire_module(r, "facturation", degrade(module__criticality="eleve")), "M8", True),
+    "M8 runbook absent": (lambda r: ecrire_module(r, "facturation", degrade(module__criticality="high")), "M8", True),
     "M9 AGENTS.md absent": (lambda r: (ecrire_module(r, "facturation") / "AGENTS.md").unlink(), "M9", True),
     "M9 tests absent": (lambda r: (ecrire_module(r, "facturation") / "tests").rmdir(), "M9", True),
 }
