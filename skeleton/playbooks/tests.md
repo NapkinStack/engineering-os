@@ -37,6 +37,9 @@ Preference rule: **the lowest level that actually verifies the behaviour**. An E
 that could have been a unit test costs a hundred times more, breaks ten times more
 often, and diagnoses ten times worse.
 
+A scenario replayable end to end belongs in the module's `e2e` command, and its evidence in
+`.evidence/`: CI keeps it for the test sheet (`docs/os/05-workflow.md` §7).
+
 ---
 
 ## 2. The oracle

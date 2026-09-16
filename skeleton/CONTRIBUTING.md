@@ -45,10 +45,13 @@ public: that is an incident, and it is revoked immediately (`SECURITY.md`).
 
 ## Opening the pull request
 
-The template applies the Definition of Done. Two things not to skate over:
+The template applies the Definition of Done. Three things not to skate over:
 
 - **The summary** — `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
   A summary with nothing under `ASSUMED` and `NOT VERIFIED` is almost always incomplete.
+- **The test sheet** — when a user sees the change: scenarios written before the code,
+  results filled in by a verifier who is not you, each with its evidence
+  (`playbooks/verification.md`).
 - **The signals to report** — that is how the system improves
   (`docs/os/10-measurement.md`).
 

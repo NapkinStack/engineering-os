@@ -15,6 +15,7 @@
 | Git, issue and pull request interaction | Traceability, small batches | | |
 | Agent identity | Changes arrive under the agent's own name, behind a human approval | | |
 | UI inspection and screenshots | UX validation beyond "it compiles" | | |
+| Driving a browser or an emulator | Explored scenarios of a test sheet, with their evidence | | |
 | Security analysis | Integrated automated checks | gitleaks (hook and CI), GitHub push protection; zizmor and actionlint for the workflows | NapkinStack foundation |
 | Pre-commit checks | Immediate feedback, the same configuration as CI | pre-commit | NapkinStack foundation |
 | Format validation | Loadable YAML with no traps, conforming GitHub files | check-yaml, yamllint, check-jsonschema | NapkinStack foundation |
