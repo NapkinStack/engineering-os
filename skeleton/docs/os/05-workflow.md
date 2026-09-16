@@ -1,51 +1,51 @@
 # 05 — Workflow
 
-## 1. Le renversement
+## 1. The reversal
 
-Le workflow classique est : *comprendre → coder → tester → relire*.
+The classic workflow is: *understand → code → test → review*.
 
-Avec un agent, ce workflow s'effondre pour une raison simple : l'étape « coder » ne
-coûte plus rien, donc elle sature les étapes suivantes. Le projet produit plus vite ce
-que personne n'a le temps de vérifier.
+With an agent, that workflow collapses for a simple reason: the "code" step no longer
+costs anything, so it saturates the steps after it. The project produces, faster, what
+nobody has time to verify.
 
-L'OS renverse deux choses :
+The OS reverses two things:
 
-1. **L'oracle avant la génération.** Le critère de réussite est exécutable et rouge
-   avant la première ligne de code.
-2. **Le budget de revue à l'entrée.** La taille du lot est contrainte *avant* de
-   générer, pas constatée après.
+1. **The oracle before the generation.** The success criterion is executable and red
+   before the first line of code.
+2. **The review budget at the entrance.** The size of the batch is constrained *before*
+   generating, not observed afterwards.
 
 ---
 
-## 2. La boucle
+## 2. The loop
 
 ```mermaid
 flowchart TD
-    A["Tâche"] --> B{"Triviale ?"}
-    B -->|Oui| B1["Exécution directe<br/>+ validations locales"] --> M
+    A["Task"] --> B{"Trivial?"}
+    B -->|Yes| B1["Do it directly<br/>+ local validations"] --> M
 
-    B -->|Non| C["CADRER : intention, périmètre,<br/>hors-périmètre, risques"]
-    C --> C2["SCOPER : identifier LE module<br/>charger le contexte borné"]
-    C2 --> D["ORACLE : écrire le critère<br/>de réussite exécutable"]
-    D --> E{"Oracle<br/>exécutable ?"}
-    E -->|Non| E1["Ne pas générer.<br/>Rendre le critère vérifiable<br/>ou remonter le cadrage"] --> D
-    E -->|Oui| F["Oracle au ROUGE — commit"]
+    B -->|No| C["FRAME: intent, scope,<br/>out of scope, risks"]
+    C --> C2["SCOPE: identify THE module,<br/>load the bounded context"]
+    C2 --> D["ORACLE: write the executable<br/>success criterion"]
+    D --> E{"Oracle<br/>executable?"}
+    E -->|No| E1["Do not generate.<br/>Make the criterion verifiable<br/>or send the framing back"] --> D
+    E -->|Yes| F["Oracle RED — commit"]
 
-    F --> G{"Lot ≤ budget<br/>de revue ?"}
-    G -->|Non| G1["Redécouper<br/>et reprendre au cadrage"] --> C
-    G -->|Oui| P["Présenter le plan<br/>et attendre validation"]
+    F --> G{"Batch ≤ review<br/>budget?"}
+    G -->|No| G1["Split it<br/>and start again at framing"] --> C
+    G -->|Yes| P["Present the plan<br/>and wait for approval"]
 
-    P --> H["IMPLÉMENTER le<br/>changement minimal"]
-    H --> I["VALIDER : lancer<br/>réellement les checks"]
-    I --> J{"Verts ?"}
-    J -->|Non| J1{"3e échec<br/>consécutif ?"}
-    J1 -->|Non| H
-    J1 -->|Oui| J2["STOP — remonter :<br/>hypothèse ou cadrage erroné"]
-    J -->|Oui| K["AUTO-REVOIR le diff :<br/>périmètre, effets de bord, régressions"]
+    P --> H["IMPLEMENT the<br/>minimal change"]
+    H --> I["VALIDATE: actually<br/>run the checks"]
+    I --> J{"Green?"}
+    J -->|No| J1{"3rd consecutive<br/>failure?"}
+    J1 -->|No| H
+    J1 -->|Yes| J2["STOP — report:<br/>assumption or framing is wrong"]
+    J -->|Yes| K["SELF-REVIEW the diff:<br/>scope, side effects, regressions"]
 
-    K --> L["DOCUMENTER les<br/>sources de vérité impactées"]
-    L --> M["RÉSUMER : fait / vérifié /<br/>supposé / non vérifié / risques"]
-    M --> N["Revue humaine + CI"]
+    K --> L["DOCUMENT the<br/>sources of truth affected"]
+    L --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
+    M --> N["Human review + CI"]
 
     style D fill:#1f2937,color:#fff
     style F fill:#1f2937,color:#fff
@@ -54,192 +54,194 @@ flowchart TD
     style E1 fill:#7c2d12,color:#fff
 ```
 
+**Legend** — dark grey: the oracle, written and seen red before any code · red: stop and
+go back.
+
 ---
 
-## 3. L'oracle
+## 3. The oracle
 
-> L'oracle est le critère de réussite **exécutable** d'une tâche, écrit et vu échouer
-> avant la génération.
+> The oracle is a task's **executable** success criterion, written and seen failing
+> before the generation.
 
-Selon la tâche, ce peut être : un test unitaire ou d'intégration, un contract test, une
-fitness function, un check de migration, un budget de performance, un test
-d'accessibilité.
+Depending on the task it can be: a unit or integration test, a contract test, a fitness
+function, a migration check, a performance budget, an accessibility test.
 
-### Pourquoi le voir échouer d'abord
+### Why watch it fail first
 
-Un test qui n'a jamais été rouge ne prouve rien : il peut passer parce qu'il ne teste
-rien. C'est un mode d'échec particulièrement fréquent avec du code généré, où test et
-implémentation naissent ensemble et s'accordent sur une erreur commune.
+A test that has never been red proves nothing: it may pass because it tests nothing. That
+is a particularly frequent failure mode with generated code, where test and
+implementation are born together and agree on a shared mistake.
 
-### Quand l'oracle est impossible
+### When the oracle is impossible
 
-Ce n'est pas un cas marginal, et ce n'est pas une excuse pour sauter l'étape. C'est un
-diagnostic :
+This is not a marginal case, and it is not an excuse to skip the step. It is a diagnosis:
 
-| Cause | Ce qu'il faut faire |
+| Cause | What to do |
 |---|---|
-| Le critère d'acceptation est subjectif | Le reformuler en comportement observable |
-| La tâche est exploratoire | La requalifier en *spike* : livrable = connaissance, pas code |
-| La zone est non testable | Rendre testable d'abord — c'est une tâche à part entière |
-| Le besoin est flou | Retour au cadrage ; ce n'était pas *Ready* |
+| The acceptance criterion is subjective | Restate it as an observable behaviour |
+| The task is exploratory | Requalify it as a *spike*: the deliverable is knowledge, not code |
+| The area is untestable | Make it testable first — that is a task in its own right |
+| The need is vague | Back to framing; it was not *Ready* |
 
-Dans tous les cas : **on ne génère pas en attendant**.
+In every case: **do not generate while waiting**.
 
 ---
 
-## 4. Le budget de revue
+## 4. The review budget
 
-C'est la quality gate la plus utile de l'OS, parce qu'elle s'applique **avant** la
-génération au lieu de constater les dégâts après.
+This is the most useful quality gate in the OS, because it applies **before** the
+generation instead of observing the damage afterwards.
 
-> Le débit réel du projet est le débit de vérification, pas le débit de génération.
+> The project's real throughput is its verification throughput, not its generation
+> throughput.
 
-Le budget est un plafond explicite, déclaré au niveau du projet et ajustable par module
-selon sa criticité. Il porte sur :
+The budget is an explicit ceiling, declared at project level and adjustable per module
+according to its criticality. It covers:
 
-| Dimension | Plafond indicatif |
+| Dimension | Indicative ceiling |
 |---|---|
-| Lignes modifiées (hors généré et lock files) | ~400 |
-| Fichiers touchés | ~15 |
-| Modules touchés | **1** |
-| Contrats modifiés | 1, et PR dédiée |
+| Lines changed (excluding generated and lock files) | ~400 |
+| Files touched | ~15 |
+| Modules touched | **1** |
+| Contracts changed | 1, and a dedicated PR |
 
-Ces valeurs sont des points de départ à calibrer, pas des vérités. Le principe compte
-plus que le chiffre : **le lot doit être relisable en une session d'attention**.
+These values are starting points to calibrate, not truths. The principle matters more
+than the number: **the batch must be reviewable in one session of attention**.
 
-**Dépassement.** Le check signale, il ne bloque pas automatiquement (sauf pour les
-modules touchés, où il bloque). Un dépassement justifié — génération de code, migration
-mécanique, renommage massif — passe par un label explicite. Ce qui compte est que le
-dépassement soit **visible et compté** : le taux de PR hors budget est un indicateur de
-santé (`10-mesure.md`).
+**Going over.** The check reports, it does not block automatically (except for modules
+touched, where it does block). A justified overrun — code generation, a mechanical
+migration, a mass rename — goes through an explicit label. What matters is that the
+overrun is **visible and counted**: the rate of over-budget pull requests is a health
+indicator (`10-measurement.md`).
 
-Ne jamais produire une énorme PR simplement parce que l'agent peut générer beaucoup de
-code rapidement.
+Never produce a huge pull request simply because the agent can generate a lot of code
+quickly.
 
 ---
 
-## 5. Le circuit breaker des 3 échecs
+## 5. The 3-failure circuit breaker
 
-Un agent qui boucle sur une correction est presque toujours en train de traiter un
-problème de cadrage comme un problème de code. Sans point d'arrêt explicite, il creuse —
-et il creuse vite.
+An agent looping on a fix is almost always treating a framing problem as a code problem.
+Without an explicit stopping point it digs — and it digs fast.
 
 ```mermaid
 flowchart TD
-    A["Checks rouges"] --> B["Tentative 1 :<br/>corriger la cause apparente"]
-    B --> C{"Vert ?"}
-    C -->|Oui| OK["Continuer"]
-    C -->|Non| D["Tentative 2 :<br/>remettre en cause le diagnostic"]
-    D --> E{"Vert ?"}
-    E -->|Oui| OK
-    E -->|Non| F["Tentative 3 :<br/>remettre en cause l'hypothèse"]
-    F --> G{"Vert ?"}
-    G -->|Oui| OK
-    G -->|Non| H["STOP"]
+    A["Checks red"] --> B["Attempt 1:<br/>fix the apparent cause"]
+    B --> C{"Green?"}
+    C -->|Yes| OK["Carry on"]
+    C -->|No| D["Attempt 2:<br/>question the diagnosis"]
+    D --> E{"Green?"}
+    E -->|Yes| OK
+    E -->|No| F["Attempt 3:<br/>question the assumption"]
+    F --> G{"Green?"}
+    G -->|Yes| OK
+    G -->|No| H["STOP"]
 
-    H --> H1["Annuler les corrections<br/>spéculatives accumulées"]
-    H1 --> H2["Remonter : ce qui a été tenté,<br/>ce qui est infirmé, hypothèses<br/>candidates restantes"]
+    H --> H1["Revert the speculative<br/>fixes that piled up"]
+    H1 --> H2["Report: what was tried,<br/>what is ruled out, which<br/>candidate assumptions remain"]
 
     style H fill:#7c2d12,color:#fff
     style OK fill:#065f46,color:#fff
 ```
 
-Le point clé est `H1` : **annuler les corrections spéculatives**. Trois tentatives
-ratées laissent derrière elles du code ajouté « pour voir » qui n'a plus de
-justification. Le laisser en place est la façon la plus discrète d'accumuler de la
-dette.
+**Legend** — green: the loop exits normally · red: the stopping point, and what it
+requires.
+
+The key point is `H1`: **revert the speculative fixes**. Three failed attempts leave
+behind code added "to see" that no longer has a justification. Leaving it in place is the
+quietest way to accumulate debt.
 
 ---
 
 ## 6. Definition of Ready
 
-Ne pas commencer une tâche significative sans :
+Do not start a significant task without:
 
-- [ ] objectif compréhensible sans conversation orale
-- [ ] périmètre **et hors-périmètre**
-- [ ] module cible identifié
-- [ ] critères d'acceptation **testables**
-- [ ] dépendances et contrats connus
-- [ ] contraintes importantes identifiées
-- [ ] niveau de risque acceptable
+- [ ] a goal understandable without a spoken conversation
+- [ ] scope **and out of scope**
+- [ ] the target module identified
+- [ ] **testable** acceptance criteria
+- [ ] known dependencies and contracts
+- [ ] important constraints identified
+- [ ] an acceptable level of risk
 
-Si une information manque sans être bloquante : avancer avec une **hypothèse
-explicitement déclarée**, qui remontera dans le résumé final. Si elle est réellement
-bloquante : demander une clarification, une seule fois, précise.
+If a piece of information is missing without being blocking: move ahead with an
+**explicitly stated assumption**, which will surface in the closing summary. If it is
+genuinely blocking: ask for clarification, once, precisely.
 
-Le hors-périmètre est souvent négligé alors qu'il est le plus utile : c'est lui qui
-empêche le glissement progressif et le refactoring opportuniste.
+Out of scope is often neglected although it is the most useful part: it is what prevents
+gradual drift and opportunistic refactoring.
 
 ---
 
 ## 7. Definition of Done
 
-Une tâche est terminée quand les validations **applicables** sont réellement passées.
-Le niveau applicable dépend de la criticité déclarée du module
-(`07-gouvernance.md` § gouvernance proportionnelle).
+A task is finished when the **applicable** validations have actually passed. Which ones
+apply depends on the module's declared criticality (`07-governance.md` § proportionate
+governance).
 
-| Validation | Standard | Élevée | Critique |
+| Validation | standard | high | critical |
 |---|---|---|---|
-| Oracle vert | ✔ | ✔ | ✔ |
+| Oracle green | ✔ | ✔ | ✔ |
 | Lint, format, types | ✔ | ✔ | ✔ |
-| Tests unitaires | ✔ | ✔ | ✔ |
+| Unit tests | ✔ | ✔ | ✔ |
 | Build | ✔ | ✔ | ✔ |
-| Contract tests | si contrat | ✔ | ✔ |
+| Contract tests | if there is a contract | ✔ | ✔ |
 | Fitness functions | ✔ | ✔ | ✔ |
-| Tests d'intégration | selon risque | ✔ | ✔ |
-| Analyse de sécurité | ✔ | ✔ | ✔ |
-| Revue humaine | ✔ | ✔ | ✔ + owner |
-| Documentation impactée à jour | ✔ | ✔ | ✔ |
-| Accessibilité | si UI | si UI | ✔ |
-| E2E parcours critiques | — | ✔ | ✔ |
-| Observabilité ajoutée | — | ✔ | ✔ |
-| Runbook / rollback vérifié | — | selon risque | ✔ |
-| UAT | — | selon besoin | ✔ |
-| Vérification post-déploiement | — | selon risque | ✔ |
+| Integration tests | per risk | ✔ | ✔ |
+| Security analysis | ✔ | ✔ | ✔ |
+| Human review | ✔ | ✔ | ✔ + owner |
+| Affected documentation up to date | ✔ | ✔ | ✔ |
+| Accessibility | if UI | if UI | ✔ |
+| E2E on critical journeys | — | ✔ | ✔ |
+| Observability added | — | ✔ | ✔ |
+| Runbook / rollback verified | — | per risk | ✔ |
+| UAT | — | as needed | ✔ |
+| Post-deployment verification | — | per risk | ✔ |
 
-> **Ne jamais écrire « tests passants » si les tests n'ont pas été réellement
-> exécutés.** C'est la violation la plus grave du système, parce qu'elle corrompt la
-> seule chose sur laquelle tout le reste repose.
-
----
-
-## 8. Le résumé de fin
-
-Format imposé, toujours dans cet ordre :
-
-```
-FAIT           ce qui a été changé, une phrase par changement
-VÉRIFIÉ        les checks réellement exécutés, avec leur résultat
-SUPPOSÉ        les hypothèses prises faute d'information
-NON VÉRIFIÉ    ce qui n'a pas été testé, et pourquoi
-RISQUES        effets de bord possibles, dette introduite, suites nécessaires
-```
-
-Les trois dernières sections sont les plus importantes et les plus souvent escamotées.
-Un résumé qui n'a rien à mettre sous `SUPPOSÉ` et `NON VÉRIFIÉ` est presque toujours un
-résumé incomplet, pas une tâche parfaite.
+> **Never write "tests passing" if the tests were not actually run.** It is the gravest
+> violation in the system, because it corrupts the one thing everything else rests on.
 
 ---
 
-## 9. Règles de modification du code
+## 8. The closing summary
 
-**Avant.** Comprendre le problème, chercher l'existant, identifier les conventions
-locales, les dépendances, les tests et les contrats concernés, évaluer les risques.
+An imposed format, always in this order:
 
-**Pendant.** Rester dans le périmètre. Changement minimal. **Aucun refactoring
-opportuniste.** Conserver les conventions existantes du module, même si on les aurait
-écrites autrement. Ne pas introduire de complexité non nécessaire.
+```
+DONE           what was changed, one sentence per change
+VERIFIED       the checks actually run, with their result
+ASSUMED        the assumptions taken for lack of information
+NOT VERIFIED   what was not tested, and why
+RISKS          possible side effects, debt introduced, follow-ups needed
+```
 
-**Après.** Inspecter le diff ligne à ligne. Exécuter les validations. Chercher
-activement les effets de bord. Mettre à jour les documents impactés.
+The last three sections are the most important and the most often skated over. A summary
+with nothing to put under `ASSUMED` and `NOT VERIFIED` is almost always an incomplete
+summary, not a perfect task.
 
-### Sur le refactoring
+---
 
-Ne jamais refactorer parce que le code « pourrait être plus propre ». Un refactoring
-doit avoir une raison nommée : supprimer du couplage, réduire une complexité mesurée,
-permettre une évolution identifiée, corriger une violation architecturale, améliorer une
-performance mesurée, améliorer la testabilité, résorber une dette documentée.
+## 9. Rules for changing code
 
-Un refactoring important est **isolé du changement fonctionnel**, dans sa propre PR.
-Mélanger les deux rend la revue impossible : le relecteur ne peut plus distinguer ce qui
-change le comportement de ce qui le préserve.
+**Before.** Understand the problem, look for what already exists, identify the local
+conventions, the dependencies, the tests and the contracts concerned, assess the risks.
+
+**During.** Stay inside the scope. The minimal change. **No opportunistic refactoring.**
+Keep the module's existing conventions, even where you would have written them
+differently. Do not introduce unnecessary complexity.
+
+**After.** Inspect the diff line by line. Run the validations. Actively look for side
+effects. Update the documents affected.
+
+### On refactoring
+
+Never refactor because the code "could be cleaner". A refactor must have a named reason:
+removing coupling, reducing a measured complexity, enabling an identified evolution,
+fixing an architectural violation, improving a measured performance, improving
+testability, paying down documented debt.
+
+A significant refactor is **isolated from the functional change**, in its own pull
+request. Mixing the two makes review impossible: the reviewer can no longer tell what
+changes the behaviour from what preserves it.

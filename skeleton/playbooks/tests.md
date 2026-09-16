@@ -1,111 +1,113 @@
 # Playbook — Tests
 
-> **Déclencheur.** Charge ce playbook quand la stratégie de test n'est pas évidente :
-> zone non testée, test flaky, comportement difficile à isoler, doute sur le bon niveau
-> de test.
+> **Trigger.** Load this playbook when the test strategy is not obvious: an untested
+> area, a flaky test, a behaviour that is hard to isolate, doubt about the right test
+> level.
 >
-> Pour une tâche normale, la règle du kernel suffit : **écrire l'oracle, le voir
-> échouer, implémenter**.
+> For an ordinary task the kernel rule is enough: **write the oracle, watch it fail,
+> implement**.
 
 ---
 
-## 1. Choisir le niveau de test
+## 1. Choosing the test level
 
 ```mermaid
 flowchart TD
-    A["Comportement à vérifier"] --> B{"Est-ce une règle<br/>métier pure ?"}
-    B -->|Oui| U["TEST UNITAIRE<br/>rapide, nombreux, cas limites"]
-    B -->|Non| C{"Traverse-t-il une<br/>frontière de module ?"}
+    A["Behaviour to verify"] --> B{"Is it a pure<br/>business rule?"}
+    B -->|Yes| U["UNIT TEST<br/>fast, numerous, edge cases"]
+    B -->|No| C{"Does it cross a<br/>module boundary?"}
 
-    C -->|Oui| CT["CONTRACT TEST<br/>des deux côtés"]
-    C -->|Non| D{"Dépend-il d'une<br/>infrastructure réelle ?"}
+    C -->|Yes| CT["CONTRACT TEST<br/>on both sides"]
+    C -->|No| D{"Does it depend on<br/>real infrastructure?"}
 
-    D -->|Oui| I["TEST D'INTÉGRATION<br/>ciblé, périmètre minimal"]
-    D -->|Non| E{"Est-ce un parcours<br/>utilisateur critique ?"}
+    D -->|Yes| I["INTEGRATION TEST<br/>targeted, minimal scope"]
+    D -->|No| E{"Is it a critical<br/>user journey?"}
 
-    E -->|Oui| E2["E2E — uniquement si<br/>réellement critique"]
-    E -->|Non| U
+    E -->|Yes| E2["E2E — only when<br/>genuinely critical"]
+    E -->|No| U
 
     style U fill:#065f46,color:#fff
     style CT fill:#065f46,color:#fff
     style E2 fill:#7c2d12,color:#fff
 ```
 
-Règle de préférence : **le niveau le plus bas qui vérifie réellement le comportement**.
-Un test E2E qui aurait pu être unitaire coûte cent fois plus cher, casse dix fois plus
-souvent, et diagnostique dix fois moins bien.
+**Legend** — green: the levels to prefer · red: the level to use sparingly.
+
+Preference rule: **the lowest level that actually verifies the behaviour**. An E2E test
+that could have been a unit test costs a hundred times more, breaks ten times more
+often, and diagnoses ten times worse.
 
 ---
 
-## 2. L'oracle
+## 2. The oracle
 
-| Exigence | Pourquoi |
+| Requirement | Why |
 |---|---|
-| Écrit **avant** l'implémentation | Sinon il est écrit pour passer, pas pour vérifier |
-| Vu **échouer** avant | Un test jamais rouge peut ne rien tester |
-| Échoue pour la **bonne raison** | Un échec de compilation n'est pas un échec de test |
-| Nommé par le **comportement**, pas la fonction | `refuse_une_commande_sans_stock`, pas `test_create_order_2` |
+| Written **before** the implementation | Otherwise it is written to pass, not to verify |
+| Watched **failing** first | A test never seen red may test nothing |
+| Fails for the **right reason** | A compilation failure is not a test failure |
+| Named after the **behaviour**, not the function | `refuses_an_order_without_stock`, not `test_create_order_2` |
 
-### Si l'oracle est impossible
+### When the oracle is impossible
 
-| Cause | Réponse |
+| Cause | Response |
 |---|---|
-| Critère subjectif | Le reformuler en comportement observable |
-| Tâche exploratoire | Requalifier en *spike* : livrable = connaissance |
-| Zone non testable | La rendre testable d'abord, comme tâche séparée |
-| Besoin flou | Retour au cadrage — ce n'était pas *Ready* |
+| Subjective criterion | Restate it as an observable behaviour |
+| Exploratory task | Requalify it as a *spike*: the deliverable is knowledge |
+| Untestable area | Make it testable first, as a separate task |
+| Vague need | Back to framing — it was not *Ready* |
 
-Dans tous les cas : **on ne génère pas en attendant.**
-
----
-
-## 3. Quoi tester en priorité
-
-```
-1. règles métier            2. parcours critiques      3. permissions
-4. contrats                 5. erreurs                 6. cas limites
-7. régressions survenues    8. fort impact utilisateur
-```
-
-**Toute régression corrigée donne lieu à un test** qui échouait avant le correctif.
-C'est la seule garantie qu'elle ne reviendra pas silencieusement.
-
-**Ne pas viser un pourcentage de couverture.** La couverture indique ce qui n'est pas
-testé ; elle n'indique jamais que ce qui est testé l'est bien.
+In every case: **do not generate while waiting.**
 
 ---
 
-## 4. Cas limites à considérer systématiquement
+## 3. What to test first
 
 ```
-vide · nul · absent · zéro · négatif · très grand · très long
-caractères spéciaux · unicode · espaces en début et fin
-doublon · concurrence · appel répété (idempotence)
-dépendance indisponible · timeout · réponse partielle
-autorisation refusée · non authentifié · session expirée
-fuseau horaire · changement d'heure · date limite
+1. business rules           2. critical journeys       3. permissions
+4. contracts                5. errors                  6. edge cases
+7. regressions that happened   8. high user impact
+```
+
+**Every regression fixed gets a test** that failed before the fix. That is the only
+guarantee it will not come back quietly.
+
+**Do not aim at a coverage percentage.** Coverage tells you what is not tested; it never
+tells you that what is tested is tested well.
+
+---
+
+## 4. Edge cases to consider every time
+
+```
+empty · null · absent · zero · negative · very large · very long
+special characters · unicode · leading and trailing whitespace
+duplicate · concurrency · repeated call (idempotence)
+dependency unavailable · timeout · partial response
+authorisation refused · not authenticated · session expired
+time zone · daylight saving · deadline date
 ```
 
 ---
 
-## 5. Tests flaky
+## 5. Flaky tests
 
-Un test flaky est un **problème d'ingénierie**, jamais une fatalité. Son coût réel :
-il apprend à l'équipe à ignorer un échec de CI. Un seul test flaky toléré dégrade la
-valeur de toute la suite.
+A flaky test is an **engineering problem**, never a fact of life. Its real cost: it
+teaches the team to ignore a CI failure. A single tolerated flaky test degrades the
+value of the whole suite.
 
 ```mermaid
 flowchart TD
-    A["Test flaky détecté"] --> B["Isoler : le quarantainer,<br/>pas le supprimer"]
-    B --> C{"Cause ?"}
-    C -->|"Temps réel"| D1["Injecter l'horloge"]
-    C -->|"Ordre d'exécution"| D2["Isoler l'état entre tests"]
-    C -->|"Concurrence"| D3["Synchroniser sur l'événement,<br/>jamais sur une durée"]
-    C -->|"Réseau / externe"| D4["Doublure déterministe"]
-    C -->|"État partagé"| D5["Réinitialiser à chaque test"]
-    C -->|"Indéterminée"| E["Le test ne prouve rien :<br/>le réécrire ou le supprimer"]
+    A["Flaky test detected"] --> B["Isolate it: quarantine,<br/>do not delete"]
+    B --> C{"Cause?"}
+    C -->|"Real time"| D1["Inject the clock"]
+    C -->|"Execution order"| D2["Isolate state between tests"]
+    C -->|"Concurrency"| D3["Synchronise on the event,<br/>never on a duration"]
+    C -->|"Network / external"| D4["Deterministic double"]
+    C -->|"Shared state"| D5["Reset for every test"]
+    C -->|"Undetermined"| E["The test proves nothing:<br/>rewrite it or delete it"]
 
-    D1 --> F["Sortir de quarantaine"]
+    D1 --> F["Out of quarantine"]
     D2 --> F
     D3 --> F
     D4 --> F
@@ -115,34 +117,36 @@ flowchart TD
     style F fill:#065f46,color:#fff
 ```
 
-**Jamais « relancer jusqu'à ce que ça passe ».** Un test désactivé porte une issue et
-une date de reprise ; sans cela, il ne revient jamais.
+**Legend** — green: back to a trustworthy suite · red: the test is not worth keeping.
 
-Les attentes fixes (`sleep`) sont la cause de flakiness la plus répandue : on attend un
-**état observable**, jamais une durée.
+**Never "re-run until it passes".** A disabled test carries an issue and a date to pick
+it back up; without that, it never comes back.
 
----
-
-## 6. Doublures
-
-| Doubler | Ne pas doubler |
-|---|---|
-| Services externes, réseau, horloge, aléa | La logique métier du module testé |
-| Dépendances lentes ou coûteuses | Ce que le test est censé vérifier |
-| Modules tiers — via leur **contrat** | La base de données, dans un test d'intégration |
-
-> **Ne jamais doubler le comportement d'un autre module en devinant.** On double son
-> contrat, et le contract test garantit que le contrat correspond à la réalité. Une
-> doublure inventée passe au vert pendant que la production casse.
+Fixed waits (`sleep`) are the most widespread cause of flakiness: wait for an
+**observable state**, never for a duration.
 
 ---
 
-## 7. Signaux d'alerte
+## 6. Doubles
 
-| Signal | Interprétation |
+| Double | Do not double |
 |---|---|
-| Un test casse à chaque refactor sans changement de comportement | Il teste l'implémentation, pas le comportement |
-| Il faut démarrer un autre module pour tester | Mauvaise frontière (`docs/os/02-modules.md` §9) |
-| Le test est plus long que le code testé | Le code est probablement trop couplé |
-| Personne ne comprend ce que teste ce test | Le supprimer ou le réécrire ; il ne protège rien |
-| La suite met plus de 10 minutes | Elle sera contournée — la rendre rapide est une tâche prioritaire |
+| External services, network, clock, randomness | The business logic of the module under test |
+| Slow or expensive dependencies | What the test is meant to verify |
+| Other modules — through their **contract** | The database, in an integration test |
+
+> **Never double another module's behaviour by guessing.** You double its contract, and
+> the contract test guarantees the contract matches reality. An invented double goes
+> green while production breaks.
+
+---
+
+## 7. Warning signals
+
+| Signal | Reading |
+|---|---|
+| A test breaks at every refactor with no behaviour change | It tests the implementation, not the behaviour |
+| You have to start another module to test | Bad boundary (`docs/os/02-modules.md` §9) |
+| The test is longer than the code it tests | The code is probably too coupled |
+| Nobody understands what this test tests | Delete it or rewrite it; it protects nothing |
+| The suite takes more than 10 minutes | It will be bypassed — making it fast is a priority task |

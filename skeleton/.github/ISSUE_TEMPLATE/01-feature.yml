@@ -1,97 +1,97 @@
 name: Feature
-description: Nouvelle capacité utilisateur
+description: A new user capability
 labels: ["feature"]
 body:
   - type: markdown
     attributes:
       value: |
-        Cette issue doit être compréhensible par un autre humain **ou un agent**
-        sans conversation orale. Sinon, elle n'est pas *Ready*.
+        This issue must be understandable by another human **or an agent** with no
+        spoken conversation. Otherwise it is not *Ready*.
 
   - type: input
     id: module
     attributes:
-      label: Module cible
-      description: UN SEUL. Si la tâche en touche deux, la découper (docs/os/02-modules.md §7).
+      label: Target module
+      description: EXACTLY ONE. If the task touches two, split it (docs/os/02-modules.md §7).
       placeholder: modules/billing
     validations: { required: true }
 
   - type: textarea
-    id: objectif
+    id: goal
     attributes:
-      label: Objectif
-      description: Ce que l'utilisateur doit pouvoir faire. Une phrase.
+      label: Goal
+      description: What the user must be able to do. One sentence.
     validations: { required: true }
 
   - type: textarea
-    id: contexte
+    id: context
     attributes:
-      label: Contexte
-      description: Pourquoi maintenant. Lien vers le PDR ou l'ADR si la décision est prise.
+      label: Context
+      description: Why now. Link to the PDR or the ADR when the decision is taken.
     validations: { required: true }
 
   - type: textarea
-    id: hors-perimetre
+    id: out-of-scope
     attributes:
-      label: Hors périmètre
-      description: Ce qui n'est explicitement PAS fait ici. C'est la section qui empêche le glissement.
+      label: Out of scope
+      description: What is explicitly NOT done here. This is the section that prevents drift.
     validations: { required: true }
 
   - type: textarea
-    id: acceptation
+    id: acceptance
     attributes:
-      label: Critères d'acceptation
-      description: Testables — ils constituent l'oracle de la tâche (docs/os/05-workflow.md §3).
+      label: Acceptance criteria
+      description: Testable — they are the task's oracle (docs/os/05-workflow.md §3).
       value: |
-        - [ ] Étant donné <contexte>, quand <action>, alors <résultat observable>
-        - [ ] Étant donné <erreur>, quand <action>, alors <comportement attendu>
+        - [ ] Given <context>, when <action>, then <observable result>
+        - [ ] Given <error>, when <action>, then <expected behaviour>
     validations: { required: true }
 
   - type: checkboxes
-    id: cas
+    id: cases
     attributes:
-      label: Cas à couvrir
+      label: Cases to cover
       options:
-        - label: Parcours nominal
-        - label: Cas limites
-        - label: Entrées invalides
+        - label: Nominal journey
+        - label: Edge cases
+        - label: Invalid input
         - label: Permissions
-        - label: État vide / premier usage (si UI)
-        - label: Erreur de dépendance externe
+        - label: Empty state / first use (when there is UI)
+        - label: External dependency error
 
   - type: dropdown
-    id: contrats
+    id: contracts
     attributes:
-      label: Contrats
+      label: Contracts
       options:
-        - Aucun contrat impacté
-        - Contrat consommé (existant)
-        - Contrat produit modifié → issue séparée, expand/contract
+        - No contract affected
+        - Contract consumed (existing)
+        - Contract provided changed → a separate issue, expand/contract
     validations: { required: true }
 
   - type: checkboxes
     id: playbooks
     attributes:
-      label: Playbooks à charger
+      label: Playbooks to load
       options:
-        - label: securite.md — authn/authz, secrets, données personnelles, entrées externes
-        - label: donnees-migration.md — schéma ou données existantes
-        - label: ux.md — surface utilisateur
-        - label: tests.md — stratégie de test non évidente
-        - label: exploitation.md — logs, retries, timeouts, rollback
+        - label: security.md — authn/authz, secrets, personal data, external input
+        - label: data-migration.md — schema or existing data
+        - label: ux.md — user-facing surface
+        - label: tests.md — a test strategy that is not obvious
+        - label: operations.md — logs, retries, timeouts, rollback
 
   - type: checkboxes
     id: dor
     attributes:
       label: Definition of Ready
       options:
-        - label: Objectif compréhensible sans échange oral
+        - label: Goal understandable with no spoken exchange
           required: true
-        - label: Un seul module cible
+        - label: A single target module
           required: true
-        - label: Périmètre et hors périmètre explicites
+        - label: Scope and out of scope explicit
           required: true
-        - label: Critères d'acceptation testables
+        - label: Testable acceptance criteria
           required: true
-        - label: Tient dans le budget de revue — sinon découper maintenant
+        - label: Fits the review budget — otherwise split it now
           required: true

@@ -1,12 +1,12 @@
 name: Modules
 
-# Exécute les verbes standards sur les seuls modules touchés : nstack lit leurs
-# commandes dans le MANIFEST.yaml du module, sans supposer aucune stack (P1).
-# Le niveau de validation est proportionnel à la criticité déclarée dans le MANIFEST
-# (docs/os/07-gouvernance.md §6).
+# Runs the standard verbs on the touched modules only: nstack reads their commands
+# from the module's MANIFEST.yaml, assuming no stack (P1).
+# The level of validation is proportionate to the criticality declared in the MANIFEST
+# (docs/os/07-governance.md §6).
 #
-# Les noms de modules viennent des chemins modifiés par la PR : ils ne sont jamais
-# insérés dans un script, seulement lus depuis une variable d'environnement.
+# Module names come from the paths the pull request changed: they are never inserted
+# into a script, only read from an environment variable.
 
 on:
   pull_request:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   discover:
-    name: Modules touchés
+    name: Touched modules
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -43,7 +43,7 @@ jobs:
           echo "modules=$MODS" >> "$GITHUB_OUTPUT"
           if [ "$MODS" = '[]' ]; then echo "any=false" >> "$GITHUB_OUTPUT";
           else echo "any=true" >> "$GITHUB_OUTPUT"; fi
-          echo "Modules touchés : $MODS"
+          echo "Touched modules: $MODS"
 
   validate:
     name: ${{ matrix.module }}
@@ -63,36 +63,36 @@ jobs:
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
-      - name: NapkinStack, version du projet
+      - name: NapkinStack, the project version
         run: |
           VERSION=$(yq '._commit' .copier-answers.yml)
           uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
-      - name: Criticité déclarée
+      - name: Declared criticality
         id: crit
         run: |
           LEVEL=$(grep -E '^\s*criticality:' "modules/$MODULE/MANIFEST.yaml" \
                   | head -1 | awk '{print $2}')
           echo "level=${LEVEL:-standard}" >> "$GITHUB_OUTPUT"
-          echo "Criticité : ${LEVEL:-standard}"
+          echo "Criticality: ${LEVEL:-standard}"
 
       - name: bootstrap
         run: nstack bootstrap "$MODULE"
 
-      # Tous niveaux — docs/os/05-workflow.md §7
+      # All levels — docs/os/05-workflow.md §7
       - name: check
         run: nstack check "$MODULE"
 
       - name: test
         run: nstack test "$MODULE"
 
-      # Niveaux élevé et critique — pas encore branchés (D9)
-      - name: Tests d'intégration
+      # Levels high and critical — not wired up yet (D9)
+      - name: Integration tests
         if: steps.crit.outputs.level == 'high' || steps.crit.outputs.level == 'critical'
         run: |
-          echo "Non branché : tests d'intégration (D9)"
+          echo "Not wired up: integration tests (D9)"
 
-      - name: E2E parcours critiques
+      - name: E2E on critical journeys
         if: steps.crit.outputs.level == 'critical'
         run: |
-          echo "Non branché : parcours de bout en bout (D9)"
+          echo "Not wired up: end-to-end journeys (D9)"

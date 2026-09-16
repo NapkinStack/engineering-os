@@ -1,68 +1,67 @@
-# 06 — Décisions
+# 06 — Decisions
 
-## 1. Le problème
+## 1. The problem
 
-Un LLM produit toujours une réponse plausible et sur-mesure. C'est sa qualité et son
-défaut structurel : il répond même quand la bonne réponse est « c'est un problème résolu
-depuis vingt ans, voici la convention ».
+An LLM always produces a plausible, bespoke answer. That is its quality and its
+structural flaw: it answers even when the right answer is "this has been solved for
+twenty years, here is the convention".
 
-Combiné à une génération quasi gratuite, cela produit trois dérives, chacune coûteuse :
+Combined with nearly free generation, this produces three drifts, each expensive:
 
-| Dérive | Symptôme | Coût |
+| Drift | Symptom | Cost |
 |---|---|---|
-| **Réinventer la roue** | Solution maison là où une convention existe | Maintenance permanente, personne ne connaît le code |
-| **Sur-ingénierie** | Abstraction, généricité, flexibilité non demandées | Complexité qui ne sert jamais, revue plus lente |
-| **Niche** | Technologie ou pattern exotique adopté trop vite | Recrutement, support, sécurité, sortie impossible |
+| **Reinventing the wheel** | A homemade solution where a convention exists | Permanent maintenance, nobody knows the code |
+| **Over-engineering** | Unrequested abstraction, genericity, flexibility | Complexity that never serves, slower review |
+| **Niche** | An exotic technology or pattern adopted too fast | Hiring, support, security, no way out |
 
-Le Prior Art Gate traite les trois avec un seul mécanisme.
+The Prior Art Gate handles all three with a single mechanism.
 
 ---
 
-## 2. Le Prior Art Gate
+## 2. The Prior Art Gate
 
-Obligatoire avant toute décision **structurante** — produit ou technique. Structurante
-signifie : coûteuse à inverser, ou qui contraindra les décisions suivantes.
+Mandatory before any **structuring** decision — product or technical. Structuring means:
+costly to reverse, or constraining the decisions that follow.
 
-Trois questions, dans cet ordre :
+Three questions, in this order:
 
-**① Qui a déjà résolu ça, et comment ?**
-Identifier les références sérieuses du domaine et la convention dominante. Pour un
-produit : ce que l'utilisateur connaît déjà et s'attend à trouver ailleurs. Pour une
-décision technique : la solution standard, pas la plus élégante.
+**① Who has already solved this, and how?**
+Identify the serious references of the field and the dominant convention. For a product:
+what the user already knows and expects to find elsewhere. For a technical decision: the
+standard solution, not the most elegant one.
 
-**② La convention suffit-elle ?**
-Par défaut, oui. La convention est le choix gratuit : familière pour l'utilisateur,
-documentée, recrutable, connue des agents, déjà éprouvée par d'autres.
+**② Is the convention enough?**
+By default, yes. The convention is the free choice: familiar to the user, documented,
+hireable for, known to agents, already proven by others.
 
-**③ Si on s'en écarte, qu'est-ce qui le paie ?**
-Toute déviation doit être payée par une **valeur utilisateur nommée et observable**.
-Une déviation « parce que c'est plus propre », « plus flexible » ou « plus moderne » est
-refusée.
+**③ If we depart from it, what pays for that?**
+Every deviation must be paid for by a **named, observable user value**. A deviation
+"because it is cleaner", "more flexible" or "more modern" is refused.
 
 ```mermaid
 flowchart TD
-    A["Décision produit<br/>ou technique structurante"] --> B["État de l'art :<br/>références du domaine<br/>+ convention dominante"]
-    B --> C{"Une convention<br/>établie existe ?"}
+    A["Structuring product<br/>or technical decision"] --> B["State of the art:<br/>references of the field<br/>+ dominant convention"]
+    B --> C{"Does an established<br/>convention exist?"}
 
-    C -->|Non| N1["Zone réellement nouvelle.<br/>Prototyper petit, décision réversible,<br/>ADR ou PDR obligatoire"]
-    C -->|Oui| D{"Elle couvre le besoin<br/>démontré ?"}
+    C -->|No| N1["Genuinely new ground.<br/>Prototype small, reversible decision,<br/>ADR or PDR required"]
+    C -->|Yes| D{"Does it cover the<br/>demonstrated need?"}
 
-    D -->|Oui| E["ADOPTER la convention<br/>Aucune justification requise"]
-    D -->|Partiellement| F{"L'écart est-il un besoin prouvé<br/>ou une préférence ?"}
-    D -->|Non| G["Écart réel : justifier<br/>par la valeur utilisateur"]
+    D -->|Yes| E["ADOPT the convention.<br/>No justification required"]
+    D -->|Partly| F{"Is the gap a proven need<br/>or a preference?"}
+    D -->|No| G["A real gap: justify it<br/>by the user value"]
 
-    F -->|Préférence| E
-    F -->|Besoin prouvé| H["ADAPTER : convention<br/>+ extension minimale et locale"]
+    F -->|Preference| E
+    F -->|Proven need| H["ADAPT: the convention<br/>+ a minimal, local extension"]
 
-    G --> I{"Une solution existante<br/>peut-elle être reprise ?"}
-    I -->|Oui| J{"FILTRE NICHE<br/>adoption · maintenance<br/>licence · sortie possible"}
-    I -->|Non| K{"FILTRE PROPORTIONNALITÉ<br/>coût de construction et de<br/>maintenance vs valeur mesurable"}
+    G --> I{"Can an existing<br/>solution be reused?"}
+    I -->|Yes| J{"NICHE FILTER<br/>adoption · maintenance<br/>licence · way out"}
+    I -->|No| K{"PROPORTIONALITY FILTER<br/>cost of building and<br/>maintaining vs measurable value"}
 
-    J -->|Passe| L["INTÉGRER<br/>ADR + stratégie de sortie"]
-    J -->|Échoue| K
+    J -->|Passes| L["INTEGRATE<br/>ADR + exit strategy"]
+    J -->|Fails| K
 
-    K -->|Disproportionné| E
-    K -->|Proportionné| M["CONSTRUIRE le minimum<br/>ADR + critère de succès daté"]
+    K -->|Disproportionate| E
+    K -->|Proportionate| M["BUILD the minimum<br/>ADR + dated success criterion"]
 
     style E fill:#065f46,color:#fff
     style H fill:#065f46,color:#fff
@@ -71,227 +70,227 @@ flowchart TD
     style N1 fill:#7c2d12,color:#fff
 ```
 
-Deux propriétés de ce graphe méritent d'être remarquées.
+**Legend** — green: the free paths · dark grey: integrating something existing · red: the
+expensive paths, which carry a dated criterion.
 
-**Le chemin vert est le plus court.** Adopter la convention ne demande aucune
-justification ; tout le reste en demande. L'asymétrie est volontaire — c'est elle qui
-empêche la dérive, parce qu'elle rend le chemin paresseux et le chemin correct
-identiques.
+Two properties of this graph are worth noticing.
 
-**Le filtre niche renvoie vers la proportionnalité** plutôt que de sortir de l'arbre.
-Une dépendance exotique rejetée ne débouche pas automatiquement sur « on le construit »,
-mais sur « est-ce que ça vaut vraiment le coup ».
+**The green path is the shortest.** Adopting the convention requires no justification;
+everything else does. The asymmetry is deliberate — it is what prevents drift, because it
+makes the lazy path and the correct path the same.
+
+**The niche filter feeds back into proportionality** rather than leaving the tree. A
+rejected exotic dependency does not automatically lead to "we build it", but to "is it
+really worth it".
 
 ---
 
-## 3. Les deux filtres
+## 3. The two filters
 
-### Filtre niche
+### Niche filter
 
-Une solution existante peut être reprise si elle passe ces quatre questions :
+An existing solution can be reused if it passes these four questions:
 
-| Critère | Question |
+| Criterion | Question |
 |---|---|
-| **Adoption** | Est-elle utilisée au-delà d'un cercle restreint ? Trouve-t-on des réponses hors de sa propre documentation ? |
-| **Maintenance** | Est-elle activement maintenue ? Par combien de personnes ? Que se passe-t-il si elles s'arrêtent ? |
-| **Licence et sécurité** | La licence est-elle compatible ? Quelle est sa surface et son historique de vulnérabilités ? |
-| **Sortie** | Que coûte le remplacement dans deux ans ? Peut-on l'isoler derrière une interface locale ? |
+| **Adoption** | Is it used beyond a narrow circle? Can you find answers outside its own documentation? |
+| **Maintenance** | Is it actively maintained? By how many people? What happens if they stop? |
+| **Licence and security** | Is the licence compatible? What is its surface and its vulnerability history? |
+| **Way out** | What does replacing it cost in two years? Can it be isolated behind a local interface? |
 
-La dernière est la plus importante et la plus oubliée. **Toute dépendance significative
-déclare sa stratégie de sortie dans le manifest du module.**
+The last one is the most important and the most forgotten. **Every significant dependency
+declares its exit strategy in the module's manifest.**
 
-### Filtre proportionnalité
+### Proportionality filter
 
-Construire sur-mesure se justifie quand :
+Building something bespoke is justified when:
 
-- le besoin est **démontré**, pas anticipé ;
-- le coût de construction **et de maintenance sur trois ans** est proportionné à la
-  valeur attendue ;
-- la solution minimale est identifiée — on construit celle-là, pas la version générique.
+- the need is **demonstrated**, not anticipated;
+- the cost of building **and maintaining it over three years** is proportionate to the
+  expected value;
+- the minimal solution is identified — you build that one, not the generic version.
 
-Question de contrôle, à poser systématiquement :
+Control question, to ask every time:
 
-> Quelle est la version la plus bête qui résout le problème, et pourquoi ne la
-> prend-on pas ?
+> What is the dumbest version that solves the problem, and why are we not taking it?
 
-Si la réponse est « parce qu'elle ne couvrirait pas le cas X », vérifier que le cas X
-est réel et non hypothétique. Dans la majorité des cas, il ne l'est pas.
+If the answer is "because it would not cover case X", check that case X is real and not
+hypothetical. In most cases, it is not.
 
 ---
 
-## 4. Les deux formats de décision
+## 4. The two decision formats
 
 ### ADR — Architecture Decision Record
 
-Pour une décision **technique ou architecturale** significative : choix de technologie,
-frontière de module, stratégie de données, pattern structurant, dépendance majeure,
-compromis de performance ou de sécurité.
+For a significant **technical or architectural** decision: technology choice, module
+boundary, data strategy, structuring pattern, major dependency, a performance or security
+trade-off.
 
-Contenu minimal : contexte · problème · contraintes · **prior art** · options
-considérées · décision · conséquences · alternatives rejetées · **critère de succès
-daté** si l'on construit sur-mesure.
+Minimum content: context · problem · constraints · **prior art** · options considered ·
+decision · consequences · rejected alternatives · a **dated success criterion** when
+building something bespoke.
 
-Une décision remplacée est **supersédée par une nouvelle décision**, jamais réécrite
-silencieusement. L'historique des décisions abandonnées vaut souvent plus que la
-décision courante : il explique pourquoi l'évidence apparente ne fonctionne pas.
+A replaced decision is **superseded by a new decision**, never rewritten quietly. The
+history of abandoned decisions is often worth more than the current one: it explains why
+the apparently obvious does not work.
 
 ### PDR — Product Decision Record
 
-Pour une décision **produit** importante : objectif utilisateur, comportement attendu,
-arbitrage, règle métier structurante, décision UX ou business.
+For an important **product** decision: a user goal, an expected behaviour, a trade-off, a
+structuring business rule, a UX or business decision.
 
-Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son implémentation.
+The PDR describes **what the product must do and why**, never its implementation.
 
-Contenu minimal : problème utilisateur · **prior art** · options · décision ·
-**critère de succès daté** · **condition de retrait** · impacts.
+Minimum content: the user problem · **prior art** · options · decision · a **dated
+success criterion** · a **removal condition** · impacts.
 
-### Pourquoi seulement deux formats
+### Why only two formats
 
-Le format **FDR** (Functional Design Record) a été retiré. Entre le PDR (le quoi et le
-pourquoi) et les critères d'acceptation de l'issue (le comportement attendu, testable),
-il ne restait presque rien qui justifie un troisième format — et un format de plus
-signifie : un endroit de plus où chercher, un de plus à maintenir, un de plus qui
-divergera.
+The **FDR** (Functional Design Record) format was removed. Between the PDR (the what and
+the why) and the issue's acceptance criteria (the expected, testable behaviour), almost
+nothing was left to justify a third format — and one more format means one more place to
+look, one more to maintain, one more that will diverge.
 
-Pour les fonctionnalités réellement complexes (nombreux acteurs, machines à états, matrices
-de permissions), cela devient une **section optionnelle du PDR** : *Conception
-fonctionnelle détaillée*.
+For genuinely complex features (many actors, state machines, permission matrices), it
+becomes an **optional section of the PDR**: *Detailed functional design*.
 
-> Ne pas créer de document si une issue ou une documentation existante suffit.
-> La documentation doit réduire la charge cognitive, pas l'augmenter.
+> Do not create a document when an issue or existing documentation is enough.
+> Documentation must reduce cognitive load, not increase it.
 
 ---
 
-## 5. Le critère de succès daté
+## 5. The dated success criterion
 
-C'est ce qui rend une décision **falsifiable**, donc utile.
+This is what makes a decision **falsifiable**, and therefore useful.
 
-Toute décision de type `CONSTRUIRE`, tout PDR, et tout ADR qui dévie de la convention
-porte une phrase de cette forme :
+Every `BUILD` decision, every PDR, and every ADR that deviates from the convention
+carries a sentence of this form:
 
-> *On considérera que c'était le bon choix si* **\<observation mesurable\>** *est
-> constaté avant le* **\<date\>**.
+> *We will consider this was the right call if* **\<measurable observation\>** *is
+> observed before* **\<date\>**.
 
-Sans date, personne ne revient jamais vérifier, et `docs/adr/` devient un cimetière —
-ce qui est pire qu'une absence de documentation, parce que ça inspire faussement
-confiance.
+Without a date nobody ever comes back to check, and `docs/adr/` becomes a graveyard —
+which is worse than no documentation at all, because it inspires false confidence.
 
-### Condition de retrait
+### Removal condition
 
-Chaque fonctionnalité significative embarque, dès son PDR, son critère de suppression.
-C'est le pendant produit de la règle d'architecture : *quand un nouveau chemin remplace
-un ancien, prévoir aussi la suppression de l'ancien*.
+Every significant feature carries, from its PDR onwards, its deletion criterion. It is
+the product counterpart of the architecture rule: *when a new path replaces an old one,
+plan the removal of the old one too*.
 
-Une fonctionnalité sans condition de retrait est une fonctionnalité définitive par
-défaut, y compris quand personne ne l'utilise.
+A feature with no removal condition is a permanent feature by default, including when
+nobody uses it.
 
 ---
 
-## 6. La boucle de décision
+## 6. The decision loop
 
 ```mermaid
 flowchart TD
-    P["Problème"] --> C["Contraintes"]
+    P["Problem"] --> C["Constraints"]
     C --> PA["PRIOR ART GATE"]
-    PA --> O["Options crédibles"]
-    O --> T["Trade-offs explicites"]
-    T --> D["Décision"]
-    D --> R{"Structurante ?"}
-    R -->|Non| X["Pas de document.<br/>Trace dans l'issue ou la PR."]
-    R -->|Oui| DOC["ADR ou PDR<br/>+ critère de succès daté"]
-    DOC --> A{"La règle issue de cette<br/>décision est-elle<br/>automatisable ?"}
-    A -->|Oui| AU["Fitness function<br/>ou check CI"]
-    A -->|Non| AU2["Règle dans un playbook<br/>ou l'AGENTS.md local"]
+    PA --> O["Credible options"]
+    O --> T["Explicit trade-offs"]
+    T --> D["Decision"]
+    D --> R{"Structuring?"}
+    R -->|No| X["No document.<br/>A trail in the issue or the PR."]
+    R -->|Yes| DOC["ADR or PDR<br/>+ dated success criterion"]
+    DOC --> A{"Is the rule that comes<br/>out of this decision<br/>automatable?"}
+    A -->|Yes| AU["Fitness function<br/>or CI check"]
+    A -->|No| AU2["A rule in a playbook<br/>or the local AGENTS.md"]
 
-    AU --> REV["REVUE À ÉCHÉANCE"]
+    AU --> REV["REVIEW AT THE DEADLINE"]
     AU2 --> REV
-    REV --> REV1{"Critère de<br/>succès atteint ?"}
-    REV1 -->|Oui| CONF["Confirmer<br/>+ nouvelle échéance si pertinent"]
-    REV1 -->|Non| SUP["Superséder, corriger<br/>ou retirer"]
+    REV --> REV1{"Success criterion<br/>met?"}
+    REV1 -->|Yes| CONF["Confirm<br/>+ a new deadline when relevant"]
+    REV1 -->|No| SUP["Supersede, correct<br/>or remove"]
 
     style PA fill:#1f2937,color:#fff
     style AU fill:#065f46,color:#fff
     style REV fill:#7c2d12,color:#fff
 ```
 
-L'étape `REVUE À ÉCHÉANCE` est celle qui manque dans la quasi-totalité des projets. Un
-rituel léger suffit : une fois par trimestre, lister les décisions dont le critère est
-arrivé à échéance, et trancher — confirmée, supersédée, ou la fonctionnalité est retirée.
+**Legend** — dark grey: the gate · green: the rule leaves the prompt · red: the step
+almost every project skips.
+
+The `REVIEW AT THE DEADLINE` step is the one missing from nearly every project. A light
+ritual is enough: once a quarter, list the decisions whose criterion has come due, and
+decide — confirmed, superseded, or the feature is removed.
 
 ---
 
-## 7. Choix technologiques
+## 7. Technology choices
 
-Aucune stack n'est imposée par cet OS. Mais le choix suit une méthode.
+No stack is imposed by this OS. But the choice follows a method.
 
-**Ne jamais choisir une technologie parce que** : elle est populaire ; elle est à la
-mode ; l'IA la connaît bien ; elle est utilisée ailleurs ; elle permet de générer
-rapidement du code.
+**Never choose a technology because**: it is popular; it is fashionable; the AI knows it
+well; it is used elsewhere; it makes it quick to generate code.
 
-**Procédure :**
+**Procedure:**
 
 ```
-1. identifier les exigences réelles
-2. identifier les contraintes (équipe, exploitation, sécurité, budget, existant)
-3. PRIOR ART GATE — quelle est la convention du domaine ?
-4. identifier les options crédibles
-5. rechercher les informations ACTUELLES — versions, maturité, état du projet
-6. comparer selon des critères explicites et écrits d'avance
-7. évaluer le coût de migration, de maintenance et de SORTIE
-8. évaluer sécurité, maturité, pérennité
-9. choisir l'option PROPORTIONNÉE
-10. documenter si structurante
+1. identify the real requirements
+2. identify the constraints (team, operations, security, budget, what exists)
+3. PRIOR ART GATE — what is the convention of the field?
+4. identify the credible options
+5. research CURRENT information — versions, maturity, state of the project
+6. compare against explicit criteria written in advance
+7. assess the cost of migration, of maintenance and of GETTING OUT
+8. assess security, maturity, longevity
+9. choose the PROPORTIONATE option
+10. document it when structuring
 ```
 
-Pour toute technologie susceptible d'évoluer vite, vérifier la documentation officielle
-et l'état actuel **avant** de décider. Ne jamais s'appuyer sur un souvenir.
+For any technology likely to move fast, check the official documentation and its current
+state **before** deciding. Never rely on a memory.
 
-> **Ne jamais présenter une préférence personnelle comme une contrainte technique.**
-
----
-
-## 8. Rendre le gate déterministe
-
-Sinon il reste un vœu pieux — et l'OS retombe exactement sur le défaut qu'il dénonce :
-une règle qui n'est qu'un texte ne produit aucun comportement.
-
-| Mécanisme | Contrôle attendu |
-|---|---|
-| Section **Prior art** obligatoire dans ADR et PDR, avec ≥ 2 références nommées et la convention identifiée | Absence de section ou de référence → rouge |
-| Section **Déviation** obligatoire dès que la décision s'écarte de la convention, avec valeur utilisateur et critère d'observation | Décision marquée « déviation » sans section → rouge |
-| Toute nouvelle dépendance déclare **adoption et stratégie de sortie** dans le manifest | Dépendance non déclarée → rouge |
-| Décisions `CONSTRUIRE` : **critère de succès daté** obligatoire | Absence de date → rouge |
-| Échéance dépassée sans revue | Warning en CI, remonté au rituel trimestriel |
-
-Tant qu'un de ces contrôles n'est pas automatisé, il se fait en revue et figure au backlog
-d'automatisation (`07-gouvernance.md` §9) : écrire « rouge » ne suffit pas à le rendre vrai.
-
-Formulation courte, pour le kernel :
-
-> La convention est le choix par défaut et ne se justifie pas. Toute déviation se
-> justifie par une valeur utilisateur observable, jamais par l'élégance, la flexibilité
-> future ou la préférence technique.
+> **Never present a personal preference as a technical constraint.**
 
 ---
 
-## 9. Sources de vérité
+## 8. Making the gate deterministic
 
-Chaque information importante a une source identifiable, et une seule.
+Otherwise it stays a pious wish — and the OS falls back into exactly the flaw it
+denounces: a rule that is only text produces no behaviour.
 
-| Information | Source de vérité |
+| Mechanism | Expected check |
 |---|---|
-| Décision produit | PDR |
-| Décision technique | ADR |
-| Comportement attendu d'une fonctionnalité | Critères d'acceptation de l'issue |
-| Interface entre modules | Contrat versionné |
-| Identité et dépendances d'un module | MANIFEST |
-| Travail à effectuer | Issues / projet |
-| Comportement réel | Code et tests |
-| Règles de qualité | CI versionnée |
-| Infrastructure | Configuration versionnée |
-| Sécurité | `SECURITY.md` + contrôles automatisés |
-| Exploitation | Runbooks |
+| A mandatory **Prior art** section in ADRs and PDRs, with ≥ 2 named references and the convention identified | Section or reference missing → red |
+| A mandatory **Deviation** section as soon as the decision departs from the convention, with the user value and the observation criterion | A decision marked "deviation" without the section → red |
+| Every new dependency declares **adoption and exit strategy** in the manifest | Undeclared dependency → red |
+| `BUILD` decisions: a **dated success criterion** is mandatory | No date → red |
+| A deadline passed without review | A CI warning, raised at the quarterly ritual |
 
-> **Ne jamais laisser une décision importante uniquement dans une conversation avec une
-> IA.** Une conversation n'est pas versionnée, pas relisable, pas opposable, et pas
-> retrouvable par quelqu'un qui arrivera dans six mois.
+As long as one of these checks is not automated, it happens in review and sits in the
+automation backlog (`07-governance.md` §9): writing "red" is not enough to make it true.
+
+Short formulation, for the kernel:
+
+> The convention is the default choice and needs no justification. Every deviation is
+> justified by an observable user value, never by elegance, future flexibility or
+> technical preference.
+
+---
+
+## 9. Sources of truth
+
+Every important piece of information has one identifiable source, and only one.
+
+| Information | Source of truth |
+|---|---|
+| Product decision | PDR |
+| Technical decision | ADR |
+| Expected behaviour of a feature | The issue's acceptance criteria |
+| Interface between modules | The versioned contract |
+| A module's identity and dependencies | MANIFEST |
+| Work to be done | Issues / the project board |
+| Real behaviour | Code and tests |
+| Quality rules | Versioned CI |
+| Infrastructure | Versioned configuration |
+| Security | `SECURITY.md` + automated checks |
+| Operations | Runbooks |
+
+> **Never leave an important decision only inside a conversation with an AI.** A
+> conversation is not versioned, not reviewable, not enforceable, and not findable by
+> somebody arriving in six months.

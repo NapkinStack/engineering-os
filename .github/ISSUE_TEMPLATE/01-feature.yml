@@ -74,11 +74,11 @@ body:
     attributes:
       label: Playbooks à charger
       options:
-        - label: securite.md — authn/authz, secrets, données personnelles, entrées externes
-        - label: donnees-migration.md — schéma ou données existantes
+        - label: security.md — authn/authz, secrets, données personnelles, entrées externes
+        - label: data-migration.md — schéma ou données existantes
         - label: ux.md — surface utilisateur
         - label: tests.md — stratégie de test non évidente
-        - label: exploitation.md — logs, retries, timeouts, rollback
+        - label: operations.md — logs, retries, timeouts, rollback
 
   - type: checkboxes
     id: dor

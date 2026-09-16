@@ -1,38 +1,38 @@
 # Modules
 
-Une unité de contexte autonome et de parallélisme par dossier.
+One autonomous unit of context and of parallelism per folder.
 
-> **Règle fondamentale.** Un développeur ou un agent doit pouvoir comprendre, modifier,
-> tester et valider un module **sans comprendre le reste du système**.
-> Si ce n'est pas vrai, ce n'est pas un module : c'est un dossier.
+> **Fundamental rule.** A developer or an agent must be able to understand, change, test
+> and validate a module **without understanding the rest of the system**.
+> If that is not true, it is not a module: it is a folder.
 
-## Créer un module
+## Creating a module
 
 ```bash
-nstack new-module facturation acme/facturation standard
+nstack new-module billing acme/billing standard
 ```
 
-Le scaffold produit le manifest, l'`AGENTS.md` local, les verbes standards, la ligne
-CODEOWNERS, et active les fitness functions **dès le premier commit** — un module créé
-sans garde-fous accumule des violations qu'on découvre trop tard.
+The scaffolding produces the manifest, the local `AGENTS.md`, the standard verbs, the
+CODEOWNERS line, and activates the fitness functions **from the first commit** — a module
+created without guardrails accumulates violations discovered too late.
 
-Créer un module est une décision : elle passe par un **ADR** (capacité couverte,
-frontière, alternatives rejetées).
+Creating a module is a decision: it goes through an **ADR** (the capability covered, the
+boundary, the rejected alternatives).
 
-## Avant de découper
+## Before splitting
 
-Un module représente une **capacité cohérente**, pas une table ni quelques endpoints.
-Voir l'arbre de décision dans `docs/os/02-modules.md` §3.
+A module represents a **coherent capability**, not a table or a handful of endpoints. See
+the decision tree in `docs/os/02-modules.md` §3.
 
-Ne pas découper si : la capacité n'est pas cohérente, le module ne peut pas être testé
-seul, aucun owner n'est identifiable, ou son rythme de changement est identique au
-reste sans autre raison explicite.
+Do not split if: the capability is not coherent, the module cannot be tested on its own,
+no owner is identifiable, or its rate of change is the same as the rest with no other
+explicit reason.
 
-## Ce qui est uniforme, ce qui ne l'est pas
+## What is uniform, and what is not
 
-**Uniforme** : les verbes (`bootstrap`, `check`, `test`, `run`), l'enveloppe de
-fichiers, les checks obligatoires, le format des contrats.
+**Uniform**: the verbs (`bootstrap`, `check`, `test`, `run`), the file envelope, the
+mandatory checks, the contract format.
 
-**Libre** : langage, framework, base de données, architecture interne, patterns.
+**Free**: language, framework, database, internal architecture, patterns.
 
-> On retrouve les mêmes **verbes**, jamais le même **code**.
+> You find the same **verbs**, never the same **code**.

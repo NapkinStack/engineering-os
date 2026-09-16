@@ -1,21 +1,21 @@
 name: Architecture
-description: Frontière, contrat, couplage, décision structurante
+description: Boundary, contract, coupling, structuring decision
 labels: ["architecture"]
 body:
   - type: textarea
     id: signal
     attributes:
-      label: Signal observé
+      label: Signal observed
       description: |
-        Quel signal de couplage a déclenché cette issue ?
-        (docs/os/02-modules.md §9) — PR cross-module récurrentes, cycle détecté,
-        modules toujours déployés ensemble, agent incapable de travailler via le contrat…
+        Which coupling signal triggered this issue?
+        (docs/os/02-modules.md §9) — recurring cross-module PRs, a cycle detected,
+        modules always deployed together, an agent unable to work through the contract…
     validations: { required: true }
 
   - type: input
     id: modules
     attributes:
-      label: Modules concernés
+      label: Modules concerned
     validations: { required: true }
 
   - type: textarea
@@ -23,17 +23,17 @@ body:
     attributes:
       label: Prior art
       description: |
-        Comment ce problème est-il résolu ailleurs ? Minimum deux références.
+        How is this problem solved elsewhere? Minimum two references.
         (docs/os/06-decisions.md §2)
     validations: { required: true }
 
   - type: checkboxes
-    id: sortie
+    id: outcome
     attributes:
-      label: Sortie attendue
+      label: Expected outcome
       options:
         - label: ADR
-        - label: Fusion de modules
-        - label: Redécoupage
-        - label: Changement de contrat (expand/contract)
-        - label: Nouvelle fitness function
+        - label: Merging modules
+        - label: Re-splitting
+        - label: Contract change (expand/contract)
+        - label: A new fitness function

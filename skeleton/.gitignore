@@ -12,26 +12,26 @@ coverage/
 !.env.example
 .DS_Store
 
-# Skills générées depuis playbooks/ — source de vérité = playbooks/
+# Skills generated from playbooks/ — the source of truth is playbooks/
 .claude/skills/
 
-# Éditeurs et IDE
+# Editors and IDEs
 .idea/
 *.iml
 *.swp
 *.swo
 *~
 
-# Réglages locaux d'agent : chemins et permissions propres à la machine
+# Local agent settings: machine-specific paths and permissions
 .claude/settings.local.json
 
-# Bruit système
+# System noise
 Thumbs.db
 Desktop.ini
 
-# Matériel sensible — voir SECURITY.md S1
-# Ceci RÉDUIT les accidents, ne PROTÈGE de rien : les vraies barrières sont
-# gitleaks (hook et CI) et la protection au push (CONTRIBUTING.md).
+# Sensitive material — see SECURITY.md S1
+# This REDUCES accidents, it PROTECTS nothing: the real barriers are gitleaks
+# (hook and CI) and push protection (CONTRIBUTING.md).
 *.pem
 *.key
 id_rsa*

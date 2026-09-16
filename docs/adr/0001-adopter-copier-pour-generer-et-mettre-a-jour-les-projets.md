@@ -151,7 +151,7 @@ Copier ; le squelette est extrait dans un sous-dossier ; `new-module.sh` est con
 
 **Règle à automatiser :** aucun check nouveau. Le refus des fonctions « unsafe » est
 natif (Copier sort en code 4) et sera exercé par le test de génération d'un projet dans
-la CI de NapkinStack, prévu au plan d'implémentation. `docs/os/07-gouvernance.md` §2
+la CI de NapkinStack, prévu au plan d'implémentation. `docs/os/07-governance.md` §2
 
 ---
 

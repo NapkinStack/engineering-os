@@ -1,23 +1,24 @@
-# contracts — instructions locales
+# contracts — local instructions
 
-## Responsabilité
+## Responsibility
 
-Définit et versionne les contrats d'interface entre modules.
+Defines and versions the interface contracts between modules.
 
 ## Invariants
 
-- Un contrat ne contient **jamais** de structure interne d'un producteur.
-- Toute version dépréciée porte une `removal_date`. Sans date, la PR est refusée.
-- Un changement breaking se fait en **4 PR** (expand/contract), jamais en une.
-- Les contract tests tournent des **deux côtés** : producteur et consommateur.
+- A contract **never** contains a producer's internal structure.
+- Every deprecated version carries a `removal_date`. Without a date, the pull request is
+  refused.
+- A breaking change goes through **4 pull requests** (expand/contract), never one.
+- Contract tests run on **both sides**: producer and consumer.
 
-## Piège principal
+## The main trap
 
-Structure inchangée mais **sémantique modifiée** = breaking change. Une nouvelle valeur
-d'énumération, un changement d'unité, un nullable qui devient obligatoire. Aucun diff ne
-le détecte ; seuls les contract tests le font.
+Unchanged structure but **modified semantics** = a breaking change. A new enumeration
+value, a change of unit, a nullable that becomes mandatory. No diff detects it; only
+contract tests do.
 
-## Avant de modifier
+## Before changing anything
 
-Vérifier la matrice des consommateurs, générée depuis les manifests. On ne retire une
-version que quand `consommateurs = 0`.
+Check the consumer matrix, generated from the manifests. A version is only removed once
+`consumers = 0`.

@@ -162,7 +162,7 @@ values of every `MANIFEST.yaml`, read by `nstack manifests`. The skill keys of
 `.nstack/skills.yaml` change with the playbook file names.
 
 **Rule to automate:** none for now, and the arbitration is explicit
-(`skeleton/docs/os/07-gouvernance.md` §2). The rule is mechanically checkable in
+(`skeleton/docs/os/07-governance.md` §2). The rule is mechanically checkable in
 principle, but soundly only at high cost: detection would rest on accented letters, which
 misses English borrowings and false-positives on typographic punctuation and proper
 nouns. Risk if violated is low — a stray French sentence is visible in review and costs a

@@ -27,7 +27,7 @@ NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
 
 RUNBOOK = """# Runbook - {name}
 
-> Required for criticality={criticality} (docs/os/08-qualite.md §7).
+> Required for criticality={criticality} (docs/os/08-quality.md §7).
 > An empty runbook fails CI. Fill it in before going to production.
 
 ## Alerts and responses
@@ -52,7 +52,7 @@ def create(root: Path, name: str, owner: str, criticality: str) -> int:
         return 1
     if not TEAM.fullmatch(owner):
         print(f"FAIL [new-module] invalid owner '{owner}': a GitHub team, organisation/team, "
-              "for example acme/billing (CODEOWNERS, docs/os/07-gouvernance.md §7).")
+              "for example acme/billing (CODEOWNERS, docs/os/07-governance.md §7).")
         return 1
     folder = root / "modules" / name
     if folder.exists():
@@ -123,7 +123,7 @@ def run_verb(root: Path, verb: str, name: str | None) -> int:
                 print(f"-> {target}: {verb} not declared, nothing to prepare.")
                 continue
             print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
-                  "      Action: declare the module stack's command there (docs/os/09-plateforme.md §2).")
+                  "      Action: declare the module stack's command there (docs/os/09-platform.md §2).")
             return 1
         print(f"-> {target}: {command}", flush=True)
         code = subprocess.run(command, shell=True, cwd=known[target]).returncode

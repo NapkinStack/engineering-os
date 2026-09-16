@@ -1,4 +1,4 @@
-# Rattache chaque changement à un owner (skeleton/docs/os/07-gouvernance.md §7).
+# Rattache chaque changement à un owner (skeleton/docs/os/07-governance.md §7).
 # Mis à jour automatiquement par nstack new-module.
 
 # Socle : toute modification de l'OS lui-même passe par un ADR.

@@ -1,70 +1,70 @@
-# Contribuer
+# Contributing
 
-## Avant de commencer
+## Before you start
 
-1. Prendre une issue **Ready** (les formulaires garantissent le DoR).
-2. Identifier **le** module cible — un seul.
-3. Lire son `MANIFEST.yaml` puis son `AGENTS.md`.
-4. `nstack bootstrap <nom> && nstack check <nom>`
-5. `pre-commit install` — une fois par clone ([installer pre-commit](https://pre-commit.com/#install)).
+1. Pick a **Ready** issue (the forms guarantee the DoR).
+2. Identify **the** target module — exactly one.
+3. Read its `MANIFEST.yaml`, then its `AGENTS.md`.
+4. `nstack bootstrap <name> && nstack check <name>`
+5. `pre-commit install` — once per clone ([install pre-commit](https://pre-commit.com/#install)).
 
-## Les barrières contre les fuites
+## The barriers against leaks
 
 ```mermaid
 flowchart LR
-    C["git commit"] --> H{"1 · Hook pre-commit<br/>gitleaks + contrôles"}
-    H -->|refus| X1["Commit bloqué"]
-    H -->|ok| P["git push"] --> PP{"2 · Protection<br/>au push GitHub"}
-    PP -->|refus| X2["Push bloqué"]
-    PP -->|ok| PR["Pull request"] --> CI{"3 · CI « Hooks et secrets »<br/>mêmes hooks + historique"}
-    CI -->|rouge| X3["Merge impossible"]
-    CI -->|vert| M["main"]
+    C["git commit"] --> H{"1 · pre-commit hook<br/>gitleaks + checks"}
+    H -->|refused| X1["Commit blocked"]
+    H -->|ok| P["git push"] --> PP{"2 · GitHub push<br/>protection"}
+    PP -->|refused| X2["Push blocked"]
+    PP -->|ok| PR["Pull request"] --> CI{"3 · CI 'Hooks et secrets'<br/>same hooks + full history"}
+    CI -->|red| X3["Merge impossible"]
+    CI -->|green| M["main"]
 
     classDef local fill:#374151,color:#fff
-    classDef serveur fill:#065f46,color:#fff
-    classDef arret fill:#7c2d12,color:#fff
+    classDef server fill:#065f46,color:#fff
+    classDef stop fill:#7c2d12,color:#fff
     class H local
-    class PP,CI serveur
-    class X1,X2,X3 arret
+    class PP,CI server
+    class X1,X2,X3 stop
 ```
 
-**Légende** — gris : sur le poste, contournable · vert : côté GitHub · rouge : arrêt.
+**Legend** — grey: on the workstation, bypassable · green: GitHub side · red: a stop.
 
-Seules les barrières 1 et 2 agissent **avant** publication. Un secret arrêté par la CI est
-déjà public : c'est un incident, il se révoque immédiatement (`SECURITY.md`).
+Only barriers 1 and 2 act **before** publication. A secret caught by CI is already
+public: that is an incident, and it is revoked immediately (`SECURITY.md`).
 
-## Pendant
+## While you work
 
-- **Écrire l'oracle d'abord**, le voir échouer, puis implémenter
+- **Write the oracle first**, watch it fail, then implement
   (`docs/os/05-workflow.md` §3).
-- **Changement minimal.** Pas de refactoring opportuniste : il fait sa propre PR.
-- **Rester dans le module.** Besoin d'un autre module ? Passer par son contrat.
-  Le contrat ne suffit pas ? C'est un changement de contrat, donc une séquence
-  expand/contract (`docs/os/03-contrats.md` §4) — jamais une PR unique.
-- `nstack fitness` avant chaque commit.
+- **Minimal change.** No opportunistic refactoring: it gets its own pull request.
+- **Stay in the module.** Need another one? Go through its contract. The contract is not
+  enough? That is a contract change, so an expand/contract sequence
+  (`docs/os/03-contracts.md` §4) — never a single pull request.
+- `nstack fitness` before every commit.
 
-## Ouvrir la PR
+## Opening the pull request
 
-Le template applique la Definition of Done. Deux choses à ne pas escamoter :
+The template applies the Definition of Done. Two things not to skate over:
 
-- **Le résumé** — `FAIT / VÉRIFIÉ / SUPPOSÉ / NON VÉRIFIÉ / RISQUES`.
-  Un résumé sans rien sous `SUPPOSÉ` et `NON VÉRIFIÉ` est presque toujours incomplet.
-- **Les signaux à remonter** — c'est ainsi que le système s'améliore
-  (`docs/os/10-mesure.md`).
+- **The summary** — `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
+  A summary with nothing under `ASSUMED` and `NOT VERIFIED` is almost always incomplete.
+- **The signals to report** — that is how the system improves
+  (`docs/os/10-measurement.md`).
 
 ## Exceptions
 
-| Label | Quand | Conséquence |
+| Label | When | Consequence |
 |---|---|---|
-| `cross-module` | PR touchant plusieurs modules, avec justification | Autorisée, comptée |
-| `hors-budget` | Génération, migration mécanique, renommage massif | Autorisée, comptée |
+| `cross-module` | A PR touching several modules, with a justification | Allowed, counted |
+| `hors-budget` | Generation, mechanical migration, mass rename | Allowed, counted |
 
-Les exceptions sont **visibles**, jamais silencieuses. Leur taux est un indicateur de
-santé des frontières.
+Exceptions are **visible**, never silent. Their rate is a health indicator for the
+boundaries.
 
-## Ce qui ne se négocie pas
+## What is not negotiable
 
-- Aucun contournement de quality gate : pas de `skip`, pas de `--no-verify`, pas de
-  test désactivé sans issue ni date.
-- Aucun secret dans le dépôt, sous aucune forme.
-- Ne jamais cocher « tests passants » sans les avoir exécutés.
+- No quality gate bypass: no `skip`, no `--no-verify`, no test disabled without an issue
+  and a date.
+- No secret in the repository, in any form.
+- Never tick "tests passing" without having run them.

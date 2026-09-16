@@ -1,19 +1,19 @@
-name: Gouvernance
+name: Governance
 
-# Fitness functions d'architecture, périmètre de PR, hooks et secrets.
-# Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
-# (docs/os/07-gouvernance.md).
+# Architecture fitness functions, pull request scope, hooks and secrets.
+# These checks are NOT BYPASSABLE: that is what separates a rule from a pious wish
+# (docs/os/07-governance.md).
 #
-# À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
-# principale. Sans cela, la CI informe mais ne garantit rien.
+# To do once: Settings → Rules → Rulesets → require these checks on the main branch.
+# Without that, CI informs but guarantees nothing.
 #
-# Sécurité, vérifiée par zizmor : jeton en lecture seule, actions épinglées par SHA et
-# tenues à jour par Dependabot, aucun jeton laissé dans .git/config, et les valeurs
-# issues du contexte passent par env: au lieu d'être insérées dans les scripts.
+# Security, verified by zizmor: a read-only token, actions pinned by SHA and kept up to
+# date by Dependabot, no token left in .git/config, and values coming from the context
+# passed through env: instead of being inserted into the scripts.
 #
-# Outillage : uv, seul prérequis. nstack et pre-commit s'installent à la version de
-# NapkinStack du projet (_commit de .copier-answers.yml), qui ne change que par
-# nstack update.
+# Tooling: uv, the only prerequisite. nstack and pre-commit are installed at the
+# project's NapkinStack version (_commit in .copier-answers.yml), which only changes
+# through nstack update.
 
 on:
   pull_request:
@@ -34,20 +34,20 @@ jobs:
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
-      - name: NapkinStack, version du projet
+      - name: NapkinStack, the project version
         run: |
           VERSION=$(yq '._commit' .copier-answers.yml)
           uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
-      - name: Manifests, frontières, skills
+      - name: Manifests, boundaries, skills
         run: nstack fitness --root .
 
   scope:
-    name: Périmètre et budget de revue
+    name: PR scope and review budget
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth: 0 récupère toutes les branches : pas de git fetch authentifié à faire.
+      # fetch-depth: 0 fetches every branch: no authenticated git fetch to do.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -55,19 +55,19 @@ jobs:
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
-      - name: NapkinStack, version du projet
+      - name: NapkinStack, the project version
         run: |
           VERSION=$(yq '._commit' .copier-answers.yml)
           uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
-      - name: Une PR = un module
+      - name: One PR = one module
         env:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_REF: ${{ github.base_ref }}
         run: nstack pr-scope --root . --base "origin/$BASE_REF"
 
   hooks:
-    name: Hooks et secrets
+    name: Hooks and secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,18 +82,18 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', '.copier-answers.yml') }}
 
-      - name: NapkinStack, version du projet
+      - name: NapkinStack, the project version
         run: |
           VERSION=$(yq '._commit' .copier-answers.yml)
           uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
 
-      # Même configuration que les hooks locaux. Le hook « gitleaks » ne scanne que
-      # les changements indexés, vides en CI : l'étape suivante couvre les secrets.
-      - name: Hooks sur tous les fichiers
+      # The same configuration as the local hooks. The "gitleaks" hook only scans the
+      # staged changes, empty in CI: the next step covers the secrets.
+      - name: Hooks on every file
         env:
           SKIP: gitleaks
         run: pre-commit run --all-files --show-diff-on-failure
 
-      # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
-      - name: Secrets dans tout l'historique git
-        run: pre-commit run gitleaks-historique --hook-stage manual --all-files
+      # Rule S1: no secret in the repository. Output redacted, the logs are public.
+      - name: Secrets in the whole git history
+        run: pre-commit run gitleaks-history --hook-stage manual --all-files

@@ -3,7 +3,7 @@
 Fitness function 2 — Boundaries between modules.
 
 Compares the DECLARED graph (manifests) with the REAL graph (references in the code),
-then checks for cycles (docs/os/02-modules.md §8, docs/os/07-gouvernance.md §3).
+then checks for cycles (docs/os/02-modules.md §8, docs/os/07-governance.md §3).
 
 Rules:
   B1  no reference to a module absent from `consumes`
@@ -129,7 +129,7 @@ def analyse(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                     if any(marker in line.replace("\\", "/") for marker in INTERNAL_MARKERS):
                         fail("B2", f"{rel}:{lineno}",
                              f"'{name}' imports the internal implementation of '{other_name}'. "
-                             f"Go through its contract (docs/os/03-contrats.md).")
+                             f"Go through its contract (docs/os/03-contracts.md).")
                     # B1 - undeclared dependency
                     elif other_name not in mod["declared"]:
                         fail("B1", f"{rel}:{lineno}",
@@ -149,7 +149,7 @@ def analyse(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                 if re.search(rf"\b(from|join|into|update|table)\s+[\"'`\[]?{re.escape(table.lower())}\b", text):
                     fail("B5", str(source.relative_to(root)),
                          f"'{name}' accesses table '{table}' owned by '{owner}'. "
-                         f"Coupling through the database (docs/os/08-qualite.md §8).")
+                         f"Coupling through the database (docs/os/08-quality.md §8).")
                     break
 
     # B4 - declared but unused

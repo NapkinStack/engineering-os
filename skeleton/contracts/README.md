@@ -1,40 +1,40 @@
-# Contrats
+# Contracts
 
-Le **seul** canal de communication entre modules, et le seul point de coordination
-entre équipes.
+The **only** channel of communication between modules, and the only point of
+coordination between teams.
 
-Ce dossier est un **module à part entière** : il a un owner, un manifest, ses propres
-tests et une criticité élevée. Une frontière orpheline se dégrade.
+This folder is a **module in its own right**: it has an owner, a manifest, its own tests
+and a high criticality. An orphan boundary decays.
 
 ## Structure
 
 ```
 contracts/
 ├── MANIFEST.yaml
-├── <nom-du-contrat>/
-│   ├── v1/          ← schéma exécutable, doc, exemples, cas d'erreur
+├── <contract-name>/
+│   ├── v1/          ← executable schema, docs, examples, error cases
 │   └── v2/
-└── tests/           ← contract tests, exécutés des DEUX côtés
+└── tests/           ← contract tests, run on BOTH sides
 ```
 
-## Faire évoluer un contrat
+## Evolving a contract
 
-**Additif** (champ optionnel, nouvel endpoint) → PR simple, contract tests verts.
+**Additive** (optional field, new endpoint) → a simple pull request, contract tests
+green.
 
-**Breaking** → séquence expand/contract en 4 PR, jamais une seule
-(`docs/os/03-contrats.md` §4) :
+**Breaking** → an expand/contract sequence in 4 pull requests, never one
+(`docs/os/03-contracts.md` §4):
 
-1. contrat v2 déclaré, additif — v1 intacte, tests des deux versions verts
-2. le producteur sert v1 **et** v2
-3. chaque consommateur migre à son rythme, met à jour son manifest
-4. retrait de v1 quand `consommateurs v1 = 0`
+1. contract v2 declared, additive — v1 untouched, tests for both versions green
+2. the producer serves v1 **and** v2
+3. each consumer migrates at its own pace, updating its manifest
+4. v1 is removed once `v1 consumers = 0`
 
-Toute version dépréciée porte une **date de retrait**. Un check échoue quand la date
-est dépassée.
+Every deprecated version carries a **removal date**. A check fails once that date has
+passed.
 
-## Piège
+## The trap
 
-Une structure inchangée mais une **sémantique modifiée** est un breaking change :
-un champ qui gagne une valeur inattendue, une unité qui change, un champ nullable qui
-devient toujours rempli. Aucun outil de diff ne le détecte — seuls les contract tests
-le font.
+An unchanged structure with a **modified semantics** is a breaking change: a field that
+gains an unexpected value, a unit that changes, a nullable field that becomes always
+filled. No diff tool detects it — only contract tests do.

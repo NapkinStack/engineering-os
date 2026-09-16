@@ -6,7 +6,7 @@
 #
 # The `cross-module` label lifts P1. The `hors-budget` label documents P2.
 # Both are deliberately visible: they make the exception countable
-# (docs/os/10-mesure.md §3).
+# (docs/os/10-measurement.md §3).
 #
 # Local usage :  nstack pr-scope [--base BASE] [--root ROOT]   (base defaults to origin/main)
 # In CI       :  PR_LABELS="cross-module,bug" bash src/napkinstack/fitness/pr_scope.sh "$BASE_SHA"
@@ -49,7 +49,7 @@ if [ "$COUNT" -gt 1 ]; then
     echo "FAIL [P1] This PR touches $COUNT modules."
     echo "  One PR = one module (docs/os/02-modules.md §7)."
     echo "  A contract change goes through an expand/contract sequence,"
-    echo "  never a single PR (docs/os/03-contrats.md §4)."
+    echo "  never a single PR (docs/os/03-contracts.md §4)."
     echo "  If the exception is justified: add the 'cross-module' label."
     STATUS=1
   fi

@@ -144,7 +144,7 @@ installable ; D18 (`make` et `pip` absents) est résolu par uv.
 **Règle à automatiser :** la publication échoue si le tag diffère de la version du
 projet. Le workflow de publication est couvert par les hooks existants : zizmor
 (permissions, épinglage, audit `use-trusted-publishing`) et actionlint.
-`docs/os/07-gouvernance.md` §2
+`docs/os/07-governance.md` §2
 
 ---
 

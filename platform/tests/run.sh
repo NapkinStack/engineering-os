@@ -316,7 +316,7 @@ JETON=$(faux_jeton_aws)
 echo "aws_access_key_id = $JETON" > "$HK/historique/config.ini"
 git -C "$HK/historique" add config.ini
 git "${GIT_ID[@]}" -C "$HK/historique" commit -q --no-verify -m contournement
-if OUT=$(cd "$HK/historique" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+if OUT=$(cd "$HK/historique" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
   echo "FAIL: the history scan found nothing."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qi "leaks found" \
@@ -529,7 +529,7 @@ for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2
   echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
     || { echo "FAIL: hook "$hook" not run on the project."; echo "$OUT"; exit 1; }
 done
-if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
   echo "FAIL: history scan failing on the project."; echo "$OUT"; exit 1
 fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "No file changed." \
@@ -559,7 +559,7 @@ printf '\nFix v0.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests
 printf '\nFix v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
 printf '\nFix v0.2.\n' >> "$TPL/skeleton/modules/README.md"
 template_version v0.2.0
-sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/securite.md"
+sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/security.md"
 template_version v0.3.0
 projet_v01() {
   nstack init "$1" --source "$TPL" --ref v0.1.0 "${ANSWERS[@]}" >/dev/null \
@@ -634,7 +634,7 @@ echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
 
 B="$GN/project-b"
 projet_v01 "$B"
-sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/securite.md"
+sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/security.md"
 commit_project "$B" "Adaptation"
 
 echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
@@ -642,7 +642,7 @@ if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
   echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] NapkinStack v0.1.0 -> v0.3.0: conflicts" \
-  && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
+  && echo "$OUT" | grep -qF "  - playbooks/security.md" \
   || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
@@ -667,7 +667,7 @@ import json, sys
 rules = [
     {"type": "pull_request", "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
     {"type": "required_status_checks", "parameters": {"required_status_checks": [
-        {"context": "Fitness functions"}, {"context": "Périmètre et budget de revue"}, {"context": "Hooks et secrets"}]}},
+        {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/hors-budget": {"name": "hors-budget"}}
 active = {"status": "enabled"}
@@ -776,7 +776,7 @@ echo "$OUT" | grep -qF "Action: pre-commit install" \
 rm "$A/PRODUCT.md"
 
 (cd "$C" && pre-commit install >/dev/null)
-sed -i 's#<Une phrase : ce que fait ce projet.>#Demo project.#' "$C/README.md"
+sed -i 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
 
 echo "-> doctor: GitHub repository without settings, every gap listed with its action (criterion 2)"
 repo_c acme/bare

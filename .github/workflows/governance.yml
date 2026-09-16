@@ -2,7 +2,7 @@ name: Gouvernance
 
 # Fitness functions d'architecture, périmètre de PR, hooks et secrets.
 # Ces checks sont NON CONTOURNABLES : c'est ce qui distingue une règle d'un vœu pieux
-# (skeleton/docs/os/07-gouvernance.md).
+# (skeleton/docs/os/07-governance.md).
 #
 # À faire une fois : Settings → Rules → Rulesets → exiger ces checks sur la branche
 # principale. Sans cela, la CI informe mais ne garantit rien.
@@ -92,4 +92,4 @@ jobs:
 
       # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
       - name: Secrets dans tout l'historique git
-        run: uv run pre-commit run gitleaks-historique --hook-stage manual --all-files
+        run: uv run pre-commit run gitleaks-history --hook-stage manual --all-files
