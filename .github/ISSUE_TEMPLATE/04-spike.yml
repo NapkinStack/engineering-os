@@ -1,26 +1,26 @@
 name: Spike / Investigation
-description: Lever une incertitude. Livrable = connaissance, pas code.
+description: Resolve an uncertainty. The deliverable is knowledge, not code.
 labels: ["spike"]
 body:
   - type: textarea
     id: question
     attributes:
-      label: Question à laquelle répondre
-      description: Une question fermée. Si elle est ouverte, le spike ne finira jamais.
+      label: Question to answer
+      description: A closed question. If it is open-ended, the spike will never finish.
     validations: { required: true }
 
   - type: input
     id: timebox
     attributes:
       label: Timebox
-      placeholder: "2 jours"
+      placeholder: "2 days"
     validations: { required: true }
 
   - type: textarea
-    id: livrable
+    id: deliverable
     attributes:
-      label: Livrable attendu
+      label: Expected deliverable
       description: |
-        Une réponse documentée, un ADR, un prototype jetable.
-        Le code produit ici n'est PAS destiné à la production.
+        A documented answer, an ADR, a throwaway prototype.
+        The code produced here is NOT destined for production.
     validations: { required: true }

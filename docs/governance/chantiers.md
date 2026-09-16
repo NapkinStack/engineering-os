@@ -41,9 +41,9 @@ attend une décision.
 | C0.1 | Hooks et secrets | Fait |
 | C0.2 | Sécurité des workflows | Fait |
 | C0.3 | Formats stricts | Fait |
-| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md) | Accepté (2026-09-15), précisé : dépôts privés |
-| ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Accepté (2026-09-15) |
-| ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribuer-napkinstack-sur-pypi.md) | Accepté (2026-09-15), vérifié à la publication de la v0.1.0 |
+| PDR-0001 | [Créer un projet et recevoir les évolutions](../pdr/0001-create-a-project-and-receive-updates.md) | Accepté (2026-09-15), précisé : dépôts privés |
+| ADR-0001 | [Adopter Copier pour générer et mettre à jour les projets](../adr/0001-adopt-copier-to-generate-and-update-projects.md) | Accepté (2026-09-15) |
+| ADR-0002 | [Distribuer NapkinStack sur PyPI](../adr/0002-distribute-napkinstack-on-pypi.md) | Accepté (2026-09-15), vérifié à la publication de la v0.1.0 |
 | Prototype | Jetable, valide les critères d'acceptation de PDR-0001 | Fait (2026-09-15), non mergé |
 | ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepté (2026-09-16) |
 | M7 | Passage du dépôt en anglais, jusqu'à la v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | En cours : M7a |
@@ -162,7 +162,7 @@ flowchart LR
 **Légende** — trait plein : génération, une seule fois · pointillé : dépendance
 versionnée, le projet choisit quand monter de version.
 
-**Accepté (2026-09-15, après prototype)** : [`docs/pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md`](../pdr/0001-creer-un-projet-et-recevoir-les-evolutions.md).
+**Accepté (2026-09-15, après prototype)** : [`docs/pdr/0001-create-a-project-and-receive-updates.md`](../pdr/0001-create-a-project-and-receive-updates.md).
 Le projet possède son squelette et l'adapte ; chaque version lui arrive à sa demande, en
 PR fusionnée avec ses adaptations (fusion à 3 voies) ; réglages GitHub en checklist
 vérifiée en lecture seule ; uv seul prérequis. Il remplace les points « copiés ou

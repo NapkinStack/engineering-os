@@ -1,11 +1,11 @@
-# Mises à jour de l'outillage : actions GitHub, hooks pre-commit, dépendances Python (uv.lock).
-# Le délai de 7 jours évite d'adopter une version publiée la veille, le temps qu'une
-# compromission soit repérée. Chaque PR passe par les mêmes checks obligatoires.
+# Tooling updates: GitHub actions, pre-commit hooks, Python dependencies (uv.lock).
+# The 7-day delay avoids adopting a version published the day before, giving a
+# compromise time to be spotted. Every PR goes through the same mandatory checks.
 #
-# Actions et hooks existent en deux exemplaires, ce dépôt et skeleton/ :
-# group-by: dependency-name les met à jour dans la même PR, une par dépendance.
-# github-actions lit tel quel un répertoire autre que « / », d'où le chemin des
-# workflows du squelette.
+# Actions and hooks exist in two copies, this repository and skeleton/:
+# group-by: dependency-name updates them in the same pull request, one per dependency.
+# github-actions reads a directory other than "/" literally, hence the path of the
+# skeleton workflows.
 
 version: 2
 

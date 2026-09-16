@@ -4,7 +4,7 @@
 #   P1  one PR = one module           → BLOCKING  (docs/os/02-modules.md §7)
 #   P2  review budget respected       → WARNING   (docs/os/05-workflow.md §4)
 #
-# The `cross-module` label lifts P1. The `hors-budget` label documents P2.
+# The `cross-module` label lifts P1. The `over-budget` label documents P2.
 # Both are deliberately visible: they make the exception countable
 # (docs/os/10-measurement.md §3).
 #
@@ -66,12 +66,12 @@ echo
 echo "Review budget : ${LINES}/${MAX_LINES} lines, ${FILES}/${MAX_FILES} files"
 
 if [ "$LINES" -gt "$MAX_LINES" ] || [ "$FILES" -gt "$MAX_FILES" ]; then
-  if echo "$LABELS" | grep -q 'hors-budget'; then
+  if echo "$LABELS" | grep -q 'over-budget'; then
     echo "WARNING [P2] Over budget, justified by label."
   else
     echo "WARNING [P2] Over the review budget."
     echo "  A project's throughput is its VERIFICATION throughput, not its generation rate."
-    echo "  Split it up, or add the 'hors-budget' label with a justification"
+    echo "  Split it up, or add the 'over-budget' label with a justification"
     echo "  (generation, mechanical migration, mass rename)."
   fi
 fi

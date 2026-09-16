@@ -1,27 +1,27 @@
 # Architecture Decision Records
 
-Une décision **technique ou architecturale** structurante — coûteuse à inverser, ou
-qui contraindra les suivantes.
+A structuring **technical or architectural** decision — costly to reverse, or one that
+will constrain the decisions after it.
 
-- Modèle : [`_TEMPLATE.md`](./_TEMPLATE.md)
-- Nommage : `NNNN-titre-a-l-infinitif.md`, ex. `0001-adopter-postgres.md`
-- Une décision remplacée est **supersédée**, jamais réécrite silencieusement.
+- Template: [`_TEMPLATE.md`](./_TEMPLATE.md)
+- Naming: `NNNN-verb-phrase-title.md`, e.g. `0001-adopt-postgres.md`
+- A replaced decision is **superseded**, never rewritten quietly.
 
-## Sections obligatoires
+## Mandatory sections
 
-| Section | Contrôle |
+| Section | Check |
 |---|---|
-| **Prior art** — ≥ 2 références nommées + convention identifiée | Revue ; à automatiser |
-| **Déviation** — si l'on s'écarte de la convention | Revue ; à automatiser |
-| **Critère de succès daté** — si l'on construit sur-mesure | Revue ; à automatiser |
-| **Règle à automatiser** — quelle fitness function en découle | Revue |
+| **Prior art** — ≥ 2 named references + the convention identified | Review; to automate |
+| **Deviation** — when departing from the convention | Review; to automate |
+| **Dated success criterion** — when building something bespoke | Review; to automate |
+| **Rule to automate** — which fitness function follows from it | Review |
 
-Voir `skeleton/docs/os/06-decisions.md`.
+See `skeleton/docs/os/06-decisions.md`.
 
 ## Index
 
-| N° | Titre | Statut | Critère à vérifier le |
+| No. | Title | Status | Criterion to check on |
 |---|---|---|---|
-| [0001](./0001-adopter-copier-pour-generer-et-mettre-a-jour-les-projets.md) | Adopter Copier pour générer et mettre à jour les projets | Accepté | Validé au prototype (2026-09-15) |
-| [0002](./0002-distribuer-napkinstack-sur-pypi.md) | Distribuer NapkinStack sur PyPI | Accepté | Validé à la publication de la v0.1.0 (2026-09-15) |
-| [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepté | À vérifier à la publication de la v0.2.0 |
+| [0001](./0001-adopt-copier-to-generate-and-update-projects.md) | Adopt Copier to generate and update projects | Accepted | Validated at the prototype (2026-09-15) |
+| [0002](./0002-distribute-napkinstack-on-pypi.md) | Distribute NapkinStack on PyPI | Accepted | Validated at the v0.1.0 release (2026-09-15) |
+| [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepted | To check at the v0.2.0 release |

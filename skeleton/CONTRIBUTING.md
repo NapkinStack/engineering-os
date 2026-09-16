@@ -57,7 +57,7 @@ The template applies the Definition of Done. Two things not to skate over:
 | Label | When | Consequence |
 |---|---|---|
 | `cross-module` | A PR touching several modules, with a justification | Allowed, counted |
-| `hors-budget` | Generation, mechanical migration, mass rename | Allowed, counted |
+| `over-budget` | Generation, mechanical migration, mass rename | Allowed, counted |
 
 Exceptions are **visible**, never silent. Their rate is a health indicator for the
 boundaries.

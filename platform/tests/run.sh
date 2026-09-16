@@ -245,18 +245,18 @@ uv run nstack pr-scope --root . --base HEAD | grep -qF "No file changed." \
 
 echo "-> release: a tag different from the package version MUST block (ADR-0002)"
 [ -f .github/workflows/release.yml ] || { echo "FAIL: .github/workflows/release.yml missing."; exit 1; }
-CONTROLE_TAG=$(python3 - <<'EOF'
+TAG_CHECK=$(python3 - <<'EOF'
 import yaml
 jobs = yaml.safe_load(open(".github/workflows/release.yml", encoding="utf-8"))["jobs"]
-print(next(step["run"] for step in jobs["construction"]["steps"] if step.get("name") == "Tag et version identiques"))
+print(next(step["run"] for step in jobs["build"]["steps"] if step.get("name") == "Tag and version identical"))
 EOF
 )
-if OUT=$(GITHUB_REF_NAME=v9.9.9 bash -c "$CONTROLE_TAG" 2>&1); then
+if OUT=$(GITHUB_REF_NAME=v9.9.9 bash -c "$TAG_CHECK" 2>&1); then
   echo "FAIL: tag v9.9.9 accepted for a different version."; exit 1
 fi
-echo "$OUT" | grep -qF "Tag v9.9.9 et version" \
+echo "$OUT" | grep -qF "Tag v9.9.9 and version" \
   || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
-GITHUB_REF_NAME="v$(uv version --short)" bash -c "$CONTROLE_TAG" >/dev/null \
+GITHUB_REF_NAME="v$(uv version --short)" bash -c "$TAG_CHECK" >/dev/null \
   || { echo "FAIL: matching tag refused."; exit 1; }
 
 # Hooks: throwaway git repositories, fictional identity. The fake secrets are assembled at
@@ -669,7 +669,7 @@ rules = [
     {"type": "required_status_checks", "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"}]}},
 ]
-labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/hors-budget": {"name": "hors-budget"}}
+labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"}}
 active = {"status": "enabled"}
 compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active}},
