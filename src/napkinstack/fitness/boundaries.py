@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-Fitness function 2 — Frontières entre modules.
+Fitness function 2 — Boundaries between modules.
 
-Compare le graphe DÉCLARÉ (manifests) au graphe RÉEL (références dans le code),
-puis vérifie l'absence de cycles (docs/os/02-modules.md §8, docs/os/07-gouvernance.md §3).
+Compares the DECLARED graph (manifests) with the REAL graph (references in the code),
+then checks for cycles (docs/os/02-modules.md §8, docs/os/07-gouvernance.md §3).
 
-Contrôles :
-  B1  aucune référence vers un module non déclaré dans `consumes`
-  B2  aucun import direct de l'implémentation d'un autre module (src/, internal/)
-  B3  aucune dépendance circulaire entre modules
-  B4  dépendance déclarée mais jamais utilisée (avertissement)
-  B5  aucun accès direct aux données d'un autre module (tables déclarées ailleurs)
+Rules:
+  B1  no reference to a module absent from `consumes`
+  B2  no direct import of another module's implementation (src/, internal/)
+  B3  no circular dependency between modules
+  B4  dependency declared but never used (warning)
+  B5  no direct access to another module's data (tables declared elsewhere)
 
-DÉTECTION — à calibrer pour ton langage.
-La détection est textuelle et volontairement simple : on cherche, dans les lignes
-ressemblant à un import, les jetons identifiant un autre module. Deux sources :
-  - le chemin du module   ("modules/billing", "@org/billing", "org.billing")
-  - le champ `code_name` du manifest, s'il diffère du nom de dossier.
-Ajuste IMPORT_HINTS et SOURCE_SUFFIXES selon ta stack. Un faux positif se corrige
-en déclarant la dépendance ; un faux négatif se corrige en enrichissant les motifs.
+DETECTION — calibrate this for your language.
+Detection is textual and deliberately simple: in lines that look like an import, it
+looks for the tokens identifying another module. Two sources:
+  - the module path       ("modules/billing", "@org/billing", "org.billing")
+  - the manifest's `code_name` field, when it differs from the folder name.
+Adjust IMPORT_HINTS and SOURCE_SUFFIXES for your stack. A false positive is fixed by
+declaring the dependency; a false negative by enriching the patterns.
 
-Usage :  nstack boundaries [--root RACINE]
+Usage :  nstack boundaries [--root ROOT]
 """
 
 from __future__ import annotations
@@ -65,10 +65,10 @@ def load_modules(root: Path) -> dict[str, dict]:
             try:
                 data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
             except yaml.YAMLError:
-                continue  # signalé par nstack manifests (M2)
+                continue  # reported by nstack manifests (M2)
             mod = data.get("module") if isinstance(data, dict) else None
             if not isinstance(mod, dict):
-                continue  # signalé par nstack manifests (M2)
+                continue  # reported by nstack manifests (M2)
             consumes = data.get("consumes") if isinstance(data.get("consumes"), list) else []
             section = data.get("data") if isinstance(data.get("data"), dict) else {}
             owns = section.get("owns") if isinstance(section.get("owns"), list) else []
@@ -94,7 +94,7 @@ def iter_sources(module_path: Path):
 
 
 def tokens_for(other: dict) -> list[str]:
-    """Jetons qui identifient un autre module dans une ligne d'import."""
+    """Tokens identifying another module inside an import line."""
     return list({
         f"modules/{other['dirname']}",
         f"services/{other['dirname']}",
@@ -125,19 +125,19 @@ def analyse(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                     real[name].add(other_name)
                     rel = source.relative_to(root)
 
-                    # B2 — import de l'implémentation interne
+                    # B2 - import of the internal implementation
                     if any(marker in line.replace("\\", "/") for marker in INTERNAL_MARKERS):
                         fail("B2", f"{rel}:{lineno}",
-                             f"'{name}' importe l'implémentation interne de '{other_name}'. "
-                             f"Passer par son contrat (docs/os/03-contrats.md).")
-                    # B1 — dépendance non déclarée
+                             f"'{name}' imports the internal implementation of '{other_name}'. "
+                             f"Go through its contract (docs/os/03-contrats.md).")
+                    # B1 - undeclared dependency
                     elif other_name not in mod["declared"]:
                         fail("B1", f"{rel}:{lineno}",
-                             f"'{name}' référence '{other_name}' sans le déclarer dans "
-                             f"consumes du MANIFEST. Déclarer le contrat consommé, "
-                             f"ou supprimer la dépendance.")
+                             f"'{name}' references '{other_name}' without declaring it in "
+                             f"the MANIFEST consumes section. Declare the contract consumed, "
+                             f"or remove the dependency.")
 
-    # B5 — accès aux données d'autrui
+    # B5 - access to someone else's data
     for name, mod in modules.items():
         others_tables = {t: o for o, m in modules.items() if o != name
                          for t in m["owns_data"]}
@@ -148,17 +148,17 @@ def analyse(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
             for table, owner in others_tables.items():
                 if re.search(rf"\b(from|join|into|update|table)\s+[\"'`\[]?{re.escape(table.lower())}\b", text):
                     fail("B5", str(source.relative_to(root)),
-                         f"'{name}' accède à la table '{table}' possédée par '{owner}'. "
-                         f"Couplage par la base (docs/os/08-qualite.md §8).")
+                         f"'{name}' accesses table '{table}' owned by '{owner}'. "
+                         f"Coupling through the database (docs/os/08-qualite.md §8).")
                     break
 
-    # B4 — déclaré mais inutilisé
+    # B4 - declared but unused
     for name, mod in modules.items():
         for declared in mod["declared"]:
             if declared in modules and declared not in real[name]:
                 warn("B4", name,
-                     f"dépendance déclarée vers '{declared}' mais aucune utilisation détectée. "
-                     f"Nettoyer le MANIFEST, ou ajuster les motifs de détection.")
+                     f"dependency declared on '{declared}' but no use detected. "
+                     f"Clean up the MANIFEST, or adjust the detection patterns.")
     return real
 
 
@@ -190,31 +190,31 @@ def run(root: Path) -> int:
     modules = load_modules(root)
 
     if len(modules) < 2:
-        print(f"{len(modules)} module(s) : pas de frontière à vérifier.")
+        print(f"{len(modules)} module(s): no boundary to check.")
         return 0
 
     real = analyse(root, modules)
 
     for cycle in find_cycles(real):
         fail("B3", " → ".join(cycle),
-             "dépendance circulaire : ces modules sont devenus inséparables "
+             "circular dependency: these modules have become inseparable "
              "(docs/os/02-modules.md §9).")
 
-    print(f"Modules analysés : {len(modules)}")
-    print("Graphe réel détecté :")
+    print(f"Modules checked: {len(modules)}")
+    print("Real graph detected:")
     for name in sorted(real):
-        deps = ", ".join(sorted(real[name])) or "—"
+        deps = ", ".join(sorted(real[name])) or "-"
         print(f"  {name} → {deps}")
 
     for w in warnings:
-        print(f"  AVERTISSEMENT {w}")
+        print(f"  WARNING {w}")
     for f in failures:
-        print(f"  ÉCHEC {f}")
+        print(f"  FAIL {f}")
 
     if failures:
-        print(f"\n{len(failures)} violation(s) de frontière.")
+        print(f"\n{len(failures)} boundary violation(s).")
         return 1
-    print("Frontières : conformes.")
+    print("Boundaries: compliant.")
     return 0
 
 

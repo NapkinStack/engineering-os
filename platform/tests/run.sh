@@ -61,7 +61,7 @@ mkdir -p "$SK/vide"
 if ! OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
   echo "ÉCHEC : une racine sans playbooks est refusée."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Skills : non applicable" \
+echo "$OUT" | grep -qF "Skills: not applicable" \
   || { echo "ÉCHEC : racine non concernée sans le dire."; echo "$OUT"; exit 1; }
 
 echo "→ skills : des playbooks sans .nstack/skills.yaml DOIVENT échouer (S1)"
@@ -70,14 +70,14 @@ printf '# orphelin\n' > "$SK/vide/playbooks/orphelin.md"
 if OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
   echo "ÉCHEC : des playbooks sans correspondance sont passés au vert."; exit 1
 fi
-echo "$OUT" | grep -qF "[S1] .nstack/skills.yaml introuvable" \
+echo "$OUT" | grep -qF "[S1] .nstack/skills.yaml not found" \
   || { echo "ÉCHEC : message S1 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : sur un clone vierge, S3 est non applicable et le check passe"
 if ! OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : --check échoue alors qu'aucune skill n'a été générée."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "S3 non applicable" \
+echo "$OUT" | grep -qF "S3 not applicable" \
   || { echo "ÉCHEC : S3 ignoré sans le dire."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill désynchronisée DOIT échouer"
@@ -86,7 +86,7 @@ echo "ajout" >> "$SK/playbooks/tests.md"
 if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill désynchronisée est passée au vert."; exit 1
 fi
-echo "$OUT" | grep -qF "[S3] skill 'tests' désynchronisée" \
+echo "$OUT" | grep -qF "[S3] skill 'tests' out of sync" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : une skill supprimée DOIT échouer"
@@ -95,7 +95,7 @@ rm "$SK/.claude/skills/ux/SKILL.md"
 if OUT=$(nstack_sk --check 2>&1); then
   echo "ÉCHEC : une skill supprimée est passée au vert."; exit 1
 fi
-echo "$OUT" | grep -qF "[S3] skill 'ux' absente" \
+echo "$OUT" | grep -qF "[S3] skill 'ux' missing" \
   || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
 
 echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
@@ -519,7 +519,7 @@ git clone -q "$PROJET" "$CLONE"
 if ! OUT=$(cd "$CLONE" && nstack fitness --root . 2>&1); then
   echo "ÉCHEC : le projet ne passe pas nstack fitness."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Skills : S1, S2 et S4 conformes" \
+echo "$OUT" | grep -qF "Skills: S1, S2 and S4 compliant" \
   || { echo "ÉCHEC : skills non vérifiées dans le projet."; echo "$OUT"; exit 1; }
 if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
   echo "ÉCHEC : le projet ne passe pas ses hooks."; echo "$OUT"; exit 1
