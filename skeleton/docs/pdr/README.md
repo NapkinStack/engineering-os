@@ -1,26 +1,26 @@
 # Product Decision Records
 
-Une décision **produit** importante : objectif utilisateur, comportement attendu,
-arbitrage, règle métier structurante, décision UX ou business.
+An important **product** decision: a user goal, an expected behaviour, a trade-off, a
+structuring business rule, a UX or business decision.
 
-Le PDR décrit **ce que le produit doit faire et pourquoi**, jamais son implémentation.
+The PDR describes **what the product must do and why**, never its implementation.
 
-- Modèle : [`_TEMPLATE.md`](./_TEMPLATE.md)
-- Nommage : `NNNN-titre-oriente-utilisateur.md`
+- Template: [`_TEMPLATE.md`](./_TEMPLATE.md)
+- Naming: `NNNN-user-oriented-title.md`
 
-## Sections obligatoires
+## Mandatory sections
 
-| Section | Pourquoi |
+| Section | Why |
 |---|---|
-| **Prior art** — ≥ 2 références | Sur une interface, la valeur d'une convention vient de ce que l'utilisateur la connaît déjà |
-| **Critère de succès daté** | Rend la décision falsifiable, donc utile |
-| **Condition de retrait** | Sans elle, une fonctionnalité est définitive par défaut, même inutilisée |
+| **Prior art** — ≥ 2 references | On an interface, a convention's value comes from the user already knowing it |
+| **Dated success criterion** | Makes the decision falsifiable, and therefore useful |
+| **Removal condition** | Without it, a feature is permanent by default, even unused |
 
-> Le format **FDR** n'existe pas dans cet OS. Pour les fonctionnalités réellement
-> complexes, la section *Conception fonctionnelle détaillée* du PDR suffit
+> The **FDR** format does not exist in this OS. For genuinely complex features, the
+> *Detailed functional design* section of the PDR is enough
 > (`docs/os/06-decisions.md` §4).
 
 ## Index
 
-| N° | Titre | Statut | Critère à vérifier le |
+| No. | Title | Status | Criterion to check on |
 |---|---|---|---|
