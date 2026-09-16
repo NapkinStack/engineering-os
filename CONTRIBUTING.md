@@ -7,7 +7,7 @@ This repository develops the framework; it is also its first user. Read
 
 ```mermaid
 flowchart LR
-    C["Workstream<br/>chantiers.md"]:::tracking --> P["Detailed plan<br/>plans/"]:::tracking
+    C["Workstream<br/>workstreams.md"]:::tracking --> P["Detailed plan<br/>plans/"]:::tracking
     P --> T["A failing test<br/>platform/tests/run.sh"]:::code
     T --> I["Implementation<br/>test green"]:::code
     I --> V["Verifications<br/>hooks · fitness · fresh clone"]:::code
@@ -35,7 +35,7 @@ blue: review · green: merged into `main`.
 - **Pull request summary**: `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
 - **Documentation in the same batch**: a change of command, of status or of decision
   updates every page concerned, diagrams and their legends included.
-- **Definition of Done**: [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+- **Definition of Done**: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## Publishing a version
 

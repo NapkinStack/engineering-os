@@ -126,7 +126,7 @@ The kernel `skeleton/AGENTS.md` stays your reference for **method** — oracle f
 minimal change, five-block summary, stop on a high-risk action. Three adaptations:
 
 **"A module" reads "a workstream".** There are no modules here. The unit of batch is the
-workstream listed in `docs/governance/chantiers.md`. One workstream, one pull request, one
+workstream listed in `docs/governance/workstreams.md`. One workstream, one pull request, one
 commit. Never two workstreams together.
 
 **The oracle, here, is `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`),
@@ -162,6 +162,6 @@ functions; every check has a test that proves its failure. What remains is the p
 project, private, the first real use. The checks the handbook describes without them being
 automated are marked as such and listed in the automation backlog.
 
-Roadmap: `docs/governance/plans/2026-09-15-moteur-v0.1.0.md`. Defects and decisions:
-`docs/governance/chantiers.md`. Beyond that, let the pilot's usage dictate the next
+Roadmap: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`. Defects and decisions:
+`docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.

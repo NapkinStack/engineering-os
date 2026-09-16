@@ -7,8 +7,8 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
 > **Status: v0.1.0, the first published version** ([PyPI](https://pypi.org/project/napkinstack/)).
 > A first pilot project, private, puts it to the test before the rest. Tracking:
-> [roadmap](docs/governance/plans/2026-09-15-moteur-v0.1.0.md),
-> [`docs/governance/chantiers.md`](docs/governance/chantiers.md).
+> [roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
+> [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey
 

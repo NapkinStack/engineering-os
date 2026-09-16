@@ -171,10 +171,10 @@ already English. Only help text, messages and the `eleve` value of `new-module` 
 | `skeleton/playbooks/operations.md` | `operations.md` |
 | `.github/ISSUE_TEMPLATE/05-debt.yml` *(and skeleton copy)* | `05-debt.yml` |
 | `platform/tests/test_controles.py` | `test_guardrails.py` |
-| `docs/governance/chantiers.md` | `workstreams.md` |
-| `docs/governance/revues.md` | `reviews.md` |
-| `docs/governance/backlog-automatisation.md` | `automation-backlog.md` |
-| `docs/governance/plans/2026-09-15-moteur-v0.1.0.md` | `2026-09-15-engine-v0.1.0.md` |
+| `docs/governance/workstreams.md` | `workstreams.md` |
+| `docs/governance/reviews.md` | `reviews.md` |
+| `docs/governance/automation-backlog.md` | `automation-backlog.md` |
+| `docs/governance/plans/2026-09-15-engine-v0.1.0.md` | `2026-09-15-engine-v0.1.0.md` |
 | `docs/adr/0001-adopt-copier-to-generate-and-update-projects.md` | `0001-adopt-copier-to-generate-and-update-projects.md` |
 | `docs/adr/0002-distribute-napkinstack-on-pypi.md` | `0002-distribute-napkinstack-on-pypi.md` |
 | `docs/pdr/0001-create-a-project-and-receive-updates.md` | `0001-create-a-project-and-receive-updates.md` |
@@ -236,11 +236,11 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
 - [x] **Rule to automate**: the §2 arbitration of `07-governance.md` is applied
       explicitly — mechanically checkable but at high cost and low risk, therefore
       *automation backlog*, not *review*. Entry added to
-      `docs/governance/backlog-automatisation.md`, triggered by the first outside
+      `docs/governance/automation-backlog.md`, triggered by the first outside
       contribution in another language.
 - [x] The planned agent-identity ADR shifts to **ADR-0004**; renumbered in
-      `chantiers.md` (three places) and in the M1→M5 plan (one forward reference).
-- [x] M7 added to the `chantiers.md` sequence, table and diagram, with a new `encours`
+      `workstreams.md` (three places) and in the M1→M5 plan (one forward reference).
+- [x] M7 added to the `workstreams.md` sequence, table and diagram, with a new `encours`
       class and its legend. M7d therefore only translates that file, it does not add M7.
 
 ### Task 2 — The rule where agents read it (done, adjusted)
@@ -469,26 +469,41 @@ The repository's own surface. Contains the CI job renames, hence the ruleset act
 
 No code, no guardrail. The largest volume, the lowest risk — deliberately last.
 
-### Task 1 — Living documents
+### Task 1 — Living documents (done)
 
-- [ ] `git mv` per §4; `chantiers.md` → `workstreams.md`, `revues.md` → `reviews.md`,
-      `backlog-automatisation.md` → `automation-backlog.md`.
-- [ ] Content translated. M7 is already in the sequence, table and diagram (added in
-      M7a); this task only turns them English.
+- [x] `git mv` per §4: `chantiers.md` to `workstreams.md`, `revues.md` to `reviews.md`,
+      `backlog-automatisation.md` to `automation-backlog.md`. References followed in 7
+      files.
+- [x] Content translated. M7 was already in the sequence, table and diagram (added in
+      M7a); this task only turned them English.
 
-### Task 2 — The M1→M5 plan
+### Task 2 — The M1→M5 plan (done, scope adjusted)
 
-- [ ] `git mv` to `2026-09-15-engine-v0.1.0.md`, content translated. Facts, dates, SHAs
-      and PR numbers are preserved verbatim: this is a record of what happened.
-- [ ] Embedded code and configuration excerpts follow the English sources.
+- [x] `git mv` to `2026-09-15-engine-v0.1.0.md`, prose translated. Decisions, verified
+      facts, dates, SHAs, run ids, measured numbers, pull request numbers and the gaps
+      observed during execution are preserved.
+- [x] **Adjustment, decided with the maintainer.** The plan was 3 654 lines, of which
+      **2 357 sat inside code fences**: verbatim snapshots of files as they were at the
+      time, copied in as instructions to follow. They no longer match the repository — the
+      paths moved, the functions were renamed — and git already holds the exact text.
+      Translating them would have produced English code that never existed, inside a
+      document whose value is being a faithful record, for about 80 % of the remaining
+      effort. Each long excerpt is now one English sentence stating what the step did. The
+      file went from 3 654 to 742 lines, and a note at its head says so.
 
-### Task 3 — Final consistency
+### Task 3 — Final consistency (done)
 
-- [ ] No French remains: `git grep` on accented **letters** (`[àâçéèêëîïôùûü]`, case
-      insensitive) and on the glossary's French terms returns nothing outside git
-      history. Typographic punctuation — `«  »`, `—` — is not a French marker and stays
-      wherever the English text uses it.
-- [ ] Link check (§6) clean across the whole repository.
+- [x] `git grep` on accented **letters** across every markdown, YAML, Python, shell, jinja
+      and toml file. What remains is **quotation only**, and correct as such:
+      - this plan's glossary, whose left column is the French term being replaced, and its
+        before/after tables of machine values, check names and summary blocks;
+      - ADR-0003 §Context, quoting `Proposé` and `Déprécié` to describe what was true;
+      - three merged pull request titles and one commit message written into generated
+        projects at the time, in the M1→M5 plan — real past artefacts, not prose.
+      The §6.4 wording "returns nothing" was too strict: a record that may not quote the
+      names it replaced is not a record.
+- [x] Link check clean across the whole repository: every relative markdown link resolves,
+      0 dead out of the whole tree.
 
 ---
 
