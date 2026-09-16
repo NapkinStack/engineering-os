@@ -316,7 +316,7 @@ JETON=$(faux_jeton_aws)
 echo "aws_access_key_id = $JETON" > "$HK/historique/config.ini"
 git -C "$HK/historique" add config.ini
 git "${GIT_ID[@]}" -C "$HK/historique" commit -q --no-verify -m contournement
-if OUT=$(cd "$HK/historique" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+if OUT=$(cd "$HK/historique" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
   echo "FAIL: the history scan found nothing."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qi "leaks found" \
@@ -529,7 +529,7 @@ for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2
   echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
     || { echo "FAIL: hook "$hook" not run on the project."; echo "$OUT"; exit 1; }
 done
-if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
+if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
   echo "FAIL: history scan failing on the project."; echo "$OUT"; exit 1
 fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "No file changed." \
@@ -667,7 +667,7 @@ import json, sys
 rules = [
     {"type": "pull_request", "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
     {"type": "required_status_checks", "parameters": {"required_status_checks": [
-        {"context": "Fitness functions"}, {"context": "Périmètre et budget de revue"}, {"context": "Hooks et secrets"}]}},
+        {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/hors-budget": {"name": "hors-budget"}}
 active = {"status": "enabled"}

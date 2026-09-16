@@ -43,7 +43,7 @@ from napkinstack.project import ANSWERS
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
 API_VERSION = "2026-03-10"
 PLACEHOLDER = "<One sentence: what this project does.>"
-JOBS = ("Fitness functions", "Périmètre et budget de revue", "Hooks et secrets")
+JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets")
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
 LABELS = ("cross-module", "hors-budget")
 PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")

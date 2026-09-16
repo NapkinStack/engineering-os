@@ -92,4 +92,4 @@ jobs:
 
       # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
       - name: Secrets dans tout l'historique git
-        run: uv run pre-commit run gitleaks-historique --hook-stage manual --all-files
+        run: uv run pre-commit run gitleaks-history --hook-stage manual --all-files

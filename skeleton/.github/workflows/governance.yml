@@ -43,7 +43,7 @@ jobs:
         run: nstack fitness --root .
 
   scope:
-    name: Périmètre et budget de revue
+    name: PR scope and review budget
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +67,7 @@ jobs:
         run: nstack pr-scope --root . --base "origin/$BASE_REF"
 
   hooks:
-    name: Hooks et secrets
+    name: Hooks and secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,4 +96,4 @@ jobs:
 
       # Règle S1 : aucun secret dans le dépôt. Sortie masquée, les logs sont publics.
       - name: Secrets dans tout l'historique git
-        run: pre-commit run gitleaks-historique --hook-stage manual --all-files
+        run: pre-commit run gitleaks-history --hook-stage manual --all-files
