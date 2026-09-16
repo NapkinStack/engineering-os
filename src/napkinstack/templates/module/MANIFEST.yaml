@@ -18,6 +18,10 @@ module:
   # prototype | standard | high | critical              (docs/os/07-governance.md §6)
   criticality: "{{CRITICALITY}}"
 
+  # Does a user see this module? true requires a test sheet on its pull requests
+  # (docs/os/05-workflow.md §7).
+  user_facing: false
+
   # The module's name in the code, when it differs from the folder (package, namespace).
   # Used by boundary detection.
   # code_name: {{MODULE_NAME}}
@@ -63,6 +67,7 @@ commands:
   test: "echo 'commands.test to be declared in MANIFEST.yaml' >&2; exit 1"    # NEVER starts another module
   # bootstrap:                   # optional: make the module usable from a fresh clone
   # run:                         # optional: local start, with doubles for the dependencies
+  # e2e:                         # optional: end-to-end scenarios; evidence written to .evidence/
 
 # Review budget. Inherited from the project when absent (docs/os/05-workflow.md §4).
 review_budget:

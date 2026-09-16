@@ -92,7 +92,17 @@ jobs:
         run: |
           echo "Not wired up: integration tests (D9)"
 
-      - name: E2E on critical journeys
-        if: steps.crit.outputs.level == 'critical'
-        run: |
-          echo "Not wired up: end-to-end journeys (D9)"
+      # Optional verb: the module's end-to-end scenarios, when declared (docs/os/09-platform.md §2).
+      - name: e2e
+        run: nstack e2e "$MODULE"
+
+      # The evidence the test sheet links to (docs/os/05-workflow.md §7), kept even on failure.
+      - name: Evidence of the scenarios
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evidence-${{ matrix.module }}
+          path: modules/${{ matrix.module }}/.evidence/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30

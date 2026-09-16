@@ -216,9 +216,11 @@ fi
 echo "$OUT" | grep -qx "stack-free" && echo "$OUT" | grep -qF "FAIL [check] module 'zeta'" \
   || { echo "FAIL: modules not walked, or failure not named."; echo "$OUT"; exit 1; }
 
-echo "-> verbs: bootstrap optional; an undeclared run and an unknown module MUST fail"
+echo "-> verbs: bootstrap and e2e optional; an undeclared run and an unknown module MUST fail"
 uv run nstack bootstrap demo --root "$SC" | grep -qF "nothing to prepare" \
   || { echo "FAIL: missing bootstrap mishandled."; exit 1; }
+uv run nstack e2e demo --root "$SC" | grep -qF "no end-to-end scenario" \
+  || { echo "FAIL: missing e2e mishandled."; exit 1; }
 for case in "run demo|commands.run not declared" "test unknown|module 'unknown' not found"; do
   IFS='|' read -r arguments message <<<"$case"
   # shellcheck disable=SC2086
@@ -551,6 +553,16 @@ if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run 2>&1); then
   echo "FAIL: the generated module does not pass the project hooks."; echo "$OUT"; exit 1
 fi
 
+echo "-> pr-check: in the project, a user-facing change without a test sheet MUST fail (PDR-0003)"
+git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "First module"
+nstack new-module face acme/web standard --user-facing --root "$CLONE" >/dev/null
+git -C "$CLONE" add -A && git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "User-facing module"
+if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack pr-check --root . --base HEAD~1 2>&1); then
+  echo "FAIL: a user-facing change with the template's empty sheet went green."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "FAIL [T1] Test sheet missing: this pull request touches modules/face (user-facing)" \
+  || { echo "FAIL: expected T1 message missing."; echo "$OUT"; exit 1; }
+
 # Updates: throwaway template with three versions, built from the working tree.
 TPL="$GN/template"
 mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"
@@ -673,7 +685,8 @@ import json, sys
 rules = [
     {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
     {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
-        {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"}]}},
+        {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
+        {"context": "Test sheet and cycle"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"}}
 ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
@@ -768,8 +781,9 @@ echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line
 done
 python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
 import sys, yaml
-jobs = yaml.safe_load(open("skeleton/.github/workflows/governance.yml", encoding="utf-8"))["jobs"]
-absents = [job["name"] for job in jobs.values() if f"`{job['name']}`" not in sys.argv[1]]
+names = [job["name"] for workflow in ("governance.yml", "pull-request.yml")
+         for job in yaml.safe_load(open(f"skeleton/.github/workflows/{workflow}", encoding="utf-8"))["jobs"].values()]
+absents = [name for name in names if f"`{name}`" not in sys.argv[1]]
 if absents:
     sys.exit(f"FAIL: skeleton CI jobs missing from the checklist (G4): {absents}")
 EOF

@@ -74,6 +74,8 @@ the commit of this repository
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack fitness` | Manifests, boundaries between modules, skills |
 | `nstack pr-scope` | One PR = one module, review budget |
+| `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
+| `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
 | `nstack update` | Lays the new version on a branch to review |
 

@@ -15,6 +15,7 @@ Rules:
   M7  standard verbs declared (check / test at least)
   M8  runbook required when criticality >= high
   M9  complete file envelope (AGENTS.md, README.md, tests/)
+  M10 user_facing declared: true when a user sees the module (docs/os/05-workflow.md §7)
 
 Usage :  nstack manifests [--root ROOT]
 Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
@@ -163,6 +164,11 @@ def check_manifest(path: Path, today: datetime.date) -> None:
             fail(rel, "M9", f"envelope file missing: {expected}")
     if not (path.parent / "tests").is_dir() and criticality != "prototype":
         fail(rel, "M9", "tests/ folder missing")
+
+    # M10 - a user-visible surface declared: it decides the test sheet (docs/os/05-workflow.md §7)
+    if not isinstance(mod.get("user_facing"), bool):
+        fail(rel, "M10", "module.user_facing must be true or false: does a user see this module? "
+                         "true requires a test sheet on its pull requests (docs/os/05-workflow.md §7)")
 
 
 def run(root: Path) -> int:

@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from napkinstack import __version__, doctor, modules, skills
+from napkinstack import __version__, doctor, modules, pull_request, skills
 from napkinstack.fitness import boundaries, manifests
 
 PACKAGE = Path(__file__).resolve().parent
@@ -69,14 +69,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
          lambda a: doctor.run(a.root))
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
-              lambda a: modules.create(a.root, a.name, a.owner, a.criticality))
+              lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
     nm.add_argument("name", help="module name, kebab-case")
     nm.add_argument("owner", help="GitHub team, organisation/team, or a user when the project has "
                                   "no organisation")
     nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
+    nm.add_argument("--user-facing", action="store_true",
+                    help="a user sees this module: its pull requests carry a test sheet")
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
-                            ("test", "tests of one module, or of all of them (commands.test)")):
+                            ("test", "tests of one module, or of all of them (commands.test)"),
+                            ("e2e", "end-to-end scenarios of one module, or of all (commands.e2e)")):
         vb = _add(sub, verb, help_text, lambda a, v=verb: modules.run_verb(a.root, v, a.module))
         vb.add_argument("module", nargs="?", help="module name (default: all)")
     rn = _add(sub, "run", "starts a module locally (commands.run)",
@@ -85,6 +88,10 @@ def build_parser() -> argparse.ArgumentParser:
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
     ps.add_argument("--base", default="origin/main")
+    pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5)",
+              lambda a: pull_request.run(a.root, a.base, a.body_file))
+    pc.add_argument("--base", default="origin/main")
+    pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
     ini = sub.add_parser("init", help="creates a project from the skeleton (PDR-0001)")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")
