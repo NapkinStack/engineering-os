@@ -1,212 +1,211 @@
-# 10 — Mesure et amélioration
+# 10 — Measurement and improvement
 
-## 1. À quoi servent les métriques
+## 1. What metrics are for
 
-> Les métriques servent à améliorer le système, pas à produire des objectifs artificiels.
+> Metrics exist to improve the system, not to produce artificial targets.
 
-Toute métrique transformée en objectif individuel cesse de mesurer ce qu'elle mesurait.
-Les indicateurs de ce document se lisent au niveau du **système** : ils servent à
-répondre à « où ça grince ? », jamais à « qui est performant ? ».
+Any metric turned into an individual target stops measuring what it used to measure. The
+indicators in this document are read at **system** level: they answer "where does it
+grind?", never "who is performing?".
 
-**Ne jamais optimiser la quantité de code produite.** C'est la seule métrique que les
-agents font exploser sans effort, et elle est inversement corrélée à ce qu'on cherche.
+**Never optimise the amount of code produced.** It is the one metric agents inflate
+effortlessly, and it is inversely correlated with what we are after.
 
 ---
 
-## 2. Les quatre familles
+## 2. The four families
 
 ```mermaid
 flowchart TB
-    subgraph F1["FLUX — est-ce que ça avance ?"]
+    subgraph F1["FLOW — is it moving?"]
         A1["Lead time"]
-        A2["Fréquence de livraison"]
-        A3["Taille des changements"]
-        A4["Temps de review"]
-        A5["Temps de feedback CI"]
+        A2["Delivery frequency"]
+        A3["Size of changes"]
+        A4["Review time"]
+        A5["CI feedback time"]
     end
 
-    subgraph F2["STABILITÉ — est-ce que ça tient ?"]
-        B1["Taux d'échec des changements"]
-        B2["Temps de récupération"]
+    subgraph F2["STABILITY — does it hold?"]
+        B1["Change failure rate"]
+        B2["Time to recover"]
         B3["Incidents"]
-        B4["Tests flaky"]
+        B4["Flaky tests"]
     end
 
-    subgraph F3["FRONTIÈRES — est-ce que ça reste découplé ?"]
-        C1["Taux de PR cross-module"]
-        C2["Stabilité des interfaces"]
-        C3["Contractions en retard"]
-        C4["Violations de fitness functions"]
+    subgraph F3["BOUNDARIES — does it stay decoupled?"]
+        C1["Cross-module PR rate"]
+        C2["Interface stability"]
+        C3["Overdue contractions"]
+        C4["Fitness function violations"]
     end
 
-    subgraph F4["VALEUR — est-ce que ça sert ?"]
-        D1["Critères de succès atteints"]
-        D2["Fonctionnalités retirées"]
-        D3["Charge cognitive perçue"]
-        D4["Temps jusqu'à 1re contribution"]
+    subgraph F4["VALUE — is it useful?"]
+        D1["Success criteria met"]
+        D2["Features removed"]
+        D3["Perceived cognitive load"]
+        D4["Time to first contribution"]
     end
 
     style F3 fill:#1f2937,color:#fff
     style F4 fill:#065f46,color:#fff
 ```
 
-Les familles 1 et 2 sont classiques. Les deux autres sont spécifiques à cet OS et à mon
-sens les plus informatives ici.
+**Legend** — dark grey and green: the two families specific to this OS, and the most
+informative here. The first two are the classic ones.
 
 ---
 
-## 3. Les indicateurs qui comptent vraiment
+## 3. The indicators that really matter
 
-### Taux de PR cross-module
+### Cross-module PR rate
 
-**Le meilleur indicateur de qualité des frontières.** Il est collecté gratuitement,
-puisqu'une PR cross-module nécessite un label explicite (`02-modules.md` §7).
+**The best indicator of boundary quality.** It is collected for free, since a
+cross-module pull request requires an explicit label (`02-modules.md` §7).
 
-| Tendance | Interprétation |
+| Trend | Reading |
 |---|---|
-| Faible et stable | Les frontières tiennent |
-| En hausse | Une frontière se dégrade — regarder quelle paire de modules revient |
-| Concentré sur deux modules | Ces deux modules devraient probablement être fusionnés, ou découpés autrement |
+| Low and stable | The boundaries hold |
+| Rising | A boundary is decaying — look at which pair of modules keeps coming back |
+| Concentrated on two modules | Those two should probably be merged, or split differently |
 
-### Taux de PR hors budget de revue
+### Over-budget PR rate
 
-Mesure la pression réelle de la génération sur la capacité de vérification
-(`05-workflow.md` §4). Une hausse signifie qu'on produit plus vite qu'on ne vérifie, et
-que la qualité de la revue se dégrade silencieusement — bien avant que les incidents
-n'augmentent.
+Measures the real pressure of generation on verification capacity (`05-workflow.md` §4).
+A rise means you are producing faster than you verify, and that review quality is
+degrading quietly — well before incidents go up.
 
-### Contractions en retard
+### Overdue contractions
 
-Nombre de versions de contrat dépréciées dont la date de retrait est dépassée
-(`03-contracts.md` §4). C'est la mesure directe des **états intermédiaires permanents**.
-Elle ne devrait jamais croître durablement.
+The number of deprecated contract versions whose removal date has passed
+(`03-contracts.md` §4). It is the direct measure of **permanent intermediate states**. It
+should never grow durably.
 
-### Temps de feedback CI
+### CI feedback time
 
-Une CI lente n'est pas seulement désagréable : elle est **contournée**. Au-delà d'un
-certain seuil, les développeurs cessent de lancer les checks localement, poussent pour
-voir, et ignorent les résultats. La vitesse du feedback est une propriété de qualité,
-pas de confort.
+A slow CI is not merely unpleasant: it is **worked around**. Past a certain threshold,
+developers stop running the checks locally, push to see, and ignore the results. Feedback
+speed is a quality property, not a comfort.
 
-### Critères de succès atteints
+### Success criteria met
 
-Proportion des décisions dont le critère daté a été vérifié à l'échéance
-(`06-decisions.md` §5). Si cette proportion est faible ou inconnue, la documentation
-décisionnelle est décorative.
+The proportion of decisions whose dated criterion was actually checked at the deadline
+(`06-decisions.md` §5). If that proportion is low or unknown, the decision documentation
+is decorative.
 
-### Fonctionnalités retirées
+### Features removed
 
-Un projet qui ne retire jamais rien accumule. Ce n'est pas un indicateur à maximiser,
-mais un indicateur **qui ne doit pas rester à zéro** indéfiniment.
+A project that never removes anything accumulates. It is not an indicator to maximise,
+but one that **must not stay at zero** indefinitely.
 
 ---
 
-## 4. La boucle de feedback après incident
+## 4. The post-incident feedback loop
 
 ```mermaid
 flowchart TD
-    A["Anomalie significative"] --> B["Corriger l'effet<br/>rétablir le service"]
-    B --> C["Identifier la cause réelle"]
-    C --> D{"POURQUOI le système<br/>ne l'a-t-il pas détecté ?"}
+    A["Significant anomaly"] --> B["Fix the effect,<br/>restore the service"]
+    B --> C["Identify the real cause"]
+    C --> D{"WHY did the system<br/>not catch it?"}
 
-    D --> E1["Aucun test ne couvrait ce cas"]
-    D --> E2["Une règle existait mais<br/>seulement dans le prompt"]
-    D --> E3["Une frontière a été franchie<br/>sans être détectée"]
-    D --> E4["Le contrat ne couvrait pas<br/>ce comportement"]
-    D --> E5["La gate existait mais<br/>a été contournée"]
+    D --> E1["No test covered this case"]
+    D --> E2["A rule existed but<br/>only in the prompt"]
+    D --> E3["A boundary was crossed<br/>without being detected"]
+    D --> E4["The contract did not cover<br/>this behaviour"]
+    D --> E5["The gate existed but<br/>was bypassed"]
 
-    E1 --> F["Ajouter le test"]
-    E2 --> G["AUTOMATISER la règle<br/>puis la retirer du prompt"]
-    E3 --> H["Ajouter une fitness function"]
-    E4 --> I["Étendre le contract test"]
-    E5 --> J["La gate est mal conçue :<br/>la corriger, pas blâmer"]
+    E1 --> F["Add the test"]
+    E2 --> G["AUTOMATE the rule,<br/>then remove it from the prompt"]
+    E3 --> H["Add a fitness function"]
+    E4 --> I["Extend the contract test"]
+    E5 --> J["The gate is badly designed:<br/>fix it, do not blame"]
 
-    F --> K["Le même bug ne peut<br/>plus revenir silencieusement"]
+    F --> K["The same bug can no<br/>longer come back quietly"]
     G --> K
     H --> K
     I --> K
     J --> K
 
-    K --> L["Mettre à jour la<br/>documentation impactée"]
+    K --> L["Update the<br/>documentation affected"]
 
     style D fill:#7c2d12,color:#fff
     style K fill:#065f46,color:#fff
 ```
 
-> **Ne pas simplement corriger un bug : améliorer le système qui a permis au bug de
-> passer.**
+**Legend** — red: the only question that matters · green: the outcome that makes the
+post-mortem worth holding.
 
-La question `D` est la seule qui compte réellement. Un post-mortem qui s'arrête à la
-cause technique produit une correction ; un post-mortem qui répond à « pourquoi le
-système ne l'a-t-il pas vu ? » produit un garde-fou.
+> **Do not simply fix a bug: improve the system that let the bug through.**
 
-> Objectif : **transformer les erreurs passées en garde-fous futurs.**
+Question `D` is the only one that really counts. A post-mortem that stops at the
+technical cause produces a fix; one that answers "why did the system not see it?"
+produces a guardrail.
 
-Noter le traitement du cas `E5` : quand une gate a été contournée, le réflexe de blâmer
-l'individu est une impasse. Une gate systématiquement contournée est une gate mal
-conçue — trop lente, trop bruyante, ou sans valeur perçue (`07-governance.md` §5).
+> The goal: **turn past mistakes into future guardrails.**
+
+Note how case `E5` is handled: when a gate has been bypassed, the reflex of blaming the
+individual is a dead end. A gate that is systematically bypassed is a badly designed gate
+— too slow, too noisy, or with no perceived value (`07-governance.md` §5).
 
 ---
 
-## 5. Les rituels
+## 5. The rituals
 
-Trois rendez-vous suffisent. Tous produisent une décision, jamais un simple constat.
+Three meetings are enough. All of them produce a decision, never a mere observation.
 
-| Rituel | Fréquence | Contenu | Sortie |
+| Ritual | Frequency | Content | Output |
 |---|---|---|---|
-| **Revue de frontières** | Mensuelle | PR cross-module, violations de fitness functions, contractions en retard | Issues *Architecture*, ou rien |
-| **Revue de décisions** | Trimestrielle | ADR/PDR dont le critère est arrivé à échéance | Confirmée · supersédée · fonctionnalité retirée |
-| **Revue du backlog d'automatisation** | Trimestrielle | Règles qui vivent encore dans le prompt | Automatiser · supprimer · reconduire avec échéance |
+| **Boundary review** | Monthly | Cross-module PRs, fitness function violations, overdue contractions | *Architecture* issues, or nothing |
+| **Decision review** | Quarterly | ADRs/PDRs whose criterion has come due | Confirmed · superseded · feature removed |
+| **Automation backlog review** | Quarterly | Rules still living in the prompt | Automate · remove · renew with a deadline |
 
-Les deux dernières peuvent se tenir ensemble : elles traitent le même sujet vu de deux
-côtés — ce qui aurait dû quitter le prompt, et ce qui aurait dû quitter le produit.
+The last two can be held together: they address the same subject from two sides — what
+should have left the prompt, and what should have left the product.
 
 ---
 
-## 6. Amélioration de l'OS lui-même
+## 6. Improving the OS itself
 
-L'OS est soumis à ses propres règles. En particulier :
+The OS is subject to its own rules. In particular:
 
-**Le kernel a un budget.** 250 lignes. Ajouter une règle impose d'en retirer une autre
-ou de l'automatiser. Sans cette contrainte, le kernel grossit à chaque incident et
-redevient le document de 6 000 mots qu'il remplace.
+**The kernel has a budget.** 250 lines. Adding a rule means removing another or
+automating it. Without that constraint the kernel grows at every incident and turns back
+into the 6 000-word document it replaces.
 
-**Toute règle du prompt est candidate à l'automatisation.** Sa présence dans le kernel
-ou un playbook est un état transitoire, documenté dans le backlog d'automatisation avec
-une échéance prévue.
+**Every rule in the prompt is a candidate for automation.** Its presence in the kernel or
+in a playbook is a transient state, documented in the automation backlog with a planned
+deadline.
 
-**Un changement structurant de l'OS passe par un ADR.** Ajouter un format de document,
-un playbook, une loi au kernel, ou changer le budget de revue sont des décisions
-structurantes.
+**A structuring change to the OS goes through an ADR.** Adding a document format, a
+playbook, a law to the kernel, or changing the review budget are structuring decisions.
 
-**Les signaux qui doivent déclencher une révision de l'OS :**
+**The signals that should trigger a revision of the OS:**
 
-| Signal | Ce qu'il indique |
+| Signal | What it indicates |
 |---|---|
-| Une règle du kernel n'est jamais suivie | Elle est mal formulée, ou pas au bon endroit |
-| Un playbook n'est jamais déclenché | Le déclencheur est mal défini, ou le playbook est inutile |
-| Une exception est devenue la norme | La règle ne correspond pas à la réalité du projet |
-| Les agents remontent souvent le même blocage | Le système a un défaut structurel, pas les agents |
-| Le kernel dépasse son budget | Une automatisation a été repoussée trop longtemps |
+| A kernel rule is never followed | It is badly worded, or in the wrong place |
+| A playbook is never triggered | The trigger is badly defined, or the playbook is useless |
+| An exception has become the norm | The rule does not match the reality of the project |
+| Agents keep reporting the same blocker | The system has a structural defect, not the agents |
+| The kernel goes over its budget | An automation has been postponed for too long |
 
 ---
 
-## 7. Le critère ultime
+## 7. The ultimate criterion
 
-> Un nouveau développeur, une nouvelle équipe ou un nouvel agent doit pouvoir
-> comprendre rapidement **ce qu'il doit savoir, ce qu'il peut modifier, ce qu'il ne doit
-> pas modifier, et comment vérifier que son travail est correct.**
+> A new developer, a new team or a new agent must be able to understand quickly **what
+> they need to know, what they may change, what they must not change, and how to verify
+> their work is correct.**
 
-Si ce n'est pas possible, le problème est architectural, documentaire ou
-organisationnel — **pas uniquement un problème de code**.
+If that is not possible, the problem is architectural, documentary or organisational —
+**not only a code problem**.
 
 ```
-Construire vite.
-Construire petit.
-Construire avec des frontières.
-Reprendre ce qui existe.
-Documenter les décisions.
-Automatiser les règles.
-Vérifier systématiquement.
-Faire évoluer l'architecture continuellement.
+Build fast.
+Build small.
+Build with boundaries.
+Reuse what exists.
+Document the decisions.
+Automate the rules.
+Verify systematically.
+Evolve the architecture continuously.
 ```
