@@ -20,8 +20,12 @@ github_repo:
 
 owner_team:
   type: str
-  help: GitHub team owning the foundation, of the form organisation/team
+  help: >-
+    Owner of the foundation: a GitHub team, organisation/team, or a GitHub user when the
+    project has no organisation
   validator: >-
-    {% if not (owner_team | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
-    Expected: organisation/team, for example acme/platform.
+    {% set team = '[A-Za-z0-9-]+/[A-Za-z0-9._-]+' %}
+    {% set user = '(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(-[A-Za-z0-9]+)*' %}
+    {% if not (owner_team | regex_search('^(' ~ team ~ '|' ~ user ~ ')$')) %}
+    Expected: organisation/team, for example acme/platform, or a user, for example alice.
     {% endif %}

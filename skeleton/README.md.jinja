@@ -85,6 +85,7 @@ Settings → Rules → Rulesets → on the main branch (private repository: Team
 - [ ] At least 1 approving review
 - [ ] Code owner review required
 - [ ] Required checks: `Fitness functions`, `PR scope and review budget`, `Hooks and secrets`
+- [ ] Bypass list empty: nobody merges around the rules, administrators included
 
 Settings → Advanced Security (private repository: the Secret Protection option):
 
@@ -102,6 +103,16 @@ Issues → Labels:
 
 - [ ] Labels `cross-module` and `over-budget` — they make the exceptions visible **and
   countable** (`docs/os/10-measurement.md` §3)
+
+Settings → Developer settings → GitHub Apps → New GitHub App, then install it on this
+repository — **the identity your agents work under** (`docs/os/07-governance.md` §7):
+
+- [ ] Permissions: Contents, Pull requests and Issues read and write; Actions and Checks
+      read; Workflows write only when agents maintain CI; never Administration
+- [ ] No webhook; installable only on this account
+- [ ] Its private key stored outside any repository: the workstation's secret store, or
+      the CI's secrets
+- [ ] The agent's session reaches no human credential
 
 Then check, read-only:
 
@@ -141,7 +152,7 @@ token, the GitHub part stays "not verified", never compliant.
 nstack --help        # lists the commands
 nstack fitness       # manifests + boundaries + skills — before every commit
 nstack skills        # generates the Claude Code skills from the playbooks
-nstack new-module <name> <organisation>/<team> <criticality>
+nstack new-module <name> <owner> <criticality>
 nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
 nstack run <module>     # local start, when commands.run is declared
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml

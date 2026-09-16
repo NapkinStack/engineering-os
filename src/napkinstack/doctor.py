@@ -15,8 +15,9 @@ Rules:
   L3  pre-commit hooks installed
   L4  PRODUCT.md absent: that is NapkinStack's own development context (R6)
   L5  README personalised: the presentation sentence is written
-  G1-G11  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
-          repository, and on a private one G1-G5 name the GitHub plan or option required
+  L6  CODEOWNERS starts with a default owner: the code owner review covers every path
+  G1-G12  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+          repository, and on a private one G1-G5 and G12 name the GitHub plan or option required
 
 Usage :  nstack doctor [--root ROOT]
 Output:  0 when everything is verified and compliant, 1 otherwise.
@@ -51,6 +52,7 @@ PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"
 ACTIONS = "Settings → Actions → General"
+CODEOWNERS = Path(".github") / "CODEOWNERS"
 
 CHECKLIST = [  # (rule, setting, action)
     ("G1", "Pull request required: no direct push to main",
@@ -72,13 +74,15 @@ CHECKLIST = [  # (rule, setting, action)
      f"{ACTIONS}: workflow permissions read-only, with no pull request creation or approval"),
     ("G11", "Labels " + " and ".join(f"`{label}`" for label in LABELS),
      "Issues → Labels: create " + " and ".join(LABELS)),
+    ("G12", "Bypass list empty: nobody merges around the rules, administrators included",
+     f"{RULESET}: remove every bypass actor"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -155,6 +159,20 @@ def _workflows(client: GitHub) -> bool:
             and permissions.get("can_approve_pull_request_reviews") is False)
 
 
+def _no_bypass(client: GitHub) -> bool:
+    """G12: every ruleset applying to main has an empty bypass list (ADR-0004)."""
+    rulesets = {rule["ruleset_id"] for rule in client.get("/rules/branches/main") if rule.get("ruleset_id")}
+    if not rulesets:
+        return False
+    for ruleset in sorted(rulesets):
+        actors = client.get(f"/rulesets/{ruleset}?includes_parents=true").get("bypass_actors")
+        if actors is None:
+            raise NotVerified("bypass list not visible: the token lacks the Administration: read permission")
+        if actors:
+            return False
+    return True
+
+
 CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G1": lambda c: _rule(c, "pull_request") is not None,
     "G2": lambda c: _parameters(c, "pull_request").get("required_approving_review_count", 0) >= 1,
@@ -169,7 +187,21 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
         "approval_policy") == "all_external_contributors",
     "G10": _workflows,
     "G11": lambda c: all(c.get(f"/labels/{label}", missing=True) is not None for label in LABELS),
+    "G12": _no_bypass,
 }
+
+
+def _default_owner(root: Path) -> tuple[str, str]:
+    """L6: `*` first, so that the code owner review covers every path (ADR-0004)."""
+    path = root / CODEOWNERS
+    if not path.is_file():
+        return GAP, f"{CODEOWNERS} missing.\nAction: create it, starting with `*  @<owner>`."
+    rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
+             if line.strip() and not line.lstrip().startswith("#")]
+    if rules and rules[0][0] == "*" and len(rules[0]) > 1:
+        return OK, ""
+    return GAP, (f"The first rule of {CODEOWNERS} is not a default owner.\nAction: make `*  @<owner>` "
+                 "its first rule: the code owner review then covers every path (ADR-0004).")
 
 
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
@@ -212,6 +244,8 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     results.append(("L5", "README personalised", GAP if untouched else OK,
                     f'README.md still contains "{PLACEHOLDER}".\n'
                     "Action: write the sentence that presents the project." if untouched else ""))
+
+    results.append(("L6", "CODEOWNERS starts with a default owner", *_default_owner(root)))
     return results
 
 

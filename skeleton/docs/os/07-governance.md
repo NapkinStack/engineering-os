@@ -228,10 +228,32 @@ to use (GitHub wording, transposable elsewhere):
 | Protected environments | Deployment goes through an approval |
 | Dependency / security automation | CVEs do not depend on manual watching |
 | Merge queue | Avoids merges that break each other |
+| A dedicated identity for agents | An agent neither approves nor merges around a human approval |
+| Rulesets with an empty bypass list | Nobody, administrators included, merges around a rule |
+| A default code owner | The code owner review covers every path |
 
 > **Critical rules must not be bypassable by an instruction given to the AI.** That is
 > the ultimate test of governance: if asking an agent nicely is enough to get around it,
 > the rule does not exist.
+
+### Agents and approval
+
+A pull request's author cannot approve it. An agent working with a human's credentials
+*is* that human: it can approve a colleague's pull request in their name, then merge. Three
+settings close that door, and they only hold together:
+
+1. **The agent has its own identity** — a GitHub App installed on the repository: tokens
+   that expire within the hour, never the Administration permission. Its session reaches
+   no human credential — no SSH key, token or command-line login of a human — through a
+   sandbox, a container or a dedicated system user.
+2. **The merge requires a human code owner's approval**, and `CODEOWNERS` starts with a
+   default owner: an App can approve, but it is never a code owner.
+3. **Nobody is on the rulesets' bypass list**, administrators included.
+
+The human who drove the agent may approve its pull request. A team that wants four eyes
+adds "require approval of the most recent reviewable push", or a second reviewer. An
+agent's approval does not count toward merging until the test sheets show, module by
+module, that an independent verifier finds what a human would (`05-workflow.md` §7).
 
 ---
 

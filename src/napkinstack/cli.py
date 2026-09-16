@@ -71,7 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
               lambda a: modules.create(a.root, a.name, a.owner, a.criticality))
     nm.add_argument("name", help="module name, kebab-case")
-    nm.add_argument("owner", help="GitHub team, organisation/team")
+    nm.add_argument("owner", help="GitHub team, organisation/team, or a user when the project has "
+                                  "no organisation")
     nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
@@ -88,8 +89,8 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")
     ini.add_argument("--github-repo", help="GitHub repository, organisation/name (asked when absent)")
-    ini.add_argument("--owner-team", help="GitHub team owning the foundation, organisation/team "
-                                          "(asked when absent)")
+    ini.add_argument("--owner-team", help="owner of the foundation: organisation/team, or a user "
+                                          "when the project has no organisation (asked when absent)")
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
     ini.add_argument("--ref", help="skeleton version, tag vX.Y.Z (default: the one of nstack)")
     ini.set_defaults(func=_init)

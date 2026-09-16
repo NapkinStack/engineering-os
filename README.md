@@ -70,7 +70,7 @@ the commit of this repository
 |---|---|
 | `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, GitHub checklist |
 | `nstack doctor` | Checks the workstation and the GitHub settings, read-only |
-| `nstack new-module <name> <organisation>/<team> <criticality>` | Creates a module, with no imposed stack |
+| `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack fitness` | Manifests, boundaries between modules, skills |
 | `nstack pr-scope` | One PR = one module, review budget |

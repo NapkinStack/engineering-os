@@ -9,7 +9,7 @@ module:
   responsibility: >
     TODO - describe this module's business capability in one sentence.
 
-  owner: "{{OWNER}}"          # a GitHub TEAM, organisation/team, never an individual
+  owner: "{{OWNER}}"          # a GitHub team, organisation/team; a user only without an organisation
   contact: "@{{OWNER}}"
 
   # proposed | active | maintenance | deprecated | retired   (docs/os/02-modules.md §6)

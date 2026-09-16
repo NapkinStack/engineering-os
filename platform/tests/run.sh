@@ -181,7 +181,7 @@ uv run nstack manifests --root "$SC" >/dev/null \
   || { echo "FAIL: the generated module does not pass nstack manifests."; exit 1; }
 
 echo "-> scaffolding: an owner without an organisation or an invalid name MUST be refused (P6)"
-for case in "demo2|demo-team|invalid owner 'demo-team'" "Demo|acme/team|invalid name 'Demo'"; do
+for case in "demo2|team-|invalid owner 'team-'" "Demo|acme/team|invalid name 'Demo'"; do
   IFS='|' read -r name owner message <<<"$case"
   if OUT=$(uv run nstack new-module "$name" "$owner" standard --root "$SC" 2>&1); then
     echo "FAIL: new-module $name $owner accepted."; exit 1
@@ -472,19 +472,25 @@ echo "$OUT" | grep -qF "is not empty" \
   || { echo "FAIL: refusal without an explanation."; echo "$OUT"; exit 1; }
 [ "$(ls -A "$GN/occupied")" = guard.txt ] || { echo "FAIL: init wrote into the refused folder."; exit 1; }
 
-echo "-> init: a repository or a team without an organisation MUST be refused (P6)"
+echo "-> init: a repository without an organisation, or an invalid owner, MUST be refused (P6)"
 for question in github_repo owner_team; do
   if [ "$question" = github_repo ]; then
     answers=(--project-name x --github-repo demo --owner-team acme/platform)
   else
-    answers=(--project-name x --github-repo acme/demo --owner-team platform)
+    answers=(--project-name x --github-repo acme/demo --owner-team platform-)
   fi
   if OUT=$(nstack init "$GN/refused-$question" --source "$REPO" --ref HEAD "${answers[@]}" 2>&1); then
-    echo "FAIL: $question without a "/" accepted."; exit 1
+    echo "FAIL: $question '${answers[-1]}' accepted."; exit 1
   fi
   echo "$OUT" | grep -qF "FAIL [init] Answer rejected for $question" \
     || { echo "FAIL: refusal of $question without an explanatory message."; echo "$OUT"; exit 1; }
 done
+
+echo "-> init: a project without an organisation names a user as owner"
+nstack init "$GN/solo" --source "$REPO" --ref HEAD --project-name Solo --github-repo alice/solo \
+  --owner-team alice >/dev/null || { echo "FAIL: init with a user as owner."; exit 1; }
+grep -qE '^/AGENTS\.md +@alice$' "$GN/solo/.github/CODEOWNERS" \
+  || { echo "FAIL: CODEOWNERS does not name the user."; exit 1; }
 
 echo "-> init: a template with an "unsafe" feature MUST be refused, creating nothing (ADR-0001)"
 UNSAFE="$GN/template-unsafe"
@@ -665,11 +671,12 @@ mkdir -p "$API"
 python3 - "$API/routes.json" <<'EOF'
 import json, sys
 rules = [
-    {"type": "pull_request", "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
-    {"type": "required_status_checks", "parameters": {"required_status_checks": [
+    {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
+    {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"}}
+ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
 active = {"status": "enabled"}
 compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active}},
@@ -679,7 +686,7 @@ compliant = {
     "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
     "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "all_external_contributors"},
     "/actions/permissions/workflow": {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": False},
-    **labels,
+    **labels, **ruleset,
 }
 inactive = {"status": "disabled"}
 bare = {
@@ -701,8 +708,10 @@ private = {
 }
 private_team = {path: response for path, response in compliant.items() if path != "/private-vulnerability-reporting"}
 private_team[""] = {**compliant[""], "visibility": "private"}
+bypass = {**compliant, "/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": [
+    {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]}}
 json.dump({"acme/compliant": compliant, "acme/bare": bare, "acme/restricted": restricted,
-           "acme/private": private, "acme/private-team": private_team}, open(sys.argv[1], "w"))
+           "acme/private": private, "acme/private-team": private_team, "acme/bypass": bypass}, open(sys.argv[1], "w"))
 EOF
 cat > "$API/server.py" <<'EOF'
 import http.server, json, pathlib, sys
@@ -751,7 +760,7 @@ INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Project 
 repo_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
 
 echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 11 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 12 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/README.md.jinja \
@@ -765,21 +774,22 @@ if absents:
     sys.exit(f"FAIL: skeleton CI jobs missing from the checklist (G4): {absents}")
 EOF
 
-echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5)"
+echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from
 # the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
 sed -i 's#^_commit: .*#_commit: v0.0.1#' "$A/.copier-answers.yml"
 echo "# Product" > "$A/PRODUCT.md"
+sed -i '/^\*/d' "$A/.github/CODEOWNERS"
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
 fi
-for rule in L1 L3 L4 L5; do
+for rule in L1 L3 L4 L5 L6; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
-echo "$OUT" | grep -qF "Action: pre-commit install" \
-  || { echo "FAIL: L3 action missing."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "Action: pre-commit install" && echo "$OUT" | grep -qF 'make `*  @<owner>` its first rule' \
+  || { echo "FAIL: L3 or L6 action missing."; echo "$OUT"; exit 1; }
 rm "$A/PRODUCT.md"
 
 (cd "$C" && pre-commit install >/dev/null)
@@ -790,7 +800,7 @@ repo_c acme/bare
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -802,8 +812,17 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 18 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: a bypass actor on the main branch's ruleset is a gap (G12, ADR-0004)"
+repo_c acme/bypass
+if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+  echo "FAIL: a bypassable ruleset accepted."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "FAIL +\[G12\]" && echo "$OUT" | grep -qE "OK +\[G1\]" \
+  && echo "$OUT" | grep -qF "remove every bypass actor" \
+  || { echo "FAIL: bypass actor badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: private repository on the Free plan, gaps naming the plan required, reporting not applicable"
 repo_c acme/private
@@ -811,7 +830,7 @@ if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: private repository with no barrier accepted."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 4 ] \
+  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 5 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
@@ -822,7 +841,7 @@ if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 15 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 17 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
@@ -840,6 +859,7 @@ if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
 fi
 echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G5\]" \
   && echo "$OUT" | grep -qE "NOT VERIFIED +\[G8\]" && echo "$OUT" | grep -qF "Administration: read" \
+  && echo "$OUT" | grep -qE "NOT VERIFIED +\[G12\]" \
   || { echo "FAIL: missing permission mishandled."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: API unreachable, nothing is declared compliant"
