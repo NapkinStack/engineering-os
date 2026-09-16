@@ -20,13 +20,14 @@ flowchart LR
     PT --> RP["Engine v0.1.0<br/>published on PyPI"]:::done
     RP --> M7["M7<br/>move to English<br/>ADR-0003"]:::done
     M7 --> V2["Engine v0.2.0<br/>published on PyPI"]:::done
-    V2 --> PP["Pilot project<br/>private"]:::todo
-    PT --> A4["ADR-0004<br/>agent identity<br/>proposed"]:::wip
-    A4 --> PP
-    PT --> P3["PDR-0003<br/>test sheet<br/>proposed"]:::wip
-    P3 --> PP
-    PT --> P2["PDR-0002<br/>frame and bound<br/>proposed"]:::wip
-    P2 --> PP
+    PT --> A4["ADR-0004<br/>agent identity<br/>accepted"]:::done
+    PT --> P3["PDR-0003<br/>test sheet<br/>accepted"]:::done
+    PT --> P2["PDR-0002<br/>frame and bound<br/>accepted"]:::done
+    A4 --> M8["M8<br/>frame, verify, approve<br/>v0.3.0"]:::wip
+    P3 --> M8
+    P2 --> M8
+    V2 --> M8
+    M8 --> PP["Pilot project<br/>private"]:::todo
 
     classDef done fill:#065f46,color:#fff
     classDef wip fill:#1e3a8a,color:#fff
@@ -51,9 +52,10 @@ waiting on a decision.
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
 | ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 release |
 | M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
-| ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Proposed (2026-09-16); applied and checked with the pilot project |
-| PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Proposed (2026-09-16); prototyped on the pilot project's framing |
-| PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Proposed (2026-09-16); applied and measured with the pilot project |
+| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | In progress: plan |
+| ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied by M8, criterion observed in the pilot project |
+| PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Accepted (2026-09-16), clarified: delivery work; applied by M8, prototyped on the pilot's framing |
+| PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16); applied by M8, measured in the pilot project |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
 | C2 | Anti-placeholder check | After the pilot project, if the need is observed |
 | C3 | A versioned git hook | Absorbed by C0.1 |
