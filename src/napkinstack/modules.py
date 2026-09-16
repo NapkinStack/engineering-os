@@ -47,7 +47,7 @@ RUNBOOK = """# Runbook - {name}
 """
 
 
-def create(root: Path, name: str, owner: str, criticality: str) -> int:
+def create(root: Path, name: str, owner: str, criticality: str, user_facing: bool = False) -> int:
     if not NAME.fullmatch(name):
         print(f"FAIL [new-module] invalid name '{name}': kebab-case expected, for example billing.")
         return 1
@@ -69,6 +69,11 @@ def create(root: Path, name: str, owner: str, criticality: str) -> int:
             text = text.replace(marker, value)
         file_.write_text(text, encoding="utf-8")
 
+    if user_facing:
+        manifest = folder / "MANIFEST.yaml"
+        manifest.write_text(re.sub(r"^( *)user_facing: false", r"\1user_facing: true",
+                                   manifest.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+
     runbook = criticality in NEEDS_RUNBOOK
     if runbook:
         (folder / "docs").mkdir(exist_ok=True)
@@ -88,10 +93,10 @@ def create(root: Path, name: str, owner: str, criticality: str) -> int:
         print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
 
     print(f"Module created: modules/{name} (owner {owner}, criticality {criticality})"
-          + (", runbook to fill in" if runbook else "") + ".")
+          + (", user-facing" if user_facing else "") + (", runbook to fill in" if runbook else "") + ".")
     print("\nNext steps:")
     print("  1. Creation ADR in docs/adr/: capability, boundary, alternatives")
-    print("  2. MANIFEST.yaml: responsibility in ONE sentence, then the stack's check and test commands")
+    print("  2. MANIFEST.yaml: responsibility in ONE sentence, user_facing, then the stack's check and test commands")
     print(f"  3. modules/{name}/AGENTS.md: what is specific to the module, never the kernel")
     print(f"  4. nstack fitness, then nstack check {name} and nstack test {name}")
     return 0

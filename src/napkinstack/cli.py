@@ -69,11 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
     _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
          lambda a: doctor.run(a.root))
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
-              lambda a: modules.create(a.root, a.name, a.owner, a.criticality))
+              lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
     nm.add_argument("name", help="module name, kebab-case")
     nm.add_argument("owner", help="GitHub team, organisation/team, or a user when the project has "
                                   "no organisation")
     nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
+    nm.add_argument("--user-facing", action="store_true",
+                    help="a user sees this module: its pull requests carry a test sheet")
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
                             ("test", "tests of one module, or of all of them (commands.test)")):

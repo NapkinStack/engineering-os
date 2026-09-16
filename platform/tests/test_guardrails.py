@@ -24,7 +24,8 @@ from napkinstack.fitness import boundaries, manifests
 YESTERDAY = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
 VALID = {
     "module": {"name": "billing", "responsibility": "Bills the customers.",
-               "owner": "acme/billing", "lifecycle": "active", "criticality": "standard"},
+               "owner": "acme/billing", "lifecycle": "active", "criticality": "standard",
+               "user_facing": False},
     "provides": [], "consumes": [], "data": {"owns": [], "shared": []},
     "commands": {"check": "true", "test": "true"},
     "docs": {"readme": "README.md", "agents": "AGENTS.md"},
@@ -90,6 +91,8 @@ MANIFEST_CASES = {
     "M8 runbook missing": (lambda r: write_module(r, "billing", degrade(module__criticality="high")), "M8", True),
     "M9 AGENTS.md missing": (lambda r: (write_module(r, "billing") / "AGENTS.md").unlink(), "M9", True),
     "M9 tests missing": (lambda r: (write_module(r, "billing") / "tests").rmdir(), "M9", True),
+    "M10 user_facing missing": (lambda r: write_module(r, "billing", degrade(module__user_facing=None)), "M10", True),
+    "M10 user_facing as text": (lambda r: write_module(r, "billing", degrade(module__user_facing="yes")), "M10", True),
 }
 
 
@@ -104,6 +107,15 @@ def test_new_module_high_criticality_generates_a_runbook(tmp_path, capsys):
     """M8 requires a runbook from criticality=high on: the scaffolding must write it."""
     assert cli.main(["new-module", "demo", "acme/demo-team", "high", "--root", str(tmp_path)]) == 0
     assert (tmp_path / "modules" / "demo" / "docs" / "runbook.md").is_file(), capsys.readouterr().out
+    capsys.readouterr()
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_new_module_user_facing(tmp_path, capsys):
+    """PDR-0003: a module declares whether a user sees it; the flag writes it."""
+    assert cli.main(["new-module", "face", "acme/web", "standard", "--user-facing", "--root", str(tmp_path)]) == 0
+    manifest = yaml.safe_load((tmp_path / "modules" / "face" / "MANIFEST.yaml").read_text(encoding="utf-8"))
+    assert manifest["module"]["user_facing"] is True, capsys.readouterr().out
     capsys.readouterr()
     assert manifests.run(tmp_path) == 0, capsys.readouterr().out
 

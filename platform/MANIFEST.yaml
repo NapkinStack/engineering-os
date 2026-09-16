@@ -6,6 +6,7 @@ module:
   contact: "https://github.com/NapkinStack/engineering-os/discussions"
   lifecycle: active
   criticality: high
+  user_facing: false
 
 provides: []
 consumes: []

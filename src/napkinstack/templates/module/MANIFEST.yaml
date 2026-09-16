@@ -18,6 +18,10 @@ module:
   # prototype | standard | high | critical              (docs/os/07-governance.md §6)
   criticality: "{{CRITICALITY}}"
 
+  # Does a user see this module? true requires a test sheet on its pull requests
+  # (docs/os/05-workflow.md §7).
+  user_facing: false
+
   # The module's name in the code, when it differs from the folder (package, namespace).
   # Used by boundary detection.
   # code_name: {{MODULE_NAME}}
