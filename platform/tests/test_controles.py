@@ -191,9 +191,9 @@ def depot(racine: Path, fichiers: dict[str, int]) -> str:
 
 DEUX_MODULES = {"modules/a/x.txt": 1, "modules/b/y.txt": 1}
 CAS_PR = {
-    "P1 deux modules": (DEUX_MODULES, {}, "ÉCHEC [P1]", 1),
-    "P1 label cross-module": (DEUX_MODULES, {"PR_LABELS": "cross-module"}, "AVERTISSEMENT [P1]", 0),
-    "P2 hors budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "AVERTISSEMENT [P2] Hors budget de revue.", 0),
+    "P1 deux modules": (DEUX_MODULES, {}, "FAIL [P1]", 1),
+    "P1 label cross-module": (DEUX_MODULES, {"PR_LABELS": "cross-module"}, "WARNING [P1]", 0),
+    "P2 hors budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "WARNING [P2] Over the review budget.", 0),
 }
 
 

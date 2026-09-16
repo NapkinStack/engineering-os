@@ -132,7 +132,7 @@ Breaking for anyone who installed v0.1.0; free today, since nobody has.
 |---|---|---|
 | `lifecycle` | `Proposé · Actif · Maintenance · Déprécié · Retiré` | `proposed · active · maintenance · deprecated · retired` |
 | `criticality` | `prototype · standard · eleve · critique` | `prototype · standard · high · critical` |
-| PR label | `hors-budget` | `over-budget` |
+| PR label | `hors-budget` | `over-budget` — **string changed in M7c**, not M7a: it is tied to GitHub state, and the M7 pull requests need the escape hatch until then |
 | PR label | `cross-module` *(never created)* | `cross-module` — **to create** |
 | CI job | `Périmètre et budget de revue` | `PR scope and review budget` |
 | CI job | `Hooks et secrets` | `Hooks and secrets` |
@@ -257,13 +257,22 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
       English bullet in a French list. Its audience is outside contributors, of whom
       there are none yet; the agent audience is covered by `AGENTS.md`.
 
-### Task 3 — `lifecycle` and `criticality` (TDD)
+### Task 3 — `lifecycle` and `criticality` (TDD, done)
 
-- [ ] `test_guardrails.py` and `run.sh` expectations turned English — **seen red**.
-- [ ] `fitness/manifests.py`: `LIFECYCLES`, `CRITICALITIES` and their messages.
-- [ ] `cli.py`: `new-module` choices `prototype · standard · high · critical`.
-- [ ] `templates/module/MANIFEST.yaml`, `platform/MANIFEST.yaml`.
-- [ ] Green.
+- [x] Test expectations turned English — **seen red on five cases**: the conforming
+      manifest, M4, M5 twice and M8, each failing because the code still enforced the
+      French vocabulary.
+- [x] `fitness/manifests.py`: `LIFECYCLES`, `CRITICALITIES`, the two literal comparisons
+      (`== "deprecated"`, `in {"high", "critical"}`) and the rule messages.
+- [x] `cli.py`: `new-module` choices `prototype · standard · high · critical`.
+- [x] `templates/module/MANIFEST.yaml`, `platform/MANIFEST.yaml`.
+- [x] **Two consumers this plan had missed**, caught by the full suite rather than by
+      reading: `skeleton/contracts/MANIFEST.yaml.jinja`, and the criticality gate of
+      `skeleton/.github/workflows/module-checks.yml`, which branches on
+      `steps.crit.outputs.level == 'eleve' | 'critique'`. The second is a generated
+      project's CI: no test executes it here, so only the grep for enum values found it.
+      Any future change to these two enumerations must check that file too.
+- [x] Green: 31 unit cases, full `run.sh` suite, `nstack fitness`, all hooks.
 
 ### Task 4 — Python identifiers and output strings
 

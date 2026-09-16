@@ -240,7 +240,7 @@ echo "$OUT" | grep -qF "[S1]" || { echo "ÉCHEC : S1 attendu."; echo "$OUT"; rm 
 rm -rf "$FT"
 
 echo "→ nstack pr-scope : répond sur la racine donnée"
-uv run nstack pr-scope --root . --base HEAD | grep -qF "Aucun fichier modifié" \
+uv run nstack pr-scope --root . --base HEAD | grep -qF "No file changed." \
   || { echo "ÉCHEC : nstack pr-scope ne répond pas."; exit 1; }
 
 echo "→ publication : un tag différent de la version du paquet DOIT bloquer (ADR-0002)"
@@ -532,7 +532,7 @@ done
 if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
   echo "ÉCHEC : scan d'historique en échec sur le projet."; echo "$OUT"; exit 1
 fi
-(cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "Aucun fichier modifié" \
+(cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "No file changed." \
   || { echo "ÉCHEC : nstack pr-scope ne répond pas dans le projet."; exit 1; }
 
 echo "→ new-module : dans le projet, le module passe fitness et hooks sans stack imposée (critère 3)"
