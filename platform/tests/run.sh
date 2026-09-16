@@ -1,51 +1,51 @@
 #!/usr/bin/env bash
-# Tests des fitness functions. L'oracle des garde-fous eux-mêmes.
+# Tests of the fitness functions. The oracle of the guardrails themselves.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 REPO=$(pwd)
 
-echo "→ nstack : la commande répond et affiche sa version"
+echo "-> nstack: the command responds and prints its version"
 uv run nstack --version | grep -qE '^nstack [0-9]+\.[0-9]+' \
-  || { echo "ÉCHEC : nstack --version ne répond pas."; exit 1; }
+  || { echo "FAIL: nstack --version does not respond."; exit 1; }
 
-echo "→ manifests du dépôt conformes"
+echo "-> repository manifests compliant"
 uv run nstack manifests --root .
 
-echo "→ frontières du dépôt conformes"
+echo "-> repository boundaries compliant"
 uv run nstack boundaries --root .
 
-echo "→ contrôles M, B, S, P : chaque règle prouve qu'elle échoue et se nomme (pytest, D4)"
+echo "-> rules M, B, S, P: every rule proves it fails and names itself (pytest, D4)"
 pytest -q platform/tests
 
 GIT_ID_RM=(-c user.name=test -c user.email=test@example.invalid)
-echo "→ docs : un renvoi vers l'ancien emplacement du manuel (docs/0X-…) DOIT échouer (D6)"
-renvois_morts() {  # $1 = racine d'un dépôt git ; affiche les renvois morts, vrai s'il y en a
+echo "-> docs: a link to the handbook's old location (docs/0X-...) MUST fail (D6)"
+dead_links() {  # $1 = root of a git repository; prints the dead links, true when there are any
   git -C "$1" grep -n -E '(^|[^/a-z])docs/0[0-9]-' -- ':!docs/governance/'
 }
 RM=$(mktemp -d)
 git "${GIT_ID_RM[@]}" init -q "$RM"
-# Renvoi assemblé à l'exécution : écrit en dur, il serait lui-même détecté dans ce fichier.
-printf 'Voir `docs/%s-contrats.md` §4.\n' 03 > "$RM/regle.md"
-git -C "$RM" add regle.md
-renvois_morts "$RM" >/dev/null || { echo "ÉCHEC : renvoi mort non détecté."; rm -rf "$RM"; exit 1; }
+# Link assembled at run time: written literally, it would be detected in this file itself.
+printf 'Voir `docs/%s-contrats.md` §4.\n' 03 > "$RM/rule.md"
+git -C "$RM" add rule.md
+dead_links "$RM" >/dev/null || { echo "FAIL: dead link not detected."; rm -rf "$RM"; exit 1; }
 rm -rf "$RM"
-if MORTS=$(renvois_morts .); then
-  echo "ÉCHEC : renvois vers docs/0X-… ; le manuel vit dans docs/os/ (skeleton/docs/os/ à la racine) :"
+if MORTS=$(dead_links .); then
+  echo "FAIL: links to docs/0X-...; the handbook lives in docs/os/ (skeleton/docs/os/ at the root):"
   echo "$MORTS"; exit 1
 fi
 
-echo "→ un manifest invalide DOIT échouer"
+echo "-> an invalid manifest MUST fail"
 TMP=$(mktemp -d)
-mkdir -p "$TMP/modules/cassé"
-printf 'module:\n  name: cassé\n' > "$TMP/modules/cassé/MANIFEST.yaml"
+mkdir -p "$TMP/modules/broken"
+printf 'module:\n  name: broken\n' > "$TMP/modules/broken/MANIFEST.yaml"
 if OUT=$(cd / && uv run --project "$REPO" nstack manifests --root "$TMP" 2>&1); then
-  echo "ÉCHEC : un manifest incomplet est passé au vert."; rm -rf "$TMP"; exit 1
+  echo "FAIL: an incomplete manifest went green."; rm -rf "$TMP"; exit 1
 fi
-echo "$OUT" | grep -qF "[M2] cassé" \
-  || { echo "ÉCHEC : message M2 attendu absent."; echo "$OUT"; rm -rf "$TMP"; exit 1; }
+echo "$OUT" | grep -qF "[M2] broken" \
+  || { echo "FAIL: expected M2 message missing."; echo "$OUT"; rm -rf "$TMP"; exit 1; }
 rm -rf "$TMP"
 
-# Skills : chaque fixture est une copie jetable, le vrai .claude/ n'est jamais touché.
+# Skills: every fixture is a throwaway copy, the real .claude/ is never touched.
 SK=$(mktemp -d)
 trap 'rm -rf "$SK"' EXIT
 mkdir -p "$SK/.nstack"
@@ -53,52 +53,52 @@ cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
 cp -r skeleton/playbooks "$SK/"
 nstack_sk() { (cd / && uv run --project "$REPO" nstack skills --root "$SK" "$@"); }
 
-echo "→ skills : la racine donnée est analysée, quel que soit le dossier courant (D21)"
-nstack_sk --check >/dev/null || { echo "ÉCHEC : la racine donnée n'est pas analysée."; exit 1; }
+echo "-> skills: the given root is analysed, whatever the current folder (D21)"
+nstack_sk --check >/dev/null || { echo "FAIL: the given root is not analysed."; exit 1; }
 
-echo "→ skills : une racine sans playbooks ni correspondance n'est pas concernée"
+echo "-> skills: a root with neither playbooks nor a mapping is out of scope"
 mkdir -p "$SK/vide"
 if ! OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
-  echo "ÉCHEC : une racine sans playbooks est refusée."; echo "$OUT"; exit 1
+  echo "FAIL: a root without playbooks is refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "Skills: not applicable" \
-  || { echo "ÉCHEC : racine non concernée sans le dire."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: out-of-scope root not stated as such."; echo "$OUT"; exit 1; }
 
-echo "→ skills : des playbooks sans .nstack/skills.yaml DOIVENT échouer (S1)"
+echo "-> skills: playbooks without .nstack/skills.yaml MUST fail (S1)"
 mkdir -p "$SK/vide/playbooks"
 printf '# orphelin\n' > "$SK/vide/playbooks/orphelin.md"
 if OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/vide" 2>&1); then
-  echo "ÉCHEC : des playbooks sans correspondance sont passés au vert."; exit 1
+  echo "FAIL: playbooks without a mapping went green."; exit 1
 fi
 echo "$OUT" | grep -qF "[S1] .nstack/skills.yaml not found" \
-  || { echo "ÉCHEC : message S1 attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected S1 message missing."; echo "$OUT"; exit 1; }
 
-echo "→ skills : sur un clone vierge, S3 est non applicable et le check passe"
+echo "-> skills: on a fresh clone, S3 is not applicable and the check passes"
 if ! OUT=$(nstack_sk --check 2>&1); then
-  echo "ÉCHEC : --check échoue alors qu'aucune skill n'a été générée."; echo "$OUT"; exit 1
+  echo "FAIL: --check fails although no skill was generated."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "S3 not applicable" \
-  || { echo "ÉCHEC : S3 ignoré sans le dire."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: S3 skipped without saying so."; echo "$OUT"; exit 1; }
 
-echo "→ skills : une skill désynchronisée DOIT échouer"
+echo "-> skills: an out-of-sync skill MUST fail"
 nstack_sk >/dev/null
 echo "ajout" >> "$SK/playbooks/tests.md"
 if OUT=$(nstack_sk --check 2>&1); then
-  echo "ÉCHEC : une skill désynchronisée est passée au vert."; exit 1
+  echo "FAIL: an out-of-sync skill went green."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'tests' out of sync" \
-  || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected S3 message missing."; echo "$OUT"; exit 1; }
 
-echo "→ skills : une skill supprimée DOIT échouer"
+echo "-> skills: a deleted skill MUST fail"
 nstack_sk >/dev/null
 rm "$SK/.claude/skills/ux/SKILL.md"
 if OUT=$(nstack_sk --check 2>&1); then
-  echo "ÉCHEC : une skill supprimée est passée au vert."; exit 1
+  echo "FAIL: a deleted skill went green."; exit 1
 fi
 echo "$OUT" | grep -qF "[S3] skill 'ux' missing" \
-  || { echo "ÉCHEC : message S3 attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected S3 message missing."; echo "$OUT"; exit 1; }
 
-echo "→ skills : le frontmatter généré est du YAML valide et restitue nom et description"
+echo "-> skills: the generated frontmatter is valid YAML and returns name and description"
 cp skeleton/playbooks/tests.md "$SK/playbooks/"
 nstack_sk >/dev/null
 python3 - "$SK" <<'EOF' || exit 1
@@ -111,14 +111,14 @@ for name, entry in skills.items():
     try:
         meta = yaml.safe_load(front)
     except yaml.YAMLError as exc:
-        sys.exit(f"ÉCHEC : frontmatter de '{name}' invalide : {exc}")
+        sys.exit(f"FAIL: frontmatter of '{name}' invalid: {exc}")
     if meta != {"name": name, "description": " ".join(entry["description"].split())}:
-        sys.exit(f"ÉCHEC : le frontmatter de '{name}' ne restitue pas nom et description : {meta!r}")
+        sys.exit(f"FAIL: the frontmatter of '{name}' does not return name and description: {meta!r}")
 EOF
 
-# S4 : la skill « tests » est renommée, ou sa description remplacée, dans une copie de
-# skills.yaml. Sans .claude/skills/, S3 ne s'applique pas : seul S4 peut échouer.
-skill_tests_modifiee() {  # $1 = nom, $2 = longueur de description (facultatif)
+# S4: the "tests" skill is renamed, or its description replaced, in a copy of
+# skills.yaml. Without .claude/skills/, S3 does not apply: only S4 can fail.
+modified_tests_skill() {  # $1 = name, $2 = description length (optional)
   cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
   python3 - "$SK/.nstack/skills.yaml" "$@" <<'EOF'
 import sys, yaml
@@ -136,115 +136,115 @@ EOF
 rm -rf "$SK/.claude"
 A64=$(printf 'a%.0s' {1..64})
 
-echo "→ skills : un nom hors spécification Agent Skills DOIT échouer (S4)"
-for nom in Majuscule -debut fin- double--tiret nom_souligne "${A64}a"; do
-  skill_tests_modifiee "$nom"
+echo "-> skills: a name outside the Agent Skills specification MUST fail (S4)"
+for name in Uppercase -leading trailing- double--hyphen under_score "${A64}a"; do
+  modified_tests_skill "$name"
   if OUT=$(nstack_sk --check 2>&1); then
-    echo "ÉCHEC : nom de skill invalide accepté : '$nom'."; exit 1
+    echo "FAIL: invalid skill name accepted: '$name'."; exit 1
   fi
-  echo "$OUT" | grep -qF "[S4] skill '$nom'" \
-    || { echo "ÉCHEC : message S4 attendu absent pour '$nom'."; echo "$OUT"; exit 1; }
+  echo "$OUT" | grep -qF "[S4] skill '$name'" \
+    || { echo "FAIL: expected S4 message missing for '$name'."; echo "$OUT"; exit 1; }
 done
 
-echo "→ skills : une description de plus de 1024 caractères DOIT échouer (S4)"
-skill_tests_modifiee tests 1025
+echo "-> skills: a description longer than 1024 characters MUST fail (S4)"
+modified_tests_skill tests 1025
 if OUT=$(nstack_sk --check 2>&1); then
-  echo "ÉCHEC : description de 1025 caractères acceptée."; exit 1
+  echo "FAIL: a 1025-character description was accepted."; exit 1
 fi
 echo "$OUT" | grep -qF "[S4] skill 'tests'" \
-  || { echo "ÉCHEC : message S4 attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected S4 message missing."; echo "$OUT"; exit 1; }
 
-echo "→ skills : nom de 64 caractères et description de 1024 caractères acceptés"
-skill_tests_modifiee "$A64" 1024
+echo "-> skills: a 64-character name and a 1024-character description are accepted"
+modified_tests_skill "$A64" 1024
 nstack_sk --check >/dev/null \
-  || { echo "ÉCHEC : limites de la spécification refusées."; exit 1; }
+  || { echo "FAIL: specification limits refused."; exit 1; }
 
-# Scaffold : copie jetable, le vrai dépôt n'est jamais touché.
+# Scaffolding: throwaway copy, the real repository is never touched.
 SC=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC"' EXIT
 
-echo "→ scaffold : module créé sans Makefile, owner org/équipe dans le manifest et CODEOWNERS (D19)"
+echo "-> scaffolding: module created without a Makefile, owner org/team in the manifest and CODEOWNERS (D19)"
 mkdir -p "$SC/.github" "$SC/modules"
 cp .github/CODEOWNERS "$SC/.github/"
-uv run nstack new-module demo acme/equipe-demo standard --root "$SC" >/dev/null
+uv run nstack new-module demo acme/demo-team standard --root "$SC" >/dev/null
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF' || exit 1
 import sys, yaml
 module = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["module"]
-attendu = {"name": "demo", "owner": "acme/equipe-demo", "criticality": "standard"}
-if {k: module.get(k) for k in attendu} != attendu:
-    sys.exit(f"ÉCHEC : substitutions du gabarit incorrectes : {module!r}")
+expected = {"name": "demo", "owner": "acme/demo-team", "criticality": "standard"}
+if {k: module.get(k) for k in expected} != expected:
+    sys.exit(f"FAIL: template substitutions incorrect: {module!r}")
 EOF
-[ ! -e "$SC/modules/demo/Makefile" ] || { echo "ÉCHEC : le gabarit impose encore un Makefile (D22)."; exit 1; }
-grep -qE '^/modules/demo/ +@acme/equipe-demo$' "$SC/.github/CODEOWNERS" \
-  || { echo "ÉCHEC : ligne CODEOWNERS du module absente ou invalide."; exit 1; }
+[ ! -e "$SC/modules/demo/Makefile" ] || { echo "FAIL: the template still imposes a Makefile (D22)."; exit 1; }
+grep -qE '^/modules/demo/ +@acme/demo-team$' "$SC/.github/CODEOWNERS" \
+  || { echo "FAIL: module CODEOWNERS line missing or invalid."; exit 1; }
 uv run nstack manifests --root "$SC" >/dev/null \
-  || { echo "ÉCHEC : le module généré ne passe pas nstack manifests."; exit 1; }
+  || { echo "FAIL: the generated module does not pass nstack manifests."; exit 1; }
 
-echo "→ scaffold : un owner sans organisation ou un nom invalide DOIVENT être refusés (P6)"
-for cas in "demo2|equipe-demo|invalid owner 'equipe-demo'" "Demo|acme/equipe|invalid name 'Demo'"; do
-  IFS='|' read -r nom owner message <<<"$cas"
-  if OUT=$(uv run nstack new-module "$nom" "$owner" standard --root "$SC" 2>&1); then
-    echo "ÉCHEC : new-module $nom $owner accepté."; exit 1
+echo "-> scaffolding: an owner without an organisation or an invalid name MUST be refused (P6)"
+for case in "demo2|demo-team|invalid owner 'demo-team'" "Demo|acme/team|invalid name 'Demo'"; do
+  IFS='|' read -r name owner message <<<"$case"
+  if OUT=$(uv run nstack new-module "$name" "$owner" standard --root "$SC" 2>&1); then
+    echo "FAIL: new-module $name $owner accepted."; exit 1
   fi
   echo "$OUT" | grep -qF "FAIL [new-module] $message" \
-    || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
+    || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
 done
 
-echo "→ verbes : une commande à déclarer DOIT échouer en nommant le module (P1, D22)"
+echo "-> verbs: a command still to declare MUST fail while naming the module (P1, D22)"
 if OUT=$(uv run nstack check demo --root "$SC" 2>&1); then
-  echo "ÉCHEC : une commande à déclarer est passée au vert."; echo "$OUT"; exit 1
+  echo "FAIL: a command still to declare went green."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "commands.check to be declared" && echo "$OUT" | grep -qF "FAIL [check] module 'demo'" \
-  || { echo "ÉCHEC : échec sans le module ni la commande."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: failure without the module or the command."; echo "$OUT"; exit 1; }
 
-echo "→ verbes : la commande déclarée s'exécute depuis le dossier du module, quelle que soit la stack"
+echo "-> verbs: the declared command runs from the module folder, whatever the stack"
 python3 - "$SC/modules/demo/MANIFEST.yaml" <<'EOF'
 import sys, yaml
-chemin = sys.argv[1]
-data = yaml.safe_load(open(chemin, encoding="utf-8"))
+path = sys.argv[1]
+data = yaml.safe_load(open(path, encoding="utf-8"))
 data["commands"] = {"check": "test -f MANIFEST.yaml && echo stack-libre", "test": "true"}
-yaml.safe_dump(data, open(chemin, "w", encoding="utf-8"), allow_unicode=True)
+yaml.safe_dump(data, open(path, "w", encoding="utf-8"), allow_unicode=True)
 EOF
 OUT=$(uv run nstack check demo --root "$SC" 2>&1) && echo "$OUT" | grep -qx "stack-libre" \
-  || { echo "ÉCHEC : la commande déclarée ne s'exécute pas depuis le module."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: the declared command does not run from the module."; echo "$OUT"; exit 1; }
 
-echo "→ verbes : sans module, tous les modules, premier échec nommé"
-uv run nstack new-module zeta acme/equipe-zeta standard --root "$SC" >/dev/null
+echo "-> verbs: with no module, all modules, first failure named"
+uv run nstack new-module zeta acme/team-zeta standard --root "$SC" >/dev/null
 if OUT=$(uv run nstack check --root "$SC" 2>&1); then
-  echo "ÉCHEC : un module non déclaré est passé au vert."; echo "$OUT"; exit 1
+  echo "FAIL: an undeclared module went green."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qx "stack-libre" && echo "$OUT" | grep -qF "FAIL [check] module 'zeta'" \
-  || { echo "ÉCHEC : modules non parcourus ou échec non nommé."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: modules not walked, or failure not named."; echo "$OUT"; exit 1; }
 
-echo "→ verbes : bootstrap facultatif ; run non déclaré et module inconnu DOIVENT échouer"
+echo "-> verbs: bootstrap optional; an undeclared run and an unknown module MUST fail"
 uv run nstack bootstrap demo --root "$SC" | grep -qF "nothing to prepare" \
-  || { echo "ÉCHEC : bootstrap absent mal traité."; exit 1; }
-for cas in "run demo|commands.run not declared" "test inconnu|module 'inconnu' not found"; do
-  IFS='|' read -r arguments message <<<"$cas"
+  || { echo "FAIL: missing bootstrap mishandled."; exit 1; }
+for case in "run demo|commands.run not declared" "test unknown|module 'unknown' not found"; do
+  IFS='|' read -r arguments message <<<"$case"
   # shellcheck disable=SC2086
   if OUT=$(uv run nstack $arguments --root "$SC" 2>&1); then
-    echo "ÉCHEC : nstack $arguments accepté."; exit 1
+    echo "FAIL: nstack $arguments accepted."; exit 1
   fi
-  echo "$OUT" | grep -qF "$message" || { echo "ÉCHEC : message « $message » absent."; echo "$OUT"; exit 1; }
+  echo "$OUT" | grep -qF "$message" || { echo "FAIL: message "$message" missing."; echo "$OUT"; exit 1; }
 done
 
-echo "→ nstack fitness : échoue si l'un des trois contrôles échoue"
+echo "-> nstack fitness: fails when any of the three checks fails"
 FT=$(mktemp -d)
 mkdir -p "$FT/.nstack" "$FT/playbooks"
 printf 'skills: {}\n' > "$FT/.nstack/skills.yaml"
 printf '# orphelin\n' > "$FT/playbooks/orphelin.md"
 if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
-  echo "ÉCHEC : un playbook sans entrée est passé au vert."; rm -rf "$FT"; exit 1
+  echo "FAIL: a playbook without an entry went green."; rm -rf "$FT"; exit 1
 fi
-echo "$OUT" | grep -qF "[S1]" || { echo "ÉCHEC : S1 attendu."; echo "$OUT"; rm -rf "$FT"; exit 1; }
+echo "$OUT" | grep -qF "[S1]" || { echo "FAIL: S1 expected."; echo "$OUT"; rm -rf "$FT"; exit 1; }
 rm -rf "$FT"
 
-echo "→ nstack pr-scope : répond sur la racine donnée"
+echo "-> nstack pr-scope: responds on the given root"
 uv run nstack pr-scope --root . --base HEAD | grep -qF "No file changed." \
-  || { echo "ÉCHEC : nstack pr-scope ne répond pas."; exit 1; }
+  || { echo "FAIL: nstack pr-scope does not respond."; exit 1; }
 
-echo "→ publication : un tag différent de la version du paquet DOIT bloquer (ADR-0002)"
-[ -f .github/workflows/release.yml ] || { echo "ÉCHEC : .github/workflows/release.yml absent."; exit 1; }
+echo "-> release: a tag different from the package version MUST block (ADR-0002)"
+[ -f .github/workflows/release.yml ] || { echo "FAIL: .github/workflows/release.yml missing."; exit 1; }
 CONTROLE_TAG=$(python3 - <<'EOF'
 import yaml
 jobs = yaml.safe_load(open(".github/workflows/release.yml", encoding="utf-8"))["jobs"]
@@ -252,22 +252,22 @@ print(next(step["run"] for step in jobs["construction"]["steps"] if step.get("na
 EOF
 )
 if OUT=$(GITHUB_REF_NAME=v9.9.9 bash -c "$CONTROLE_TAG" 2>&1); then
-  echo "ÉCHEC : tag v9.9.9 accepté pour une autre version."; exit 1
+  echo "FAIL: tag v9.9.9 accepted for a different version."; exit 1
 fi
 echo "$OUT" | grep -qF "Tag v9.9.9 et version" \
-  || { echo "ÉCHEC : refus sans message explicatif."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
 GITHUB_REF_NAME="v$(uv version --short)" bash -c "$CONTROLE_TAG" >/dev/null \
-  || { echo "ÉCHEC : tag conforme refusé."; exit 1; }
+  || { echo "FAIL: matching tag refused."; exit 1; }
 
-# Hooks : dépôts git jetables, identité fictive. Les faux secrets sont assemblés à
-# l'exécution : écrits en dur, ils déclencheraient la protection au push.
+# Hooks: throwaway git repositories, fictional identity. The fake secrets are assembled at
+# run time: written literally, they would trigger push protection.
 command -v pre-commit >/dev/null \
-  || { echo "ÉCHEC : pre-commit requis (https://pre-commit.com/#install)."; exit 1; }
+  || { echo "FAIL: pre-commit required (https://pre-commit.com/#install)."; exit 1; }
 HK=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC" "$HK"' EXIT
 GIT_ID=(-c user.name=test -c user.email=test@example.invalid -c init.defaultBranch=main)
 
-depot_avec_hooks() {
+repo_with_hooks() {
   local d="$HK/$1"
   git "${GIT_ID[@]}" init -q "$d"
   [ -f .pre-commit-config.yaml ] && cp .pre-commit-config.yaml "$d/"
@@ -280,59 +280,59 @@ faux_jeton_aws() {
   python3 -c 'import secrets, string; print("AK" + "IA" + "".join(secrets.choice(string.ascii_uppercase + "234567") for _ in range(16)))'
 }
 
-echo "→ hooks : un secret DOIT bloquer le commit"
-depot_avec_hooks secret
+echo "-> hooks: a secret MUST block the commit"
+repo_with_hooks secret
 echo "aws_access_key_id = $(faux_jeton_aws)" > "$HK/secret/config.ini"
 git -C "$HK/secret" add config.ini
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/secret" commit -m test 2>&1); then
-  echo "ÉCHEC : un secret a été commité."; exit 1
+  echo "FAIL: a secret was committed."; exit 1
 fi
 echo "$OUT" | grep -qE "Detect hardcoded secrets\.+Failed" \
-  || { echo "ÉCHEC : refus sans le hook gitleaks."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without the gitleaks hook."; echo "$OUT"; exit 1; }
 
-echo "→ hooks : une clé privée DOIT bloquer le commit"
-depot_avec_hooks cle
+echo "-> hooks: a private key MUST block the commit"
+repo_with_hooks cle
 printf -- '-----BEGIN %s PRIVATE KEY-----\nMIIEow\n-----END %s PRIVATE KEY-----\n' RSA RSA > "$HK/cle/id"
 git -C "$HK/cle" add id
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/cle" commit -m test 2>&1); then
-  echo "ÉCHEC : une clé privée a été commitée."; exit 1
+  echo "FAIL: a private key was committed."; exit 1
 fi
 echo "$OUT" | grep -qiE "detect private key\.+Failed" \
-  || { echo "ÉCHEC : refus sans detect-private-key."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without detect-private-key."; echo "$OUT"; exit 1; }
 
-echo "→ hooks : un script à shebang non exécutable DOIT bloquer le commit"
-depot_avec_hooks shebang
+echo "-> hooks: a shebang script that is not executable MUST block the commit"
+repo_with_hooks shebang
 printf '#!/bin/sh\necho ok\n' > "$HK/shebang/outil.sh"
 git -C "$HK/shebang" add outil.sh
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/shebang" commit -m test 2>&1); then
-  echo "ÉCHEC : un script non exécutable a été commité."; exit 1
+  echo "FAIL: a non-executable script was committed."; exit 1
 fi
 echo "$OUT" | grep -qiE "shebangs are executable\.+Failed" \
-  || { echo "ÉCHEC : refus sans le contrôle de shebang."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without the shebang check."; echo "$OUT"; exit 1; }
 
-echo "→ CI : un secret commité en contournant le hook DOIT être trouvé, sans être affiché"
-depot_avec_hooks historique
+echo "-> CI: a secret committed by bypassing the hook MUST be found, without being printed"
+repo_with_hooks historique
 JETON=$(faux_jeton_aws)
 echo "aws_access_key_id = $JETON" > "$HK/historique/config.ini"
 git -C "$HK/historique" add config.ini
 git "${GIT_ID[@]}" -C "$HK/historique" commit -q --no-verify -m contournement
 if OUT=$(cd "$HK/historique" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
-  echo "ÉCHEC : le scan d'historique n'a rien trouvé."; echo "$OUT"; exit 1
+  echo "FAIL: the history scan found nothing."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qi "leaks found" \
-  || { echo "ÉCHEC : échec sans détection de gitleaks."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: failure without a gitleaks detection."; echo "$OUT"; exit 1; }
 if echo "$OUT" | grep -qF "$JETON"; then
-  echo "ÉCHEC : le secret apparaît en clair dans la sortie (logs de CI publics)."; exit 1
+  echo "FAIL: the secret appears in clear text in the output (CI logs are public)."; exit 1
 fi
 
-echo "→ hooks : même version de gitleaks au commit et dans le scan d'historique"
+echo "-> hooks: same gitleaks version at commit time and in the history scan"
 V_HOOK=$(grep -A1 'repo: https://github.com/gitleaks/gitleaks' .pre-commit-config.yaml | grep -oE 'frozen: v[0-9.]+' | cut -d' ' -f2 || true)
-V_HISTO=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 || true)
-[ -n "$V_HOOK" ] && [ "$V_HOOK" = "$V_HISTO" ] \
-  || { echo "ÉCHEC : versions de gitleaks divergentes (hook : '$V_HOOK', historique : '$V_HISTO')."; exit 1; }
+V_HISTORY=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 || true)
+[ -n "$V_HOOK" ] && [ "$V_HOOK" = "$V_HISTORY" ] \
+  || { echo "FAIL: gitleaks versions diverge (hook: '$V_HOOK', history: '$V_HISTORY')."; exit 1; }
 
-echo "→ workflows : injection, action non épinglée, permissions et token persistant DOIVENT échouer"
-depot_avec_hooks zizmor
+echo "-> workflows: injection, unpinned action, permissions and persisted token MUST fail"
+repo_with_hooks zizmor
 mkdir -p "$HK/zizmor/.github/workflows"
 cat > "$HK/zizmor/.github/workflows/faille.yml" <<'EOF'
 name: faille
@@ -346,334 +346,334 @@ jobs:
 EOF
 git -C "$HK/zizmor" add .github
 if OUT=$(cd "$HK/zizmor" && pre-commit run zizmor --files .github/workflows/faille.yml 2>&1); then
-  echo "ÉCHEC : un workflow vulnérable est passé."; exit 1
+  echo "FAIL: a vulnerable workflow went through."; exit 1
 fi
 for audit in template-injection unpinned-uses excessive-permissions artipacked; do
   echo "$OUT" | grep -qF "[$audit]" \
-    || { echo "ÉCHEC : zizmor ne signale pas $audit."; echo "$OUT"; exit 1; }
+    || { echo "FAIL: zizmor does not report $audit."; echo "$OUT"; exit 1; }
 done
 
-echo "→ workflows : un workflow invalide DOIT échouer"
-depot_avec_hooks actionlint
+echo "-> workflows: an invalid workflow MUST fail"
+repo_with_hooks actionlint
 mkdir -p "$HK/actionlint/.github/workflows"
 printf 'on: push\njobs:\n  j:\n    steps:\n      - run: echo ok\n' > "$HK/actionlint/.github/workflows/invalide.yml"
 git -C "$HK/actionlint" add .github
 if OUT=$(cd "$HK/actionlint" && pre-commit run actionlint --files .github/workflows/invalide.yml 2>&1); then
-  echo "ÉCHEC : un workflow invalide est passé."; exit 1
+  echo "FAIL: an invalid workflow went through."; exit 1
 fi
 echo "$OUT" | grep -qF '"runs-on" section is missing' \
-  || { echo "ÉCHEC : actionlint ne signale pas l'erreur attendue."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: actionlint does not report the expected error."; echo "$OUT"; exit 1; }
 
-echo "→ hooks : un marqueur de conflit hors merge git DOIT bloquer le commit"
-# Copier (ADR-0001) écrit ses conflits en dehors de tout merge git. Marqueurs assemblés
-# à l'exécution : écrits en début de ligne ici, ils bloqueraient ce fichier lui-même.
-depot_avec_hooks conflit
-printf 'intro\n%s avant\nlocal\n%s\ncorrectif\n%s après\n' '<<<<<<<' '=======' '>>>>>>>' > "$HK/conflit/regle.md"
-git -C "$HK/conflit" add regle.md
-if OUT=$(git "${GIT_ID[@]}" -C "$HK/conflit" commit -m test 2>&1); then
-  echo "ÉCHEC : un fichier contenant des marqueurs de conflit a été commité."; exit 1
+echo "-> hooks: a conflict marker outside a git merge MUST block the commit"
+# Copier (ADR-0001) writes its conflicts outside any git merge. Markers assembled
+# at run time: written at the start of a line here, they would block this file itself.
+repo_with_hooks conflict
+printf 'intro\n%s before\nlocal\n%s\nfix\n%s after\n' '<<<<<<<' '=======' '>>>>>>>' > "$HK/conflict/rule.md"
+git -C "$HK/conflict" add rule.md
+if OUT=$(git "${GIT_ID[@]}" -C "$HK/conflict" commit -m test 2>&1); then
+  echo "FAIL: a file containing conflict markers was committed."; exit 1
 fi
 echo "$OUT" | grep -qF "Merge conflict string" \
-  || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without check-merge-conflict."; echo "$OUT"; exit 1; }
 
-echo "→ YAML : une clé dupliquée DOIT échouer (check-yaml)"
-depot_avec_hooks doublon
+echo "-> YAML: a duplicate key MUST fail (check-yaml)"
+repo_with_hooks doublon
 printf 'module:\n  name: a\n  name: b\n' > "$HK/doublon/doublon.yaml"
 git -C "$HK/doublon" add doublon.yaml
 if OUT=$(cd "$HK/doublon" && pre-commit run check-yaml --files doublon.yaml 2>&1); then
-  echo "ÉCHEC : une clé dupliquée est passée."; exit 1
+  echo "FAIL: a duplicate key went through."; exit 1
 fi
 echo "$OUT" | grep -qF 'found duplicate key "name"' \
-  || { echo "ÉCHEC : check-yaml ne signale pas la clé dupliquée."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: check-yaml does not report the duplicate key."; echo "$OUT"; exit 1; }
 
-echo "→ YAML : un placeholder non quoté DOIT échouer (check-yaml)"
-depot_avec_hooks gabarit
-printf 'module:\n  name: {{MODULE_NAME}}\n' > "$HK/gabarit/gabarit.yaml"
-git -C "$HK/gabarit" add gabarit.yaml
-if OUT=$(cd "$HK/gabarit" && pre-commit run check-yaml --files gabarit.yaml 2>&1); then
-  echo "ÉCHEC : un placeholder non quoté est passé."; exit 1
+echo "-> YAML: an unquoted placeholder MUST fail (check-yaml)"
+repo_with_hooks template
+printf 'module:\n  name: {{MODULE_NAME}}\n' > "$HK/template/template.yaml"
+git -C "$HK/template" add template.yaml
+if OUT=$(cd "$HK/template" && pre-commit run check-yaml --files template.yaml 2>&1); then
+  echo "FAIL: an unquoted placeholder went through."; exit 1
 fi
 echo "$OUT" | grep -qF 'found unhashable key' \
-  || { echo "ÉCHEC : check-yaml ne signale pas le placeholder."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: check-yaml does not report the placeholder."; echo "$OUT"; exit 1; }
 
-echo "→ YAML : une valeur booléenne ambiguë DOIT échouer (yamllint, configuration du dépôt)"
-depot_avec_hooks truthy
-printf 'actif: yes\n' > "$HK/truthy/regle.yaml"
-git -C "$HK/truthy" add regle.yaml
-if OUT=$(cd "$HK/truthy" && pre-commit run yamllint --files regle.yaml 2>&1); then
-  echo "ÉCHEC : la valeur 'yes' est passée."; exit 1
+echo "-> YAML: an ambiguous boolean value MUST fail (yamllint, repository configuration)"
+repo_with_hooks truthy
+printf 'active: yes\n' > "$HK/truthy/rule.yaml"
+git -C "$HK/truthy" add rule.yaml
+if OUT=$(cd "$HK/truthy" && pre-commit run yamllint --files rule.yaml 2>&1); then
+  echo "FAIL: the value 'yes' went through."; exit 1
 fi
 # Texte du message, pas « (truthy) » : sur GitHub Actions, yamllint passe au format d'annotations.
 echo "$OUT" | grep -qF 'truthy value should be one of' \
-  || { echo "ÉCHEC : yamllint ne signale pas la règle truthy."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: yamllint does not report the truthy rule."; echo "$OUT"; exit 1; }
 
-echo "→ GitHub : dependabot.yml, formulaire et configuration d'issues invalides DOIVENT échouer"
-depot_avec_hooks schemas
+echo "-> GitHub: an invalid dependabot.yml, issue form and issue configuration MUST fail"
+repo_with_hooks schemas
 mkdir -p "$HK/schemas/.github/ISSUE_TEMPLATE"
 printf 'version: 2\nupdates:\n  - package-ecosystem: pip\n    directory: /\n' > "$HK/schemas/.github/dependabot.yml"
 printf 'name: x\ndescription: y\nbody:\n  - type: input\n' > "$HK/schemas/.github/ISSUE_TEMPLATE/formulaire.yml"
 printf 'blank_issues_enabled: "non"\n' > "$HK/schemas/.github/ISSUE_TEMPLATE/config.yml"
 git -C "$HK/schemas" add .github
-for cas in check-dependabot:.github/dependabot.yml \
+for case in check-dependabot:.github/dependabot.yml \
            check-github-issue-forms:.github/ISSUE_TEMPLATE/formulaire.yml \
            check-github-issue-config:.github/ISSUE_TEMPLATE/config.yml; do
-  hook=${cas%%:*}; fichier=${cas#*:}
-  if OUT=$(cd "$HK/schemas" && pre-commit run "$hook" --files "$fichier" 2>&1); then
-    echo "ÉCHEC : $fichier invalide accepté par $hook."; exit 1
+  hook=${case%%:*}; file=${case#*:}
+  if OUT=$(cd "$HK/schemas" && pre-commit run "$hook" --files "$file" 2>&1); then
+    echo "FAIL: invalid $file accepted by $hook."; exit 1
   fi
   echo "$OUT" | grep -qF "Schema validation errors" \
-    || { echo "ÉCHEC : $hook ne signale pas d'erreur de schéma."; echo "$OUT"; exit 1; }
+    || { echo "FAIL: $hook does not report a schema error."; echo "$OUT"; exit 1; }
 done
 
-# Squelette, init et update : projets créés depuis l'arbre de travail, modifications non
-# commitées comprises, jamais depuis GitHub. nstack commite : identité git fictive.
+# Skeleton, init and update: projects created from the working tree, uncommitted changes
+# included, never from GitHub. nstack commits: fictional git identity.
 GN=$(mktemp -d)
 trap 'rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.invalid
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.invalid
-# Nom long : Copier écrit .copier-answers.yml sans limite de ligne (nom, chemin du gabarit).
-# Le rejeu sur clone vierge l'a montré avec un chemin long ; le nom rend le cas déterministe.
-NOM_LONG="Projet démo $(printf 'long%.0s' {1..30})"
-REPONSES=(--project-name "$NOM_LONG" --github-repo acme/demo --owner-team acme/plateforme)
-PROJET="$GN/projet"
+# Long name: Copier writes .copier-answers.yml with no line limit (name, template path).
+# The fresh-clone replay showed it with a long path; the name makes the case deterministic.
+LONG_NAME="Demo project $(printf 'long%.0s' {1..30})"
+ANSWERS=(--project-name "$LONG_NAME" --github-repo acme/demo --owner-team acme/platform)
+PROJECT="$GN/project"
 
-echo "→ init : projet créé et commité sur main, réponses rendues, sans fichier de gabarit"
-if ! OUT=$(nstack init "$PROJET" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
-  echo "ÉCHEC : nstack init a échoué."; echo "$OUT"; exit 1
+echo "-> init: project created and committed on main, answers rendered, no template file left"
+if ! OUT=$(nstack init "$PROJECT" --source "$REPO" --ref HEAD "${ANSWERS[@]}" 2>&1); then
+  echo "FAIL: nstack init failed."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "Project created in" \
-  || { echo "ÉCHEC : nstack init ne confirme pas la création."; echo "$OUT"; exit 1; }
-[ "$(git -C "$PROJET" branch --show-current)" = main ] && [ -z "$(git -C "$PROJET" status --porcelain)" ] \
-  || { echo "ÉCHEC : le projet n'est pas commité sur main."; git -C "$PROJET" status; exit 1; }
-RESIDUS=$(find "$PROJET" -name '*.jinja')
-[ -z "$RESIDUS" ] || { echo "ÉCHEC : fichiers de gabarit copiés tels quels :"; echo "$RESIDUS"; exit 1; }
-for attendu in ".github/CODEOWNERS|@acme/plateforme" \
+  || { echo "FAIL: nstack init does not confirm the creation."; echo "$OUT"; exit 1; }
+[ "$(git -C "$PROJECT" branch --show-current)" = main ] && [ -z "$(git -C "$PROJECT" status --porcelain)" ] \
+  || { echo "FAIL: the project is not committed on main."; git -C "$PROJECT" status; exit 1; }
+LEFTOVERS=$(find "$PROJECT" -name '*.jinja')
+[ -z "$LEFTOVERS" ] || { echo "FAIL: template files copied as is:"; echo "$LEFTOVERS"; exit 1; }
+for expected in ".github/CODEOWNERS|@acme/platform" \
                ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
-               "contracts/MANIFEST.yaml|owner: acme/plateforme" \
-               "README.md|# Projet démo" \
-               ".copier-answers.yml|owner_team: acme/plateforme"; do
-  fichier=${attendu%%|*}; texte=${attendu#*|}
-  grep -qF -- "$texte" "$PROJET/$fichier" 2>/dev/null \
-    || { echo "ÉCHEC : $fichier ne contient pas « $texte »."; exit 1; }
+               "contracts/MANIFEST.yaml|owner: acme/platform" \
+               "README.md|# Demo project" \
+               ".copier-answers.yml|owner_team: acme/platform"; do
+  file=${expected%%|*}; text=${expected#*|}
+  grep -qF -- "$text" "$PROJECT/$file" 2>/dev/null \
+    || { echo "FAIL: $file does not contain '$text'."; exit 1; }
 done
 
-echo "→ init : le contexte de développement de NapkinStack n'est jamais copié (R6)"
+echo "-> init: NapkinStack's own development context is never copied (R6)"
 for absent in PRODUCT.md docs/governance platform src pyproject.toml uv.lock copier.yml skeleton; do
-  [ ! -e "$PROJET/$absent" ] \
-    || { echo "ÉCHEC : $absent copié dans le projet généré (PDR-0001 R6). Le retirer de skeleton/."; exit 1; }
+  [ ! -e "$PROJECT/$absent" ] \
+    || { echo "FAIL: $absent copied into the generated project (PDR-0001 R6). Remove it from skeleton/."; exit 1; }
 done
 
-echo "→ init : un dossier non vide DOIT être refusé, sans rien y écrire"
-mkdir -p "$GN/occupe" && echo garde > "$GN/occupe/garde.txt"
-if OUT=$(nstack init "$GN/occupe" --source "$REPO" --ref HEAD "${REPONSES[@]}" 2>&1); then
-  echo "ÉCHEC : init dans un dossier non vide accepté."; exit 1
+echo "-> init: a non-empty folder MUST be refused, without writing anything into it"
+mkdir -p "$GN/occupied" && echo garde > "$GN/occupied/garde.txt"
+if OUT=$(nstack init "$GN/occupied" --source "$REPO" --ref HEAD "${ANSWERS[@]}" 2>&1); then
+  echo "FAIL: init into a non-empty folder accepted."; exit 1
 fi
 echo "$OUT" | grep -qF "is not empty" \
-  || { echo "ÉCHEC : refus sans explication."; echo "$OUT"; exit 1; }
-[ "$(ls -A "$GN/occupe")" = garde.txt ] || { echo "ÉCHEC : init a écrit dans le dossier refusé."; exit 1; }
+  || { echo "FAIL: refusal without an explanation."; echo "$OUT"; exit 1; }
+[ "$(ls -A "$GN/occupied")" = garde.txt ] || { echo "FAIL: init wrote into the refused folder."; exit 1; }
 
-echo "→ init : un dépôt ou une équipe sans organisation DOIT être refusé (P6)"
+echo "-> init: a repository or a team without an organisation MUST be refused (P6)"
 for question in github_repo owner_team; do
   if [ "$question" = github_repo ]; then
-    reponses=(--project-name x --github-repo demo --owner-team acme/plateforme)
+    answers=(--project-name x --github-repo demo --owner-team acme/platform)
   else
-    reponses=(--project-name x --github-repo acme/demo --owner-team plateforme)
+    answers=(--project-name x --github-repo acme/demo --owner-team platform)
   fi
-  if OUT=$(nstack init "$GN/refus-$question" --source "$REPO" --ref HEAD "${reponses[@]}" 2>&1); then
-    echo "ÉCHEC : $question sans « / » accepté."; exit 1
+  if OUT=$(nstack init "$GN/refused-$question" --source "$REPO" --ref HEAD "${answers[@]}" 2>&1); then
+    echo "FAIL: $question without a "/" accepted."; exit 1
   fi
   echo "$OUT" | grep -qF "FAIL [init] Answer rejected for $question" \
-    || { echo "ÉCHEC : refus de $question sans message explicatif."; echo "$OUT"; exit 1; }
+    || { echo "FAIL: refusal of $question without an explanatory message."; echo "$OUT"; exit 1; }
 done
 
-echo "→ init : un gabarit à fonction « unsafe » DOIT être refusé, sans rien créer (ADR-0001)"
-UNSAFE="$GN/gabarit-unsafe"
+echo "-> init: a template with an "unsafe" feature MUST be refused, creating nothing (ADR-0001)"
+UNSAFE="$GN/template-unsafe"
 mkdir -p "$UNSAFE" && cp -r copier.yml skeleton "$UNSAFE/"
 printf '\n_tasks:\n  - "touch execute"\n' >> "$UNSAFE/copier.yml"
 git "${GIT_ID[@]}" init -q "$UNSAFE"
 git -C "$UNSAFE" add -A
 git "${GIT_ID[@]}" -C "$UNSAFE" commit -q --no-verify -m unsafe
-if OUT=$(nstack init "$GN/unsafe" --source "$UNSAFE" --ref HEAD "${REPONSES[@]}" 2>&1); then
-  echo "ÉCHEC : gabarit unsafe accepté."; exit 1
+if OUT=$(nstack init "$GN/unsafe" --source "$UNSAFE" --ref HEAD "${ANSWERS[@]}" 2>&1); then
+  echo "FAIL: unsafe template accepted."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [init] Template $UNSAFE runs code" \
-  || { echo "ÉCHEC : refus unsafe sans message explicatif."; echo "$OUT"; exit 1; }
-[ ! -e "$GN/unsafe" ] || { echo "ÉCHEC : le gabarit refusé a créé des fichiers."; exit 1; }
+  || { echo "FAIL: unsafe refusal without an explanatory message."; echo "$OUT"; exit 1; }
+[ ! -e "$GN/unsafe" ] || { echo "FAIL: the refused template created files."; exit 1; }
 
-echo "→ init : une version de gabarit introuvable DOIT être expliquée (P6)"
-if OUT=$(nstack init "$GN/absente" --source "$REPO" --ref v9.9.9 "${REPONSES[@]}" 2>&1); then
-  echo "ÉCHEC : version introuvable acceptée."; exit 1
+echo "-> init: a template version that cannot be found MUST be explained (P6)"
+if OUT=$(nstack init "$GN/absente" --source "$REPO" --ref v9.9.9 "${ANSWERS[@]}" 2>&1); then
+  echo "FAIL: unknown version accepted."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [init] Template $REPO at version v9.9.9 unreachable" \
-  || { echo "ÉCHEC : version introuvable sans message explicatif."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: unknown version without an explanatory message."; echo "$OUT"; exit 1; }
 
-echo "→ squelette : hooks et règles YAML identiques à ceux du dépôt (P3)"
+echo "-> skeleton: hooks and YAML rules identical to the repository's (P3)"
 for f in .pre-commit-config.yaml .yamllint.yaml; do
   cmp -s "$f" "skeleton/$f" \
-    || { echo "ÉCHEC : skeleton/$f diverge de $f. Appliquer le même changement aux deux copies."; exit 1; }
+    || { echo "FAIL: skeleton/$f diverges from $f. Apply the same change to both copies."; exit 1; }
 done
 
-echo "→ init : sur clone vierge, le projet passe sa CI sans retouche (critère 1)"
+echo "-> init: on a fresh clone, the project passes its CI untouched (criterion 1)"
 CLONE="$GN/clone"
-git clone -q "$PROJET" "$CLONE"
+git clone -q "$PROJECT" "$CLONE"
 if ! OUT=$(cd "$CLONE" && nstack fitness --root . 2>&1); then
-  echo "ÉCHEC : le projet ne passe pas nstack fitness."; echo "$OUT"; exit 1
+  echo "FAIL: the project does not pass nstack fitness."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "Skills: S1, S2 and S4 compliant" \
-  || { echo "ÉCHEC : skills non vérifiées dans le projet."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: skills not checked in the project."; echo "$OUT"; exit 1; }
 if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
-  echo "ÉCHEC : le projet ne passe pas ses hooks."; echo "$OUT"; exit 1
+  echo "FAIL: the project does not pass its hooks."; echo "$OUT"; exit 1
 fi
 for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2)" \
             "Validate GitHub issue config" "Validate GitHub issue forms" "zizmor"; do
   echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
-    || { echo "ÉCHEC : hook « $hook » non exécuté sur le projet."; echo "$OUT"; exit 1; }
+    || { echo "FAIL: hook "$hook" not run on the project."; echo "$OUT"; exit 1; }
 done
 if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-historique --hook-stage manual --all-files 2>&1); then
-  echo "ÉCHEC : scan d'historique en échec sur le projet."; echo "$OUT"; exit 1
+  echo "FAIL: history scan failing on the project."; echo "$OUT"; exit 1
 fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "No file changed." \
-  || { echo "ÉCHEC : nstack pr-scope ne répond pas dans le projet."; exit 1; }
+  || { echo "FAIL: nstack pr-scope does not respond in the project."; exit 1; }
 
-echo "→ new-module : dans le projet, le module passe fitness et hooks sans stack imposée (critère 3)"
-nstack new-module demo acme/equipe-demo standard --root "$CLONE" >/dev/null
+echo "-> new-module: in the project, the module passes fitness and hooks with no imposed stack (criterion 3)"
+nstack new-module demo acme/demo-team standard --root "$CLONE" >/dev/null
 if ! OUT=$(nstack fitness --root "$CLONE" 2>&1); then
-  echo "ÉCHEC : le module sans stack ne passe pas les fitness functions."; echo "$OUT"; exit 1
+  echo "FAIL: the stack-free module does not pass the fitness functions."; echo "$OUT"; exit 1
 fi
 git -C "$CLONE" add -A
 if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run 2>&1); then
-  echo "ÉCHEC : le module généré ne passe pas les hooks du projet."; echo "$OUT"; exit 1
+  echo "FAIL: the generated module does not pass the project hooks."; echo "$OUT"; exit 1
 fi
 
-# Mises à jour : gabarit jetable à trois versions, construit depuis l'arbre de travail.
-TPL="$GN/gabarit"
+# Updates: throwaway template with three versions, built from the working tree.
+TPL="$GN/template"
 mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"
 git "${GIT_ID[@]}" init -q "$TPL"
-version_gabarit() {  # $1 = tag, les modifications du gabarit étant faites
+template_version() {  # $1 = tag, the template changes having been made
   git -C "$TPL" add -A
   git "${GIT_ID[@]}" -C "$TPL" commit -q --no-verify -m "$1"
   git -C "$TPL" tag "$1"
 }
-version_gabarit v0.1.0
-printf '\nCorrectif v0.2, en fin de fichier.\n' >> "$TPL/skeleton/playbooks/tests.md"
-printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
-printf '\nCorrectif v0.2.\n' >> "$TPL/skeleton/modules/README.md"
-version_gabarit v0.2.0
-sed -i '1s/.*/# Sécurité — titre v0.3/' "$TPL/skeleton/playbooks/securite.md"
-version_gabarit v0.3.0
+template_version v0.1.0
+printf '\nFix v0.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests.md"
+printf '\nFix v0.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
+printf '\nFix v0.2.\n' >> "$TPL/skeleton/modules/README.md"
+template_version v0.2.0
+sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/securite.md"
+template_version v0.3.0
 projet_v01() {
-  nstack init "$1" --source "$TPL" --ref v0.1.0 "${REPONSES[@]}" >/dev/null \
-    || { echo "ÉCHEC : nstack init depuis le gabarit jetable ($1)."; exit 1; }
+  nstack init "$1" --source "$TPL" --ref v0.1.0 "${ANSWERS[@]}" >/dev/null \
+    || { echo "FAIL: nstack init from the throwaway template ($1)."; exit 1; }
 }
-commit_projet() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --no-verify -m "$2"; }
+commit_project() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --no-verify -m "$2"; }
 
-A="$GN/projet-a"
+A="$GN/project-a"
 projet_v01 "$A"
 sed -i '1s/.*/# Tests — adaptation locale/' "$A/playbooks/tests.md"
 rm "$A/docs/pdr/_TEMPLATE.md"
-nstack new-module demo acme/equipe-demo standard --root "$A" >/dev/null
-commit_projet "$A" "Adaptations et premier module"
+nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
+commit_project "$A" "Adaptations and first module"
 MODULE_AVANT=$(git -C "$A" rev-parse HEAD:modules/demo)
 
-echo "→ update : correctif et adaptation fusionnés, commités sur une branche (critère 4)"
+echo "-> update: fix and adaptation merged, committed on a branch (criterion 4)"
 if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
-  echo "ÉCHEC : nstack update a échoué."; echo "$OUT"; exit 1
+  echo "FAIL: nstack update failed."; echo "$OUT"; exit 1
 fi
 [ "$(git -C "$A" branch --show-current)" = nstack/update-v0.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
-  || { echo "ÉCHEC : mise à jour non commitée sur nstack/update-v0.2.0."; git -C "$A" status; exit 1; }
+  || { echo "FAIL: update not committed on nstack/update-v0.2.0."; git -C "$A" status; exit 1; }
 [ "$(head -1 "$A/playbooks/tests.md")" = "# Tests — adaptation locale" ] \
-  && grep -qF "Correctif v0.2, en fin de fichier." "$A/playbooks/tests.md" \
-  || { echo "ÉCHEC : adaptation ou correctif perdu dans playbooks/tests.md."; exit 1; }
+  && grep -qF "Fix v0.2, at the end of the file." "$A/playbooks/tests.md" \
+  || { echo "FAIL: adaptation or fix lost in playbooks/tests.md."; exit 1; }
 grep -qF "_commit: v0.2.0" "$A/.copier-answers.yml" \
-  || { echo "ÉCHEC : version du projet non montée."; exit 1; }
+  || { echo "FAIL: project version not bumped."; exit 1; }
 echo "$OUT" | grep -qF "git push -u origin nstack/update-v0.2.0" \
-  || { echo "ÉCHEC : étape suivante absente."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: next step missing."; echo "$OUT"; exit 1; }
 
-echo "→ update : un fichier supprimé par l'équipe n'est pas recréé (critère 6)"
-[ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "ÉCHEC : fichier supprimé recréé."; exit 1; }
+echo "-> update: a file the team deleted is not recreated (criterion 6)"
+[ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "FAIL: deleted file recreated."; exit 1; }
 
-echo "→ update : aucun fichier de module modifié, le README du squelette suit (critère 7)"
+echo "-> update: no module file changed, the skeleton README follows (criterion 7)"
 [ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_AVANT" ] \
-  || { echo "ÉCHEC : modules/demo modifié par la mise à jour (PDR-0001 R4)."; exit 1; }
-grep -qF "Correctif v0.2." "$A/modules/README.md" \
-  || { echo "ÉCHEC : modules/README.md n'a pas suivi la version."; exit 1; }
+  || { echo "FAIL: modules/demo changed by the update (PDR-0001 R4)."; exit 1; }
+grep -qF "Fix v0.2." "$A/modules/README.md" \
+  || { echo "FAIL: modules/README.md did not follow the version."; exit 1; }
 
-echo "→ update : un projet déjà à jour ne crée pas de branche"
+echo "-> update: a project already up to date creates no branch"
 if ! OUT=$(nstack update --root "$A" --ref v0.2.0 2>&1); then
-  echo "ÉCHEC : projet à jour refusé."; echo "$OUT"; exit 1
+  echo "FAIL: up-to-date project refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "Already up to date" \
   && [ "$(git -C "$A" branch --list 'nstack/*' | wc -l)" -eq 1 ] \
-  || { echo "ÉCHEC : projet à jour mal traité."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: up-to-date project mishandled."; echo "$OUT"; exit 1; }
 
-echo "→ update : une version antérieure DOIT être refusée, sans rien modifier"
+echo "-> update: an older version MUST be refused, without changing anything"
 if OUT=$(nstack update --root "$A" --ref v0.1.0 2>&1); then
-  echo "ÉCHEC : retour arrière accepté."; exit 1
+  echo "FAIL: downgrade accepted."; exit 1
 fi
 echo "$OUT" | grep -qF "older than the project version (0.2.0)" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
-  || { echo "ÉCHEC : retour arrière mal refusé."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: downgrade badly refused."; echo "$OUT"; exit 1; }
 
-echo "→ update : un arbre de travail modifié DOIT être refusé, sans rien modifier"
+echo "-> update: a modified working tree MUST be refused, without changing anything"
 echo "modification locale" >> "$A/README.md"
 if OUT=$(nstack update --root "$A" --ref v0.3.0 2>&1); then
-  echo "ÉCHEC : mise à jour acceptée sur un arbre modifié."; exit 1
+  echo "FAIL: update accepted on a modified tree."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] Working tree modified" \
   && [ "$(git -C "$A" diff --name-only)" = README.md ] \
   && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v0.3.0 >/dev/null \
-  || { echo "ÉCHEC : arbre modifié mal refusé."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: modified tree badly refused."; echo "$OUT"; exit 1; }
 git -C "$A" checkout -q -- README.md
 
-echo "→ update : hors d'un projet, la commande DOIT l'expliquer"
-if OUT=$(nstack update --root "$GN/occupe" 2>&1); then
-  echo "ÉCHEC : update accepté hors d'un projet."; exit 1
+echo "-> update: outside a project, the command MUST explain it"
+if OUT=$(nstack update --root "$GN/occupied" 2>&1); then
+  echo "FAIL: update accepted outside a project."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
-  || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected message missing."; echo "$OUT"; exit 1; }
 
-B="$GN/projet-b"
+B="$GN/project-b"
 projet_v01 "$B"
-sed -i '1s/.*/# Sécurité — adaptation locale/' "$B/playbooks/securite.md"
-commit_projet "$B" "Adaptation"
+sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/securite.md"
+commit_project "$B" "Adaptation"
 
-echo "→ update : versions sautées d'un coup, conflit marqué et laissé à l'équipe (critère 5)"
+echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
 if OUT=$(nstack update --root "$B" --ref v0.3.0 2>&1); then
-  echo "ÉCHEC : conflit passé sous silence."; echo "$OUT"; exit 1
+  echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] NapkinStack v0.1.0 -> v0.3.0: conflicts" \
   && echo "$OUT" | grep -qF "  - playbooks/securite.md" \
-  || { echo "ÉCHEC : conflit sans liste des fichiers."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v0.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
-  && grep -qF "Correctif v0.2, en fin de fichier." "$B/playbooks/tests.md" \
-  || { echo "ÉCHEC : branche, commit ou version sautée incorrects."; exit 1; }
+  && grep -qF "Fix v0.2, at the end of the file." "$B/playbooks/tests.md" \
+  || { echo "FAIL: branch, commit or skipped version incorrect."; exit 1; }
 
-echo "→ update : le commit reste refusé tant qu'un marqueur subsiste (critère 5)"
+echo "-> update: the commit stays refused while a marker remains (criterion 5)"
 (cd "$B" && pre-commit install >/dev/null)
 git -C "$B" add -A
-if OUT=$(git "${GIT_ID[@]}" -C "$B" commit -m "Mise à jour" 2>&1); then
-  echo "ÉCHEC : un conflit de mise à jour a été commité."; exit 1
+if OUT=$(git "${GIT_ID[@]}" -C "$B" commit -m "Update" 2>&1); then
+  echo "FAIL: an update conflict was committed."; exit 1
 fi
 echo "$OUT" | grep -qF "Merge conflict string" \
-  || { echo "ÉCHEC : refus sans check-merge-conflict."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: refusal without check-merge-conflict."; echo "$OUT"; exit 1; }
 
-# Doctor : API GitHub simulée, jamais la vraie. Réponses recopiées de celles du dépôt
-# NapkinStack, puis dégradées : dépôt nu, jeton sans permission Administration.
+# Doctor: simulated GitHub API, never the real one. Responses copied from the NapkinStack
+# repository's, then degraded: bare repository, token without the Administration permission.
 API="$GN/api"
 mkdir -p "$API"
 python3 - "$API/routes.json" <<'EOF'
 import json, sys
-regles = [
+rules = [
     {"type": "pull_request", "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
     {"type": "required_status_checks", "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "Périmètre et budget de revue"}, {"context": "Hooks et secrets"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/hors-budget": {"name": "hors-budget"}}
 active = {"status": "enabled"}
-conforme = {
+compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active}},
-    "/rules/branches/main": regles,
+    "/rules/branches/main": rules,
     "/private-vulnerability-reporting": {"enabled": True},
     "/actions/permissions": {"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True},
     "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
@@ -682,7 +682,7 @@ conforme = {
     **labels,
 }
 inactive = {"status": "disabled"}
-nu = {
+bare = {
     "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
     "/rules/branches/main": [],
     "/private-vulnerability-reporting": {"enabled": False},
@@ -690,163 +690,163 @@ nu = {
     "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "first_time_contributors"},
     "/actions/permissions/workflow": {"default_workflow_permissions": "write", "can_approve_pull_request_reviews": True},
 }
-restreint = {"": {}, "/rules/branches/main": regles, **labels}
-conforme[""]["visibility"] = "public"
-nu[""]["visibility"] = "public"
-actions = {chemin: reponse for chemin, reponse in conforme.items() if chemin.startswith("/actions/")}
-prive = {
+restricted = {"": {}, "/rules/branches/main": rules, **labels}
+compliant[""]["visibility"] = "public"
+bare[""]["visibility"] = "public"
+actions = {path: response for path, response in compliant.items() if path.startswith("/actions/")}
+private = {
     "": {"visibility": "private", "security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
     "/rules/branches/main": [],
     **actions, **labels,
 }
-prive_team = {chemin: reponse for chemin, reponse in conforme.items() if chemin != "/private-vulnerability-reporting"}
-prive_team[""] = {**conforme[""], "visibility": "private"}
-json.dump({"acme/conforme": conforme, "acme/nu": nu, "acme/restreint": restreint,
-           "acme/prive": prive, "acme/prive-team": prive_team}, open(sys.argv[1], "w"))
+private_team = {path: response for path, response in compliant.items() if path != "/private-vulnerability-reporting"}
+private_team[""] = {**compliant[""], "visibility": "private"}
+json.dump({"acme/compliant": compliant, "acme/bare": bare, "acme/restricted": restricted,
+           "acme/private": private, "acme/private-team": private_team}, open(sys.argv[1], "w"))
 EOF
-cat > "$API/serveur.py" <<'EOF'
+cat > "$API/server.py" <<'EOF'
 import http.server, json, pathlib, sys
 routes = json.loads(pathlib.Path(sys.argv[1]).read_text())
 class API(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        statut, corps = 404, {"message": "Not Found"}
+        status, body = 404, {"message": "Not Found"}
         if not self.headers.get("Authorization", "").startswith("Bearer "):
-            statut, corps = 401, {"message": "Requires authentication"}
+            status, body = 401, {"message": "Requires authentication"}
         elif self.path.startswith("/repos/"):
-            owner, name, *reste = self.path.removeprefix("/repos/").split("/")
-            depot, chemin = f"{owner}/{name}", ("/" + "/".join(reste)) if reste else ""
-            if chemin in routes.get(depot, {}):
-                statut, corps = 200, routes[depot][chemin]
-            elif depot == "acme/restreint" and not chemin.startswith("/labels/"):
-                statut, corps = 403, {"message": "Resource not accessible by personal access token"}
-        self.send_response(statut)
+            owner, name, *rest = self.path.removeprefix("/repos/").split("/")
+            repo, path = f"{owner}/{name}", ("/" + "/".join(rest)) if rest else ""
+            if path in routes.get(repo, {}):
+                status, body = 200, routes[repo][path]
+            elif repo == "acme/restricted" and not path.startswith("/labels/"):
+                status, body = 403, {"message": "Resource not accessible by personal access token"}
+        self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(corps).encode())
+        self.wfile.write(json.dumps(body).encode())
     def log_message(self, *args):
         pass
-serveur = http.server.HTTPServer(("127.0.0.1", 0), API)
-pathlib.Path(sys.argv[2]).write_text(str(serveur.server_port))
-serveur.serve_forever()
+server = http.server.HTTPServer(("127.0.0.1", 0), API)
+pathlib.Path(sys.argv[2]).write_text(str(server.server_port))
+server.serve_forever()
 EOF
-python3 "$API/serveur.py" "$API/routes.json" "$API/port" &
+python3 "$API/server.py" "$API/routes.json" "$API/port" &
 API_PID=$!
 trap 'kill "$API_PID" 2>/dev/null; rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
 for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
 export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
 
 V=$(nstack --version | cut -d' ' -f2)
-# Tag de la version du moteur ; il existe déjà si elle coïncide avec une version du gabarit jetable.
+# Tag of the engine version; it already exists when it coincides with a throwaway template version.
 if ! git -C "$TPL" rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
   git "${GIT_ID[@]}" -C "$TPL" commit -q --allow-empty --no-verify -m "v$V"
   git -C "$TPL" tag "v$V"
 fi
-C="$GN/projet-c"
+C="$GN/project-c"
 INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Projet C" \
-  --github-repo acme/conforme --owner-team acme/plateforme 2>&1) \
-  || { echo "ÉCHEC : nstack init du projet C."; echo "$INIT_OUT"; exit 1; }
-depot_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
+  --github-repo acme/compliant --owner-team acme/platform 2>&1) \
+  || { echo "FAIL: nstack init of project C."; echo "$INIT_OUT"; exit 1; }
+repo_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
 
-echo "→ init : checklist GitHub affichée, identique au README du squelette et aux jobs de la CI"
+echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
 [ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 11 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
-  || { echo "ÉCHEC : checklist absente de la sortie d'init."; echo "$INIT_OUT"; exit 1; }
-echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r ligne; do
-  grep -qF -- "$ligne" skeleton/README.md.jinja \
-    || { echo "ÉCHEC : « $ligne » absent du README du squelette."; exit 1; }
+  || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
+echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
+  grep -qF -- "$line" skeleton/README.md.jinja \
+    || { echo "FAIL: '$line' missing from the skeleton README."; exit 1; }
 done
 python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
 import sys, yaml
 jobs = yaml.safe_load(open("skeleton/.github/workflows/governance.yml", encoding="utf-8"))["jobs"]
 absents = [job["name"] for job in jobs.values() if f"`{job['name']}`" not in sys.argv[1]]
 if absents:
-    sys.exit(f"ÉCHEC : jobs de la CI du squelette absents de la checklist (G4) : {absents}")
+    sys.exit(f"FAIL: skeleton CI jobs missing from the checklist (G4): {absents}")
 EOF
 
-echo "→ doctor : écarts du poste listés avec leur action (L1, L3, L4, L5)"
+echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5)"
 echo "# Produit" > "$A/PRODUCT.md"
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$A" 2>&1); then
-  echo "ÉCHEC : poste non conforme accepté."; echo "$OUT"; exit 1
+  echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
 fi
-for regle in L1 L3 L4 L5; do
-  echo "$OUT" | grep -qE "FAIL +\[$regle\]" \
-    || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
+for rule in L1 L3 L4 L5; do
+  echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
+    || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
 echo "$OUT" | grep -qF "Action: pre-commit install" \
-  || { echo "ÉCHEC : action de L3 absente."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: L3 action missing."; echo "$OUT"; exit 1; }
 rm "$A/PRODUCT.md"
 
 (cd "$C" && pre-commit install >/dev/null)
-sed -i 's#<Une phrase : ce que fait ce projet.>#Projet de démonstration.#' "$C/README.md"
+sed -i 's#<Une phrase : ce que fait ce projet.>#Demo project.#' "$C/README.md"
 
-echo "→ doctor : dépôt GitHub sans réglages, chaque écart listé avec son action (critère 2)"
-depot_c acme/nu
+echo "-> doctor: GitHub repository without settings, every gap listed with its action (criterion 2)"
+repo_c acme/bare
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : dépôt sans réglages accepté."; echo "$OUT"; exit 1
+  echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
-for regle in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11; do
-  echo "$OUT" | grep -qE "FAIL +\[$regle\]" \
-    || { echo "ÉCHEC : écart $regle non signalé."; echo "$OUT"; exit 1; }
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11; do
+  echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
+    || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
 [ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
-  || { echo "ÉCHEC : actions ou poste incorrects."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: actions or workstation incorrect."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : checklist appliquée, la commande sort en succès (critère 2)"
-depot_c acme/conforme
+echo "-> doctor: checklist applied, the command exits successfully (criterion 2)"
+repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : projet conforme refusé."; echo "$OUT"; exit 1
+  echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 16 ] \
-  || { echo "ÉCHEC : conformité mal rapportée."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : dépôt privé sur l'offre Free, écarts nommant l'offre requise, signalement non applicable"
-depot_c acme/prive
+echo "-> doctor: private repository on the Free plan, gaps naming the plan required, reporting not applicable"
+repo_c acme/private
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : dépôt privé sans barrière accepté."; echo "$OUT"; exit 1
+  echo "FAIL: private repository with no barrier accepted."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
   && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 4 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
-  || { echo "ÉCHEC : dépôt privé sur l'offre Free mal rapporté."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : dépôt privé sous GitHub Team, conforme sans signalement privé"
-depot_c acme/prive-team
+echo "-> doctor: private repository under GitHub Team, compliant without private reporting"
+repo_c acme/private-team
 if ! OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : dépôt privé conforme refusé."; echo "$OUT"; exit 1
+  echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
   && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 15 ] \
-  || { echo "ÉCHEC : dépôt privé conforme mal rapporté."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : sans jeton, la partie GitHub est non vérifiée, jamais conforme"
+echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
 if OUT=$(env -u GH_TOKEN -u GITHUB_TOKEN nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : conforme sans jeton."; echo "$OUT"; exit 1
+  echo "FAIL: compliant without a token."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
   && echo "$OUT" | grep -qF "GH_TOKEN" \
-  || { echo "ÉCHEC : absence de jeton mal traitée."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: missing token mishandled."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : jeton sans permission Administration, les réglages illisibles sont non vérifiés"
-depot_c acme/restreint
+echo "-> doctor: token without the Administration permission, unreadable settings are not verified"
+repo_c acme/restricted
 if OUT=$(GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : conforme sans permission Administration."; echo "$OUT"; exit 1
+  echo "FAIL: compliant without the Administration permission."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G5\]" \
   && echo "$OUT" | grep -qE "NOT VERIFIED +\[G8\]" && echo "$OUT" | grep -qF "Administration: read" \
-  || { echo "ÉCHEC : permission manquante mal traitée."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: missing permission mishandled."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : API injoignable, rien n'est déclaré conforme"
+echo "-> doctor: API unreachable, nothing is declared compliant"
 if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=jeton-factice nstack doctor --root "$C" 2>&1); then
-  echo "ÉCHEC : conforme sans API."; echo "$OUT"; exit 1
+  echo "FAIL: compliant without the API."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G1\]" && echo "$OUT" | grep -qF "unreachable" \
-  || { echo "ÉCHEC : API injoignable mal traitée."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: unreachable API mishandled."; echo "$OUT"; exit 1; }
 
-echo "→ doctor : hors d'un projet, la commande DOIT l'expliquer"
-if OUT=$(nstack doctor --root "$GN/occupe" 2>&1); then
-  echo "ÉCHEC : doctor accepté hors d'un projet."; exit 1
+echo "-> doctor: outside a project, the command MUST explain it"
+if OUT=$(nstack doctor --root "$GN/occupied" 2>&1); then
+  echo "FAIL: doctor accepted outside a project."; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [doctor] .copier-answers.yml not found" \
-  || { echo "ÉCHEC : message attendu absent."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: expected message missing."; echo "$OUT"; exit 1; }
 
-echo "Tests plateforme : OK"
+echo "Platform tests: OK"

@@ -287,8 +287,8 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
       `_afficher`. `JOBS` keeps its current values — the CI job names it checks only
       change in M7c, and the three must move together (§5.2).
 - [ ] `fitness/manifests.py`: `TYPES` values `dictionnaire · liste` → `mapping · list`.
-- [ ] `fitness/pr_scope.sh`, `fitness/boundaries.py`, `skills.py`, `project.py`,
-      `cli.py`: all help text, comments and messages. `ÉCHEC` → `FAIL`,
+- [x] `fitness/pr_scope.sh`, `fitness/boundaries.py`, `skills.py`, `project.py`,
+      `doctor.py`, `cli.py`: all help text, comments and messages. `ÉCHEC` → `FAIL`,
       `AVERTISSEMENT` → `WARNING`.
 - [x] **Rule M4 was language-bound and untested.** It warned when a responsibility
       contained `" et "`, a French conjunction, in a rule that a project writes in its
@@ -298,20 +298,44 @@ Machine values, code, tests. Small diff, entirely covered by the test suite.
       beside it stays language-agnostic. A test case was added first — the branch had
       none, so P5 was not actually held for M4 — and verified red against the French
       rule before the change.
-- [ ] **Paths inside the sources** (`docs/os/03-contrats.md`, `07-gouvernance.md`,
+- [x] **Paths inside the sources** (`docs/os/03-contrats.md`, `07-gouvernance.md`,
       `08-qualite.md`, `09-plateforme.md`) stay French until M7b renames those files.
       M7b must update these references too, not only the markdown ones.
-- [ ] `copier.yml` questions and validator messages.
-- [ ] `pyproject.toml` description.
+- [x] `copier.yml` questions and validator messages.
+- [x] `pyproject.toml` description (it reaches PyPI at the next release).
+- [x] `modules.py` identifiers: `create()` and `run_verb()` replace `nouveau()` and
+      `verbe()`, whose parameter shadowed the function name.
 
-### Task 5 — Tests and verification
+### Task 5 — Tests and verification (done)
 
-- [ ] `git mv platform/tests/test_controles.py platform/tests/test_guardrails.py`;
-      `run.sh` reference updated.
-- [ ] `platform/MANIFEST.yaml`, `platform/README.md`, `platform/AGENTS.md`,
+- [x] `git mv platform/tests/test_controles.py platform/tests/test_guardrails.py`, then
+      the file translated in full: identifiers, docstrings, case ids and fixtures
+      (`facturation` becomes `billing`, `clients` becomes `customers`). References in
+      `platform/README.md` and `PRODUCT.md` followed, so no link dangles.
+- [x] `run.sh`, 852 lines: 222 messages, the fixture names and every French identifier.
+      Translated before renaming identifiers — the reverse order rewrites French words
+      *inside* the messages, which is how the first attempt failed.
+- [x] `platform/MANIFEST.yaml`, `platform/README.md`, `platform/AGENTS.md`,
       `platform/docs/runbook.md` in English.
-- [ ] `uv run nstack fitness` green; `uv run bash platform/tests/run.sh` green.
-- [ ] Every rule still proves it fails (P5): no expectation was weakened to pass.
+- [x] `uv run nstack fitness` green; `uv run bash platform/tests/run.sh` green; all hooks
+      green.
+- [x] Every rule still proves it fails (P5): no expectation was weakened to pass. Two
+      rules gained a case they never had, M4's conjunction branch and `new-module` at
+      `criticality=high`.
+
+### Known transitional French, all of it deliberate
+
+Nothing else in `src/` or `platform/` is French. What remains is coupled to state that
+moves later, and removing it early would break a guardrail:
+
+| What | Where | Freed by |
+|---|---|---|
+| `hors-budget` label string | `pr_scope.sh`, `doctor.py`, `run.sh` | M7c, with the GitHub rename |
+| CI job names | `doctor.py` `JOBS`, `run.sh` simulated API | M7c, with the ruleset |
+| `<Une phrase : ce que fait ce projet.>` | `doctor.py` `PLACEHOLDER`, `run.sh` | M7b, with the skeleton README |
+| `Tag et version identiques` | `run.sh` | M7c, with `release.yml` |
+| `docs/os/0X-*.md` paths | fitness functions, module templates | M7b, with the file renames |
+| `skeleton/playbooks/securite.md` path | `run.sh` | M7b, with the playbook renames |
 
 ---
 
