@@ -21,7 +21,8 @@ flowchart LR
     RP --> M7["M7<br/>move to English<br/>ADR-0003"]:::done
     M7 --> V2["Engine v0.2.0<br/>published on PyPI"]:::done
     V2 --> PP["Pilot project<br/>private"]:::todo
-    PT --> A4["ADR-0004<br/>agent identity"]:::todo
+    PT --> A4["ADR-0004<br/>agent identity<br/>proposed"]:::wip
+    A4 --> PP
     A4 --> P2["PDR-0002<br/>guided framing"]:::todo
 
     classDef done fill:#065f46,color:#fff
@@ -47,7 +48,7 @@ waiting on a decision.
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
 | ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 release |
 | M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
-| ADR-0004 | Agent identity and mandatory approval | To do |
+| ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Proposed (2026-09-16); applied and checked with the pilot project |
 | PDR-0002 | Guided framing and splitting | To do |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
 | C2 | Anti-placeholder check | After the pilot project, if the need is observed |
@@ -187,8 +188,9 @@ verified read-only; uv the only prerequisite. It replaces the "copied or generat
 - ~~ADR-0003 — repository language~~: English everywhere, machine values included; no
   localisation mechanism; accepted on 2026-09-16, executed by workstream M7, published in
   v0.2.0.
-- ADR-0004 — agent identity (a GitHub App or a machine account), the condition for
-  requiring a human approval: a pull request's author cannot approve it.
+- ADR-0004 — agent identity: proposed on 2026-09-16, a GitHub App per organisation, no
+  human credential in the agent's session, a human code owner's approval and an empty
+  bypass list; applied with the pilot project, which checks its criterion.
 - PDR-0002 — guided framing and splitting: from the idea or the specs, a procedure the
   agent follows proposes rules, PDRs, ADRs, modules and contracts; the human validates,
   the CLI generates. To compare with GitHub Spec Kit and BMAD-METHOD.
