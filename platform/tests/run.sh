@@ -577,6 +577,13 @@ echo "-> plan: a new project is not framed yet; its templates are not checked (P
 (cd "$CLONE" && nstack plan --root .) | grep -qF "the project is not framed yet" \
   || { echo "FAIL: nstack plan does not report an unframed project."; exit 1; }
 
+echo "-> discover: an idea starts a discovery, no model called (PDR-0002, extension)"
+printf 'A place where neighbours lend each other tools.\n' > "$GN/idea.md"
+(cd "$CLONE" && nstack discover "$GN/idea.md" --root .) | grep -qF "Follow playbooks/discovery.md on docs/project/inputs/idea.md" \
+  && grep -qF 'idea: "docs/project/inputs/idea.md"' "$CLONE/docs/project/discovery.md" \
+  && (cd "$CLONE" && nstack plan --root .) >/dev/null \
+  || { echo "FAIL: nstack discover did not start the discovery."; exit 1; }
+
 # Updates: throwaway template with three versions, built from the working tree.
 TPL="$GN/template"
 mkdir -p "$TPL" && cp -r copier.yml skeleton "$TPL/"

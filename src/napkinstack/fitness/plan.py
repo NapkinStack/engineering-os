@@ -12,6 +12,7 @@ Rules:
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
   C6  a closed or stopped cycle records its outcome and the date it ended
+  C7  discovery: a known decision, its decider and date once decided; a charter follows a go
 
 Templates, whose file name starts with "_", are not checked.
 
@@ -31,6 +32,8 @@ import yaml
 PROJECT = Path("docs") / "project"
 CHARTER = PROJECT / "charter.md"
 CYCLES = PROJECT / "cycles"
+DISCOVERY = PROJECT / "discovery.md"
+DECISIONS = {"proposed", "go", "clarify", "kill"}
 CHARTER_STATUSES = {"proposed", "accepted"}
 CYCLE_STATUSES = {"proposed", "accepted", "closed", "stopped"}
 DELIVERABLE_STATES = {"proposed", "ready", "in-progress", "accepted", "deferred", "dropped"}
@@ -158,6 +161,22 @@ def _check_cycle(path: Path, fail) -> str | None:
     return status if isinstance(status, str) else None
 
 
+def _check_discovery(path: Path, fail) -> str | None:
+    data, reason = read_front_matter(path)
+    if data is None:
+        fail("C1", path, reason)
+        return None
+    decision = data.get("decision")
+    if decision not in DECISIONS:
+        fail("C7", path, f"decision '{decision}': expected one of {sorted(DECISIONS)}")
+    elif decision != "proposed":
+        if not str(data.get("decider") or "").strip():
+            fail("C7", path, f"a decision ({decision}) names its decider")
+        if as_date(data.get("decided_on")) is None:
+            fail("C7", path, f"a decision ({decision}) records decided_on, YYYY-MM-DD")
+    return decision if isinstance(decision, str) else None
+
+
 def run(root: Path) -> int:
     failures: list[str] = []
 
@@ -168,12 +187,17 @@ def run(root: Path) -> int:
         print(f"Plan: not applicable, no {PROJECT}/ in {root}.")
         return 0
     charter = root / CHARTER
+    discovery = root / DISCOVERY
     cycles = cycle_files(root)
-    if not charter.is_file() and not cycles:
+    if not charter.is_file() and not cycles and not discovery.is_file():
         print(f"Plan: no charter and no cycle in {PROJECT}/ — the project is not framed yet "
               "(playbooks/framing.md).")
         return 0
+    decision = _check_discovery(discovery, fail) if discovery.is_file() else None
     accepted_charter = _check_charter(charter, fail) if charter.is_file() else False
+    if accepted_charter and discovery.is_file() and decision != "go":
+        fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "
+                            "a charter follows a go (docs/project/discovery.md)")
     accepted = [path for path in cycles if _check_cycle(path, fail) == "accepted"]
     if len(accepted) > 1:
         names = ", ".join(path.name for path in accepted)

@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from napkinstack import __version__, doctor, modules, pull_request, skills
+from napkinstack import __version__, discovery, doctor, modules, pull_request, skills
 from napkinstack.fitness import boundaries, manifests, plan
 
 PACKAGE = Path(__file__).resolve().parent
@@ -93,6 +93,9 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: pull_request.run(a.root, a.base, a.body_file))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
+    ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent (PDR-0002)",
+              lambda a: discovery.run(a.root, a.idea))
+    ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
     ini = sub.add_parser("init", help="creates a project from the skeleton (PDR-0001)")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")
