@@ -1,54 +1,54 @@
-# 02 — Modules et frontières
+# 02 — Modules and boundaries
 
-## 1. La règle fondamentale
+## 1. The fundamental rule
 
-> Un développeur ou un agent travaillant sur un module doit pouvoir **comprendre,
-> modifier, tester et valider** ce module sans devoir comprendre l'ensemble du système.
+> A developer or an agent working on a module must be able to **understand, change, test
+> and validate** that module without having to understand the whole system.
 
-C'est la définition opérationnelle d'un module. Tout le reste — granularité, ownership,
-contrats, cycle de vie — en découle.
+That is the operational definition of a module. Everything else — granularity,
+ownership, contracts, lifecycle — follows from it.
 
-Si cette propriété n'est pas vérifiée, ce n'est pas un module : c'est un dossier.
+If that property does not hold, it is not a module: it is a folder.
 
 ---
 
-## 2. Ce qui est uniforme, ce qui ne l'est pas
+## 2. What is uniform, and what is not
 
-Le piège classique en multi-équipes : pour que tout le monde « travaille de la même
-manière », on standardise l'*implémentation* — même framework, mêmes couches, mêmes
-patterns internes. Cela produit du couplage par convention, vieillit mal, et empêche
-chaque équipe d'adapter son module à son domaine.
+The classic multi-team trap: so that everyone "works the same way", the *implementation*
+gets standardised — same framework, same layers, same internal patterns. That produces
+coupling by convention, ages badly, and stops each team adapting its module to its
+domain.
 
-Ce que l'on standardise, c'est l'**interface d'ingénierie** du module : la façon dont
-on le découvre, le lance, le teste, le valide, le livre.
+What is standardised is the module's **engineering interface**: how it is discovered,
+started, tested, validated and shipped.
 
-> Un développeur ou un agent qui change de module retrouve les mêmes **verbes**,
-> jamais le même **code**.
+> A developer or an agent moving between modules finds the same **verbs**, never the same
+> **code**.
 
 ```mermaid
 flowchart TB
-    subgraph P["PLATEFORME — uniforme, imposée, versionnée"]
+    subgraph P["PLATFORM — uniform, imposed, versioned"]
         direction LR
-        P1["Verbes standards<br/>bootstrap · check · test<br/>run · migrate · release"]
-        P2["Enveloppe de fichiers<br/>MANIFEST · AGENTS.md<br/>README · docs/ · tests/"]
-        P3["Checks obligatoires<br/>identiques partout"]
-        P4["Templates issue / PR<br/>DoR · DoD"]
+        P1["Standard verbs<br/>bootstrap · check · test<br/>run · migrate · release"]
+        P2["File envelope<br/>MANIFEST · AGENTS.md<br/>README · docs/ · tests/"]
+        P3["Mandatory checks<br/>identical everywhere"]
+        P4["Issue / PR templates<br/>DoR · DoD"]
     end
 
-    subgraph M["MODULES — autonomes, hétérogènes à l'intérieur"]
+    subgraph M["MODULES — autonomous, heterogeneous inside"]
         direction LR
-        MA["Module A<br/>équipe 1"]
-        MB["Module B<br/>équipe 2"]
-        MC["Module C<br/>équipe 1, plus tard"]
+        MA["Module A<br/>team 1"]
+        MB["Module B<br/>team 2"]
+        MC["Module C<br/>team 1, later on"]
     end
 
-    subgraph C["CONTRATS — le seul canal inter-modules"]
+    subgraph C["CONTRACTS — the only inter-module channel"]
         direction LR
-        CT["API · événements · schémas<br/>versionnés · testés"]
+        CT["APIs · events · schemas<br/>versioned · tested"]
     end
 
-    P ==>|"impose la forme"| M
-    MA -.->|"jamais d'import direct"| MB
+    P ==>|"imposes the shape"| M
+    MA -.->|"never a direct import"| MB
     MA --> CT
     MB --> CT
     MC --> CT
@@ -57,57 +57,59 @@ flowchart TB
     style C fill:#065f46,color:#fff
 ```
 
-La règle tient en une phrase :
+**Legend** — dark grey: what the platform imposes · green: the only authorised channel ·
+dotted: what is forbidden.
 
-> **Deux modules ne se connaissent que par leur contrat. Deux équipes ne se coordonnent
-> que par le contrat. Tout le reste est local.**
+The rule fits in one sentence:
 
-### Le partage frontal
+> **Two modules know each other only through their contract. Two teams coordinate only
+> through the contract. Everything else is local.**
 
-| Catégorie | Uniforme ? | Détail |
+### The dividing line
+
+| Category | Uniform? | Detail |
 |---|---|---|
-| Verbes de commande | **Oui, imposé** | `09-platform.md` |
-| Enveloppe de fichiers | **Oui, imposé** | §4 ci-dessous |
-| Checks obligatoires | **Oui, imposé** | `07-governance.md` |
-| Format des contrats | **Oui, imposé** | `03-contracts.md` |
-| Formats ADR / PDR | **Oui, imposé** | `06-decisions.md` |
-| Langage, framework, base de données | Non | Décision locale, ADR si structurante |
-| Architecture interne, patterns | Non | Décision locale |
-| Stratégie de test détaillée | Non | Guidée par le risque, `08-quality.md` |
-| Conventions de nommage internes | Non | Locales, décrites dans l'`AGENTS.md` du module |
+| Command verbs | **Yes, imposed** | `09-platform.md` |
+| File envelope | **Yes, imposed** | §4 below |
+| Mandatory checks | **Yes, imposed** | `07-governance.md` |
+| Contract format | **Yes, imposed** | `03-contracts.md` |
+| ADR / PDR formats | **Yes, imposed** | `06-decisions.md` |
+| Language, framework, database | No | Local decision, ADR when structuring |
+| Internal architecture, patterns | No | Local decision |
+| Detailed test strategy | No | Guided by risk, `08-quality.md` |
+| Internal naming conventions | No | Local, described in the module's `AGENTS.md` |
 
-**Attention au coût de l'hétérogénéité.** L'autonomie technique n'est pas gratuite :
-elle se paie en capacité à prêter main-forte entre équipes, en outillage à maintenir,
-en surface de sécurité. La liberté existe, mais un ADR est attendu dès qu'un module
-introduit une technologie absente du reste du projet, et le Prior Art Gate s'applique
-(`06-decisions.md`).
+**Mind the cost of heterogeneity.** Technical autonomy is not free: it is paid for in the
+ability to lend a hand between teams, in tooling to maintain, in security surface. The
+freedom exists, but an ADR is expected as soon as a module introduces a technology absent
+from the rest of the project, and the Prior Art Gate applies (`06-decisions.md`).
 
 ---
 
-## 3. Granularité : où couper
+## 3. Granularity: where to cut
 
-Ne jamais créer de modules artificiellement petits. Un module représente une
-**capacité cohérente**, pas une table, une entité ou quelques endpoints.
+Never create artificially small modules. A module represents a **coherent capability**,
+not a table, an entity or a handful of endpoints.
 
 ```mermaid
 flowchart TD
-    A["Candidat au découpage"] --> B{"Correspond-il à une capacité<br/>métier cohérente ?"}
-    B -->|Non| B1["Ne pas découper.<br/>C'est un détail d'implémentation<br/>d'un module existant."]
-    B -->|Oui| C{"Peut-il être compris<br/>et testé seul ?"}
+    A["Candidate for splitting"] --> B{"Does it match a coherent<br/>business capability?"}
+    B -->|No| B1["Do not split.<br/>It is an implementation detail<br/>of an existing module."]
+    B -->|Yes| C{"Can it be understood<br/>and tested on its own?"}
 
-    C -->|Non| C1["Frontière mal placée.<br/>Rechercher la vraie couture<br/>du domaine."]
-    C -->|Oui| D{"A-t-il un owner<br/>identifiable ?"}
+    C -->|No| C1["Boundary badly placed.<br/>Look for the real seam<br/>of the domain."]
+    C -->|Yes| D{"Does it have an<br/>identifiable owner?"}
 
-    D -->|Non| D1["Ne pas créer.<br/>Un module orphelin<br/>devient une dette."]
-    D -->|Oui| E{"Son rythme de changement<br/>diffère-t-il du reste ?"}
+    D -->|No| D1["Do not create it.<br/>An orphan module<br/>becomes debt."]
+    D -->|Yes| E{"Does its rate of change<br/>differ from the rest?"}
 
-    E -->|Oui| F["Bon candidat"]
-    E -->|Non| G{"Autre raison explicite ?<br/>criticité · isolation · ownership<br/>parallélisme · charge cognitive"}
+    E -->|Yes| F["Good candidate"]
+    E -->|No| G{"Another explicit reason?<br/>criticality · isolation · ownership<br/>parallelism · cognitive load"}
 
-    G -->|Oui| F
-    G -->|Non| G1["Ne pas découper.<br/>Le couplage temporel<br/>rendra les deux inséparables."]
+    G -->|Yes| F
+    G -->|No| G1["Do not split.<br/>Temporal coupling<br/>will make both inseparable."]
 
-    F --> H["ADR de création<br/>+ MANIFEST + contrat v1"]
+    F --> H["Creation ADR<br/>+ MANIFEST + contract v1"]
 
     style F fill:#065f46,color:#fff
     style H fill:#065f46,color:#fff
@@ -117,179 +119,180 @@ flowchart TD
     style G1 fill:#7c2d12,color:#fff
 ```
 
-Les critères qui déterminent légitimement la granularité : le domaine, le niveau de
-couplage, l'ownership, le rythme de changement, la criticité, le besoin d'isolation, et
-la charge cognitive.
+**Legend** — green: split, and what it costs · red: do not split, and why.
 
-Le découpage n'est donc **pas uniquement une décision de déploiement**. Il sert aussi à
-borner le contexte d'un agent, réduire le rayon d'impact d'un changement, permettre le
-travail parallèle et rendre les validations locales fiables.
+The criteria that legitimately determine granularity: the domain, the level of coupling,
+ownership, the rate of change, criticality, the need for isolation, and cognitive load.
+
+Splitting is therefore **not only a deployment decision**. It also serves to bound an
+agent's context, reduce the blast radius of a change, allow parallel work and make local
+validations reliable.
 
 ---
 
-## 4. L'enveloppe d'un module
+## 4. A module's envelope
 
-Structure minimale, identique partout :
+The minimal structure, identical everywhere:
 
 ```
-modules/<nom>/
-├── MANIFEST.yaml        ← identité machine-lisible (§5)
-├── AGENTS.md            ← instructions IA locales : uniquement le spécifique
-├── README.md            ← humain : à quoi ça sert, comment démarrer
+modules/<name>/
+├── MANIFEST.yaml        ← machine-readable identity (§5)
+├── AGENTS.md            ← local AI instructions: only what is specific
+├── README.md            ← for humans: what it is for, how to start
 ├── docs/
-│   ├── adr/             ← décisions techniques locales
-│   └── runbook.md       ← si module opéré en production
-├── contracts/           ← contrats PRODUITS par ce module
+│   ├── adr/             ← local technical decisions
+│   └── runbook.md       ← when the module is operated in production
+├── contracts/           ← contracts PROVIDED by this module
 ├── src/
 └── tests/
 ```
 
-**Règle sur l'`AGENTS.md` local** : il contient uniquement ce qui est spécifique au
-module. Ne jamais y dupliquer une règle du kernel. Un `AGENTS.md` local qui répète le
-kernel est un bug — il gaspille du contexte et crée un risque de divergence.
+**Rule for the local `AGENTS.md`**: it contains only what is specific to the module.
+Never duplicate a kernel rule there. A local `AGENTS.md` that repeats the kernel is a
+bug — it wastes context and creates a risk of divergence.
 
-Contenu typique d'un `AGENTS.md` local : conventions internes non devinables, pièges
-connus, invariants métier, commandes non standards, zones à ne pas modifier et
-pourquoi.
+Typical content of a local `AGENTS.md`: internal conventions nobody could guess, known
+traps, business invariants, non-standard commands, areas not to change and why.
 
 ---
 
-## 5. Le Module Manifest
+## 5. The Module Manifest
 
-C'est la pièce qui rend le multi-équipes opérationnel. Un fichier déclaratif unique,
-lisible par un humain, un agent **et la CI**.
+This is the piece that makes multi-team work operational. A single declarative file,
+readable by a human, by an agent **and by CI**.
 
-Voir `templates/MANIFEST.example.yaml` pour le format complet. Il déclare :
+See `templates/MANIFEST.example.yaml` for the full format. It declares:
 
-- identité et responsabilité en une phrase ;
-- owner (équipe, pas individu) ;
-- statut de cycle de vie ;
-- niveau de criticité — il détermine le niveau de gouvernance exigé ;
-- contrats produits ;
-- contrats consommés, avec versions ;
-- commandes standards.
+- identity and responsibility in one sentence;
+- owner (a team, not an individual);
+- lifecycle status;
+- criticality level — it determines the level of governance required;
+- contracts provided;
+- contracts consumed, with versions;
+- standard commands.
 
-### Les trois usages qui justifient son coût
+### The three uses that justify its cost
 
 ```mermaid
 flowchart LR
-    MF["MANIFEST.yaml<br/>déclare l'intention"]
+    MF["MANIFEST.yaml<br/>declares the intent"]
 
-    MF --> U1["ONBOARDING<br/>un agent arrivant sur un module<br/>inconnu sait quoi charger,<br/>sans explorer le repo"]
+    MF --> U1["ONBOARDING<br/>an agent arriving on an unknown<br/>module knows what to load,<br/>without exploring the repo"]
 
-    MF --> U2["FITNESS FUNCTION<br/>graphe déclaré vs graphe réel<br/>extrait du code<br/>→ tout écart = violation"]
+    MF --> U2["FITNESS FUNCTION<br/>declared graph vs real graph<br/>extracted from the code<br/>→ any gap is a violation"]
 
-    MF --> U3["COORDINATION<br/>matrice producteurs/consommateurs<br/>générée → on sait toujours<br/>qui casse qui"]
+    MF --> U3["COORDINATION<br/>a producer/consumer matrix<br/>is generated → you always<br/>know who breaks whom"]
 
-    U2 --> CI["CI : check bloquant"]
+    U2 --> CI["CI: blocking check"]
     U3 --> CI
 
     style MF fill:#1f2937,color:#fff
     style CI fill:#065f46,color:#fff
 ```
 
-Le point essentiel : **le manifest déclare l'intention, la CI vérifie la réalité.** Un
-import vers un module non déclaré échoue en CI. Une dépendance déclarée mais inutilisée
-est signalée. Aucune analyse sémantique n'est nécessaire — c'est une comparaison de
-graphes.
+**Legend** — dark grey: the declaration · green: the deterministic verdict.
+
+The essential point: **the manifest declares the intent, CI verifies reality.** An import
+towards an undeclared module fails in CI. A dependency declared but unused is reported.
+No semantic analysis is needed — it is a comparison of graphs.
 
 ---
 
-## 6. Cycle de vie d'un module
+## 6. A module's lifecycle
 
-Nécessaire dès qu'une équipe travaille séquentiellement sur plusieurs modules : sans
-statut explicite, une équipe qui revient sur un module six mois plus tard ne sait pas ce
-qu'elle a le droit de casser.
+Needed as soon as a team works sequentially on several modules: without an explicit
+status, a team coming back to a module six months later does not know what it is allowed
+to break.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Proposé
-    Proposé --> Actif : ADR de création<br/>manifest + owner + contrat v1
+    [*] --> proposed
+    proposed --> active : creation ADR<br/>manifest + owner + contract v1
 
-    Actif --> Maintenance : plus d'évolution prévue<br/>owner conservé
-    Maintenance --> Actif : nouveau besoin
+    active --> maintenance : no further evolution planned<br/>owner kept
+    maintenance --> active : a new need
 
-    Actif --> Déprécié : remplacé par un autre module
-    Maintenance --> Déprécié : remplacé ou obsolète
+    active --> deprecated : replaced by another module
+    maintenance --> deprecated : replaced or obsolete
 
-    Déprécié --> Retiré : consommateurs = 0<br/>date butoir atteinte
-    Retiré --> [*]
+    deprecated --> retired : consumers = 0<br/>deadline reached
+    retired --> [*]
 
-    note right of Actif
-        Contrat peut évoluer
+    note right of active
+        The contract may evolve
         Breaking change = expand/contract
-        Checks complets selon criticité
+        Full checks, per criticality
     end note
 
-    note right of Maintenance
-        Contrat gelé
-        Correctifs et sécurité uniquement
-        Reprise = relecture du manifest
+    note right of maintenance
+        Contract frozen
+        Fixes and security only
+        Resuming = re-read the manifest
     end note
 
-    note right of Déprécié
-        Aucun nouveau consommateur
-        Date de retrait OBLIGATOIRE
-        Check qui échoue si dépassée
+    note right of deprecated
+        No new consumer
+        Removal date MANDATORY
+        A check fails once it has passed
     end note
 ```
 
-Le statut vit dans le manifest, donc il est vérifiable :
+The status lives in the manifest, so it is checkable:
 
-| Situation | Résultat CI |
+| Situation | CI result |
 |---|---|
-| Module `Maintenance` dont le contrat change | **Rouge** |
-| Module `Déprécié` qui gagne un consommateur | **Rouge** |
-| Module `Déprécié` dont la date de retrait est dépassée | **Rouge** |
-| Module `Actif` sans owner déclaré | **Rouge** |
+| A `maintenance` module whose contract changes | **Red** |
+| A `deprecated` module that gains a consumer | **Red** |
+| A `deprecated` module whose removal date has passed | **Red** |
+| An `active` module with no declared owner | **Red** |
 
-C'est ce qui évite les **états intermédiaires permanents** : un chemin déprécié qui ne
-disparaît jamais parce que personne n'est responsable de sa suppression.
+This is what avoids **permanent intermediate states**: a deprecated path that never
+disappears because nobody is responsible for removing it.
 
 ---
 
-## 7. Une PR, un module
+## 7. One PR, one module
 
-C'est la contrainte la plus rentable du système. Objective, automatisable, et chaque
-violation devient un signal d'architecture.
+This is the system's most profitable constraint. Objective, automatable, and every
+violation becomes an architecture signal.
 
-**Règle.** Une PR modifie les fichiers d'un seul module. Les exceptions existent mais
-sont visibles, tracées et comptées.
+**Rule.** A pull request changes the files of a single module. Exceptions exist but are
+visible, traced and counted.
 
-| Exception | Traitement |
+| Exception | Handling |
 |---|---|
-| Changement de contrat | Séquence expand/contract, jamais une PR unique (`03-contracts.md`) |
-| Changement du socle | Fichiers du squelette : équipe socle, revue élargie ; module `platform/` s'il existe (`09-platform.md` §1) |
-| Correction d'incident critique | Autorisée, label obligatoire, ADR ou post-mortem sous 5 jours |
+| Contract change | An expand/contract sequence, never a single PR (`03-contracts.md`) |
+| Foundation change | Skeleton files: the foundation team, wider review; the `platform/` module when it exists (`09-platform.md` §1) |
+| Critical incident fix | Allowed, label required, ADR or post-mortem within 5 days |
 
-Le déblocage passe par un label explicite sur la PR. Cela rend le taux de changements
-cross-module **mesurable gratuitement** — c'est l'un des meilleurs indicateurs de
-qualité des frontières (`10-measurement.md`).
+Unblocking goes through an explicit label on the pull request. That makes the rate of
+cross-module changes **measurable for free** — one of the best indicators of boundary
+quality (`10-measurement.md`).
 
 ---
 
-## 8. Dépendances autorisées
+## 8. Authorised dependencies
 
 ```mermaid
 flowchart LR
     subgraph A["Module A"]
-        AI["implémentation<br/>interne"]
-        AC["contrat produit v2"]
+        AI["internal<br/>implementation"]
+        AC["contract provided v2"]
     end
 
     subgraph B["Module B"]
-        BI["implémentation<br/>interne"]
-        BC["contrat produit v1"]
+        BI["internal<br/>implementation"]
+        BC["contract provided v1"]
     end
 
-    subgraph SH["Partagé — autorisé"]
-        S1["primitives techniques<br/>sans logique métier"]
-        S2["types générés<br/>depuis les contrats"]
+    subgraph SH["Shared — authorised"]
+        S1["technical primitives<br/>with no business logic"]
+        S2["types generated<br/>from the contracts"]
     end
 
-    BI -->|"AUTORISÉ<br/>consomme le contrat"| AC
-    BI -.->|"INTERDIT<br/>import direct"| AI
-    BI -.->|"INTERDIT<br/>accès base d'autrui"| AI
+    BI -->|"ALLOWED<br/>consumes the contract"| AC
+    BI -.->|"FORBIDDEN<br/>direct import"| AI
+    BI -.->|"FORBIDDEN<br/>access to another's database"| AI
     AI --> S1
     BI --> S1
     BI --> S2
@@ -298,39 +301,42 @@ flowchart LR
     style SH fill:#1f2937,color:#fff
 ```
 
-**Interdits, détectables automatiquement :**
+**Legend** — green: the authorised channel · dark grey: what may be shared · dotted: the
+forbidden paths.
 
-- import direct du code interne d'un autre module ;
-- accès direct à la base de données d'un autre module ;
-- dépendance circulaire entre modules ;
-- partage de logique métier entre domaines distincts ;
-- base de données partagée sans ADR justificatif.
+**Forbidden, and automatically detectable:**
 
-**Autorisé mais à surveiller :** les primitives techniques partagées (logging, erreurs,
-utilitaires sans logique métier). Dès qu'une règle métier entre dans un package
-partagé, deux modules deviennent inséparables.
+- a direct import of another module's internal code;
+- direct access to another module's database;
+- a circular dependency between modules;
+- business logic shared between distinct domains;
+- a shared database without a justifying ADR.
+
+**Allowed but worth watching:** shared technical primitives (logging, errors, utilities
+with no business logic). As soon as a business rule enters a shared package, two modules
+become inseparable.
 
 ---
 
-## 9. Détecter une mauvaise frontière
+## 9. Spotting a bad boundary
 
-Une frontière doit **réduire le coût de changement**. Si elle ne fait que déplacer le
-code, elle est mal placée. Ces signaux sont mesurables, pas subjectifs :
+A boundary must **reduce the cost of change**. If it only moves the code, it is badly
+placed. These signals are measurable, not subjective:
 
-| Signal | Comment le mesurer |
+| Signal | How to measure it |
 |---|---|
-| PR nécessitant systématiquement plusieurs modules | Taux de PR cross-module (§7) |
-| Modules toujours déployés ensemble | Corrélation des releases |
-| Dépendances circulaires | Fitness function sur le graphe |
-| Appels synchrones en cascade | Traces de production |
-| Contrats trop nombreux entre deux modules | Comptage depuis les manifests |
-| Tests nécessitant l'ensemble du système | Durée et périmètre de la suite locale |
-| Ownership ambigu | Manifest sans owner, ou PR revue par plusieurs équipes |
-| Agent incapable de travailler via le contrat seul | Remontée du kernel §4 |
+| Pull requests that systematically need several modules | Cross-module PR rate (§7) |
+| Modules always deployed together | Correlation of releases |
+| Circular dependencies | Fitness function on the graph |
+| Cascading synchronous calls | Production traces |
+| Too many contracts between two modules | Counted from the manifests |
+| Tests that need the whole system | Duration and scope of the local suite |
+| Ambiguous ownership | A manifest with no owner, or a PR reviewed by several teams |
+| An agent unable to work through the contract alone | Reported by kernel §4 |
 
-Le dernier signal est le plus fiable et le moins cher : il est collecté à chaque tâche,
-gratuitement, par l'agent lui-même. **Ne jamais le contourner silencieusement.**
+The last signal is the most reliable and the cheapest: it is collected on every task, for
+free, by the agent itself. **Never work around it quietly.**
 
-Quand plusieurs signaux convergent sur la même paire de modules, ouvrir une issue de
-type *Architecture* : la réponse est soit fusionner, soit redécouper autrement, jamais
-ajouter un contrat de plus.
+When several signals converge on the same pair of modules, open an *Architecture* issue:
+the answer is either to merge them or to split them differently, never to add one more
+contract.

@@ -1,192 +1,193 @@
-# 03 — Contrats
+# 03 — Contracts
 
-## 1. Rôle
+## 1. Role
 
-Le contrat est le **seul canal de communication autorisé entre deux modules**. C'est
-aussi le seul point de coordination entre deux équipes.
+The contract is the **only authorised channel of communication between two modules**. It
+is also the only point of coordination between two teams.
 
-Tout le bénéfice du découpage en modules repose sur une propriété : je peux réécrire
-entièrement l'intérieur d'un module sans que quiconque s'en aperçoive, tant que son
-contrat tient. Si ce n'est pas vrai, le découpage est décoratif.
+The entire benefit of splitting into modules rests on one property: I can rewrite the
+inside of a module completely without anyone noticing, as long as its contract holds. If
+that is not true, the split is decorative.
 
-> Un changement d'API n'est **jamais** un refactoring interne.
+> An API change is **never** an internal refactoring.
 
 ---
 
-## 2. Le contrat comme module à part entière
+## 2. The contract as a module in its own right
 
-`contracts/` n'est pas un dossier utilitaire. C'est la frontière la plus critique du
-système : elle ne peut pas être orpheline.
+`contracts/` is not a utility folder. It is the most critical boundary in the system: it
+cannot be orphaned.
 
-Elle a donc, comme tout module : un owner, un manifest, ses propres tests, ses propres
-règles de changement, et une criticité élevée par défaut.
+Like any module it therefore has an owner, a manifest, its own tests, its own rules of
+change, and a high criticality by default.
 
-**Propriétés exigées d'un contrat :**
+**Properties required of a contract:**
 
-| Propriété | Vérification |
+| Property | Verification |
 |---|---|
-| Versionné | Le numéro de version fait partie de l'identifiant |
-| Documenté | Champs, erreurs, codes, sémantique, exemples |
-| Validable automatiquement | Schéma exécutable, pas une description en prose |
-| Indépendant de l'implémentation | Aucune fuite de structure interne du producteur |
-| Compatible | Règle de compatibilité explicite et testée |
-| Daté pour ses dépréciations | Toute version dépréciée porte une date de retrait |
+| Versioned | The version number is part of the identifier |
+| Documented | Fields, errors, codes, semantics, examples |
+| Automatically validatable | An executable schema, not a description in prose |
+| Independent of the implementation | No leak of the producer's internal structure |
+| Compatible | An explicit, tested compatibility rule |
+| Dated for its deprecations | Every deprecated version carries a removal date |
 
-Un contrat peut couvrir : API synchrone, événements, messages, schémas de données
-échangées, erreurs, authentification, autorisation, règles de compatibilité et de
-dépréciation.
+A contract can cover: a synchronous API, events, messages, schemas of exchanged data,
+errors, authentication, authorisation, compatibility and deprecation rules.
 
 ---
 
-## 3. Classification des changements
+## 3. Classifying a change
 
-C'est la première question à poser, et elle est mécanisable.
+This is the first question to ask, and it can be mechanised.
 
 ```mermaid
 flowchart TD
-    A["Changement de contrat envisagé"] --> B{"Un consommateur existant<br/>continue-t-il de fonctionner<br/>sans aucune modification ?"}
+    A["Contract change considered"] --> B{"Does an existing consumer<br/>keep working with no<br/>change at all?"}
 
-    B -->|Oui| C{"Ajout uniquement ?<br/>champ optionnel, nouvel endpoint,<br/>nouvelle valeur tolérée"}
-    B -->|Non| D["BREAKING"]
+    B -->|Yes| C{"Additions only?<br/>optional field, new endpoint,<br/>new tolerated value"}
+    B -->|No| D["BREAKING"]
 
-    C -->|Oui| E["ADDITIF<br/>version mineure<br/>PR simple, pas de coordination"]
-    C -->|Non| F{"Changement sémantique<br/>à structure identique ?"}
+    C -->|Yes| E["ADDITIVE<br/>minor version<br/>a simple PR, no coordination"]
+    C -->|No| F{"Semantic change<br/>with identical structure?"}
 
-    F -->|Oui| D
-    F -->|Non| E
+    F -->|Yes| D
+    F -->|No| E
 
-    D --> G["Séquence expand/contract obligatoire<br/>+ ADR + date de retrait"]
+    D --> G["Expand/contract sequence required<br/>+ ADR + removal date"]
 
     style E fill:#065f46,color:#fff
     style D fill:#7c2d12,color:#fff
     style G fill:#7c2d12,color:#fff
 ```
 
-**Le piège le plus fréquent** est le nœud `F` : une structure inchangée mais une
-sémantique modifiée. Un champ `status` qui gagne une valeur que les consommateurs ne
-savent pas traiter, une unité qui passe de secondes à millisecondes, un champ
-nullable qui devient toujours rempli. Techniquement compatible, fonctionnellement
-cassant. Ce sont les ruptures les plus coûteuses parce qu'aucun outil de diff ne les
-détecte — seuls les contract tests le font.
+**Legend** — green: the cheap path · red: the expensive path, and what it costs.
+
+**The most frequent trap** is node `F`: an unchanged structure but a modified semantics.
+A `status` field that gains a value consumers do not know how to handle, a unit that goes
+from seconds to milliseconds, a nullable field that becomes always filled. Technically
+compatible, functionally breaking. These are the most expensive breakages because no diff
+tool detects them — only contract tests do.
 
 ---
 
 ## 4. Expand / Contract
 
-C'est la seule manière connue de faire évoluer un contrat entre équipes **sans
-synchronisation temporelle**. Quatre PR, quatre revues indépendantes, zéro réunion.
+This is the only known way to evolve a contract between teams **without temporal
+synchronisation**. Four pull requests, four independent reviews, zero meetings.
 
 ```mermaid
 sequenceDiagram
-    participant E1 as Équipe 1<br/>producteur
-    participant CT as Contrat<br/>versionné
-    participant E2 as Équipe 2<br/>consommateur
+    participant E1 as Team 1<br/>producer
+    participant CT as Versioned<br/>contract
+    participant E2 as Team 2<br/>consumer
     participant CI as CI / Contract tests
 
-    Note over E1,E2: Besoin : nouveau champ + retrait d'un ancien
+    Note over E1,E2: Need: a new field + removal of an old one
 
-    E1->>CT: PR 1 — contrat v2, additif uniquement
-    CT->>CI: contract tests v1 ET v2
-    CI-->>E1: vert, v1 toujours garantie
-    Note over E2: aucun travail imposé,<br/>aucune synchronisation
+    E1->>CT: PR 1 — contract v2, additive only
+    CT->>CI: contract tests v1 AND v2
+    CI-->>E1: green, v1 still guaranteed
+    Note over E2: no work imposed,<br/>no synchronisation
 
-    E1->>E1: PR 2 — implémente v2, sert v1 et v2
-    CI-->>E1: vert
+    E1->>E1: PR 2 — implements v2, serves v1 and v2
+    CI-->>E1: green
 
-    CT-->>E2: signal automatique :<br/>v2 disponible, v1 dépréciée au JJ/MM
-    E2->>E2: PR 3 — migre vers v2<br/>à son propre rythme
-    CI-->>E2: vert
+    CT-->>E2: automatic signal:<br/>v2 available, v1 deprecated on DD/MM
+    E2->>E2: PR 3 — migrates to v2<br/>at its own pace
+    CI-->>E2: green
 
-    E2-->>CT: consommateurs v1 = 0
-    E1->>CT: PR 4 — retrait de v1
-    CI-->>E1: vert, contraction terminée
+    E2-->>CT: v1 consumers = 0
+    E1->>CT: PR 4 — removal of v1
+    CI-->>E1: green, contraction finished
 ```
 
-### Les quatre étapes en détail
+### The four steps in detail
 
-| PR | Qui | Contenu | Garde-fou |
+| PR | Who | Content | Guardrail |
 |---|---|---|---|
-| **1 — Expand contrat** | Producteur | v2 déclarée, additive. v1 intacte. | Contract tests v1 **et** v2 verts |
-| **2 — Expand impl.** | Producteur | Sert les deux versions simultanément | Aucun consommateur impacté |
-| **3 — Migration** | Chaque consommateur | Bascule vers v2, à son rythme | Manifest mis à jour : version consommée |
-| **4 — Contract** | Producteur | Retrait de v1 | Revue : consommateurs v1 = 0 (à automatiser) |
+| **1 — Expand contract** | Producer | v2 declared, additive. v1 untouched. | Contract tests v1 **and** v2 green |
+| **2 — Expand impl.** | Producer | Serves both versions at once | No consumer affected |
+| **3 — Migration** | Each consumer | Switches to v2, at its own pace | Manifest updated: version consumed |
+| **4 — Contract** | Producer | Removal of v1 | Review: v1 consumers = 0 (to automate) |
 
-### Les deux garde-fous
+### The two guardrails
 
-**① La date de dépréciation est un check.** Dès la PR 1, v1 porte une date de retrait.
-Un check échoue quand la date est dépassée et que des consommateurs subsistent. Sans
-cela, on accumule des versions que personne n'ose retirer.
+**① The deprecation date is a check.** From PR 1 onwards, v1 carries a removal date. A
+check fails once the date has passed and consumers remain. Without it, you accumulate
+versions nobody dares remove.
 
-**② La contraction est obligatoire.** L'étape 4 est la plus souvent oubliée, et c'est
-précisément elle qui produit les états intermédiaires permanents. Une PR 1 ouvre une
-issue de contraction, assignée à l'owner du contrat : à la main tant que cette ouverture
-n'est pas automatisée.
+**② The contraction is mandatory.** Step 4 is the most often forgotten, and it is
+precisely what produces permanent intermediate states. PR 1 opens a contraction issue,
+assigned to the contract's owner: by hand, until opening it is automated.
 
 ---
 
 ## 5. Contract tests
 
-Sans eux, un contrat n'est qu'un document — il dérive.
+Without them a contract is only a document — it drifts.
 
 ```mermaid
 flowchart LR
-    subgraph PROD["Côté producteur"]
-        P1["Implémentation"]
-        P2["Test : je respecte<br/>ce que j'ai promis"]
+    subgraph PROD["Producer side"]
+        P1["Implementation"]
+        P2["Test: I honour<br/>what I promised"]
     end
 
-    subgraph SPEC["Contrat versionné"]
-        S["Schéma exécutable<br/>v1 · v2"]
+    subgraph SPEC["Versioned contract"]
+        S["Executable schema<br/>v1 · v2"]
     end
 
-    subgraph CONS["Côté consommateur"]
-        C1["Implémentation"]
-        C2["Test : je n'utilise que<br/>ce qui est promis"]
+    subgraph CONS["Consumer side"]
+        C1["Implementation"]
+        C2["Test: I only use<br/>what was promised"]
     end
 
     P2 --> S
     C2 --> S
-    S -->|"échoue → blocage<br/>avant merge"| CI["CI des DEUX côtés"]
+    S -->|"fails → blocked<br/>before merge"| CI["CI on BOTH sides"]
 
     style S fill:#1f2937,color:#fff
     style CI fill:#065f46,color:#fff
 ```
 
-Les deux directions comptent, et elles attrapent des erreurs différentes :
+**Legend** — dark grey: the single source both sides test against · green: the blocking
+verdict.
 
-- **Côté producteur** : « je respecte ce que j'ai promis ». Empêche la rupture par
-  négligence.
-- **Côté consommateur** : « je ne dépends que de ce qui est promis ». Empêche la
-  dépendance à un comportement non contractuel — le cas où le producteur casse quelqu'un
-  sans avoir rien violé.
+Both directions matter, and they catch different mistakes:
 
-Les contract tests tournent dans la CI **des deux modules**. Un changement de contrat
-qui casse un consommateur déclaré est détecté avant merge, sans réunion.
+- **Producer side**: "I honour what I promised". Prevents breakage through negligence.
+- **Consumer side**: "I only depend on what was promised". Prevents depending on
+  non-contractual behaviour — the case where the producer breaks someone without having
+  violated anything.
+
+Contract tests run in the CI of **both modules**. A contract change that breaks a
+declared consumer is caught before merge, without a meeting.
 
 ---
 
-## 6. Découverte et traçabilité
+## 6. Discovery and traceability
 
-La matrice producteurs/consommateurs est **générée** depuis les manifests, jamais tenue
-à la main. Elle répond à trois questions qu'aucune équipe ne devrait poser en réunion :
+The producer/consumer matrix is **generated** from the manifests, never kept by hand. It
+answers three questions no team should have to ask in a meeting:
 
-- Qui consomme mon contrat, dans quelle version ?
-- Que consomme mon module, et quelles versions sont dépréciées ?
-- Quel est le rayon d'impact de ce changement ?
+- Who consumes my contract, and in which version?
+- What does my module consume, and which versions are deprecated?
+- What is the blast radius of this change?
 
-Un tableau de bord minimal suffit : contrats, versions, consommateurs, dates de
-dépréciation, contractions en retard.
+A minimal dashboard is enough: contracts, versions, consumers, deprecation dates,
+overdue contractions.
 
 ---
 
 ## 7. Anti-patterns
 
-| Anti-pattern | Pourquoi c'est un problème |
+| Anti-pattern | Why it is a problem |
 |---|---|
-| Contrat généré depuis les classes internes du producteur | L'implémentation devient le contrat : toute refonte interne casse les consommateurs |
-| Version dans le corps du message plutôt que dans l'identifiant | Le routage devient conditionnel et non testable |
-| « Champ optionnel » que tous les consommateurs doivent en réalité lire | Breaking déguisé en additif |
-| Contrat sans exemple ni cas d'erreur | Le consommateur devine ; les divergences apparaissent en production |
-| Retrait de version « quand on aura le temps » | État intermédiaire permanent |
-| Plus de N contrats entre les deux mêmes modules | Signal de mauvaise frontière (`02-modules.md` §9) |
-| Contrat modifié dans la même PR que l'implémentation du consommateur | Supprime tout le bénéfice de l'expand/contract |
+| A contract generated from the producer's internal classes | The implementation becomes the contract: any internal rework breaks consumers |
+| The version in the message body rather than in the identifier | Routing becomes conditional and untestable |
+| An "optional field" that every consumer actually has to read | Breaking, disguised as additive |
+| A contract with no example and no error case | The consumer guesses; the divergences show up in production |
+| Removing a version "when we have time" | A permanent intermediate state |
+| More than N contracts between the same two modules | A signal of a bad boundary (`02-modules.md` §9) |
+| The contract changed in the same PR as the consumer's implementation | Destroys the whole benefit of expand/contract |
