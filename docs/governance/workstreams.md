@@ -23,11 +23,12 @@ flowchart LR
     PT --> A4["ADR-0004<br/>agent identity<br/>accepted"]:::done
     PT --> P3["PDR-0003<br/>test sheet<br/>accepted"]:::done
     PT --> P2["PDR-0002<br/>frame and bound<br/>accepted"]:::done
-    A4 --> M8["M8<br/>frame, verify, approve<br/>v0.3.0"]:::wip
+    A4 --> M8["M8<br/>frame, verify, approve"]:::done
     P3 --> M8
     P2 --> M8
     V2 --> M8
-    M8 --> PP["Pilot project<br/>private"]:::todo
+    M8 --> V3["Engine v0.3.0<br/>published on PyPI"]:::done
+    V3 --> PP["Pilot project<br/>private"]:::todo
 
     classDef done fill:#065f46,color:#fff
     classDef wip fill:#1e3a8a,color:#fff
@@ -50,10 +51,10 @@ waiting on a decision.
 | ADR-0001 | [Adopt Copier to generate and update projects](../adr/0001-adopt-copier-to-generate-and-update-projects.md) | Accepted (2026-09-15) |
 | ADR-0002 | [Distribute NapkinStack on PyPI](../adr/0002-distribute-napkinstack-on-pypi.md) | Accepted (2026-09-15), verified at the v0.1.0 release |
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
-| ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 release |
+| ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 and v0.3.0 releases |
 | M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
-| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | In progress: plan |
-| ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied by M8, criterion observed in the pilot project |
+| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 deferred by the maintainer; the pilot next |
+| ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied to this repository (M8f, 2026-09-17), criterion observed in the pilot project |
 | PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Accepted (2026-09-16), clarified: delivery work, extended: discovery; applied by M8, prototyped on the pilot's framing |
 | PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16); applied by M8, measured in the pilot project |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
@@ -367,6 +368,7 @@ scheduled.
 | D21 | Engine coupled to the repository: `sync_skills.py` and `new-module.sh` assume they live in the project (found by the prototype) | M1: `--root` |
 | D22 | Module template: `make` commands imposed, contrary to P1 and R5 (confirmed by the prototype) | M4: a template with no Makefile, commands to declare |
 | D23 | Engine installed: `SOURCE_SUFFIXES` and `IMPORT_HINTS` of `boundaries.py` can no longer be calibrated from a project (found by M2a) | After the pilot project |
+| D24 | An `nstack update` pull request fails `pr-check` T1 whenever the new version changes a file under `contracts/` (criticality high) or a module's manifest has to migrate (M10): no label lifts T1, and an update is not delivery work (found at the v0.3.0 release) | To decide before the next version: PDR-0001's criterion needs an update merged in the pilot |
 
 ---
 

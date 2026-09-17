@@ -93,7 +93,7 @@ provides the layer that lets **the client's stack** hold up across several teams
 
 | User | What they must be able to do | Success criterion |
 |---|---|---|
-| **A tech lead** starting a project | Create a compliant repository and a first module | Under 30 min, without reading the whole handbook |
+| **A tech lead** starting a project | Create a compliant repository, frame it and start a first cycle | The repository in under 30 min, the framing in one session of two hours, without reading the whole handbook |
 | **A developer** joining a team | Contribute usefully | With no spoken conversation |
 | **An AI agent** on a task | Work bounded, be blocked when it drifts | An unmergeable PR rather than debt in `main` |
 | **A second team** arriving | Move forward without blocking the first | Zero synchronisation meetings |
@@ -156,15 +156,20 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.2.0 is published on PyPI (2026-09-16), with a provenance attestation, and
+NapkinStack v0.3.0 is published on PyPI (2026-09-17), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
-the module verbs and the fitness functions; every check has a test that proves its
-failure. `nstack update` has carried a project from v0.1.0 to v0.2.0, both published. What
+the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
+PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
+PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
+projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.0, all published. This repository's
+agent works under its own GitHub App, behind the maintainer's approval (ADR-0004); taking
+the maintainer's credentials out of its session is deferred by the maintainer. What
 remains is the pilot project, private, the first real use. The checks the handbook
 describes without them being automated are marked as such and listed in the automation
 backlog.
 
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
-`docs/governance/plans/2026-09-16-english-migration.md`. Defects and decisions:
+`docs/governance/plans/2026-09-16-english-migration.md`,
+`docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.
