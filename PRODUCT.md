@@ -163,8 +163,8 @@ PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `p
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
 projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the update's
 pull request passes the checks of the version it brings. This repository's
-agent works under its own GitHub App, behind the maintainer's approval (ADR-0004); taking
-the maintainer's credentials out of its session is deferred by the maintainer. What
+agent works under its own GitHub App, behind the maintainer's approval, and its session
+reaches none of the maintainer's credentials (ADR-0004). What
 remains is the pilot project, private, the first real use. The checks the handbook
 describes without them being automated are marked as such and listed in the automation
 backlog.

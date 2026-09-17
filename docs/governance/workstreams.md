@@ -29,7 +29,7 @@ flowchart LR
     V2 --> M8
     M8 --> V3["Engine v0.3.0<br/>published on PyPI"]:::done
     V3 --> D24["D24<br/>what changes a module<br/>v0.3.1 published"]:::done
-    D24 --> M9["M9<br/>team-mode validation<br/>public, one cycle"]:::todo
+    D24 --> M9["M9<br/>team-mode validation<br/>public, one cycle"]:::wip
     M9 --> PP["Pilot project<br/>private, GitHub Team"]:::todo
 
     classDef done fill:#065f46,color:#fff
@@ -55,12 +55,12 @@ waiting on a decision.
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
 | ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 and v0.3.0 releases |
 | M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
-| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 deferred by the maintainer; the pilot next |
+| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 done with M9's Task 0 |
 | ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied to this repository (M8f, 2026-09-17), criterion observed in the pilot project |
 | PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Accepted (2026-09-16), clarified: delivery work, extended: discovery; applied by M8, prototyped on the pilot's framing |
 | PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16), clarified: what changes a module; applied by M8, measured in the pilot project |
 | D24 | What changes a module: an update is neither delivery work nor a reason for a sheet, through to v0.3.1 — [plan](plans/2026-09-17-v0.3.1-what-changes-a-module.md) | Done (2026-09-17): v0.3.1 published, an update pull request passes |
-| M9 | Team-mode validation: the pilot rehearsed on a public subject, two teams, one cycle, drift probes, before paying for GitHub Team — [plan](plans/2026-09-17-team-mode-validation.md) | Planned (2026-09-17) |
+| M9 | Team-mode validation: the pilot rehearsed on a public subject, two teams, one cycle, drift probes, before paying for GitHub Team — [plan](plans/2026-09-17-team-mode-validation.md) | In progress: Task 0 done (2026-09-17) |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
 | C2 | Anti-placeholder check | After the pilot project, if the need is observed |
 | C3 | A versioned git hook | Absorbed by C0.1 |
