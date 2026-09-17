@@ -221,7 +221,8 @@ team's README sentence and `AGENTS.md` section kept, merged with the new version
 conflict; `CODEOWNERS` gains its default owner above the team's module line; criterion 7
 confirmed. The update pull request then fails `pr-check` T1 — the new version changes
 `contracts/`, of criticality high — a defect (D24) to settle before the pilot's first
-update. Details: [the M8 plan](../governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
+update. Settled in v0.3.1: a v0.2.0 project updated to v0.3.1, both published, opens an
+update pull request that passes `pr-check` with no label and no sheet. Details: [the M8 plan](../governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
 §Release.
 
 ---

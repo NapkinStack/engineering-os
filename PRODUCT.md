@@ -156,12 +156,13 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.3.0 is published on PyPI (2026-09-17), with a provenance attestation, and
+NapkinStack v0.3.1 is published on PyPI (2026-09-17), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
-projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.0, all published. This repository's
+projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the update's
+pull request passes the checks of the version it brings. This repository's
 agent works under its own GitHub App, behind the maintainer's approval (ADR-0004); taking
 the maintainer's credentials out of its session is deferred by the maintainer. What
 remains is the pilot project, private, the first real use. The checks the handbook
@@ -170,6 +171,7 @@ backlog.
 
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-english-migration.md`,
-`docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`. Defects and decisions:
+`docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`,
+`docs/governance/plans/2026-09-17-v0.3.1-what-changes-a-module.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.
