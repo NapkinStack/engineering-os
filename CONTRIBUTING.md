@@ -12,7 +12,7 @@ flowchart LR
     T --> I["Implementation<br/>test green"]:::code
     I --> V["Verifications<br/>hooks · fitness · fresh clone"]:::code
     V --> R["Pull request<br/>summary in 5 blocks"]:::review
-    R --> CI["CI and review"]:::review
+    R --> CI["CI and a maintainer's<br/>approval"]:::review
     CI --> M["Merge<br/>squash"]:::done
 
     classDef tracking fill:#374151,color:#fff
@@ -33,6 +33,9 @@ blue: review · green: merged into `main`.
 - **Review budget**: 400 lines and 15 files; beyond that, the `over-budget` label,
   justified in the pull request (mechanical migration, detailed plan, generation).
 - **Pull request summary**: `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
+- **Merging**: every pull request needs a maintainer's approval (ruleset `main`, ADR-0004).
+  Agents work under the `napkinstack-agent` App, never with a maintainer's credentials;
+  they merge once the approval and the checks are there.
 - **Documentation in the same batch**: a change of command, of status or of decision
   updates every page concerned, diagrams and their legends included.
 - **Definition of Done**: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
@@ -41,7 +44,7 @@ blue: review · green: merged into `main`.
 
 ```mermaid
 flowchart LR
-    V["Version PR<br/>uv version --bump"]:::human --> T["Tag vX.Y.Z<br/>on main"]:::human
+    V["Version PR<br/>uv version --bump"]:::human --> T["Tag vX.Y.Z on main<br/>a maintainer's consent"]:::human
     T --> C["Build<br/>tag = version, otherwise stop"]:::ci
     C --> A{"Approval<br/>pypi environment"}:::human
     A --> P["PyPI<br/>Trusted Publishing, attestation"]:::pypi
@@ -54,10 +57,10 @@ flowchart LR
 **Legend** — green: a maintainer's action · grey: `.github/workflows/release.yml` ·
 blue: PyPI. Decision: [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md).
 
-1. Bump the version in a pull request: `uv version --bump patch` (or `minor`), then merge
-   it.
-2. Tag the merged commit: `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>`, then
-   `git push origin vX.Y.Z`.
+1. Bump the version in a pull request: `uv version --bump patch` (or `minor`); a maintainer
+   approves it, then it merges.
+2. With a maintainer's explicit consent, the agent tags the merged commit —
+   `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>` — and pushes it under its App.
 3. Approve the deployment in GitHub Actions ("Review deployments").
 
 No secret is stored: GitHub proves its identity to PyPI at every publication. A published
