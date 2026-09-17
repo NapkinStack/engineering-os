@@ -122,20 +122,25 @@ The maintainer notes, in each approving review: `review: <n> min · beyond the v
 The [M8 plan](2026-09-16-v0.3.0-frame-verify-approve.md)'s M8f task 3, with the sandbox
 settings found while preparing it and recorded there.
 
-- [ ] **Maintainer**: revoke the token `napkinstack-engineering-os`, then
+- [x] **Maintainer**: revoke the token `napkinstack-engineering-os`, then
       `secret-tool clear service napkinstack-gh`.
-- [ ] **Maintainer**: remove the SSH key behind the `github-napkinstack` alias, on GitHub and
+- [x] **Maintainer**: remove the SSH key behind the `github-napkinstack` alias, on GitHub and
       in `~/.ssh` (and its `Host` block).
-- [ ] **Maintainer**: withdraw Claude in Chrome's permission on `github.com`.
-- [ ] **Maintainer**: install the sandbox's seccomp filter
+- [x] **Maintainer**: withdraw Claude in Chrome's permission on `github.com`.
+- [x] **Maintainer**: install the sandbox's seccomp filter
       (`npm install -g @anthropic-ai/sandbox-runtime`); strict sandbox in
       `~/.claude/settings.json` — `allowUnsandboxedCommands: false`, `credentials.files`
       deny `~/.ssh`, `filesystem.allowWrite` for the uv and pre-commit caches,
       `permissions.deny` `Read(~/.ssh/**)` and `Edit(~/.ssh/**)`; restart Claude Code.
-- [ ] **Agent**: proves `ssh-add -l`, `secret-tool search`, reading `~/.ssh` and a Claude in
+- [x] **Agent**: proves `ssh-add -l`, `secret-tool search`, reading `~/.ssh` and a Claude in
       Chrome action on github.com all fail; `gh-agent pr list` and `git fetch` work; removes
       `~/.local/bin/gh-napkinstack` and makes its hook refuse it.
-- [ ] Recorded in the M8 plan, its task 3 ticked.
+- [x] Recorded in the M8 plan, its task 3 ticked.
+
+**Observed on 2026-09-17** — recorded in the M8 plan, M8f task 3. Deviations: the SSH key file
+is kept locally by the maintainer (removed from GitHub, its alias commented); `npm ls -g` inside
+the sandbox does not list the seccomp package, yet the SSH agent and the session bus are
+unreachable; Claude in Chrome reads no page at all, not only github.com.
 
 ## Task 1 — The repository, the teams, the App, the ruleset
 
@@ -172,9 +177,14 @@ git config user.name napkinstack-admin && git config user.email "$GIT_AUTHOR_EMA
 ```
 - [ ] **Maintainer**: write the README's sentence, commit.
 - [ ] **Agent**, in a session whose working directory is the clone: `git log --format='%an
-      <%ae>' | sort -u` shows only `napkinstack-admin`'s noreply address; the remote
-      `https://github.com/NapkinStack/tool-library.git` with the App's credential helper, as
-      in this repository; push `main`.
+      <%ae>' | sort -u` shows only `napkinstack-admin`'s noreply address; push `main` by URL
+      with the App's credential helper passed on the command line — the sandbox forbids
+      writing the clone's git configuration:
+```bash
+git -c credential.https://github.com.helper= \
+    -c credential.https://github.com.helper=napkinstack-agent \
+    push https://github.com/NapkinStack/tool-library.git main
+```
 - [ ] **Maintainer**: apply the checklist `nstack init` printed — ruleset `main` with the
       four required checks (`Fitness functions`, `PR scope and review budget`,
       `Hooks and secrets`, `Test sheet and cycle`), 1 approval, code owner review, squash
