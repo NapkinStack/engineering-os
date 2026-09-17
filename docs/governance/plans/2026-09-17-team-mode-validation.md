@@ -144,26 +144,33 @@ unreachable; Claude in Chrome reads no page at all, not only github.com.
 
 ## Task 1 — The repository, the teams, the App, the ruleset
 
-- [ ] **Maintainer**: create `NapkinStack/tool-library`, **public**, empty (no README, no
+- [x] **Maintainer**: create `NapkinStack/tool-library`, **public**, empty (no README, no
       licence).
-- [ ] **Maintainer**: create the teams `catalog` and `loans` (visible), the maintainer a
+- [x] **Maintainer**: create the teams `catalog` and `loans` (visible), the maintainer a
       member of both; `maintainers`, `catalog` and `loans` get **write** on `tool-library`.
-- [ ] **Maintainer**: the `napkinstack-agent` App's installation → **Configure** → add
+- [x] **Maintainer**: the `napkinstack-agent` App's installation → **Configure** → add
       `tool-library` to its selected repositories. No new installation, no new permission.
-- [ ] **Maintainer**: check the organisation's allowed actions: GitHub's own plus
+- [x] **Maintainer**: check the organisation's allowed actions: GitHub's own plus
       `astral-sh/setup-uv`, SHA pinning required (checklist G7, G8).
-- [ ] **Agent**: `gh-agent api installation/repositories` lists both repositories.
-- [ ] **Maintainer**: from Task 2 on, the orchestrating agent session is started in
+- [x] **Agent**: `gh-agent api installation/repositories` lists both repositories.
+- [x] **Maintainer**: from Task 2 on, the orchestrating agent session is started in
       `~/Bureau/workspace/tool-library` (this repository added as a readable directory).
 
 The ruleset comes in Task 2: its required checks must exist first.
+
+**Observed on 2026-09-17.** The App lists both repositories. Two of this task's settings are
+invisible to it — team permissions and the organisation's Actions policy answer 403 without
+the Administration permission: the maintainer's word is the record, and the first CI run
+confirms `astral-sh/setup-uv` is allowed. **Deviation:** the orchestrating session stays in
+this repository, with the clone added to it (`/add-dir`), so that the session keeps its
+memory of the workstream; the sandbox then allows writing in both.
 
 ## Task 2 — Timed session: `nstack init` (≤ 30 minutes)
 
 The maintainer runs it, as a tech lead would, from the README only; the agent keeps time
 and notes every hesitation. The timer starts at the first command.
 
-- [ ] **Maintainer**, in a fresh terminal — the identity first, since `nstack init` commits:
+- [x] **Maintainer**, in a fresh terminal — the identity first, since `nstack init` commits:
 ```bash
 export GIT_AUTHOR_NAME=napkinstack-admin GIT_COMMITTER_NAME=napkinstack-admin
 export GIT_AUTHOR_EMAIL=328672623+napkinstack-admin@users.noreply.github.com
@@ -175,8 +182,8 @@ nstack init tool-library --project-name tool-library \
 cd tool-library && pre-commit install
 git config user.name napkinstack-admin && git config user.email "$GIT_AUTHOR_EMAIL"
 ```
-- [ ] **Maintainer**: write the README's sentence, commit.
-- [ ] **Agent**, in a session whose working directory is the clone: `git log --format='%an
+- [x] **Maintainer**: write the README's sentence, commit.
+- [x] **Agent**, in a session whose working directory is the clone: `git log --format='%an
       <%ae>' | sort -u` shows only `napkinstack-admin`'s noreply address; push `main` by URL
       with the App's credential helper passed on the command line — the sandbox forbids
       writing the clone's git configuration:
@@ -185,18 +192,36 @@ git -c credential.https://github.com.helper= \
     -c credential.https://github.com.helper=napkinstack-agent \
     push https://github.com/NapkinStack/tool-library.git main
 ```
-- [ ] **Maintainer**: apply the checklist `nstack init` printed — ruleset `main` with the
+- [x] **Maintainer**: apply the checklist `nstack init` printed — ruleset `main` with the
       four required checks (`Fitness functions`, `PR scope and review budget`,
       `Hooks and secrets`, `Test sheet and cycle`), 1 approval, code owner review, squash
       only, **empty bypass list**; secret protection and push protection; private
       vulnerability reporting; workflow token read-only; the labels `cross-module`,
       `over-budget`, `out-of-cycle`.
-- [ ] **Maintainer**: `nstack doctor` with a short-lived fine-grained token of their own
+- [x] **Maintainer**: `nstack doctor` with a short-lived fine-grained token of their own
       (repository `tool-library`, Administration: read), in their own terminal; the token
       deleted afterwards.
-- [ ] **Stop the timer** when `doctor` reports no gap. Log: the duration, each help needed,
+- [x] **Stop the timer** when `doctor` reports no gap. Log: the duration, each help needed,
       each checklist item that was unclear.
-- [ ] **Agent**: opens the issue **"Validation log"** in `tool-library` and logs Task 2.
+- [x] **Agent**: opens the issue **"Validation log"** in `tool-library` and logs Task 2.
+
+**Observed on 2026-09-17** — the log: [`tool-library` issue #1](https://github.com/NapkinStack/tool-library/issues/1).
+
+| Measure | Value |
+|---|---|
+| `nstack init` to `doctor` with no gap, wall clock | 16:45 → 21:20, a session interrupted several times |
+| **Effective time, as the maintainer counts it** | **~25 min — PDR-0001's criterion met** |
+| Workstation rules | L1–L6 green from the first run |
+| GitHub rules | 8 gaps at first (no ruleset, no Advanced Security, no labels), then 0 |
+
+Conditions the figure carries: the agent created the labels and opened the first pull
+request; the maintainer wrote the checklist they were applying; the organisation's settings
+(G7–G10) were already in place.
+
+Two defects of the framework, recorded in the register: **D25** (G12's action when no
+ruleset exists) and **D26** (a required check GitHub cannot offer before it has run once).
+The first pull request of the project stayed `BLOCKED` until the maintainer's approval, then
+the agent merged it: the barrier holds in a project from its first day.
 
 ## Task 3 — Discovery (the discovery playbook's bounds)
 
