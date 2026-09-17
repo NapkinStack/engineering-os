@@ -1,6 +1,9 @@
 # Ties every change to an owner (skeleton/docs/os/07-governance.md §7).
 # Updated automatically by nstack new-module.
 
+# Default owner: every path the rules below do not name (ADR-0004).
+*                              @NapkinStack/maintainers
+
 # Foundation: any change to the OS itself goes through an ADR.
 /skeleton/                     @NapkinStack/maintainers
 /copier.yml                    @NapkinStack/maintainers

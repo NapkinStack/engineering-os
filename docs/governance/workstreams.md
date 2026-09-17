@@ -83,6 +83,8 @@ organisation, the Actions policies, 2FA and base permissions are set once for th
 | Allowed actions: GitHub's only | Confirmed |
 | Wiki disabled | Verified through the API |
 | Ruleset `main`: pull request required, force-push and deletion forbidden, squash only | Verified through the API |
+| Ruleset `main`: 1 approval, code owner review, empty bypass list (ADR-0004) | Verified through the API |
+| GitHub App `napkinstack-agent`: installed on this repository only; Contents, Pull requests, Issues, Workflows write, Actions and Checks read, no Administration | Verified through the API |
 | Required checks `Fitness functions` and `PR scope and review budget` | Verified through the API |
 | Required check `Hooks and secrets` | Verified through the API |
 | SHA-pinned actions required | Verified through the API |
