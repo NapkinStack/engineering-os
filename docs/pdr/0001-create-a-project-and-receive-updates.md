@@ -216,6 +216,14 @@ file renamed between the two versions comes back under its new name; 4 not exerc
 since v0.2.0 translated the whole skeleton. Details:
 [the M7 plan](../governance/plans/2026-09-16-english-migration.md) §7.
 
+**From v0.2.0 to v0.3.0 (2026-09-17).** Criterion 4 exercised on published versions: the
+team's README sentence and `AGENTS.md` section kept, merged with the new version without a
+conflict; `CODEOWNERS` gains its default owner above the team's module line; criterion 7
+confirmed. The update pull request then fails `pr-check` T1 — the new version changes
+`contracts/`, of criticality high — a defect (D24) to settle before the pilot's first
+update. Details: [the M8 plan](../governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
+§Release.
+
 ---
 
 ## Clarification of 2026-09-15 — private repositories

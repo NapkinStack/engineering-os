@@ -145,6 +145,11 @@ a `git grep` for accented letters returns nothing outside git history, and the p
   suite kept French identifiers and fixtures; a search for accents cannot see them. Fixed
   in M8.0, observed again at the v0.3.0 release.
 
+**Observed again on 2026-09-17**, at the v0.3.0 release: `nstack init` from the published
+tag, with a team owner and with a user owner, and a v0.2.0 project updated to v0.3.0 — no
+accented letter and no word of M8.0's search in any tracked file of the three projects. To
+confirm on the pilot's own `nstack init`.
+
 ---
 
 ## Consequences
