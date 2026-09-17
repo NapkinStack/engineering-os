@@ -209,8 +209,11 @@ governance).
 ### The test sheet
 
 Reading a diff tells nobody whether the product behaves as needed; an agent reads code as
-well as a human. So a pull request that changes what a user sees — or touches a module of
-criticality `high` or `critical` — carries a **test sheet** in its description:
+well as a human. So a pull request that changes what a user sees — or changes a module of
+criticality `high` or `critical` — carries a **test sheet** in its description. Editing
+only a module's description — its manifest, `AGENTS.md`, `README.md`, `docs/` — changes no
+behaviour and needs no sheet, a framework update included. The user-visible surface and the
+criticality are read before and after the change, and the stricter applies:
 
 | # | Given · when · then | Kind | Result | Evidence | Commit |
 |---|---|---|---|---|---|

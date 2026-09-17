@@ -20,7 +20,9 @@ Deliverable: D<n>
 
 > A deliverable of the current cycle (`docs/project/cycles/`), ready or in progress. Work
 > outside the cycle — an incident, a production defect — carries the `out-of-cycle` label,
-> and replaces the line above with `Out of cycle: <reason>`.
+> and replaces the line above with `Out of cycle: <reason>`. A pull request that changes no
+> module beyond its description — manifest, `AGENTS.md`, `README.md`, `docs/` — such as a
+> framework update, is not delivery work: the line does not apply.
 
 ## What it changes
 
@@ -86,8 +88,9 @@ other: <specify>
 
 ## Test sheet
 
-> Required when the pull request touches a user-facing module, or one of criticality high
-> or critical (`docs/os/05-workflow.md` §7). The scenarios come from the acceptance
+> Required when the pull request changes a user-facing module, or one of criticality high
+> or critical, beyond its description — manifest, `AGENTS.md`, `README.md`, `docs/`
+> (`docs/os/05-workflow.md` §7). The scenarios come from the acceptance
 > criteria and are written before the code; the results are filled in by a verifier who is
 > not the author (`playbooks/verification.md`). Kind: automated · explored · human only —
 > reason. Result: passed · failed — what was observed · not verified.
