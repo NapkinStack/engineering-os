@@ -1,6 +1,6 @@
 # PDR-0003 — Approve a change on evidence of its behaviour
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-17 (what changes a module)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, pull request
@@ -259,3 +259,27 @@ the sheet itself; remove the rule if it catches nothing the existing tests do no
   users' criteria change.
 - **Data**: evidence is produced with test data only, stored as CI artefacts or on the
   pull request, visible to whoever can see the repository.
+
+---
+
+## Clarification of 2026-09-17 — what changes a module
+
+Added at the v0.3.0 release, with the maintainer's agreement, without changing the decision.
+
+**Observation:** the check read "touches a module" literally. A NapkinStack update edits the
+manifest and documentation of the skeleton's `contracts` module, of criticality `high`: its
+pull request asked for a test sheet with no behaviour to observe, and nothing let it through
+(defect D24). The same held for a module's documentation fix. Meanwhile a pull request could
+lower its own module's criticality or user-visible surface and escape the sheet.
+
+**Clarification:**
+
+- A pull request **changes a module** when it changes a file of the module beyond its
+  description — its manifest, `AGENTS.md`, `README.md` and `docs/`; an empty placeholder
+  does not count either. A new module's empty scaffold is therefore not yet a change; its
+  first source file is. Deleting a module changes it.
+- The user-visible surface and the criticality are read **before and after** the pull
+  request; the stricter applies.
+- No label lifts the sheet: the exemption follows from what the diff changes, which the
+  approver sees, not from a declaration an agent could make.
+

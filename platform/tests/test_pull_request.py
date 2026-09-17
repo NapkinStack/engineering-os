@@ -10,6 +10,7 @@ import os
 import subprocess
 
 import pytest
+import yaml
 
 from napkinstack import cli
 from test_guardrails import VALID, degrade, write_module
@@ -108,6 +109,72 @@ def test_description_from_a_file(tmp_path, capsys, monkeypatch):
     monkeypatch.setenv("PR_HEAD_SHA", head)
     assert cli.main(["pr-check", "--root", str(tmp_path), "--base", base, "--body-file", str(body)]) == 0, \
         capsys.readouterr().out
+
+
+def revise(root, edits: dict[str, str | None], manifest=VALID) -> tuple[str, str]:
+    """The module `login` in the base commit; the head commit applies `edits` inside it —
+    path to new content, None to delete, "." for the whole module. Returns (base, head).
+    Not framed: a change counted as delivery work fails K1."""
+    git(root, "init", "-q", "--initial-branch=main")
+    folder = write_module(root, "login", manifest,
+                          {"src/page.txt": "page\n", "docs/runbook.md": "run\n", "src/.gitkeep": ""})
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "base")
+    base = git(root, "rev-parse", "HEAD")
+    for path, content in edits.items():
+        target = folder / path
+        if content is None:
+            git(root, "rm", "-rq", str(target.relative_to(root)))
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "change")
+    return base, git(root, "rev-parse", "HEAD")
+
+
+ENVELOPE = {"MANIFEST.yaml": yaml.safe_dump(degrade(USER_FACING, module__responsibility="Signs in.")),
+            "AGENTS.md": "y\n", "README.md": "y\n", "docs/runbook.md": "y\n", "docs/adr/0001-x.md": "y\n"}
+MODULE_CASES = {
+    "the envelope only: no sheet, no cycle": (USER_FACING, ENVELOPE, "Modules touched : 0", 0),
+    "an empty placeholder: no change": (HIGH, {"src/.gitkeep": None, "tests/.gitkeep": ""}, "Modules touched : 0", 0),
+    "a source file: a change": (USER_FACING, {"src/page.txt": "new\n"}, "FAIL [T1]", 1),
+    "the stricter of base and head": (USER_FACING, {"MANIFEST.yaml": yaml.safe_dump(VALID), "src/page.txt": "new\n"},
+                                      "FAIL [T1] Test sheet missing: this pull request touches modules/login (user-facing)", 1),
+    "a deleted module: a change": (USER_FACING, {".": None}, "FAIL [T1] Test sheet missing: this pull request touches modules/login", 1),
+}
+
+
+@pytest.mark.parametrize(("manifest", "edits", "expected", "code"), MODULE_CASES.values(), ids=MODULE_CASES.keys())
+def test_what_changes_a_module(tmp_path, capsys, monkeypatch, manifest, edits, expected, code):
+    """A module changes when its behaviour may: not its manifest, AGENTS.md, README.md,
+    docs/ or an empty placeholder (D24, PDR-0003 and PDR-0002 clarifications)."""
+    base, head = revise(tmp_path, edits, manifest)
+    result = check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
+    output = capsys.readouterr().out
+    assert expected in output, output
+    assert result == code, output
+
+
+def test_a_framework_update_is_neither_delivery_nor_a_sheet(tmp_path, capsys, monkeypatch):
+    """D24: `nstack update` migrates the skeleton's `contracts` module, criticality high."""
+    git(tmp_path, "init", "-q", "--initial-branch=main")
+    contracts = tmp_path / "contracts"
+    (contracts / "tests").mkdir(parents=True)
+    (contracts / "README.md").write_text("contracts\n", encoding="utf-8")
+    (contracts / "MANIFEST.yaml").write_text(yaml.safe_dump(degrade(HIGH, module__user_facing=None)), encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "NapkinStack v0.2.0")
+    base = git(tmp_path, "rev-parse", "HEAD")
+    (contracts / "MANIFEST.yaml").write_text(yaml.safe_dump(HIGH), encoding="utf-8")
+    (contracts / "README.md").write_text("contracts, updated\n", encoding="utf-8")
+    (contracts / "tests" / ".gitkeep").write_text("", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "NapkinStack v0.2.0 -> v0.3.0")
+    result = check(tmp_path, base, git(tmp_path, "rev-parse", "HEAD"), "", monkeypatch, deliverable_line=None)
+    output = capsys.readouterr().out
+    assert "Pull request rules: compliant." in output, output
+    assert result == 0, output
 
 
 BROKEN = cycle(start=datetime.date.today() - datetime.timedelta(days=22))  # ended yesterday

@@ -26,4 +26,4 @@ The PDR describes **what the product must do and why**, never its implementation
 |---|---|---|---|
 | [0001](./0001-create-a-project-and-receive-updates.md) | Create a project and receive NapkinStack's updates | Accepted, clarified (private repositories) | 2026-12-31 |
 | [0002](./0002-frame-and-bound-a-project.md) | Frame and bound a project | Accepted, clarified (delivery work), extended (discovery) | 2026-12-31, in the pilot project |
-| [0003](./0003-approve-a-change-on-evidence-of-its-behaviour.md) | Approve a change on evidence of its behaviour | Accepted | 2026-12-31, in the pilot project |
+| [0003](./0003-approve-a-change-on-evidence-of-its-behaviour.md) | Approve a change on evidence of its behaviour | Accepted, clarified (what changes a module) | 2026-12-31, in the pilot project |

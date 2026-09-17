@@ -3,8 +3,8 @@ Pull request rules read from its description: the test sheet (PDR-0003) and the 
 (PDR-0002).
 
 Rules:
-  T1  a test sheet when the pull request touches a user-facing module, or one of
-      criticality high or critical
+  T1  a test sheet when the pull request changes a user-facing module, or one of
+      criticality high or critical — at the base or at the head, the stricter
   T2  a verifier named, and every scenario row filled in: id, given · when · then, a kind
       (automated, explored, human only — reason), a result (passed, failed, not verified)
   T3  no scenario passed without its evidence and the commit it was verified on
@@ -15,7 +15,9 @@ Rules:
   K3  delivery work names a ready or in-progress deliverable of the cycle
   K4  the out-of-cycle label carries its justification
 
-Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml.
+Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
+beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24). A NapkinStack
+update or a documentation fix is neither delivery work nor a reason for a sheet.
 The out-of-cycle label lifts K1 to K3, visibly and countably (docs/os/10-measurement.md).
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
@@ -35,9 +37,10 @@ from pathlib import Path
 import yaml
 
 from napkinstack.fitness import plan
-from napkinstack.fitness.manifests import find_manifests
+from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests
 
 LABEL = "out-of-cycle"
+DESCRIPTION = {"MANIFEST.yaml", "AGENTS.md", "README.md"}
 DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
 JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
 SHEET_CRITICALITIES = {"high", "critical"}
@@ -59,27 +62,47 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
 
-def touched_modules(root: Path, files: list[str]) -> dict[str, dict]:
-    """Folder, relative to the root, to manifest, for every module the files change."""
+def changes_behaviour(path: str) -> bool:
+    """False for a module's description — its manifest, AGENTS.md, README.md, docs/ — and an
+    empty placeholder: changing those is neither delivery work nor a reason for a sheet (D24)."""
+    return not (path in DESCRIPTION or path.startswith("docs/") or path.rsplit("/", 1)[-1] == ".gitkeep")
+
+
+def _manifest(text: str) -> dict:
+    try:
+        data = yaml.safe_load(text) or {}
+    except yaml.YAMLError:
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[dict]]:
+    """Folder, relative to the root, to its manifests — at the head and at the base — for
+    every module whose behaviour the files may change, a deleted module included."""
+    manifests = {path.relative_to(root).as_posix(): [_manifest(path.read_text(encoding="utf-8"))]
+                 for path in find_manifests(root)}
+    listed = _git(root, "ls-tree", "-r", "--name-only", base).stdout.split()
+    for path in listed:
+        parts = path.split("/")
+        if parts[-1] == "MANIFEST.yaml" and parts[0] in MODULE_DIRS and len(parts) in (2, 3):
+            manifests.setdefault(path, []).append(_manifest(_git(root, "show", f"{base}:{path}").stdout))
     touched = {}
-    for manifest in find_manifests(root):
-        folder = manifest.parent.relative_to(root).as_posix()
-        if any(path.startswith(f"{folder}/") for path in files):
-            try:
-                data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-            except yaml.YAMLError:
-                data = {}
-            touched[folder] = data if isinstance(data, dict) else {}
+    for path, found in sorted(manifests.items()):
+        folder = path.removesuffix("/MANIFEST.yaml")
+        if any(file.startswith(f"{folder}/") and changes_behaviour(file[len(folder) + 1:]) for file in files):
+            touched[folder] = found
     return touched
 
 
-def sheet_reason(folder: str, manifest: dict) -> str | None:
-    """Why a module requires a test sheet (T1), or None."""
-    module = manifest.get("module") if isinstance(manifest.get("module"), dict) else {}
-    if module.get("user_facing") is True:
+def sheet_reason(folder: str, manifests: list[dict]) -> str | None:
+    """Why a module requires a test sheet (T1), or None: the stricter of its manifests, so
+    that a pull request cannot lower its own requirement."""
+    modules = [data["module"] for data in manifests if isinstance(data.get("module"), dict)]
+    if any(module.get("user_facing") is True for module in modules):
         return f"{folder} (user-facing)"
-    if module.get("criticality") in SHEET_CRITICALITIES:
-        return f"{folder} (criticality {module['criticality']})"
+    for module in modules:
+        if module.get("criticality") in SHEET_CRITICALITIES:
+            return f"{folder} (criticality {module['criticality']})"
     return None
 
 
@@ -217,7 +240,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
         return 0
     files = _git(root, "diff", "--name-only", f"{base}...HEAD").stdout.split()
     head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
-    modules = touched_modules(root, files)
+    fork = _git(root, "merge-base", base, "HEAD").stdout.strip() or base
+    modules = touched_modules(root, fork, files)
     labels = {label.strip() for label in os.environ.get("PR_LABELS", "").split(",") if label.strip()}
 
     failures: list[str] = []
@@ -225,7 +249,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     def fail(rule: str, message: str) -> None:
         failures.append(f"[{rule}] {message}")
 
-    reasons = [reason for folder, data in modules.items() if (reason := sheet_reason(folder, data))]
+    reasons = [reason for folder, found in modules.items() if (reason := sheet_reason(folder, found))]
     human_only = check_sheet(body, head, reasons, fail)
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail)

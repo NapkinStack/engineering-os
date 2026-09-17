@@ -28,7 +28,8 @@ flowchart LR
     P2 --> M8
     V2 --> M8
     M8 --> V3["Engine v0.3.0<br/>published on PyPI"]:::done
-    V3 --> PP["Pilot project<br/>private"]:::todo
+    V3 --> D24["D24<br/>what changes a module<br/>v0.3.1"]:::wip
+    D24 --> PP["Pilot project<br/>private"]:::todo
 
     classDef done fill:#065f46,color:#fff
     classDef wip fill:#1e3a8a,color:#fff
@@ -56,7 +57,8 @@ waiting on a decision.
 | M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 deferred by the maintainer; the pilot next |
 | ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied to this repository (M8f, 2026-09-17), criterion observed in the pilot project |
 | PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Accepted (2026-09-16), clarified: delivery work, extended: discovery; applied by M8, prototyped on the pilot's framing |
-| PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16); applied by M8, measured in the pilot project |
+| PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16), clarified: what changes a module; applied by M8, measured in the pilot project |
+| D24 | What changes a module: an update is neither delivery work nor a reason for a sheet, through to v0.3.1 — [plan](plans/2026-09-17-v0.3.1-what-changes-a-module.md) | In progress |
 | C1 | A single entry point, `nstack` | Handled by M1 and M4: the `nstack` command, module verbs read from the MANIFEST |
 | C2 | Anti-placeholder check | After the pilot project, if the need is observed |
 | C3 | A versioned git hook | Absorbed by C0.1 |
@@ -368,7 +370,7 @@ scheduled.
 | D21 | Engine coupled to the repository: `sync_skills.py` and `new-module.sh` assume they live in the project (found by the prototype) | M1: `--root` |
 | D22 | Module template: `make` commands imposed, contrary to P1 and R5 (confirmed by the prototype) | M4: a template with no Makefile, commands to declare |
 | D23 | Engine installed: `SOURCE_SUFFIXES` and `IMPORT_HINTS` of `boundaries.py` can no longer be calibrated from a project (found by M2a) | After the pilot project |
-| D24 | An `nstack update` pull request fails `pr-check` T1 whenever the new version changes a file under `contracts/` (criticality high) or a module's manifest has to migrate (M10): no label lifts T1, and an update is not delivery work (found at the v0.3.0 release) | To decide before the next version: PDR-0001's criterion needs an update merged in the pilot |
+| D24 | An `nstack update` pull request fails `pr-check` T1 whenever the new version changes a file under `contracts/` (criticality high) or a module's manifest has to migrate (M10): no label lifts T1, and an update is not delivery work (found at the v0.3.0 release) | v0.3.1: a module changes beyond its description only; the stricter of base and head (PDR-0003 clarification, 2026-09-17) |
 
 ---
 

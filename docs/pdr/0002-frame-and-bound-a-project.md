@@ -315,6 +315,11 @@ a module. The others are exempt; they stay visible in the history like any chang
 circuit breaker stops delivery work only, so that an `out-of-cycle` incident fix remains
 possible.
 
+*Made precise on 2026-09-17 (defect D24):* a NapkinStack update edits the manifest of the
+skeleton's `contracts` module, so "changes a module" read literally made it delivery work.
+A module changes beyond its description only — its manifest, `AGENTS.md`, `README.md`,
+`docs/` — the definition PDR-0003's clarification of the same day gives.
+
 ---
 
 ## Extension of 2026-09-16 — discovery, before the charter

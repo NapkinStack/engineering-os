@@ -565,6 +565,7 @@ fi
 echo "-> pr-check: in the project, a user-facing change without a test sheet MUST fail (PDR-0003)"
 git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "First module"
 nstack new-module face acme/web standard --user-facing --root "$CLONE" >/dev/null
+printf 'page\n' > "$CLONE/modules/face/src/page.html"  # an empty scaffold changes no behaviour (D24)
 git -C "$CLONE" add -A && git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "User-facing module"
 if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack pr-check --root . --base HEAD~1 2>&1); then
   echo "FAIL: a user-facing change with the template's empty sheet went green."; echo "$OUT"; exit 1
