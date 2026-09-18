@@ -14,6 +14,9 @@ uv run nstack manifests --root .
 echo "-> repository boundaries compliant"
 uv run nstack boundaries --root .
 
+echo "-> repository free of paths from one person's machine (H1)"
+uv run nstack hygiene --root .
+
 echo "-> rules M, B, S, P: every rule proves it fails and names itself (pytest, D4)"
 pytest -q platform/tests
 
@@ -249,6 +252,20 @@ if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
 fi
 echo "$OUT" | grep -qF "[S1]" || { echo "FAIL: S1 expected."; echo "$OUT"; rm -rf "$FT"; exit 1; }
 rm -rf "$FT"
+
+echo "-> hygiene: a path from one person's machine in a tracked file MUST fail (H1)"
+HY=$(mktemp -d)
+git -C "$HY" init -q --initial-branch=main
+# Assembled here for the reason the rule's tests give: written literally, the path would be
+# a finding of H1 in this very file, which has no way to exempt itself.
+printf 'The key lands in ~%s\n' "/Downloads/agent.private-key.pem" > "$HY/runbook.md"
+git -C "$HY" add -A
+git -C "$HY" "${GIT_ID_RM[@]}" commit -qm files
+if OUT=$(uv run nstack hygiene --root "$HY" 2>&1); then
+  echo "FAIL: a path from one person's machine went green."; rm -rf "$HY"; exit 1
+fi
+echo "$OUT" | grep -qF "[H1]" || { echo "FAIL: H1 expected."; echo "$OUT"; rm -rf "$HY"; exit 1; }
+rm -rf "$HY"
 
 echo "-> nstack pr-scope: responds on the given root"
 uv run nstack pr-scope --root . --base HEAD | grep -qF "No file changed." \

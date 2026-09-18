@@ -19,7 +19,7 @@ import pytest
 import yaml
 
 from napkinstack import cli, skills
-from napkinstack.fitness import boundaries, manifests
+from napkinstack.fitness import boundaries, hygiene, manifests
 
 YESTERDAY = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
 VALID = {
@@ -254,3 +254,76 @@ def test_new_module_owner(tmp_path, capsys, owner, accepted):
     output = capsys.readouterr().out
     assert code == (0 if accepted else 1), output
     assert accepted or f"FAIL [new-module] invalid owner '{owner}'" in output
+
+
+# --- H: what a shared repository must not carry -----------------------------------------
+# The offending paths are assembled at run time on purpose: written literally, they would
+# be findings of H1 in this very file. The rule has no allowlist, and no file escapes it.
+REFUSED = {
+    "home of a named user": "/" + "home/alice/workspace/notes.md",
+    "macOS home": "/" + "Users/alice/workspace/notes.md",
+    "Windows home": "C:" + "\\Users\\alice\\workspace\\notes.md",
+    "tilde on a real folder": "~/" + "Downloads/napkinstack-agent.private-key.pem",
+}
+ACCEPTED = {
+    "dot-directory": "~/.config/napkinstack/settings.json",
+    "placeholder": "~/<workspace>/project",
+    "tilde alone": "the home directory, ~/, is where it lands",
+    "a variable": "$HOME/workspace/project",
+}
+
+
+def tracked(root: Path, files: dict[str, str]) -> None:
+    """A git repository whose tracked files carry the given contents."""
+    env = {**os.environ, "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
+           "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
+    subprocess.run(["git", "init", "-q", "--initial-branch=main"], cwd=root, check=True)
+    for name, content in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(content, encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "files"], cwd=root, env=env, check=True)
+
+
+@pytest.mark.parametrize("path", REFUSED.values(), ids=REFUSED.keys())
+def test_hygiene(tmp_path, capsys, path):
+    tracked(tmp_path, {"docs/runbook.md": f"Run it from {path}, then commit.\n"})
+    code = hygiene.run(tmp_path)
+    output = capsys.readouterr().out
+    expect(code, output, "H1", True)
+    assert "docs/runbook.md:1" in output, output
+
+
+def test_hygiene_accepts_what_is_true_on_every_machine(tmp_path, capsys):
+    tracked(tmp_path, {f"docs/{name}.md": f"{text}\n" for name, text in
+                       zip(("a", "b", "c", "d"), ACCEPTED.values())})
+    assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_hygiene_reads_only_tracked_files(tmp_path, capsys):
+    tracked(tmp_path, {"docs/runbook.md": "nothing here\n"})
+    (tmp_path / "scratch.md").write_text(f"{REFUSED['macOS home']}\n", encoding="utf-8")
+    assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_hygiene_outside_a_git_repository(tmp_path, capsys):
+    assert hygiene.run(tmp_path) == 0
+    assert "not applicable" in capsys.readouterr().out
+
+
+def test_hygiene_ignores_a_binary_file(tmp_path, capsys):
+    tracked(tmp_path, {"docs/runbook.md": "nothing here\n"})
+    (tmp_path / "logo.bin").write_bytes(b"\x00\x01\xff" + REFUSED["macOS home"].encode())
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_hygiene_leaves_the_generator_its_own_file(tmp_path, capsys):
+    """Copier writes .copier-answers.yml and forbids editing it by hand (ADR-0001)."""
+    source = "_src_path: " + "/" + "home/alice/napkinstack-os\n"
+    tracked(tmp_path, {".copier-answers.yml": source, "docs/answers.md": source})
+    code = hygiene.run(tmp_path)
+    output = capsys.readouterr().out
+    expect(code, output, "H1", True)
+    assert ".copier-answers.yml" not in output, output
+    assert "docs/answers.md:1" in output, output
