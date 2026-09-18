@@ -153,8 +153,8 @@ unreachable; Claude in Chrome reads no page at all, not only github.com.
 - [x] **Maintainer**: check the organisation's allowed actions: GitHub's own plus
       `astral-sh/setup-uv`, SHA pinning required (checklist G7, G8).
 - [x] **Agent**: `gh-agent api installation/repositories` lists both repositories.
-- [x] **Maintainer**: from Task 2 on, the orchestrating agent session is started in
-      `~/Bureau/workspace/tool-library` (this repository added as a readable directory).
+- [x] **Maintainer**: from Task 2 on, the orchestrating agent session is started in the
+      clone of `tool-library` (this repository added as a readable directory).
 
 The ruleset comes in Task 2: its required checks must exist first.
 
@@ -176,7 +176,7 @@ export GIT_AUTHOR_NAME=napkinstack-admin GIT_COMMITTER_NAME=napkinstack-admin
 export GIT_AUTHOR_EMAIL=328672623+napkinstack-admin@users.noreply.github.com
 export GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
 uv tool install napkinstack==0.3.1 --with-executables-from pre-commit
-cd ~/Bureau/workspace
+cd "${WORKSPACE:?the directory that will hold the clone}"
 nstack init tool-library --project-name tool-library \
   --github-repo NapkinStack/tool-library --owner-team NapkinStack/maintainers
 cd tool-library && pre-commit install
@@ -225,9 +225,10 @@ the agent merged it: the barrier holds in a project from its first day.
 
 ## Task 3 — Discovery (the discovery playbook's bounds)
 
-- [x] **Maintainer**: writes the idea in two or three sentences, in
-      `~/Bureau/workspace/tool-library-idea.md`, outside the repository.
-- [x] **Agent**: `nstack discover ~/Bureau/workspace/tool-library-idea.md`, in a branch.
+- [x] **Maintainer**: writes the idea in two or three sentences, in an `<idea-file>`
+      outside the repository — the original is French, which the repository does not take.
+- [x] **Agent**: `nstack discover <idea-file>`, in a branch; the translation it keeps lands
+      in the repository, at `docs/project/inputs/`.
 - [x] **Framer session** (brief on a "Discovery" issue): stages 1–4 — intake with the
       maintainer, research of existing products (strengths, weaknesses), define, shape.
 - [x] **Challenger session**, fresh (its brief: the discovery file's path and the playbook,
