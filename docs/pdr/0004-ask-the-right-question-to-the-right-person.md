@@ -123,6 +123,18 @@ Four rules bound the direction, and they are what this document commits to.
 1. **The stage is derived, never declared.** It comes from facts the repository holds. The
    framework never states a stage without naming the facts that establish it, so a wrong
    answer is visible and arguable rather than authoritative.
+
+   **From the committed repository alone** — no file recording where the project stands, and
+   no call to the forge. A project is worked on from several machines, and two of them
+   reading the same commit have to give the same answer. A file that records a position can
+   go stale, can conflict at a merge, and can be wrong in silence; a derivation can do none
+   of the three. This does not forbid a command from writing a **fact** into the repository
+   and committing it — `nstack init` writes `.copier-answers.yml`, `nstack skills` writes the
+   generated skills — because those are among the facts a stage is derived *from*. What is
+   refused is storing the conclusion. The forge may not decide a stage either: `doctor` reads
+   GitHub with a human's token, and the same call answers differently depending on who asks
+   — observed on 2026-09-18, when the agent's App received 404 for organisation teams the
+   maintainer can see. Those facts are reported beside a stage, never inside it.
 2. **The expertise lives in playbooks**, versioned, reviewed and testable — never in the
    engine, never in a model, never in an agent-specific persona file (P2).
 3. **The recipient is read, not guessed.** A project already declares who decides and who
@@ -165,6 +177,9 @@ approver approves.
       established by facts an existing check returns — or it is not a stage.
 - [ ] Given the M9 log at Task 9, when a hat is proposed, then at least one recorded
       question is one that no other hat would have asked.
+- [ ] Given two clones of the same commit on different machines, when the stage is derived
+      on each, then both report the same stage and the same establishing facts — with no
+      network reachable on either.
 
 ---
 
