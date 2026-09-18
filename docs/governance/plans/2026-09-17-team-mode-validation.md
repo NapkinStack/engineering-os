@@ -352,6 +352,10 @@ it reaches GitHub (M8f).
 
 - [ ] **Agent**: a findings report in the validation log — each criterion of "What is
       measured" against its target, each probe, each sync event, each defect.
+- [ ] **Agent**: **PDR-0004's success criterion**, met or missed — at least three questions
+      the framework should have raised and did not, each attributable to a stage that facts
+      an existing check returns would have established. Below three, the decision says the
+      direction is abandoned rather than built.
 - [ ] **Maintainer, decider**: one of — **go**: GitHub Team and the private pilot, as planned
       in the M8 plan; **fix first**: the defects to address in a NapkinStack version before
       the pilot; **rethink**: a decision to reopen, through a PDR or an ADR.

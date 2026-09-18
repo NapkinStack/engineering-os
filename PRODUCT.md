@@ -130,7 +130,7 @@ workstream listed in `docs/governance/workstreams.md`. One workstream, one pull 
 commit. Never two workstreams together.
 
 **The oracle, here, is `platform/tests/run.sh`** (`uv run bash platform/tests/run.sh`),
-which also runs the pytest cases for rules M, B, S and P
+which also runs the pytest cases for rules M, B, S, P and H
 (`platform/tests/test_guardrails.py`). For every new check, first write the case that
 proves it fails when the rule is broken, and watch it fail. The pattern exists in both
 files: a fitness function rule gains a parameterised case there, a command behaviour gains
@@ -165,7 +165,9 @@ projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the
 pull request passes the checks of the version it brings. This repository's
 agent works under its own GitHub App, behind the maintainer's approval, and its session
 reaches none of the maintainer's credentials (ADR-0004). What
-remains is the pilot project, private, the first real use. The checks the handbook
+remains is the pilot project, private, the first real use. A direction is recorded and not
+yet built: PDR-0004, which routes the interview on the project's stage and the field the
+questions come from, and whose criterion is checked against M9's log. The checks the handbook
 describes without them being automated are marked as such and listed in the automation
 backlog.
 

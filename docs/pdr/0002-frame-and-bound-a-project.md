@@ -156,6 +156,10 @@ approves it (ADR-0004).
 The kernel keeps the author's posture resident; the others are loaded when a session takes
 them on, and the kernel stays within its 250-line budget (P4).
 
+The posture answers *who speaks with respect to the decision*, and that is all it answers.
+PDR-0004 adds two axes to it — the stage the project is in, and the field the questions come
+from — so this table is one axis of the model, not the model.
+
 ### 3. The charter
 
 Written once, at the first framing; changed only through a PDR. It holds: the users and

@@ -1,6 +1,7 @@
 # PDR-0004 — Ask the right question, to the right person, at the right moment
 
-- **Status**: Proposed (2026-09-18). The direction only: the design waits on what M9 records.
+- **Status**: Accepted (2026-09-18, by the maintainer; the success criterion is observed on
+  M9's log). The direction only: the design waits on what M9 records.
 - **Date**: 2026-09-18
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (playbooks, handbook), `nstack` checks,
@@ -201,7 +202,9 @@ of removing one.
 - **Existing users**: none today. Once built, a project generated before it keeps working:
   routing advises, it does not block, and every command still runs when called directly.
 - **Modules and contracts**: none. The facts come from checks that already exist.
-- **Support and documentation**: the handbook gains the stage map; the kernel does not grow
-  (P4, 250 lines). A hat is a playbook, subject to the same review as any other.
+- **Support and documentation**: the stage map joins the postures, in
+  `skeleton/docs/os/05-workflow.md` §10, which is today the only place in the deliverable
+  where the model of who speaks is described; the kernel does not grow (P4, 250 lines). A
+  hat is a playbook, subject to the same review as any other.
 - **Data**: nothing is collected. Every fact used is already in the repository, and no
   model is called (`PRODUCT.md` §6).
