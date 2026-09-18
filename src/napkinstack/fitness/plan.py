@@ -7,7 +7,8 @@ checks read; the prose below it is for humans and agents.
 
 Rules:
   C1  front matter readable: a YAML mapping at the top of the file
-  C2  charter: status proposed or accepted, a decider, at least one success criterion
+  C2  charter: status proposed or accepted, a decider who is one named person, at least
+      one success criterion
   C3  cycle: a goal, a known status, appetite_weeks, start and end, end = start + appetite
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
@@ -30,6 +31,8 @@ from pathlib import Path
 
 import yaml
 
+from napkinstack.modules import HANDLE
+
 PROJECT = Path("docs") / "project"
 CHARTER = PROJECT / "charter.md"
 CYCLES = PROJECT / "cycles"
@@ -42,6 +45,19 @@ WITHOUT_CRITERIA = {"proposed", "deferred", "dropped"}  # acceptance criteria no
 OUTCOMES = {"closed": {"completed", "shipped"}, "stopped": {"reframed", "stopped"}}
 DELIVERABLE_ID = re.compile(r"D[1-9][0-9]*")
 FRONT_MATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)
+DECIDER = re.compile(rf"@?{HANDLE}")  # one person, the way GitHub names people
+
+
+def check_decider(rule: str, path: Path, value, fail) -> None:
+    """A decision has one owner, and it must be possible to route what it decides to them."""
+    decider = str(value or "").strip()
+    if not decider:
+        fail(rule, path, "decider missing: the GitHub handle of the human who validates the charter "
+                         "and the cycles, and decides at the circuit breaker")
+    elif not DECIDER.fullmatch(decider):
+        fail(rule, path, f"decider '{decider}': expected one person's GitHub handle, such as @alice. "
+                         "Not a team, and not the template's placeholder — a decision has one owner, "
+                         "and the framework has to be able to reach them")
 
 
 def read_front_matter(path: Path) -> tuple[dict | None, str]:
@@ -96,9 +112,7 @@ def _check_charter(path: Path, fail) -> bool:
         return False
     if data.get("status") not in CHARTER_STATUSES:
         fail("C2", path, f"status '{data.get('status')}': expected one of {sorted(CHARTER_STATUSES)}")
-    if not str(data.get("decider") or "").strip():
-        fail("C2", path, "decider missing: the GitHub handle of the human who validates the charter "
-                         "and the cycles, and decides at the circuit breaker")
+    check_decider("C2", path, data.get("decider"), fail)
     criteria = data.get("success_criteria")
     if not isinstance(criteria, list) or not [c for c in criteria if str(c or "").strip()]:
         fail("C2", path, "success_criteria: at least one, they say when the project itself ends")
@@ -171,8 +185,7 @@ def _check_discovery(path: Path, fail) -> str | None:
     if decision not in DECISIONS:
         fail("C7", path, f"decision '{decision}': expected one of {sorted(DECISIONS)}")
     elif decision != "proposed":
-        if not str(data.get("decider") or "").strip():
-            fail("C7", path, f"a decision ({decision}) names its decider")
+        check_decider("C7", path, data.get("decider"), fail)
         if as_date(data.get("decided_on")) is None:
             fail("C7", path, f"a decision ({decision}) records decided_on, YYYY-MM-DD")
         if decision == "go" and not str(data.get("challenger") or "").strip():

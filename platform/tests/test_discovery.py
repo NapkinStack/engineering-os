@@ -71,6 +71,7 @@ DISCOVERY_CASES = {
     "C7 decided without a date": (lambda r: write(r, "discovery.md", decided("clarify", decided_on=None)), "C7", True),
     "C7 charter accepted before a go": (lambda r: (write(r, "discovery.md", decided("clarify")), framed(r)), "C7", True),
     "C7 go without a challenger": (lambda r: write(r, "discovery.md", decided("go", challenger="")), "C7", True),
+    "C7 decider not a person": (lambda r: write(r, "discovery.md", decided("go", decider="the team")), "C7", True),
     "C1 discovery without front matter": (lambda r: write(r, "discovery.md", "# Discovery"), "C1", True),
 }
 
