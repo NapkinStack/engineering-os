@@ -153,8 +153,8 @@ unreachable; Claude in Chrome reads no page at all, not only github.com.
 - [x] **Maintainer**: check the organisation's allowed actions: GitHub's own plus
       `astral-sh/setup-uv`, SHA pinning required (checklist G7, G8).
 - [x] **Agent**: `gh-agent api installation/repositories` lists both repositories.
-- [x] **Maintainer**: from Task 2 on, the orchestrating agent session is started in
-      `~/Bureau/workspace/tool-library` (this repository added as a readable directory).
+- [x] **Maintainer**: from Task 2 on, the orchestrating agent session is started in the
+      clone of `tool-library` (this repository added as a readable directory).
 
 The ruleset comes in Task 2: its required checks must exist first.
 
@@ -176,7 +176,7 @@ export GIT_AUTHOR_NAME=napkinstack-admin GIT_COMMITTER_NAME=napkinstack-admin
 export GIT_AUTHOR_EMAIL=328672623+napkinstack-admin@users.noreply.github.com
 export GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
 uv tool install napkinstack==0.3.1 --with-executables-from pre-commit
-cd ~/Bureau/workspace
+cd "${WORKSPACE:?the directory that will hold the clone}"
 nstack init tool-library --project-name tool-library \
   --github-repo NapkinStack/tool-library --owner-team NapkinStack/maintainers
 cd tool-library && pre-commit install
@@ -225,17 +225,46 @@ the agent merged it: the barrier holds in a project from its first day.
 
 ## Task 3 — Discovery (the discovery playbook's bounds)
 
-- [ ] **Maintainer**: writes the idea in two or three sentences, in
-      `~/Bureau/workspace/tool-library-idea.md`, outside the repository.
-- [ ] **Agent**: `nstack discover ~/Bureau/workspace/tool-library-idea.md`, in a branch.
-- [ ] **Framer session** (brief on a "Discovery" issue): stages 1–4 — intake with the
+- [x] **Maintainer**: writes the idea in two or three sentences, in an `<idea-file>`
+      outside the repository — the original is French, which the repository does not take.
+- [x] **Agent**: `nstack discover <idea-file>`, in a branch; the translation it keeps lands
+      in the repository, at `docs/project/inputs/`.
+- [x] **Framer session** (brief on a "Discovery" issue): stages 1–4 — intake with the
       maintainer, research of existing products (strengths, weaknesses), define, shape.
-- [ ] **Challenger session**, fresh (its brief: the discovery file's path and the playbook,
+- [x] **Challenger session**, fresh (its brief: the discovery file's path and the playbook,
       nothing else): stage 5.
-- [ ] **Maintainer, decider**: go, clarify or kill, recorded with the date. A kill ends the
+- [x] **Maintainer, decider**: go, clarify or kill, recorded with the date. A kill ends the
       delivery part of this validation: the discovery's duration and findings are still
       logged, and the maintainer chooses whether to run it again on another subject.
-- [ ] Log: the duration of each stage, the number of the challenger's objections kept.
+- [x] Log: the duration of each stage, the number of the challenger's objections kept.
+
+**Observed on 2026-09-17 and 2026-09-18** — the discovery: `tool-library` pull request #5,
+merged after the decider's approval; the log, [issue #1](https://github.com/NapkinStack/tool-library/issues/1).
+
+| What | Result |
+|---|---|
+| Sessions | Three, isolated, each brief published **before** it started: framer stages 1–4 (issue #3), challenger stage 5 (issue #4, did not write 1–4), decider stage 6. The decider's answers posted verbatim |
+| Rounds | One; no `clarify`. Stage 2: 19 sourced rows, four pages unreachable and recorded as such. Stage 5: 10 pre-mortem endings, 4 risks with a cheap test and a proposed threshold each, 11 counter-evidence rows, 13 flaws each quoting the line it objects to |
+| Decision | **go — an acknowledged rehearsal, criterion A only**; the product criterion dropped, not deferred; no test kept as a spike |
+| Checks | `nstack fitness` and `nstack plan` pass; C7 **mutation-tested** on a throwaway copy: a `go` with no `decided_on` fails, a `go` with no `challenger` fails |
+| Sync events | 0 — neither session asked for anything outside the repository |
+| Deviation | The idea was written in French and translated, the project's language being English; the French original stays outside the repository |
+
+**What the framework earned.** The challenger found, in one session, what the framer's research
+had missed and what decides the product: a French product shipping the same thing free today,
+the collapse of the French leader of free neighbourhood mutual aid, and a liquidation with
+113,000 objects listed. It also showed the success criterion could not be passed or failed and
+had no owner — "the framework declared, the product never measured" was the likeliest ending on
+the document's own evidence. The decider removed the criterion rather than arrange that ending.
+**PDR-0002's extension — a challenger in another session — paid for itself on its first use.**
+
+**What it leaves for Task 4, and criterion A depends on it:** with no deployment and no real
+user, what counts as a **verified** deliverable? PDR-0003 asks for a test sheet run by a
+verifier, with evidence, and that evidence can no longer come from a neighbourhood. If the
+charter does not settle it, a cycle can close green while proving only that the paperwork
+moved — the same structure the challenger found, displaced onto criterion A. The charter also
+has to settle the eight places in the discovery's sections 1 to 5 that still speak of the
+dropped criterion, and carry the factual corrections as constraints.
 
 ## Task 4 — Timed session: framing (≤ 2 hours)
 
