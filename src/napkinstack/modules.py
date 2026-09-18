@@ -21,8 +21,11 @@ from napkinstack.fitness.manifests import find_manifests
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
+# A GitHub person: 1 to 39 characters, alphanumerics and single hyphens, none at either end.
+# Defined once here, the identity rule's home: fitness/plan.py reads it for a charter's decider.
+HANDLE = r"(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*"
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
-    r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
+    rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
 NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
 

@@ -56,6 +56,11 @@ PLAN_CASES = {
     "C2 unknown status": (lambda r: framed(r, {**CHARTER, "status": "draft"}), "C2", True),
     "C2 no decider": (lambda r: framed(r, {**CHARTER, "decider": ""}), "C2", True),
     "C2 no success criterion": (lambda r: framed(r, {**CHARTER, "success_criteria": []}), "C2", True),
+    "C2 decider left as the template placeholder": (lambda r: framed(
+        r, {**CHARTER, "decider": "@<github-handle>"}), "C2", True),
+    "C2 decider not a handle": (lambda r: framed(r, {**CHARTER, "decider": "Fred Smith"}), "C2", True),
+    "C2 decider a team, not a person": (lambda r: framed(
+        r, {**CHARTER, "decider": "@NapkinStack/maintainers"}), "C2", True),
     "C3 no goal": (lambda r: framed(r, cycles={"01.md": cycle(goal="")}), "C3", True),
     "C3 unknown status": (lambda r: framed(r, cycles={"01.md": cycle(status="running")}), "C3", True),
     "C3 appetite zero": (lambda r: framed(r, cycles={"01.md": cycle(appetite_weeks=0)}), "C3", True),
@@ -102,3 +107,10 @@ def test_plan_not_framed_yet(tmp_path, capsys):
 def test_plan_not_applicable(tmp_path, capsys):
     assert plan.run(tmp_path) == 0
     assert "not applicable" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("decider", ["@alice", "alice", "@a-l-i-c-e", "a" * 39])
+def test_plan_accepts_a_person(tmp_path, capsys, decider):
+    """A decision has one owner, named the way GitHub names people (PDR-0004, rule 3)."""
+    framed(tmp_path, {**CHARTER, "decider": decider})
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
