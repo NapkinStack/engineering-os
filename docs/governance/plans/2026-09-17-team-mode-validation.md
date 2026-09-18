@@ -111,6 +111,7 @@ happens: a comment per event, with its date, duration or link.
 | Second team — moves forward without blocking the first | Team 2's deliverable merged using only team 1's contract and the repository; team 1's pull requests never waiting on team 2 | 0 sync events, 0 waits |
 | Evidence (PDR-0003) | Per sheet pull request: verifier ≠ author, evidence on the head commit, the maintainer's review time and what they found beyond the verifier | Review ≤ 15 min, median |
 | Cycle (PDR-0002) | Every merged delivery pull request names a deliverable or carries `out-of-cycle`; the cycle ends on its end date or earlier, no extension | All |
+| Questions (PDR-0004) | Every question put to the maintainer: the stage of the project, the hat the question comes from, who it was put to, and whether a check could have answered it | Recorded, from Task 4 on |
 
 The maintainer notes, in each approving review: `review: <n> min · beyond the verifier:
 <none | what>`.
@@ -286,7 +287,9 @@ to decide.
 - [ ] **Maintainer**: approves; the agent merges. **Stop the timer** at the merge.
 - [ ] **Agent**: `nstack new-module catalog NapkinStack/catalog standard --user-facing` and
       the same for `loans` (criticality as the charter says), in their own pull requests.
-- [ ] Log: the duration, the framer's questions the maintainer found useless or missing.
+- [ ] Log: the duration, the framer's questions the maintainer found useless or missing, and
+      what PDR-0004 waits for — per question: the stage, the hat, the recipient, and whether
+      the repository could have answered it.
 
 ## Task 5 — Team 1 delivers
 
