@@ -272,9 +272,9 @@ dropped criterion, and carry the factual corrections as constraints.
 The decider holds the framer to what this validation needs; everything else is the framing's
 to decide.
 
-- [ ] **Framer session**, new: the charter and cycle 1 in one pull request, following the
+- [x] **Framer session**, new: the charter and cycle 1 in one pull request, following the
       framing playbook, with the maintainer answering.
-- [ ] The charter and the cycle, as the decider accepts them, must give:
+- [x] The charter and the cycle, as the decider accepts them, must give:
   - two modules, `catalog` owned by `NapkinStack/catalog`, `loans` owned by
     `NapkinStack/loans`;
   - `catalog` **provides** a versioned contract that `loans` **consumes**;
@@ -284,10 +284,10 @@ to decide.
   - in the tooling profile: a stack the agents know well, that runs on GitHub-hosted
     runners with GitHub's own actions and `setup-uv` only, and an established tool behind
     the `e2e` verb.
-- [ ] **Maintainer**: approves; the agent merges. **Stop the timer** at the merge.
-- [ ] **Agent**: `nstack new-module catalog NapkinStack/catalog standard --user-facing` and
+- [x] **Maintainer**: approves; the agent merges. **Stop the timer** at the merge.
+- [x] **Agent**: `nstack new-module catalog NapkinStack/catalog standard --user-facing` and
       the same for `loans` (criticality as the charter says), in their own pull requests.
-- [ ] Log: the duration, the framer's questions the maintainer found useless or missing, and
+- [x] Log: the duration, the framer's questions the maintainer found useless or missing, and
       what PDR-0004 waits for — per question: the stage, the hat, the recipient, and whether
       the repository could have answered it.
 
@@ -295,26 +295,26 @@ to decide.
 
 For each of `catalog`'s deliverables, in order:
 
-- [ ] **Agent (orchestrator)**: an issue per deliverable; the author's brief posted on it —
+- [x] **Agent (orchestrator)**: an issue per deliverable; the author's brief posted on it —
       posture, deliverable id, the playbooks to follow, and nothing about the other team.
-- [ ] **Team 1 author session**: the test sheet first (from the acceptance criteria), then
+- [x] **Team 1 author session**: the test sheet first (from the acceptance criteria), then
       the code, the contract and its producer-side contract tests; opens the pull request
       with `Deliverable: D<n>`.
-- [ ] **Verifier session**, fresh: runs the sheet before reading the diff; fills results,
+- [x] **Verifier session**, fresh: runs the sheet before reading the diff; fills results,
       evidence, head commit.
-- [ ] **Maintainer**: reviews on the sheet, notes review time and findings beyond the
+- [x] **Maintainer**: reviews on the sheet, notes review time and findings beyond the
       verifier, approves; the agent merges.
-- [ ] Log: sync events, review time, findings, CI failures and whether each was legitimate.
+- [x] Log: sync events, review time, findings, CI failures and whether each was legitimate.
 
 ## Task 6 — Team 2 arrives
 
-- [ ] Starts only after team 1's first deliverable is merged. Same loop as Task 5, with the
+- [x] Starts only after team 1's first deliverable is merged. Same loop as Task 5, with the
       `loans` author sessions.
-- [ ] Team 2's brief says **nothing** about team 1 beyond "the repository": the contract, its
+- [x] Team 2's brief says **nothing** about team 1 beyond "the repository": the contract, its
       version and its tests are found there, or a sync event is logged.
-- [ ] `loans` declares the contract in `consumes`, with its version; consumer-side contract
+- [x] `loans` declares the contract in `consumes`, with its version; consumer-side contract
       tests.
-- [ ] Log: every sync event, and any team 1 pull request that waited on team 2.
+- [x] Log: every sync event, and any team 1 pull request that waited on team 2.
 
 ## Task 7 — Drift probes
 
@@ -338,34 +338,34 @@ it reaches GitHub (M8f).
 | P10 | The App approves its own pull request | GitHub: cannot approve your own pull request |
 | P11 | A delivery pull request after the cycle's end date | `Test sheet and cycle` — K2, circuit breaker |
 
-- [ ] P1–P8 during the cycle, once both modules exist. P11 in Task 8.
-- [ ] A probe that passes when a refusal was expected: a defect in the register, and the
+- [x] P1–P8 during the cycle, once both modules exist. P11 in Task 8.
+- [x] A probe that passes when a refusal was expected: a defect in the register, and the
       maintainer decides whether to stop the validation.
 
 ## Task 8 — The end of the cycle
 
-- [ ] On the end date, whatever remains: **P11** first, then the decider's choice — close
+- [x] On the end date, whatever remains: **P11** first, then the decider's choice — close
       (completed or shipped) or stop — recorded in the cycle file, no extension.
-- [ ] Log: deliverables accepted, deferred, dropped; the cycle's real end.
+- [x] Log: deliverables accepted, deferred, dropped; the cycle's real end.
 
 ## Task 9 — Findings and the exit decision
 
-- [ ] **Agent**: a findings report in the validation log — each criterion of "What is
+- [x] **Agent**: a findings report in the validation log — each criterion of "What is
       measured" against its target, each probe, each sync event, each defect.
-- [ ] **Agent**: **PDR-0004's success criterion**, met or missed — at least three questions
+- [x] **Agent**: **PDR-0004's success criterion**, met or missed — at least three questions
       the framework should have raised and did not, each attributable to a stage that facts
       an existing check returns would have established. Below three, the decision says the
       direction is abandoned rather than built.
-- [ ] **Maintainer, decider**: one of — **go**: GitHub Team and the private pilot, as planned
+- [x] **Maintainer, decider**: one of — **go**: GitHub Team and the private pilot, as planned
       in the M8 plan; **fix first**: the defects to address in a NapkinStack version before
       the pilot; **rethink**: a decision to reopen, through a PDR or an ADR.
-- [ ] **Agent**: a summary pull request in this repository — this plan ticked with its
+- [x] **Agent**: a summary pull request in this repository — this plan ticked with its
       observations, the defect register, `workstreams.md`, and `PRODUCT.md` §7 if a
       criterion was met or missed. The validation repository stays public as evidence.
 
 ## Task 10 — The first update (when the next NapkinStack version exists)
 
-- [ ] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
+- [x] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
       request passes the checks with no label and no sheet (D24), adaptations kept,
       modules untouched — PDR-0001's second criterion, rehearsed.
 
@@ -390,3 +390,44 @@ it reaches GitHub (M8f).
 - No payment, no private data, no change to NapkinStack during the cycle.
 - P4 has no expected check: the handbook marks contract contraction "to automate", so the
   probe records what happens instead of assuming a guard exists.
+
+---
+
+## Observed — the whole validation, 2026-09-18 and 2026-09-19
+
+Everything below is recorded, event by event, in the validation log: `NapkinStack/tool-library`
+issue 1. This is its summary.
+
+| Criterion | Target | Observed | |
+|---|---|---|---|
+| A compliant repository | ≤ 30 min | ~25 min of effective work | met |
+| Framed, first cycle started | ≤ 2 h | **148 min wall clock**, ≈ 53 min effective | **missed as written** |
+| No spoken conversation | 0 sync events | **0 during the work**, **1 between the teams**, named | met, with one named |
+| An agent bounded | 10 of 10 probes | **9 of 11 refused, 2 accepted** | **missed — defect** |
+| A second team, not blocking | 0 waits | **0 waits** | met |
+| Evidence (PDR-0003) | verifier /= author; review ≤ 15 min median | 3 of 3 verified by a separate session; **median 10 min on 3 measurements** | met |
+| The cycle (PDR-0002) | every pull request conforms; no extension | **7 of 7**; closed **7 days early** | met |
+
+**One cycle, one day.** A discovery challenged by a session that had not written it, a charter
+and a cycle accepted, two modules with separate owners, a hand-written contract provided by one
+and consumed by the other, three deliverables each carrying a test sheet written **before** the
+code and run by a session that did not write it, evidence produced by machine and re-runnable,
+and a closure recorded before the end date.
+
+**The barriers that protect the human held.** GitHub refused a merge with no approval (405,
+naming the missing rule), refused the App's self-approval (422), and `T4` refused a sheet
+verified on another commit — which is what proved the author never touched the verifier's cells.
+
+**The barriers that protect the architecture did not.** Probes P2 and P3 were accepted:
+`boundaries` builds the real graph from import lines, and a module consuming a contract imports
+nothing of its producer. For the only dependency this framework allows between modules, the
+declared graph is never confronted with the real one.
+
+## The exit decision — **fix first** (decider, 2026-09-19)
+
+The pilot waits for a version that closes the defects below. The organisation stays on the Free
+plan; no seat is bought today.
+
+Not `go`: a real project would be running on a framework whose central promise — the declared
+graph compared with the real one — is not kept where it matters. Not `rethink`: no decision
+proved wrong, they proved **incompletely applied**, which is implementation work.
