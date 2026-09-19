@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from napkinstack import __version__, discovery, doctor, modules, pull_request, skills
+from napkinstack import __version__, compat, discovery, doctor, modules, pull_request, skills
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
 
@@ -88,6 +88,10 @@ def build_parser() -> argparse.ArgumentParser:
                             ("e2e", "end-to-end scenarios of one module, or of all (commands.e2e)")):
         vb = _add(sub, verb, help_text, lambda a, v=verb: modules.run_verb(a.root, v, a.module))
         vb.add_argument("module", nargs="?", help="module name (default: all)")
+    cp = _add(sub, "compat", "a frozen contract version changes only with a proof (V1, commands.compat)",
+              lambda a: compat.run(a.root, a.module, a.base))
+    cp.add_argument("module", nargs="?", help="module holding the contracts (default: all)")
+    cp.add_argument("--base", default="origin/main")
     rn = _add(sub, "run", "starts a module locally (commands.run)",
               lambda a: modules.run_verb(a.root, "run", a.module))
     rn.add_argument("module")
