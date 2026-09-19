@@ -37,8 +37,17 @@ def _git(root: Path, *args: str) -> str:
 def run(root: Path, base: str) -> int:
     if subprocess.run(["git", "rev-parse", "--verify", "--quiet", base], cwd=root,
                       capture_output=True).returncode:
-        print(f"Base '{base}' not found — check skipped.")
-        return 0
+        print(f"FAIL [pr-scope] base '{base}' not found: the change cannot be measured.\n"
+              "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
+        return 1
+    budget = {}
+    for name, default in (("MAX_LINES", 400), ("MAX_FILES", 15)):
+        value = os.environ.get(name) or str(default)
+        if not value.isdigit():
+            print(f"FAIL [pr-scope] {name} '{value}' is not a number.\n      Action: set it to a whole "
+                  f"number, or unset it for {default}.")
+            return 1
+        budget[name] = int(value)
     files = changed_files(root, base)
     if not files:
         print("No file changed.")
@@ -68,7 +77,7 @@ def run(root: Path, base: str) -> int:
             continue
         changed += 1
         lines += (int(added) if added.isdigit() else 0) + (int(removed) if removed.isdigit() else 0)
-    max_lines, max_files = int(os.environ.get("MAX_LINES", 400)), int(os.environ.get("MAX_FILES", 15))
+    max_lines, max_files = budget["MAX_LINES"], budget["MAX_FILES"]
     print(f"\nReview budget : {lines}/{max_lines} lines, {changed}/{max_files} files")
     if (lines > max_lines or changed > max_files) and "over-budget" in labels:
         print("WARNING [P2] Over budget, justified by label.")

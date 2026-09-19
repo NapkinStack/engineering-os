@@ -137,6 +137,17 @@ def test_new_module_says_what_its_pull_requests_will_need(tmp_path, capsys):
     assert "carries a test sheet (criticality high)" in output and "a ready deliverable of 01-first.md" in output, output
 
 
+def test_the_first_edit_of_a_new_manifest_is_valid(tmp_path, capsys):
+    """D40: uncommenting check and test, as M7 asks, gives a manifest M2 can read."""
+    assert cli.main(["new-module", "billing", "acme/billing", "standard", "--root", str(tmp_path)]) == 0
+    manifest = tmp_path / "modules" / "billing" / "MANIFEST.yaml"
+    text = manifest.read_text(encoding="utf-8").replace("#  check:", "  check: 'true'").replace("#  test:", "  test: 'true'")
+    manifest.write_text(text, encoding="utf-8")
+    assert yaml.safe_load(text)["commands"] == {"check": "true", "test": "true"}
+    capsys.readouterr()
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+
+
 def test_new_module_high_criticality_generates_a_runbook(tmp_path, capsys):
     """M8 requires a runbook from criticality=high on: the scaffolding must write it."""
     assert cli.main(["new-module", "demo", "acme/demo-team", "high", "--root", str(tmp_path)]) == 0
@@ -292,6 +303,34 @@ def test_boundaries_no_false_positive(tmp_path, capsys, line):
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
+MALFORMED = {
+    "a contract as a list": {"consumes": [{"contract": ["a"], "version": "v1", "module": "customers"}]},
+    "a table as a mapping": {"data": {"owns": [{"table": "invoices"}], "shared": []}},
+    "a table as a number": {"data": {"owns": [2024], "shared": []}},
+    "a code name as a number": {"module": {**VALID["module"], "code_name": 42}},
+    "a module name as a number": {"module": {**VALID["module"], "name": 2024}},
+}
+
+
+@pytest.mark.parametrize("change", MALFORMED.values(), ids=MALFORMED.keys())
+def test_a_malformed_manifest_is_reported_not_crashed_on(tmp_path, capsys, change):
+    """D40: M2 names the field; boundaries reads around it, with no traceback (D8)."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", {**VALID, **change}, {"src/app.py": 'P = "customers-api"\n'})
+    write_module(tmp_path, "customers", PRODUCER)
+    boundaries.run(tmp_path)
+    assert manifests.run(tmp_path) == 1
+    assert "[M2] billing" in capsys.readouterr().out
+
+
+def test_no_git_on_the_path(tmp_path, capsys, monkeypatch):
+    """D40: a module's files are still read — as outside a repository."""
+    write_module(tmp_path, "billing", degrade(commands={}), {"src/app.py": "x\n"})
+    monkeypatch.setenv("PATH", "")
+    assert manifests.run(tmp_path) == 1
+    assert "[M7] billing" in capsys.readouterr().out
+
+
 def test_boundaries_unreadable_manifest_without_traceback(tmp_path, capsys):
     write_module(tmp_path, "billing")
     write_module(tmp_path, "customers", "- a\n- list\n")
@@ -355,6 +394,9 @@ PR_CASES = {
     "P1 contracts/ is a module (D34)": (
         {**A_MODULE, "contracts/MANIFEST.yaml": 1, "contracts/a-api/v1/schema.json": 1}, {}, "FAIL [P1]", 1),
     "P2 over budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "WARNING [P2] Over the review budget.", 0),
+    "P2 an empty budget is the default (D40)": ({"modules/a/x.txt": 3}, {"MAX_LINES": ""}, "3/400 lines", 0),
+    "P2 a budget that is no number (D40)": ({"modules/a/x.txt": 3}, {"MAX_FILES": "many"},
+                                            "FAIL [pr-scope] MAX_FILES 'many' is not a number", 1),
 }
 
 
@@ -368,6 +410,13 @@ def test_pr_scope(tmp_path, capfd, monkeypatch, files, variables, expected, expe
     output = capfd.readouterr().out
     assert expected in output, output
     assert code == expected_code, output
+
+
+def test_pr_scope_on_an_unknown_base(tmp_path, capsys):
+    """D40: a check that cannot read its base refuses, as compat and modules do."""
+    repository(tmp_path, A_MODULE)
+    assert cli.main(["pr-scope", "--root", str(tmp_path), "--base", "nope"]) == 1
+    assert "FAIL [pr-scope] base 'nope' not found" in capsys.readouterr().out
 
 
 def test_modules_changed_since(tmp_path, capsys):

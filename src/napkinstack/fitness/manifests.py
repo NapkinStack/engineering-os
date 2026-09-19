@@ -76,6 +76,16 @@ def find_orphans(root: Path) -> list[Path]:
             if child.is_dir() and not child.name.startswith(".") and not (child / "MANIFEST.yaml").is_file()]
 
 
+def contract_entries(data: dict, section: str) -> list[dict]:
+    """The entries of `provides` or `consumes` whose contract fields are text: the others are
+    reported by M2 and read by no other check (D40)."""
+    value = data.get(section)
+    if not isinstance(value, list):
+        return []
+    return [entry for entry in value if isinstance(entry, dict)
+            and all(isinstance(entry.get(field), (str, type(None))) for field in CONTRACT_FIELDS[section])]
+
+
 def is_description(path: str) -> bool:
     """A module's description — its manifest, AGENTS.md, README.md, docs/ — or an empty
     placeholder, `path` relative to the module's folder. Changing it changes no behaviour
@@ -86,8 +96,11 @@ def is_description(path: str) -> bool:
 def module_content(folder: Path) -> list[str]:
     """What a module holds beyond its description, relative to its folder: the files git
     would commit — tracked, or untracked and not ignored — or every file outside a repository."""
-    listed = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "."],
-                            cwd=folder, capture_output=True, text=True)
+    try:
+        listed = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "."],
+                                cwd=folder, capture_output=True, text=True)
+    except OSError:  # no git on the path: read the folder as outside a repository
+        listed = subprocess.CompletedProcess([], 1)
     if listed.returncode == 0:
         files = [path for path in listed.stdout.split("\0") if path]
     else:
@@ -129,6 +142,12 @@ def check_manifest(path: Path, today: datetime.date) -> None:
             data[section] = expected_type()
 
     mod = data.get("module") or {}
+    for field in ("name", "code_name"):
+        if field in mod and not isinstance(mod[field], str):
+            fail(rel, "M2", f"module.{field} {mod[field]!r} must be text.")
+    owns = (data.get("data") or {}).get("owns")
+    if isinstance(owns, list) and not all(isinstance(table, str) for table in owns):
+        fail(rel, "M2", "data.owns: every entry names a table, as text.")
 
     # M2 - required fields
     for field in REQUIRED_FIELDS:

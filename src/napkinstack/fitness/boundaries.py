@@ -39,7 +39,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import find_manifests, module_content
+from napkinstack.fitness.manifests import contract_entries, find_manifests, module_content
 
 MODULE_DIRS = ["modules", "services", "apps", "packages"]
 SOURCE_SUFFIXES = {
@@ -66,11 +66,6 @@ def warn(rule: str, where: str, message: str) -> None:
     warnings.append(f"[{rule}] {where}\n      {message}")
 
 
-def _entries(data: dict, section: str) -> list[dict]:
-    value = data.get(section)
-    return [entry for entry in value if isinstance(entry, dict)] if isinstance(value, list) else []
-
-
 def load_modules(root: Path) -> dict[str, dict]:
     modules: dict[str, dict] = {}
     for base in MODULE_DIRS:
@@ -87,14 +82,15 @@ def load_modules(root: Path) -> dict[str, dict]:
                 continue  # reported by nstack manifests (M2)
             section = data.get("data") if isinstance(data.get("data"), dict) else {}
             owns = section.get("owns") if isinstance(section.get("owns"), list) else []
-            name = mod.get("name") or manifest.parent.name
+            name = mod.get("name") if isinstance(mod.get("name"), str) and mod["name"] else manifest.parent.name
+            code_name = mod.get("code_name")
             modules[name] = {
                 "path": manifest.parent,
                 "dirname": manifest.parent.name,
-                "code_name": mod.get("code_name") or name,
-                "provides": _entries(data, "provides"),
-                "consumes": _entries(data, "consumes"),
-                "owns_data": set(owns),
+                "code_name": code_name if isinstance(code_name, str) and code_name else name,
+                "provides": contract_entries(data, "provides"),
+                "consumes": contract_entries(data, "consumes"),
+                "owns_data": {table for table in owns if isinstance(table, str)},
             }
     return modules
 

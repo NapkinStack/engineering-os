@@ -37,7 +37,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests
+from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, contract_entries, find_manifests
 
 FROZEN_STABILITIES = {"stable", "deprecated"}
 
@@ -54,11 +54,6 @@ def _load(text: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def _entries(data: dict, section: str) -> list[dict]:
-    value = data.get(section)
-    return [entry for entry in value if isinstance(entry, dict)] if isinstance(value, list) else []
-
-
 def frozen_versions(root: Path, base: str) -> dict[tuple[str, str], tuple[str, str]]:
     """(contract, version) -> (path, why it is frozen), from the manifests at the base."""
     manifests = [_load(_git(root, "show", f"{base}:{path}").stdout)
@@ -68,11 +63,11 @@ def frozen_versions(root: Path, base: str) -> dict[tuple[str, str], tuple[str, s
     consumers: dict[tuple[str, str], list[str]] = {}
     for data in manifests:
         name = (data.get("module") or {}).get("name") if isinstance(data.get("module"), dict) else None
-        for entry in _entries(data, "consumes"):
+        for entry in contract_entries(data, "consumes"):
             consumers.setdefault((entry.get("contract"), entry.get("version")), []).append(str(name))
     frozen = {}
     for data in manifests:
-        for entry in _entries(data, "provides"):
+        for entry in contract_entries(data, "provides"):
             key, path = (entry.get("contract"), entry.get("version")), entry.get("path")
             if not isinstance(path, str) or not all(isinstance(part, str) for part in key):
                 continue
@@ -87,7 +82,7 @@ def provided_now(root: Path) -> dict[tuple[str, str], str]:
     """(contract, version) -> path, from the manifests at the head."""
     now = {}
     for manifest in find_manifests(root):
-        for entry in _entries(_load(manifest.read_text(encoding="utf-8")), "provides"):
+        for entry in contract_entries(_load(manifest.read_text(encoding="utf-8")), "provides"):
             key, path = (entry.get("contract"), entry.get("version")), entry.get("path")
             if isinstance(path, str) and all(isinstance(part, str) for part in key):
                 now[key] = path.strip("/")

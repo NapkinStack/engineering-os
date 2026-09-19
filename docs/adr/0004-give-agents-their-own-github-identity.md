@@ -252,8 +252,8 @@ agent will need an App of its own: the author of a pull request cannot approve i
 Added when fixing D32, without changing the decision. Under one App, the forge cannot
 tell an author session from a verifier session. `pr-check` T2 therefore compares the
 verifier's declared name — `@handle` or `session <id>` — with the change's authors,
-read from the history: its commits' GitHub accounts and the sessions their
-`Agent-Session:` trailers name. It refuses a session verifying its own work; it cannot
+read from the history: its commits' GitHub accounts — through GitHub's noreply addresses,
+the only ones that name an account — and the sessions their `Agent-Session:` trailers name. It refuses a session verifying its own work; it cannot
 refuse one that lies about its name, and it does not need to while a human approves every
 pull request. The ADR this decision defers — a verifier agent's approval counting —
 comes with the verifier's own App, whose status check the ruleset requires from that
