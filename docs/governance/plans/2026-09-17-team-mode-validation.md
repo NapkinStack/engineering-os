@@ -365,9 +365,11 @@ it reaches GitHub (M8f).
 
 ## Task 10 — The first update (when the next NapkinStack version exists)
 
-- [x] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
+- [ ] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
       request passes the checks with no label and no sheet (D24), adaptations kept,
-      modules untouched — PDR-0001's second criterion, rehearsed.
+      modules untouched — PDR-0001's second criterion, rehearsed. *Not done at M9's closure,
+      where it was ticked by mistake: no version after 0.3.1 exists yet. Carried to M10h, with
+      v0.4.0 ([M10 plan](2026-09-19-v0.4.0-every-barrier-refuses.md)).*
 
 ---
 
