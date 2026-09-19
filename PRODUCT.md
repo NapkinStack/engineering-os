@@ -156,24 +156,36 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.3.1 is published on PyPI (2026-09-17), with a provenance attestation, and
+NapkinStack v0.4.0 is published on PyPI (2026-09-19), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
 projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the update's
-pull request passes the checks of the version it brings. This repository's
-agent works under its own GitHub App, behind the maintainer's approval, and its session
-reaches none of the maintainer's credentials (ADR-0004). What
-remains is the pilot project, private, the first real use. **M9 rehearsed a full team cycle on a public subject (2026-09-19)**: one cycle end to end in a day, zero sync events during the work, a review median of 10 minutes, and nine of eleven drift probes refused. The two that were accepted are one defect — the boundary rules do not see a contract dependency — and the exit decision is **fix first**: the pilot waits for the version that closes D29 to D33. A direction is recorded and not
-yet built: PDR-0004, which routes the interview on the project's stage and the field the
-questions come from, and whose criterion is checked against M9's log. The checks the handbook
-describes without them being automated are marked as such and listed in the automation
-backlog.
+pull request passes the checks of the version it brings. This repository's agent works under
+its own GitHub App, behind the maintainer's approval, and its session reaches none of the
+maintainer's credentials (ADR-0004).
+
+**M9 rehearsed a full team cycle on a public subject (2026-09-19)**: one cycle end to end in a
+day, zero sync events during the work, a review median of 10 minutes — and two probes accepted
+that should have been refused. Its exit decision was **fix first**, and **v0.4.0 is that fix
+(M10)**: the boundaries read the contracts a module uses and refuse any reference to another
+module's code; a contract version someone relies on changes only with the project's own proof;
+the module checks are a required check; a verifier is compared with the change's authors; an
+approval is dismissed by a new push; every verdict names the framework that gave it, and a
+project may try an unpublished fix without being judged by it in silence (PDR-0005). An
+independent review before the tag found three ways around these barriers; the tag waited for
+their fix. What remains before the pilot, private and the first real use, is M10h: the same
+fixes proved on the project that exposed them. A direction is recorded and not yet built:
+PDR-0004, which routes the interview on the project's stage and the field the questions come
+from; its design is M11. The checks the handbook describes without them being automated are
+marked as such and listed in the automation backlog.
 
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-english-migration.md`,
 `docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`,
-`docs/governance/plans/2026-09-17-v0.3.1-what-changes-a-module.md`. Defects and decisions:
+`docs/governance/plans/2026-09-17-v0.3.1-what-changes-a-module.md`,
+`docs/governance/plans/2026-09-17-team-mode-validation.md`,
+`docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.
