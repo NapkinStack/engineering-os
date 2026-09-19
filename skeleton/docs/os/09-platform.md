@@ -63,9 +63,11 @@ section, with its own stack's commands.
 
 The engine runs `bootstrap`, `check`, `test`, `run` and `e2e`: it reads the command from
 the manifest and launches it from the module's folder, locally as in CI. `check` and
-`test` are mandatory, `bootstrap` and `e2e` optional; a new module declares them as "to be declared", failing, until the team
-puts its own stack's commands there. `contracts`, `migrate` and `release` are reserved
-names, to declare when a module needs them.
+`test` are mandatory as soon as the module holds anything beyond its description — its
+manifest, `AGENTS.md`, `README.md`, `docs/`; `bootstrap` and `e2e` are optional. A new module
+holds only its description: its verbs report that there is nothing to run yet, and
+`nstack fitness` asks for `check` and `test` with its first other file. `contracts`,
+`migrate` and `release` are reserved names, to declare when a module needs them.
 
 **Why this is the foundation of multi-team work.** A developer or an agent arriving on an
 unknown module does not have to discover whether to run `npm`, `make`, `cargo`, `pytest`
@@ -150,11 +152,11 @@ flowchart TD
     A["Creation ADR<br/>capability · owner · criticality"]:::human --> B["Engine: the module is created<br/>in a single call"]:::engine
     B --> C1["MANIFEST pre-filled<br/>owner organisation/team"]:::generated
     B --> C2["AGENTS.md and README<br/>with the expected sections"]:::generated
-    B --> C3["check and test commands<br/>to be declared, failing"]:::generated
+    B --> C3["No command yet: green<br/>until its first code"]:::generated
     B --> C4["CODEOWNERS updated"]:::generated
     B --> C5["Runbook<br/>when criticality is high or critical"]:::generated
     B --> C6["Fitness functions and CI<br/>active from the first commit"]:::generated
-    C3 --> E["The team declares its<br/>own stack's commands"]:::human
+    C3 --> E["The team declares its stack's<br/>check and test, then codes"]:::human
     C1 --> D["First useful commit"]:::done
     C2 --> D
     E --> D
