@@ -48,7 +48,7 @@ runbook, tests and configuration.
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene
 uv run nstack pr-scope --base origin/main
-uv run nstack modules --changed-since origin/main   # the modules a change touches, as CI lists them
+uv run nstack modules --changed-since origin/main   # the modules with a file changed, as CI lists them
 uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review
 uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
@@ -83,8 +83,11 @@ therefore imperfect. Two settings at the top of the file:
   another module are read in every file a module holds
 - `IMPORT_HINTS` — what looks like an import line in your language
 
-A false positive is fixed by rewording the line, or by the module's `code_name` when its
-code names it otherwise; declaring a contract never licenses another module's code. A false
+A relative path is read from the file's folder and from the module's, where the verbs run;
+one naming something of the module's own, or a contract a module provides, is no reference to
+another module. A false positive is fixed by rewording the line, or by the module's
+`code_name` when its code names it otherwise; declaring a contract never licenses another
+module's code. A false
 negative is fixed by enriching the patterns — and deserves an issue, because it is a
 violation that was getting through.
 

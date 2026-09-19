@@ -21,10 +21,12 @@ DETECTION — textual and deliberately simple, with no stack assumed.
   - A contract is read where a module's file names its path (contracts/billing-api/v1),
     its name and version (billing-api/v1), or its name as a quoted string ("billing-api").
   - Another module's code is referenced where an import line names its folder from the root
-    (modules.billing, modules/billing) or its package — opening the statement, or quoted as a
-    module specifier — or where any line reaches into its folder (../billing/, modules/billing/).
-    Its package is its folder's name, or `code_name` when the code names it otherwise
-    (com.acme.billing).
+    (modules.billing, modules/billing, from modules import billing) or its package — opening
+    the statement, or quoted as a module specifier, or alone on a Go import block's line — or
+    where any line reaches into its folder (../billing/, modules/billing/). Its package is its
+    folder's name, or `code_name` when the code names it otherwise (com.acme.billing). A
+    relative path is read from the file's folder and from the module's — where the verbs run —
+    and a path that names something of the module's own, or a contract it provides, is none.
 A module's files are those git would commit, beyond its description (D33). A false positive
 is fixed by rewording the line, or by `code_name`; a false negative by the stack's own import
 checker, named in docs/tooling-profile.md and run by the module's `check` verb.
@@ -33,13 +35,14 @@ Usage :  nstack boundaries [--root ROOT]
 """
 
 from __future__ import annotations
+import posixpath
 import re
 import sys
 from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import find_manifests, module_content
+from napkinstack.fitness.manifests import contract_entries, find_manifests, module_content
 
 MODULE_DIRS = ["modules", "services", "apps", "packages"]
 SOURCE_SUFFIXES = {
@@ -66,11 +69,6 @@ def warn(rule: str, where: str, message: str) -> None:
     warnings.append(f"[{rule}] {where}\n      {message}")
 
 
-def _entries(data: dict, section: str) -> list[dict]:
-    value = data.get(section)
-    return [entry for entry in value if isinstance(entry, dict)] if isinstance(value, list) else []
-
-
 def load_modules(root: Path) -> dict[str, dict]:
     modules: dict[str, dict] = {}
     for base in MODULE_DIRS:
@@ -87,14 +85,15 @@ def load_modules(root: Path) -> dict[str, dict]:
                 continue  # reported by nstack manifests (M2)
             section = data.get("data") if isinstance(data.get("data"), dict) else {}
             owns = section.get("owns") if isinstance(section.get("owns"), list) else []
-            name = mod.get("name") or manifest.parent.name
+            name = mod.get("name") if isinstance(mod.get("name"), str) and mod["name"] else manifest.parent.name
+            code_name = mod.get("code_name")
             modules[name] = {
                 "path": manifest.parent,
                 "dirname": manifest.parent.name,
-                "code_name": mod.get("code_name") or name,
-                "provides": _entries(data, "provides"),
-                "consumes": _entries(data, "consumes"),
-                "owns_data": set(owns),
+                "code_name": code_name if isinstance(code_name, str) and code_name else name,
+                "provides": contract_entries(data, "provides"),
+                "consumes": contract_entries(data, "consumes"),
+                "owns_data": {table for table in owns if isinstance(table, str)},
             }
     return modules
 
@@ -113,7 +112,7 @@ def read_files(module: dict):
         yield relative, data.decode("utf-8", errors="ignore").splitlines()
 
 
-def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern]:
+def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern, re.Pattern]:
     """(import of its code, path into its folder). On an import line: its folder named from the
     root, or its package opening the statement (Python, Rust, Java) or quoted as a module
     specifier (JavaScript, TypeScript, Ruby). On any line: a relative or rooted path into its
@@ -121,12 +120,42 @@ def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern]:
     code, folder = re.escape(other["code_name"]), re.escape(other["dirname"])
     rooted = "|".join(MODULE_DIRS)
     imports = re.compile(rf"(?<![\w-])(?:{rooted})[./]{folder}(?![\w-])"
+                         rf"|^\s*from\s+(?:{rooted})\s+import\s+(?:[\w\s]*,\s*)?{folder}(?![\w-])"
                          rf"|^\s*(?:from|import|(?:pub\s+)?use|extern\s+crate)\s+{code}(?![\w-])"
                          rf"|(?:\bfrom\s+|\b(?:require|import)\s*\(\s*|^\s*(?:import|require)\s+)"
                          rf"[\"'](?:@[\w.-]+/)?{code}(?:/[^\"']*)?[\"']")
     reach = re.compile(rf"(?<![\w.-])\.\./(?:\.\./)*{folder}(?=/|[\"'\s)]|$)"
                        rf"|(?<![\w-])(?:{rooted})/{folder}/")
-    return imports, reach
+    block = re.compile(rf"^\s*(?:\w+\s+)?\"[^\"]*(?<![\w-])(?:{rooted})/{folder}(?:/[^\"]*)?\"\s*$")
+    return imports, reach, block
+
+
+TOKEN = re.compile(r"[^\s'\"`)(,;]+")
+
+
+def _names_a_contract(root: Path, mod: dict, relative: str, found: str, contracts: list[str]) -> bool:
+    """Whether the path starting with `found` leads to a contract a module provides — read
+    from the root, from the file's folder, or from the module's."""
+    folder = mod["path"].relative_to(root).as_posix()
+    places = [found] if not found.startswith("..") else [
+        posixpath.normpath(posixpath.join(folder, posixpath.dirname(relative), found)),
+        posixpath.normpath(posixpath.join(folder, found))]
+    return any(place == contract or place.startswith(f"{contract}/") for place in places for contract in contracts)
+
+
+def _lands_elsewhere(root: Path, mod: dict, relative: str, found: str, other: dict) -> bool:
+    """Whether a path found in a module's file reaches into another module's folder: read from
+    the file's folder and from the module's — where the verbs run — unless, from the file's
+    folder, it names something the module holds."""
+    folder = mod["path"].relative_to(root).as_posix()
+    target = other["path"].relative_to(root).as_posix()
+    if not found.startswith(".."):
+        return True  # rooted: modules/<other>/
+    from_file = posixpath.normpath(posixpath.join(folder, posixpath.dirname(relative), found))
+    if from_file.startswith(f"{folder}/") and (root / from_file).exists():
+        return False
+    from_module = posixpath.normpath(posixpath.join(folder, found))
+    return any(place == target or place.startswith(f"{target}/") for place in (from_file, from_module))
 
 
 def contract_patterns(modules: dict[str, dict]) -> list[tuple[str, str | None, re.Pattern]]:
@@ -217,16 +246,22 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
     """B2 and B5. Returns module -> modules whose code it references."""
     code: dict[str, set[str]] = {name: set() for name in modules}
     others = {name: code_patterns(mod) for name, mod in modules.items()}
+    contracts = [str(p.get("path")).strip("/") for mod in modules.values() for p in mod["provides"] if p.get("path")]
     for name, mod in modules.items():
         for relative, lines in read_files(mod):
             source = Path(relative).suffix in SOURCE_SUFFIXES
             for lineno, line in enumerate(lines, 1):
                 imports = source and IMPORT_HINTS.search(line)
-                for other_name, (code_import, reach) in others.items():
+                text = line.replace("\\", "/")
+                for other_name, (code_import, reach, block) in others.items():
                     if other_name == name:
                         continue
-                    via_import = imports and code_import.search(line)
-                    if not via_import and not reach.search(line.replace("\\", "/")):
+                    via_import = (imports and code_import.search(line)) or (source and block.search(line))
+                    reaches = [m for m in reach.finditer(text)
+                               if not _names_a_contract(root, mod, relative,
+                                                        TOKEN.match(text, m.start()).group(), contracts)
+                               and _lands_elsewhere(root, mod, relative, m.group(), modules[other_name])]
+                    if not via_import and not reaches:
                         continue
                     code[name].add(other_name)
                     fail("B2", f"{mod['path'].relative_to(root) / relative}:{lineno}",

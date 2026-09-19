@@ -26,7 +26,8 @@ In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_reques
 
 The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
 authors are the pull request's author, the GitHub accounts behind its commits' authors,
-committers and co-authors, and the sessions its commits name in an `Agent-Session:` trailer.
+committers and co-authors — read from GitHub's noreply addresses; another address names no
+account — and the sessions its commits name in an `Agent-Session:` trailer.
 It is a declaration checked against the history, not a proof of identity: it refuses the
 session that verifies its own work, not one that lies about its name (ADR-0004, measurement).
 Output:  0 when every applicable rule passes, 1 otherwise.
@@ -62,7 +63,7 @@ PLACEHOLDER = re.compile(r"<[^<>]*>")
 EMPTY = {"", "—", "-"}
 SHA = re.compile(r"[0-9a-f]{7,40}")
 HANDLES = re.compile(rf"(?<![\w@])@(?P<handle>{LOGIN}(?:\[bot\])?)(?![\w-])")
-SESSION = re.compile(r"^\s*session[ \t]+(?P<session>[\w.:/-]+)", re.I)
+SESSION = re.compile(r"^\s*session[ \t]+(?P<session>[\w.:/-]*\w)", re.I)
 NOREPLY = re.compile(r"(?:\d+\+)?(?P<login>[^@<>\s]+)@users\.noreply\.github\.com", re.I)
 SESSION_TRAILER = "Agent-Session"
 LOG = (f"%h%x1f%ae%x1f%ce%x1f%(trailers:key={SESSION_TRAILER},valueonly,separator=%x1d)"
@@ -138,7 +139,7 @@ def read_sheet(body: str) -> tuple[str, list[str], list[dict[str, str]]]:
         values = _cells(line)
         if all(value in EMPTY or PLACEHOLDER.fullmatch(value) for value in values[1:]):
             continue  # the template's example row
-        rows.append(dict(zip(header, values)))
+        rows.append(dict(zip(header, values + [""] * (len(header) - len(values)))))
     return verifier, header, rows
 
 
@@ -156,7 +157,7 @@ def authors(root: Path, base: str, head: str, opener: str) -> tuple[set[str], se
         found = {m["login"].lower() for m in NOREPLY.finditer(" ".join([author, committer, coauthors]))}
         logins |= {login.removesuffix("[bot]") for login in found}
         named = {value.strip() for value in named.split("\x1d") if value.strip()}
-        sessions |= named
+        sessions |= {session.casefold() for session in named}
         if not named and any(login.endswith("[bot]") for login in found):
             unnamed.append(commit)
     return logins, sessions, unnamed
@@ -166,7 +167,7 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
     """T2: the verifier is named — people as @handle anywhere on the line, an agent session as
     `session <id>` opening it — and none of the names is an author of the change."""
     opening = SESSION.match(verifier)
-    session = opening["session"] if opening else None
+    session = opening["session"].casefold() if opening else None
     handles = {m["handle"].lower().removesuffix("[bot]") for m in HANDLES.finditer(verifier)}
     if not session and not handles:
         fail("T2", "Test sheet: the verifier is not named as a person or a session.\n      Action: "
@@ -291,8 +292,9 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
         print("Pull request description not provided (PR_BODY or --body-file): not checked.")
         return 0
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode:
-        print(f"Base '{base}' not found — check skipped.")
-        return 0
+        print(f"FAIL [pr-check] base '{base}' not found: the change cannot be read.\n"
+              "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
+        return 1
     files = changed_files(root, base)
     head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
     fork = _git(root, "merge-base", base, "HEAD").stdout.strip() or base

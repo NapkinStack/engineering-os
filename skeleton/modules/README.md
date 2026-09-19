@@ -12,9 +12,10 @@ One autonomous unit of context and of parallelism per folder.
 nstack new-module billing acme/billing standard
 ```
 
-The scaffolding produces the manifest, the local `AGENTS.md`, the standard verbs, the
-CODEOWNERS line, and activates the fitness functions **from the first commit** — a module
-created without guardrails accumulates violations discovered too late.
+The scaffolding produces the manifest, the local `AGENTS.md`, the CODEOWNERS line, and
+activates the fitness functions **from the first commit** — a module created without
+guardrails accumulates violations discovered too late. The standard verbs are the team's to
+declare, for its stack, before the module's first file of code.
 
 Creating a module is a decision: it goes through an **ADR** (the capability covered, the
 boundary, the rejected alternatives).

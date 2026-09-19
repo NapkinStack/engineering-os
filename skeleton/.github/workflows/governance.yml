@@ -37,7 +37,7 @@ jobs:
       - name: NapkinStack, the project version
         run: bash .nstack/install-engine.sh
 
-      - name: Manifests, boundaries, skills
+      - name: Manifests, boundaries, skills, plan, hygiene
         run: nstack fitness --root .
 
   scope:

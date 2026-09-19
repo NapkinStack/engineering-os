@@ -31,6 +31,8 @@ def engine() -> tuple[str, str | None]:
     data = json.loads(record)
     if "vcs_info" in data:
         return distribution.version, f"{data['url']}@{str(data['vcs_info'].get('commit_id', ''))[:12]}"
+    if "archive_info" in data:
+        return distribution.version, "an archive, not the registry"
     path = Path(url2pathname(urlparse(data.get("url", "")).path))
     commit = subprocess.run(["git", "describe", "--always", "--dirty"], cwd=path,
                             capture_output=True, text=True).stdout.strip() if path.is_dir() else ""

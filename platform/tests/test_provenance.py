@@ -32,6 +32,7 @@ def project(root, commit="v0.4.0", source="https://github.com/NapkinStack/engine
     (root / ".copier-answers.yml").write_text(yaml.safe_dump(answers), encoding="utf-8")
 
 
+ARCHIVE = {"url": "file:///somewhere/napkinstack-0.4.0-py3-none-any.whl", "archive_info": {}}
 VCS = {"url": "https://github.com/NapkinStack/engineering-os.git",
        "vcs_info": {"vcs": "git", "commit_id": "1a2b3c4d5e6f7a8b9c0d"}}
 JUDGED = {
@@ -40,6 +41,7 @@ JUDGED = {
     "an engine from the repository": (VCS, "v0.4.0", "UNPUBLISHED NapkinStack — "
                                       "https://github.com/NapkinStack/engineering-os.git@1a2b3c4d5e6f"),
     "a project pinned to a commit": (None, "v0.4.0-3-g1a2b3c4", "project pinned to v0.4.0-3-g1a2b3c4"),
+    "an engine from an archive (D40)": (ARCHIVE, "v0.4.0", "UNPUBLISHED NapkinStack — an archive, not the registry"),
 }
 
 
@@ -63,6 +65,8 @@ DOCTOR = {
                                                          "L1", "pinned to an unpublished framework"),
     "L1 an engine from the repository": (VCS, "v0.4.0", "https://github.com/x/y.git",
                                          "L1", "The nstack running is unpublished"),
+    "L1 a pre-release, which CI installs from the repository (D40)": (None, "v0.5.0rc1", "https://github.com/x/y.git",
+                                                                     "L1", "pinned to an unpublished framework"),
     "L7 a template source on one machine": (None, "v0.4.0", "/srv/checkouts/framework",
                                             "L7", "a path on one machine"),
 }

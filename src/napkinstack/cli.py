@@ -95,7 +95,7 @@ def build_parser() -> argparse.ArgumentParser:
     rn = _add(sub, "run", "starts a module locally (commands.run)",
               lambda a: modules.run_verb(a.root, "run", a.module))
     rn.add_argument("module")
-    md = _add(sub, "modules", "the project's modules, or those a change touches", _modules)
+    md = _add(sub, "modules", "the project's modules, or those with a file changed since a base", _modules)
     md.add_argument("--changed-since", metavar="BASE", help="only the modules with a file changed since BASE")
     md.add_argument("--json", action="store_true", help="a JSON list, for CI")
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",

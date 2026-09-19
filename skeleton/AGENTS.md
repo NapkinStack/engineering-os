@@ -107,8 +107,8 @@ kernel (this file)
   → contracts consumed (the contract alone, never someone else's implementation)
 ```
 
-One session, one working tree: never share a checkout with another session — a clone, or a
-`git worktree`, each.
+One session, one working tree: never share a checkout with another session — each works in
+its own copy of the repository.
 
 **Playbooks — triggers.** Load `playbooks/<x>.md` if and only if:
 

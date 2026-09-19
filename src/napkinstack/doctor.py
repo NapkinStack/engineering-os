@@ -50,7 +50,7 @@ JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", 
         "Module checks")
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
 LABELS = ("cross-module", "over-budget", "out-of-cycle")
-PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
+PUBLISHED = provenance.PUBLISHED  # a published version is a vX.Y.Z tag (ADR-0002), as CI installs it
 REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
 
 RULESET = "Settings → Rules → Rulesets, main branch"

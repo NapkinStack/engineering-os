@@ -64,7 +64,7 @@ dependencies: []
 # (docs/os/09-platform.md §2). `nstack <verb> <module>` runs them from this folder.
 # No stack is imposed. check and test are required once the module holds more than its
 # description (fitness M7): declare them before its first file of code.
-commands: {}
+commands:
 #  check:                        # under 2 min: format, lint, types
 #  test:                         # NEVER starts another module
 #  bootstrap:                    # optional: make the module usable from a fresh clone

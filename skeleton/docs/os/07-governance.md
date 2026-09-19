@@ -124,6 +124,11 @@ The first six are cheap: they are computed from data already present (manifests,
 contract schemas). There is **no semantic analysis** — these are comparisons of graphs
 and schemas.
 
+Beside them, the engine checks what a shared repository must not carry: a path rooted in one
+person's home directory, in any tracked file (H1). It exists on no other machine and
+publishes the layout of the one it was written on; an image's or a runner's home, a
+placeholder or a variable is the same everywhere.
+
 ### Writing a fitness function
 
 A good fitness function is fast (it runs on every pull request), deterministic (no random

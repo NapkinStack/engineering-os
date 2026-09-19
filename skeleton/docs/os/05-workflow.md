@@ -225,8 +225,9 @@ criticality are read before and after the change, and the stricter applies:
 - **Run by a verifier who is not the author**: another agent session with a fresh
   context, or a human (`playbooks/verification.md`). The session that wrote the code
   shares its misunderstandings. CI compares the verifier's name with the change's authors —
-  the pull request's, the commits', and the sessions their `Agent-Session` trailers name —
-  and refuses a match: a declaration checked against the history, not a proof of identity.
+  the pull request's, the commits' GitHub accounts (read from their noreply addresses), and
+  the sessions their `Agent-Session` trailers name — and refuses a match: a declaration
+  checked against the history, not a proof of identity.
 - **No result without evidence**, tied to the commit tested. A new commit sends the
   scenarios back to be run again.
 - **Kinds**: *automated* — replayable, run by CI through the module's `e2e` command;

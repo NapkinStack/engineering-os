@@ -114,6 +114,10 @@ AUTHORSHIP = {
     "the App, named as a bot": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "@napkinstack-agent[bot]",
                                 "alice", "the verifier @napkinstack-agent is an author", 1),
     "one author among the names": ({}, "", "@dana, then @alice", "alice", "the verifier @alice is an author", 1),
+    "the session, with a full stop (D40)": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "session author-1.",
+                                            "alice", "the verifier, session author-1, wrote commits", 1),
+    "the session, in capitals (D40)": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "session AUTHOR-1",
+                                       "alice", "the verifier, session author-1, wrote commits", 1),
     "the session that wrote it": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "session author-1",
                                   "napkinstack-agent[bot]", "the verifier, session author-1, wrote commits", 1),
     "an agent commit naming no session": ({"GIT_AUTHOR_EMAIL": AGENT}, "", "session verifier-7",
@@ -178,6 +182,21 @@ def test_a_file_moved_out_of_a_user_facing_module(tmp_path, capsys, monkeypatch)
     head = git(tmp_path, "rev-parse", "HEAD")
     assert check(tmp_path, base, head, "No sheet.", monkeypatch) == 1
     assert "FAIL [T1] Test sheet missing: this pull request touches modules/login (user-facing)" in capsys.readouterr().out
+
+
+def test_a_short_row_is_a_finding_not_a_crash(tmp_path, capsys, monkeypatch):
+    """D40: a row missing its last cells is read as empty ones."""
+    base, head = change(tmp_path, USER_FACING)
+    body = "## Test sheet\n\nVerifier: @dana\n\n| # | Given · when · then | Kind | Result | Evidence | Commit |\n" \
+           "|---|---|---|---|---|---|\n| S1 | Given x, when y, then z | automated | passed |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 1
+    assert "FAIL [T3] scenario S1: passed without evidence" in capsys.readouterr().out
+
+
+def test_pr_check_on_an_unknown_base(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, USER_FACING)
+    assert check(tmp_path, "nope", head, "", monkeypatch) == 1
+    assert "FAIL [pr-check] base 'nope' not found" in capsys.readouterr().out
 
 
 def test_without_a_description_nothing_is_checked(tmp_path, capsys, monkeypatch):
