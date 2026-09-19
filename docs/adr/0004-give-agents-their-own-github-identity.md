@@ -1,6 +1,6 @@
 # ADR-0004 — Give agents their own GitHub identity, behind a human approval
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-19 (who verified, D32)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-19 (who verified, D32; an approval covers what it read, D31)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the skeleton, `nstack doctor`, and this repository)
@@ -258,6 +258,14 @@ refuse one that lies about its name, and it does not need to while a human appro
 pull request. The ADR this decision defers — a verifier agent's approval counting —
 comes with the verifier's own App, whose status check the ruleset requires from that
 App: from then, the verdict carries an identity the author cannot hold.
+
+## Clarification of 2026-09-19 — an approval covers what it read (D31)
+
+Observed in M9: an approval survived a force-push, and only the agent's own
+`--match-head-commit` stood between it and content its approver had never read. The
+ruleset of `main` dismisses stale approvals when new commits are pushed: checklist
+rule G13, checked by `nstack doctor`. The last pusher's own approval needs no rule of
+its own — the agent never approves, and a human's approval is dismissed by the next push.
 
 ---
 
