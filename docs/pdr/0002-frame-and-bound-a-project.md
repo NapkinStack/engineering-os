@@ -1,6 +1,6 @@
 # PDR-0002 — Frame and bound a project
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery); clarified on 2026-09-19 (the criterion is effective work)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, templates,
@@ -292,13 +292,15 @@ success criteria feed the decision review (`docs/os/10-measurement.md` §5).
 
 > We will consider this was the right call if, **in the pilot project, the framing turns
 > the tech lead's idea into an accepted charter and first cycle within one working session
-> of two hours, and that first cycle ends on its end date or earlier — closed, or stopped
-> by the circuit breaker — with no automatic extension and every pull request tied to one
-> of its deliverables or labelled `out-of-cycle`**, observed before **2026-12-31**.
+> of two hours of effective work, and that first cycle ends on its end date or earlier —
+> closed, or stopped by the circuit breaker — with no automatic extension and every pull
+> request tied to one of its deliverables or labelled `out-of-cycle`**, observed before
+> **2026-12-31**.
 
-How it is observed: the duration of the framing session, noted by the tech lead; the dates
-of the cycle's acceptance, end date and closure; the pull requests and their links; the
-`out-of-cycle` count.
+How it is observed: the effective work of the framing session — the tech lead's and the
+agent's, noted by the tech lead — and the wall clock recorded beside it (clarification of
+2026-09-19); the dates of the cycle's acceptance, end date and closure; the pull requests
+and their links; the `out-of-cycle` count.
 
 If the criterion is not met: adjust the procedure when the framing takes too long; adjust
 the cycle's rules when the bounds block legitimate work; supersede if the pilot shows that
@@ -323,6 +325,29 @@ possible.
 skeleton's `contracts` module, so "changes a module" read literally made it delivery work.
 A module changes beyond its description only — its manifest, `AGENTS.md`, `README.md`,
 `docs/` — the definition PDR-0003's clarification of the same day gives.
+
+---
+
+## Clarification of 2026-09-19 — the criterion is effective work
+
+Added at M10's closure, from M9's measurements, without changing the decision.
+
+**Observation:** the criterion says "within one working session of two hours" and was read
+as wall clock. M9 measured the framing twice that way: **148 minutes of wall clock for
+about 53 minutes of effective work** — roughly 75 of them waiting for the decider, away
+from the workstation, and 20 in a design discussion unrelated to that framing. The
+repository's own setup hit the same gap on M9's Task 2. A tech lead reading the criterion
+understands two hours *of their attention*; the calendar mostly measures the decider's
+availability, which is not a cost of the framework.
+
+**Clarification:** the criterion is stated in **effective work** — the time the tech lead
+and the agent spend on the framing — and the **wall clock is recorded beside it**, because
+a framing that takes three days of calendar is worth knowing even when it costs one hour of
+attention. What the framing produces is unchanged, and so is the cycle's own criterion,
+which is measured in dates.
+
+*Waiting for the decider is not free*: it is the cost of a decision nobody can take in
+their place, and PDR-0004 exists to raise fewer questions rather than faster ones.
 
 ---
 
