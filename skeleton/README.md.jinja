@@ -212,8 +212,9 @@ fast feedback, not a guarantee: the blocking checks stay in CI
 No stack: no language, no application framework, no database. The OS imposes a **selection
 method** and a decision trail, not a list of technologies (`docs/os/06-decisions.md` §7).
 
-A new module therefore declares commands "to be declared", which fail: wiring `check`,
-`test` and `run` onto your own tooling is your job. The **names** never change, the
+A new module therefore declares no command: it is green while it holds only its
+description, and `nstack fitness` asks for `check` and `test` with its first file of code.
+Wiring them, and `run`, onto your own tooling is your job. The **names** never change, the
 **content** is yours.
 
 ## What is left to wire after the installation

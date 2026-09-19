@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import find_manifests
+from napkinstack.fitness.manifests import find_manifests, module_content
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
@@ -28,6 +28,7 @@ OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub u
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
 NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
+NEEDS_SHEET = {"high", "critical"}  # pull_request.SHEET_CRITICALITIES, T1
 
 RUNBOOK = """# Runbook - {name}
 
@@ -95,14 +96,36 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     else:
         print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
 
-    print(f"Module created: modules/{name} (owner {owner}, criticality {criticality})"
-          + (", user-facing" if user_facing else "") + (", runbook to fill in" if runbook else "") + ".")
-    print("\nNext steps:")
-    print("  1. Creation ADR in docs/adr/: capability, boundary, alternatives")
-    print("  2. MANIFEST.yaml: responsibility in ONE sentence, user_facing, then the stack's check and test commands")
-    print(f"  3. modules/{name}/AGENTS.md: what is specific to the module, never the kernel")
-    print(f"  4. nstack fitness, then nstack check {name} and nstack test {name}")
+    print(f"Module created: modules/{name} (owner {owner}, criticality {criticality}"
+          + (", user-facing" if user_facing else "") + (", runbook to fill in" if runbook else "") + ").")
+    print("It holds only its description: fitness, check and test pass as it stands.")
+    for number, step in enumerate(next_steps(root, name, criticality, user_facing), 1):
+        print(("\nNext steps:\n" if number == 1 else "") + f"  {number}. {step}")
     return 0
+
+
+def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> list[str]:
+    """What the module's first pull requests will be asked, from facts nstack holds (D33)."""
+    from napkinstack.fitness import plan  # here: plan reads HANDLE from this module
+
+    steps = ["Creation ADR in docs/adr/: capability, boundary, alternatives",
+             "MANIFEST.yaml: the responsibility in ONE sentence",
+             f"modules/{name}/AGENTS.md: what is specific to the module, never the kernel",
+             "Before its first file of code: commands.check and commands.test for its stack — "
+             "fitness (M7) requires them once the module holds more than its description"]
+    if user_facing or criticality in NEEDS_SHEET:
+        why = "user-facing" if user_facing else f"criticality {criticality}"
+        steps.append(f"Every pull request that changes its behaviour carries a test sheet ({why}), "
+                     "run by a verifier who is not its author (T1–T5, docs/os/05-workflow.md §7)")
+    cycle = plan.accepted_cycle(root) if plan.charter_accepted(root) else None
+    if cycle is None:
+        steps.append("The project is not framed: delivery work needs an accepted charter and cycle (K1), "
+                     "or the out-of-cycle label with its justification (K4)")
+    else:
+        steps.append(f"Delivery work names a ready deliverable of {cycle[0].name} (K3), "
+                     "or carries the out-of-cycle label with its justification (K4)")
+    steps.append(f"nstack fitness, then nstack check {name} and nstack test {name}")
+    return steps
 
 
 def _modules(root: Path) -> dict[str, Path]:
@@ -121,6 +144,9 @@ def run_verb(root: Path, verb: str, name: str | None) -> int:
         print(f"No module in {root}: nothing to run.")
         return 0
     for target in targets:
+        if not module_content(known[target]):
+            print(f"-> {target}: holds only its description, nothing to {verb} yet.")
+            continue
         manifest = known[target] / "MANIFEST.yaml"
         try:
             commands = (yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}).get("commands") or {}

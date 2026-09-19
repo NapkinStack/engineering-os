@@ -202,11 +202,19 @@ for case in "demo2|team-|invalid owner 'team-'" "Demo|acme/team|invalid name 'De
     || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
 done
 
-echo "-> verbs: a command still to declare MUST fail while naming the module (P1, D22)"
+echo "-> verbs: a module holding only its description has nothing to check yet (D33)"
+for verb in check test; do
+  OUT=$(uv run nstack "$verb" demo --root "$SC" 2>&1) \
+    && echo "$OUT" | grep -qF "demo: holds only its description, nothing to $verb yet" \
+    || { echo "FAIL: nstack $verb on a new module is not green."; echo "$OUT"; exit 1; }
+done
+
+echo "-> verbs: a module holding code with no check declared MUST fail while naming it (P1, D22)"
+printf 'code\n' > "$SC/modules/demo/src/app.txt"
 if OUT=$(uv run nstack check demo --root "$SC" 2>&1); then
-  echo "FAIL: a command still to declare went green."; echo "$OUT"; exit 1
+  echo "FAIL: a module holding code with no check went green."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "commands.check to be declared" && echo "$OUT" | grep -qF "FAIL [check] module 'demo'" \
+echo "$OUT" | grep -qF "FAIL [check] module 'demo': commands.check not declared" \
   || { echo "FAIL: failure without the module or the command."; echo "$OUT"; exit 1; }
 
 echo "-> verbs: the declared command runs from the module folder, whatever the stack"
@@ -222,6 +230,7 @@ OUT=$(uv run nstack check demo --root "$SC" 2>&1) && echo "$OUT" | grep -qx "sta
 
 echo "-> verbs: with no module, all modules, first failure named"
 uv run nstack new-module zeta acme/team-zeta standard --root "$SC" >/dev/null
+printf 'code\n' > "$SC/modules/zeta/src/app.txt"
 if OUT=$(uv run nstack check --root "$SC" 2>&1); then
   echo "FAIL: an undeclared module went green."; echo "$OUT"; exit 1
 fi

@@ -12,7 +12,8 @@ Rules:
   M4  responsibility in ONE sentence (no "and" joining two capabilities)
   M5  module deprecated -> removal_date required and not passed
   M6  contract deprecated -> removal_date required and not passed
-  M7  standard verbs declared (check / test at least)
+  M7  standard verbs declared (check / test at least), once the module holds more than
+      its description
   M8  runbook required when criticality >= high
   M9  complete file envelope (AGENTS.md, README.md, tests/)
   M10 user_facing declared: true when a user sees the module (docs/os/05-workflow.md §7)
@@ -24,6 +25,7 @@ Output:  0 if everything passes, 1 otherwise. Every failure explains the rule br
 from __future__ import annotations
 import sys
 import datetime
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -37,6 +39,7 @@ MODULE_BASES = ["modules", "services", "apps", "packages"]  # bases where every 
 SECTIONS = {"module": dict, "provides": list, "consumes": list, "data": dict,
             "commands": dict, "docs": dict, "dependencies": list}
 TYPES = {dict: "mapping", list: "list"}
+DESCRIPTION = {"MANIFEST.yaml", "AGENTS.md", "README.md"}
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -69,6 +72,25 @@ def find_orphans(root: Path) -> list[Path]:
     return [child for base in MODULE_BASES if (root / base).is_dir()
             for child in sorted((root / base).iterdir())
             if child.is_dir() and not child.name.startswith(".") and not (child / "MANIFEST.yaml").is_file()]
+
+
+def is_description(path: str) -> bool:
+    """A module's description — its manifest, AGENTS.md, README.md, docs/ — or an empty
+    placeholder, `path` relative to the module's folder. Changing it changes no behaviour
+    (D24); a module holding nothing else has nothing to check yet (D33)."""
+    return path in DESCRIPTION or path.startswith("docs/") or path.rsplit("/", 1)[-1] == ".gitkeep"
+
+
+def module_content(folder: Path) -> list[str]:
+    """What a module holds beyond its description, relative to its folder: the files git
+    would commit — tracked, or untracked and not ignored — or every file outside a repository."""
+    listed = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "."],
+                            cwd=folder, capture_output=True, text=True)
+    if listed.returncode == 0:
+        files = [path for path in listed.stdout.split("\0") if path]
+    else:
+        files = [path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()]
+    return sorted(path for path in files if not is_description(path))
 
 
 def parse_date(value) -> datetime.date | None:
@@ -144,12 +166,14 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                 fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
                                 "Finish the contraction (docs/os/03-contracts.md §4).")
 
-    # M7 - standard verbs
+    # M7 - standard verbs, once there is something to check (D33)
     commands = data.get("commands") or {}
+    content = module_content(path.parent)
     for verb in REQUIRED_COMMANDS:
-        if not commands.get(verb):
-            fail(rel, "M7", f"standard verb missing: commands.{verb} "
-                            "(docs/os/09-platform.md §2)")
+        if content and not commands.get(verb):
+            fail(rel, "M7", f"standard verb missing: commands.{verb}, and the module holds more "
+                            f"than its description ({content[0]}).\n      Action: declare its stack's "
+                            "command in the manifest (docs/os/09-platform.md §2).")
 
     # M8 - runbook when criticality is high
     if criticality in {"high", "critical"}:

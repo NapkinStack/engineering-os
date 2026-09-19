@@ -37,10 +37,9 @@ from pathlib import Path
 import yaml
 
 from napkinstack.fitness import plan
-from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests
+from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests, is_description
 
 LABEL = "out-of-cycle"
-DESCRIPTION = {"MANIFEST.yaml", "AGENTS.md", "README.md"}
 DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
 JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
 SHEET_CRITICALITIES = {"high", "critical"}
@@ -60,12 +59,6 @@ Fail = Callable[[str, str], None]
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
-
-
-def changes_behaviour(path: str) -> bool:
-    """False for a module's description — its manifest, AGENTS.md, README.md, docs/ — and an
-    empty placeholder: changing those is neither delivery work nor a reason for a sheet (D24)."""
-    return not (path in DESCRIPTION or path.startswith("docs/") or path.rsplit("/", 1)[-1] == ".gitkeep")
 
 
 def _manifest(text: str) -> dict:
@@ -89,7 +82,7 @@ def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[d
     touched = {}
     for path, found in sorted(manifests.items()):
         folder = path.removesuffix("/MANIFEST.yaml")
-        if any(file.startswith(f"{folder}/") and changes_behaviour(file[len(folder) + 1:]) for file in files):
+        if any(file.startswith(f"{folder}/") and not is_description(file[len(folder) + 1:]) for file in files):
             touched[folder] = found
     return touched
 
