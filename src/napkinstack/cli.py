@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from napkinstack import __version__, compat, discovery, doctor, modules, pull_request, skills
+from napkinstack import __version__, compat, discovery, doctor, modules, provenance, pull_request, skills
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
 
@@ -123,6 +123,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+JUDGES = {"manifests", "boundaries", "plan", "skills", "hygiene", "fitness", "doctor", "pr-scope",
+          "pr-check", "compat"}  # the commands whose verdict depends on the framework's rules
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command in JUDGES:
+        print(provenance.judged_by(args.root), flush=True)
     return args.func(args)
