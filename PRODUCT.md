@@ -165,7 +165,7 @@ projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the
 pull request passes the checks of the version it brings. This repository's
 agent works under its own GitHub App, behind the maintainer's approval, and its session
 reaches none of the maintainer's credentials (ADR-0004). What
-remains is the pilot project, private, the first real use. A direction is recorded and not
+remains is the pilot project, private, the first real use. **M9 rehearsed a full team cycle on a public subject (2026-09-19)**: one cycle end to end in a day, zero sync events during the work, a review median of 10 minutes, and nine of eleven drift probes refused. The two that were accepted are one defect — the boundary rules do not see a contract dependency — and the exit decision is **fix first**: the pilot waits for the version that closes D29 to D33. A direction is recorded and not
 yet built: PDR-0004, which routes the interview on the project's stage and the field the
 questions come from, and whose criterion is checked against M9's log. The checks the handbook
 describes without them being automated are marked as such and listed in the automation
