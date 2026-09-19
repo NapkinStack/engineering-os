@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   discover:
-    name: Touched modules
+    name: Changed modules
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -57,7 +57,7 @@ jobs:
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if [ "$MODS" = '[]' ]; then echo "any=false" >> "$GITHUB_OUTPUT";
           else echo "any=true" >> "$GITHUB_OUTPUT"; fi
-          echo "Touched modules: $MODS"
+          echo "Modules with a file changed: $MODS"
 
   validate:
     name: ${{ matrix.module.name }}
@@ -137,5 +137,5 @@ jobs:
           DISCOVERED: ${{ needs.discover.result }}
           VALIDATED: ${{ needs.validate.result }}
         run: |
-          echo "Touched modules: $DISCOVERED. Their checks: $VALIDATED."
+          echo "Changed modules: $DISCOVERED. Their checks: $VALIDATED."
           [ "$DISCOVERED" = success ] && { [ "$VALIDATED" = success ] || [ "$VALIDATED" = skipped ]; }

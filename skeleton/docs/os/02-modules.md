@@ -142,10 +142,13 @@ modules/<name>/
 ├── docs/
 │   ├── adr/             ← local technical decisions
 │   └── runbook.md       ← when the module is operated in production
-├── contracts/           ← contracts PROVIDED by this module
 ├── src/
 └── tests/
 ```
+
+The contracts a module provides live in the project's `contracts/` module, one folder per
+contract and version (`03-contracts.md` §2), and its manifest points at them
+(`provides[].path`).
 
 **Rule for the local `AGENTS.md`**: it contains only what is specific to the module.
 Never duplicate a kernel rule there. A local `AGENTS.md` that repeats the kernel is a

@@ -161,7 +161,7 @@ token, the GitHub part stays "not verified", never compliant.
 
 ```bash
 nstack --help        # lists the commands
-nstack fitness       # manifests + boundaries + skills + plan — before every commit
+nstack fitness       # manifests + boundaries + skills + plan + hygiene — before every commit
 nstack discover <idea-file>   # starts a discovery, for your agent
 nstack plan          # the discovery, the charter and the cycles (docs/project/)
 nstack skills        # generates the Claude Code skills from the playbooks
@@ -170,7 +170,7 @@ nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: al
 nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
 nstack pr-check --body-file <file>   # test sheet and cycle, as CI reads them from the pull request
-nstack modules --changed-since <base>   # the modules a change touches, as CI lists them
+nstack modules --changed-since <base>   # the modules with a file changed, as CI lists them
 nstack compat [module] --base <base>    # a contract version consumed or stable: the merged proof
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```

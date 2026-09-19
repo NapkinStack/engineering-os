@@ -41,7 +41,7 @@ jobs:
       - name: Dependencies
         run: uv sync --locked
 
-      - name: Manifests, boundaries, skills
+      - name: Manifests, boundaries, skills, plan, hygiene
         run: uv run nstack fitness --root .
 
       - name: Platform tests — every guardrail proves it can fail

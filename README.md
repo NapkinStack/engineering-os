@@ -5,11 +5,14 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.3.1, published** ([PyPI](https://pypi.org/project/napkinstack/)): test sheet,
-> framing and bounded cycles. A first pilot project, private, starts from it and puts it to
-> the test before the rest. Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
+> **Status: v0.4.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): every barrier
+> the framework announces refuses what it claims to — the boundaries read the contracts a
+> module uses, a contract version someone relies on changes only with a proof, the module
+> checks and stale approvals are enforced, a verifier is not an author, and every verdict names
+> the framework that gave it. A first pilot project, private, starts from it. Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
+> [every barrier refuses](docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md),
 > [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey
@@ -75,9 +78,9 @@ the commit of this repository
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
 | `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures |
-| `nstack fitness` | Manifests, boundaries between modules, skills, plan |
+| `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene |
 | `nstack pr-scope` | One PR = one module, review budget |
-| `nstack modules [--changed-since <base>]` | The project's modules, or those a change touches |
+| `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |

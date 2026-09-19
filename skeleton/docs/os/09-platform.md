@@ -177,8 +177,8 @@ generated · light grey: the result.
 The critical point is `C6`: **the guardrails are active from the first commit**. A module
 created without fitness functions will accumulate violations discovered too late, and
 eventually tolerated because fixing them has become too expensive. `C3` is its corollary:
-a module whose commands are not declared fails in CI instead of going green while
-checking nothing.
+a module is green while it holds nothing to check, and fails in CI from its first file of
+code whose commands are not declared — never green while checking nothing.
 
 ---
 
