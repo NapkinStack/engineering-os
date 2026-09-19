@@ -42,7 +42,8 @@ errors, authentication, authorisation, compatibility and deprecation rules.
 This is the first question to ask, and it can be mechanised. It is: from the moment a
 module consumes a version, or its producer marks it `stable`, a change to its files needs the
 project's comparator — the `compat` command of the module holding it, as merged — to call it
-compatible; otherwise it becomes a new version beside it (`nstack compat`, rule V1). A version
+compatible; otherwise it becomes a new version beside it (`nstack compat`, rule V1). Moving
+the version to another folder changes nothing: it is judged wherever it now lives. A version
 still experimental, which nobody consumes, is free to change.
 
 ```mermaid

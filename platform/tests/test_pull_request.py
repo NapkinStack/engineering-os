@@ -166,6 +166,20 @@ def test_the_authors_are_the_commits_the_pull_request_brings(tmp_path, capsys, m
     assert "Pull request rules: compliant." in output and result == 0, output
 
 
+def test_a_file_moved_out_of_a_user_facing_module(tmp_path, capsys, monkeypatch):
+    """D38: git reports the rename under its new name; the module it left changes too."""
+    base, _ = change(tmp_path, USER_FACING)
+    write_module(tmp_path, "other", degrade(module__name="other"))
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "another module")
+    base = git(tmp_path, "rev-parse", "HEAD")
+    git(tmp_path, "mv", "modules/login/src/page.txt", "modules/other/page.txt")
+    git(tmp_path, "commit", "-q", "-m", "move")
+    head = git(tmp_path, "rev-parse", "HEAD")
+    assert check(tmp_path, base, head, "No sheet.", monkeypatch) == 1
+    assert "FAIL [T1] Test sheet missing: this pull request touches modules/login (user-facing)" in capsys.readouterr().out
+
+
 def test_without_a_description_nothing_is_checked(tmp_path, capsys, monkeypatch):
     base, _ = change(tmp_path, USER_FACING)
     monkeypatch.delenv("PR_BODY", raising=False)

@@ -44,7 +44,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack.fitness import plan
-from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests, is_description
+from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests, is_description
 from napkinstack.modules import LOGIN
 
 LABEL = "out-of-cycle"
@@ -293,7 +293,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode:
         print(f"Base '{base}' not found — check skipped.")
         return 0
-    files = _git(root, "diff", "--name-only", f"{base}...HEAD").stdout.split()
+    files = changed_files(root, base)
     head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
     fork = _git(root, "merge-base", base, "HEAD").stdout.strip() or base
     modules = touched_modules(root, fork, files)

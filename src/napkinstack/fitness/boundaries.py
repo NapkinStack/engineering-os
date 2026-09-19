@@ -11,11 +11,11 @@ Rules:
   B1  no contract read without being declared: a module reads only the contracts it
       provides, or consumes in the version it declares
   B2  no reference to another module's code: an import of it, or a path into its folder
-  B3  no circular dependency between modules
+  B3  no circular dependency between modules, through their contracts or their code
   B4  consumed contract never read (warning)
   B5  no direct access to another module's data (tables declared elsewhere)
   B6  a consumed contract is provided: its contract, version and module match a provides entry
-  B7  a provided contract exists: its path holds its document
+  B7  a provided contract exists: its path holds its document, inside a module's folder
 
 DETECTION — textual and deliberately simple, with no stack assumed.
   - A contract is read where a module's file names its path (contracts/billing-api/v1),
@@ -39,7 +39,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import module_content
+from napkinstack.fitness.manifests import find_manifests, module_content
 
 MODULE_DIRS = ["modules", "services", "apps", "packages"]
 SOURCE_SUFFIXES = {
@@ -150,6 +150,7 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
     """B6, B7, B1 and B4. Returns module -> producer -> contracts it reads from it."""
     provided = {(p.get("contract"), p.get("version")): name
                 for name, mod in modules.items() for p in mod["provides"]}
+    holders = [m.parent.relative_to(root).as_posix() for m in find_manifests(root)]
 
     for name, mod in modules.items():
         # B7 - what a module provides exists
@@ -160,6 +161,9 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
                     f.is_file() for f in path.rglob("*"))):
                 fail("B7", name, f"provides {label} at '{p.get('path')}', which holds no document.\n"
                                  "      Action: commit the contract there, or correct provides[].path.")
+            elif not any(str(p.get("path")).strip("/").startswith(f"{holder}/") for holder in holders):
+                fail("B7", name, f"provides {label} at '{p.get('path')}', outside every module's folder: "
+                                 "nothing compares its versions (V1).\n      Action: keep it under contracts/.")
         # B6 - what a module consumes is provided
         for c in mod["consumes"]:
             key = (c.get("contract"), c.get("version"))
@@ -279,7 +283,8 @@ def run(root: Path) -> int:
 
     reads = check_contracts(root, modules)
     code = check_code(root, modules)
-    for cycle in find_cycles(code):
+    graph = {name: set(reads[name]) | code[name] for name in modules}
+    for cycle in find_cycles(graph):
         fail("B3", " → ".join(cycle),
              "circular dependency: these modules have become inseparable "
              "(docs/os/02-modules.md §9).")
