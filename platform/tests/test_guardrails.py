@@ -229,6 +229,12 @@ BOUNDARY_CASES = {
     "B2 its package named by code_name": ({
         "billing": (VALID, {"src/App.java": "import com.acme.customers.Customer;\n"}),
         "customers": (degrade(CUSTOMERS, module__code_name="com.acme.customers"), {})}, "B2", True),
+    "B2 a Go import block (D41)": ({
+        "billing": (VALID, {"src/app.go": 'import (\n\t"fmt"\n\t"example.com/shop/modules/customers"\n)\n'}),
+        "customers": (CUSTOMERS, {})}, "B2", True),
+    "B2 the module imported from the root package (D41)": ({
+        "billing": (VALID, {"src/app.py": "from modules import customers\n"}),
+        "customers": (CUSTOMERS, {})}, "B2", True),
     "B2 a path dependency in a build file": ({
         "billing": (VALID, {"pyproject.toml": 'customers = { path = "../customers" }\n'}),
         "customers": (CUSTOMERS, {})}, "B2", True),
@@ -287,6 +293,7 @@ NOT_ANOTHER_MODULE = {
     "a local file named like another module": 'import { list } from "./customers";\n',
     "a sentence naming the other module": "# Never reads customers directly: from `customers`, only the contract.\n",
     "a word that starts like another module": "from billing.customersupport import ticket\n",
+    "a string naming another module's folder": 'assert not [p for p in sys.path if "modules/customers" in p]\n',
     "a subpackage of its own named like another module": "from billing.customers.models import Customer\n",
     "a relative import of its own": "from ..customers.models import Customer\n",
     "a local folder named like another module": 'import { list } from "./lib/customers/list";\n',
@@ -294,6 +301,27 @@ NOT_ANOTHER_MODULE = {
     "a Go package of its own": 'import "example.com/billing/customers/store"\n',
     "a file named like another module": 'DATA = open("../customers.csv")\n',
 }
+
+
+def test_an_own_folder_named_like_another_module(tmp_path, capsys):
+    """D41: `../customers/view` from the module's own src/ui/ is its own src/customers/."""
+    write_module(tmp_path, "billing", VALID, {"src/ui/page.ts": 'import { view } from "../customers/view";\n',
+                                              "src/customers/view.ts": "export const view = 1;\n"})
+    write_module(tmp_path, "customers", CUSTOMERS)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_contract_stored_in_its_producer_folder(tmp_path, capsys):
+    """D41: reading the contract where its producer keeps it is a contract read, not its code."""
+    document = tmp_path / "modules" / "customers" / "contracts" / "customers-api" / "v1" / "openapi.yaml"
+    producer = {**CUSTOMERS, "provides": [{"contract": "customers-api", "version": "v1",
+                                           "path": "modules/customers/contracts/customers-api/v1"}]}
+    write_module(tmp_path, "customers", producer)
+    document.parent.mkdir(parents=True)
+    document.write_text("x\n", encoding="utf-8")
+    write_module(tmp_path, "billing", consumes(VALID, "customers"),
+                 {"src/c.py": 'SPEC = "../../modules/customers/contracts/customers-api/v1/openapi.yaml"\n'})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
 @pytest.mark.parametrize("line", NOT_ANOTHER_MODULE.values(), ids=NOT_ANOTHER_MODULE.keys())
@@ -516,6 +544,22 @@ def test_hygiene(tmp_path, capsys, path):
     output = capsys.readouterr().out
     expect(code, output, "H1", True)
     assert "docs/runbook.md:1" in output, output
+
+
+SAME_EVERYWHERE = {
+    "a container image's working directory": ("Dockerfile", "WORKDIR /" + "home/node/app\n"),
+    "a development container's user": (".devcontainer/devcontainer.json", '{"remoteUser": "vscode", "mounts": ["/' + 'home/vscode/.cache"]}\n'),
+    "a composed service": ("compose.yaml", "services:\n  app:\n    working_dir: /" + "home/node/app\n"),
+    "a CI runner's workspace, in prose": ("docs/ci.md", "The runner clones into /" + "home/runner/work, every time.\n"),
+    "a tilde inside an address": ("docs/links.md", "See https://example.org/~" + "/docs for the manual.\n"),
+}
+
+
+@pytest.mark.parametrize(("name", "text"), SAME_EVERYWHERE.values(), ids=SAME_EVERYWHERE.keys())
+def test_hygiene_accepts_an_image_or_a_runner(tmp_path, capsys, name, text):
+    """D41: an image's home is the same on every machine; only one person's machine is refused."""
+    tracked(tmp_path, {name: text})
+    assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
 
 
 def test_hygiene_accepts_what_is_true_on_every_machine(tmp_path, capsys):
