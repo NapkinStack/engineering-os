@@ -24,6 +24,7 @@ NAME = re.compile(r"[a-z][a-z0-9-]*")
 # A GitHub person: 1 to 39 characters, alphanumerics and single hyphens, none at either end.
 # Defined once here, the identity rule's home: fitness/plan.py reads it for a charter's decider.
 HANDLE = r"(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*"
+LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a handle inside a sentence
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
