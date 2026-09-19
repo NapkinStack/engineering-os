@@ -41,7 +41,7 @@ def change(root, manifest=VALID, frame: bool = True) -> tuple[str, str]:
     return base, git(root, "rev-parse", "HEAD")
 
 
-def sheet(*rows: tuple[str, ...], verifier: str = "a fresh agent session") -> str:
+def sheet(*rows: tuple[str, ...], verifier: str = "session verifier-7 — ran the sheet before the diff") -> str:
     lines = ["## Test sheet", "", f"Verifier: {verifier}", "",
              "| # | Given · when · then | Kind | Result | Evidence | Commit |", "|---|---|---|---|---|---|"]
     return "\n".join([*lines, *(f"| {' | '.join(row)} |" for row in rows), "", "## Summary", ""])
@@ -68,7 +68,15 @@ SHEET_CASES = {
     "T1 high criticality without a sheet": (HIGH, "", "(criticality high)", 1),
     "T1 the template's row only": (USER_FACING, sheet(TEMPLATE), "FAIL [T1]", 1),
     "T1 a standard module needs none": (VALID, "", "Test sheet      : not required", 0),
-    "T2 no verifier": (USER_FACING, sheet(PASSED, verifier="<agent session or @human>"), "FAIL [T2] Test sheet: no verifier", 1),
+    "T2 no verifier": (USER_FACING, sheet(PASSED, verifier="<@handle, or session and the agent session's identifier>"),
+                       "FAIL [T2] Test sheet: no verifier", 1),
+    "T2 a verifier named in prose only (D32)": (USER_FACING, sheet(PASSED, verifier="a fresh agent session"),
+                                               "FAIL [T2] Test sheet: the verifier is not named", 1),
+    "T2 'session' inside a sentence names no session": (
+        USER_FACING, sheet(PASSED, verifier="a session other than the author's"),
+        "FAIL [T2] Test sheet: the verifier is not named", 1),
+    "T2 a handle inside a sentence is a name": (USER_FACING, sheet(PASSED, verifier="@dana — ran it on staging"),
+                                                "Pull request rules: compliant.", 0),
     "T2 missing column": (USER_FACING, "## Test sheet\n\nVerifier: x\n\n| # | Kind | Result |\n|---|---|---|\n| S1 | explored | passed |\n",
                           "FAIL [T2] Test sheet: columns missing", 1),
     "T2 unknown kind": (USER_FACING, sheet(("S1", "Given x", "guessed", "passed", "link", "{head}")), "FAIL [T2] scenario S1: kind", 1),
@@ -92,6 +100,70 @@ def test_test_sheet(tmp_path, capsys, monkeypatch, manifest, body, expected, cod
     output = capsys.readouterr().out
     assert expected in output, output
     assert result == code, output
+
+
+AGENT = "330339777+napkinstack-agent[bot]@users.noreply.github.com"
+AUTHORSHIP = {
+    "the pull request's author": ({}, "", "@alice", "alice", "FAIL [T2] Test sheet: the verifier @alice is an author", 1),
+    "a commit's author": ({"GIT_AUTHOR_EMAIL": "123+bob@users.noreply.github.com"}, "", "@bob", "alice",
+                          "the verifier @bob is an author", 1),
+    "a co-author": ({}, "Co-authored-by: Carol <7+carol@users.noreply.github.com>", "@Carol", "alice",
+                    "the verifier @carol is an author", 1),
+    "the App, named as a person": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "@napkinstack-agent",
+                                   "alice", "the verifier @napkinstack-agent is an author", 1),
+    "the App, named as a bot": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "@napkinstack-agent[bot]",
+                                "alice", "the verifier @napkinstack-agent is an author", 1),
+    "one author among the names": ({}, "", "@dana, then @alice", "alice", "the verifier @alice is an author", 1),
+    "the session that wrote it": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "session author-1",
+                                  "napkinstack-agent[bot]", "the verifier, session author-1, wrote commits", 1),
+    "an agent commit naming no session": ({"GIT_AUTHOR_EMAIL": AGENT}, "", "session verifier-7",
+                                          "napkinstack-agent[bot]", "an agent's commits name no session", 1),
+    "another session: compliant": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "session verifier-7",
+                                   "napkinstack-agent[bot]", "Pull request rules: compliant.", 0),
+    "another person: compliant": ({"GIT_AUTHOR_EMAIL": AGENT}, "Agent-Session: author-1", "@dana",
+                                  "napkinstack-agent[bot]", "Pull request rules: compliant.", 0),
+}
+
+
+@pytest.mark.parametrize(("identity", "trailer", "verifier", "opener", "expected", "code"),
+                         AUTHORSHIP.values(), ids=AUTHORSHIP.keys())
+def test_the_verifier_is_not_an_author(tmp_path, capsys, monkeypatch, identity, trailer, verifier, opener,
+                                       expected, code):
+    """D32: T2 compares the verifier with the change's authors, people and sessions."""
+    base, _ = change(tmp_path, USER_FACING)
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("page, fixed\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    subprocess.run(["git", "commit", "-q", "-m", "fix", *(["-m", trailer] if trailer else [])], cwd=tmp_path,
+                   env={**os.environ, **IDENTITY, **identity}, check=True)
+    head = git(tmp_path, "rev-parse", "HEAD")
+    monkeypatch.setenv("PR_AUTHOR", opener)
+    result = check(tmp_path, base, head, sheet(PASSED, verifier=verifier), monkeypatch)
+    output = capsys.readouterr().out
+    assert expected in output, output
+    assert result == code, output
+
+
+def test_the_authors_are_the_commits_the_pull_request_brings(tmp_path, capsys, monkeypatch):
+    """CI checks out a merge commit, and updating a branch merges the base in: neither is the
+    change's author, and the base's own commits are not either."""
+    agent = {**os.environ, **IDENTITY, "GIT_AUTHOR_EMAIL": AGENT, "GIT_COMMITTER_EMAIL": AGENT}
+    base, _ = change(tmp_path, USER_FACING)
+    git(tmp_path, "checkout", "-q", "-b", "feature")
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("page, fixed\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    subprocess.run(["git", "commit", "-q", "-m", "fix", "-m", "Agent-Session: author-1"], cwd=tmp_path,
+                   env=agent, check=True)
+    git(tmp_path, "checkout", "-q", "main")
+    (tmp_path / "NOTES.md").write_text("on main\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    subprocess.run(["git", "commit", "-q", "-m", "main moves on"], cwd=tmp_path, env=agent, check=True)
+    git(tmp_path, "checkout", "-q", "feature")
+    subprocess.run(["git", "merge", "-q", "--no-edit", "main"], cwd=tmp_path, env=agent, check=True)
+    head = git(tmp_path, "rev-parse", "HEAD")
+    monkeypatch.setenv("PR_AUTHOR", "napkinstack-agent[bot]")
+    result = check(tmp_path, "main", head, sheet(PASSED, verifier="session verifier-7"), monkeypatch)
+    output = capsys.readouterr().out
+    assert "Pull request rules: compliant." in output and result == 0, output
 
 
 def test_without_a_description_nothing_is_checked(tmp_path, capsys, monkeypatch):

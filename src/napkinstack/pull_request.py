@@ -5,8 +5,9 @@ Pull request rules read from its description: the test sheet (PDR-0003) and the 
 Rules:
   T1  a test sheet when the pull request changes a user-facing module, or one of
       criticality high or critical — at the base or at the head, the stricter
-  T2  a verifier named, and every scenario row filled in: id, given · when · then, a kind
-      (automated, explored, human only — reason), a result (passed, failed, not verified)
+  T2  a verifier named who is not an author of the change, and every scenario row filled
+      in: id, given · when · then, a kind (automated, explored, human only — reason), a
+      result (passed, failed, not verified)
   T3  no scenario passed without its evidence and the commit it was verified on
   T4  evidence produced on the pull request's head commit: the others are to run again
   T5  no scenario failed; none left not verified, unless it is human only
@@ -21,7 +22,13 @@ update or a documentation fix is neither delivery work nor a reason for a sheet.
 The out-of-cycle label lifts K1 to K3, visibly and countably (docs/os/10-measurement.md).
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
-In CI :  PR_BODY, PR_LABELS and PR_HEAD_SHA come from the pull_request event.
+In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event.
+
+The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
+authors are the pull request's author, the GitHub accounts behind its commits' authors,
+committers and co-authors, and the sessions its commits name in an `Agent-Session:` trailer.
+It is a declaration checked against the history, not a proof of identity: it refuses the
+session that verifies its own work, not one that lies about its name (ADR-0004, measurement).
 Output:  0 when every applicable rule passes, 1 otherwise.
 """
 
@@ -38,6 +45,7 @@ import yaml
 
 from napkinstack.fitness import plan
 from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests, is_description
+from napkinstack.modules import LOGIN
 
 LABEL = "out-of-cycle"
 DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
@@ -53,6 +61,12 @@ HUMAN_ONLY = re.compile(r"human only[ \t]*[—–-][ \t]*(\S.*)", re.I)
 PLACEHOLDER = re.compile(r"<[^<>]*>")
 EMPTY = {"", "—", "-"}
 SHA = re.compile(r"[0-9a-f]{7,40}")
+HANDLES = re.compile(rf"(?<![\w@])@(?P<handle>{LOGIN}(?:\[bot\])?)(?![\w-])")
+SESSION = re.compile(r"^\s*session[ \t]+(?P<session>[\w.:/-]+)", re.I)
+NOREPLY = re.compile(r"(?:\d+\+)?(?P<login>[^@<>\s]+)@users\.noreply\.github\.com", re.I)
+SESSION_TRAILER = "Agent-Session"
+LOG = (f"%h%x1f%ae%x1f%ce%x1f%(trailers:key={SESSION_TRAILER},valueonly,separator=%x1d)"
+       "%x1f%(trailers:key=Co-authored-by,valueonly,separator=%x1d)%x1e")
 
 Fail = Callable[[str, str], None]
 
@@ -128,11 +142,57 @@ def read_sheet(body: str) -> tuple[str, list[str], list[dict[str, str]]]:
     return verifier, header, rows
 
 
+def authors(root: Path, base: str, head: str, opener: str) -> tuple[set[str], set[str], list[str]]:
+    """(GitHub logins, agent sessions, agent commits naming no session) of the commits the pull
+    request brings — its head, less the base, less merges: CI checks out a merge commit, and
+    updating a branch merges the base in. A login is lower-cased and loses its `[bot]` suffix,
+    so that `@napkinstack-agent` names the App."""
+    logins = {opener.lower().removesuffix("[bot]")} if opener else set()
+    sessions, unnamed = set(), []
+    for record in _git(root, "log", "--no-merges", f"--format={LOG}", f"{base}..{head}").stdout.split("\x1e"):
+        if not record.strip():
+            continue
+        commit, author, committer, named, coauthors = record.strip("\n").split("\x1f")
+        found = {m["login"].lower() for m in NOREPLY.finditer(" ".join([author, committer, coauthors]))}
+        logins |= {login.removesuffix("[bot]") for login in found}
+        named = {value.strip() for value in named.split("\x1d") if value.strip()}
+        sessions |= named
+        if not named and any(login.endswith("[bot]") for login in found):
+            unnamed.append(commit)
+    return logins, sessions, unnamed
+
+
+def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail) -> None:
+    """T2: the verifier is named — people as @handle anywhere on the line, an agent session as
+    `session <id>` opening it — and none of the names is an author of the change."""
+    opening = SESSION.match(verifier)
+    session = opening["session"] if opening else None
+    handles = {m["handle"].lower().removesuffix("[bot]") for m in HANDLES.finditer(verifier)}
+    if not session and not handles:
+        fail("T2", "Test sheet: the verifier is not named as a person or a session.\n      Action: "
+                   "\"Verifier: @<handle>\" for a person, \"Verifier: session <id>\" for an agent "
+                   "session — the identifier its own commits would carry (docs/os/05-workflow.md §7).")
+        return
+    logins, sessions, unnamed = authorship
+    if named := sorted(handles & logins):
+        fail("T2", f"Test sheet: the verifier @{', @'.join(named)} is an author of this change.\n      Action: "
+                   "the sheet is run by someone who did not write the change (playbooks/verification.md).")
+    elif session and session in sessions:
+        fail("T2", f"Test sheet: the verifier, session {session}, wrote commits of this change "
+                   f"({SESSION_TRAILER} trailer).\n      Action: run the sheet from another session, "
+                   "with a fresh context (playbooks/verification.md).")
+    elif session and unnamed:
+        fail("T2", f"Test sheet: an agent's commits name no session ({', '.join(unnamed)}): the verifier "
+                   f"cannot be told from their author.\n      Action: the authoring session commits with "
+                   f"the trailer \"{SESSION_TRAILER}: <id>\" (AGENTS.md §0), then the sheet is run again.")
+
+
 def _result(cell: str) -> str:
     return re.split(r"[ \t]+[—–-][ \t]+", cell.replace("*", "").strip(), maxsplit=1)[0].lower()
 
 
-def check_sheet(body: str, head: str, reasons: list[str], fail: Fail) -> list[str]:
+def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
+                authorship: tuple[set[str], set[str], list[str]] = (set(), set(), [])) -> list[str]:
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
@@ -149,8 +209,10 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail) -> list[st
                    f"      Expected: | {' | '.join(COLUMNS)} |")
         return []
     if not verifier:
-        fail("T2", "Test sheet: no verifier named.\n      Action: \"Verifier: <agent session "
-                   "or @human>\", someone other than the author of the change.")
+        fail("T2", "Test sheet: no verifier named.\n      Action: \"Verifier: @<handle>\" or "
+                   "\"Verifier: session <id>\", someone other than the author of the change.")
+    else:
+        check_verifier(verifier, authorship, fail)
     human_only, rerun = [], []
     for row in rows:
         ident = row["#"] or "?"
@@ -243,7 +305,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
         failures.append(f"[{rule}] {message}")
 
     reasons = [reason for folder, found in modules.items() if (reason := sheet_reason(folder, found))]
-    human_only = check_sheet(body, head, reasons, fail)
+    authorship = authors(root, base, head, os.environ.get("PR_AUTHOR", ""))
+    human_only = check_sheet(body, head, reasons, fail, authorship)
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail)
 
