@@ -113,6 +113,22 @@ def test_a_module_holding_only_its_description_declares_no_verb(tmp_path, capsys
     assert "[M7] billing" in capsys.readouterr().out
 
 
+def test_new_module_says_what_its_pull_requests_will_need(tmp_path, capsys):
+    """D33: green as created; the sheet and the cycle named from facts nstack holds."""
+    from test_plan import framed
+
+    assert cli.main(["new-module", "face", "acme/web", "standard", "--user-facing", "--root", str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    assert "carries a test sheet (user-facing)" in output and "The project is not framed" in output, output
+    for verb in ("check", "test"):
+        assert cli.main([verb, "face", "--root", str(tmp_path)]) == 0
+        assert f"face: holds only its description, nothing to {verb} yet." in capsys.readouterr().out
+    framed(tmp_path)
+    assert cli.main(["new-module", "back", "acme/web", "high", "--root", str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    assert "carries a test sheet (criticality high)" in output and "a ready deliverable of 01-first.md" in output, output
+
+
 def test_new_module_high_criticality_generates_a_runbook(tmp_path, capsys):
     """M8 requires a runbook from criticality=high on: the scaffolding must write it."""
     assert cli.main(["new-module", "demo", "acme/demo-team", "high", "--root", str(tmp_path)]) == 0

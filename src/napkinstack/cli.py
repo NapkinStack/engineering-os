@@ -58,7 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="NapkinStack engine.")
     parser.add_argument("--version", action="version", version=f"nstack {__version__}")
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
-    _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M9)",
+    _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M10)",
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph (B1-B5)",
          lambda a: boundaries.run(a.root))

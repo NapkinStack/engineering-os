@@ -15,9 +15,11 @@ data:
   shared: []
 dependencies: []
 
-commands:
-  check: "echo 'commands.check to be declared: contract schema validation' >&2; exit 1"
-  test: "echo 'commands.test to be declared: contract tests' >&2; exit 1"
+# Declared with the first contract: check and test are required once this folder holds one
+# (fitness M7). The tools are the project's, named in docs/tooling-profile.md.
+commands: {}
+#  check:     # validates every contract document against its format
+#  test:      # the contract tests, run on both sides (docs/os/03-contracts.md §5)
 
 docs:
   readme: README.md

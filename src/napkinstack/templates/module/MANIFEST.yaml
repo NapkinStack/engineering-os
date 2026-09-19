@@ -61,13 +61,14 @@ dependencies: []
 
 # Standard verbs: the same names everywhere, running this module's stack commands
 # (docs/os/09-platform.md §2). `nstack <verb> <module>` runs them from this folder.
-# No stack is imposed: replace every "to be declared" command.
-commands:
-  check: "echo 'commands.check to be declared in MANIFEST.yaml' >&2; exit 1"  # under 2 min: format, lint, types
-  test: "echo 'commands.test to be declared in MANIFEST.yaml' >&2; exit 1"    # NEVER starts another module
-  # bootstrap:                   # optional: make the module usable from a fresh clone
-  # run:                         # optional: local start, with doubles for the dependencies
-  # e2e:                         # optional: end-to-end scenarios; evidence written to .evidence/
+# No stack is imposed. check and test are required once the module holds more than its
+# description (fitness M7): declare them before its first file of code.
+commands: {}
+#  check:                        # under 2 min: format, lint, types
+#  test:                         # NEVER starts another module
+#  bootstrap:                    # optional: make the module usable from a fresh clone
+#  run:                          # optional: local start, with doubles for the dependencies
+#  e2e:                          # optional: end-to-end scenarios; evidence written to .evidence/
 
 # Review budget. Inherited from the project when absent (docs/os/05-workflow.md §4).
 review_budget:
