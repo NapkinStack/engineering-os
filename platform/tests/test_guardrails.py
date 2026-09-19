@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import datetime
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -239,10 +240,15 @@ def repository(root: Path, files: dict[str, int]) -> str:
     return base
 
 
-TWO_MODULES = {"modules/a/x.txt": 1, "modules/b/y.txt": 1}
+A_MODULE = {"modules/a/MANIFEST.yaml": 1, "modules/a/x.txt": 1}
+TWO_MODULES = {**A_MODULE, "modules/b/MANIFEST.yaml": 1, "modules/b/y.txt": 1}
 PR_CASES = {
     "P1 two modules": (TWO_MODULES, {}, "FAIL [P1]", 1),
     "P1 cross-module label": (TWO_MODULES, {"PR_LABELS": "cross-module"}, "WARNING [P1]", 0),
+    "P1 another module's description changes no module": (
+        {**A_MODULE, "modules/b/MANIFEST.yaml": 1, "modules/b/README.md": 1}, {}, "Modules touched : 1", 0),
+    "P1 contracts/ is a module (D34)": (
+        {**A_MODULE, "contracts/MANIFEST.yaml": 1, "contracts/a-api/v1/schema.json": 1}, {}, "FAIL [P1]", 1),
     "P2 over budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "WARNING [P2] Over the review budget.", 0),
 }
 
@@ -257,6 +263,16 @@ def test_pr_scope(tmp_path, capfd, monkeypatch, files, variables, expected, expe
     output = capfd.readouterr().out
     assert expected in output, output
     assert code == expected_code, output
+
+
+def test_modules_changed_since(tmp_path, capsys):
+    """One list of modules for CI: every folder holding a manifest, contracts/ included (D34)."""
+    base = repository(tmp_path, {**A_MODULE, "contracts/MANIFEST.yaml": 1, "docs/notes.md": 1})
+    assert cli.main(["modules", "--root", str(tmp_path), "--changed-since", base, "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"name": "a", "folder": "modules/a"},
+                                                   {"name": "contracts", "folder": "contracts"}]
+    assert cli.main(["modules", "--root", str(tmp_path), "--changed-since", "nope"]) == 1
+    assert "FAIL [modules] base 'nope' not found" in capsys.readouterr().out
 
 
 OWNERS = {

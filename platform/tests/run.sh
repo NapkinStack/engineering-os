@@ -734,7 +734,7 @@ rules = [
     {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
     {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
-        {"context": "Test sheet and cycle"}]}},
+        {"context": "Test sheet and cycle"}, {"context": "Module checks"}]}},
 ]
 labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"},
           "/labels/out-of-cycle": {"name": "out-of-cycle"}}
@@ -829,12 +829,19 @@ echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line
     || { echo "FAIL: '$line' missing from the skeleton README."; exit 1; }
 done
 python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
-import sys, yaml
-names = [job["name"] for workflow in ("governance.yml", "pull-request.yml")
-         for job in yaml.safe_load(open(f"skeleton/.github/workflows/{workflow}", encoding="utf-8"))["jobs"].values()]
+import re, sys, yaml
+jobs = {workflow: [job["name"] for job in yaml.safe_load(
+            open(f"skeleton/.github/workflows/{workflow}", encoding="utf-8"))["jobs"].values()]
+        for workflow in ("governance.yml", "pull-request.yml", "module-checks.yml")}
+# Every job of the two rule workflows is required; of the module workflow, only the job that
+# fails when any module failed: the matrix jobs carry names no ruleset knows in advance.
+names = jobs["governance.yml"] + jobs["pull-request.yml"] + ["Module checks"]
 absents = [name for name in names if f"`{name}`" not in sys.argv[1]]
 if absents:
     sys.exit(f"FAIL: skeleton CI jobs missing from the checklist (G4): {absents}")
+unknown = [name for name in re.findall(r"`([^`]+)`", sys.argv[1]) if name not in sum(jobs.values(), [])]
+if unknown:
+    sys.exit(f"FAIL: required checks no skeleton job produces (G4): {unknown}")
 EOF
 
 echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6)"
