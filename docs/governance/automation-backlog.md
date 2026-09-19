@@ -10,7 +10,6 @@
 |---|---|---|---|---|---|
 | *example* — a contract change must be preceded by an ADR | kernel §6 | Medium | Low | The 2nd inter-team contract | YYYY-MM-DD |
 | Mandatory ADR sections: prior art, deviation, dated criterion | The ADR index, review | Medium | Low | The first real project | Post-pilot review |
-| Consumers of a removed version = 0 | `03-contracts.md` §4, review | High | Medium | The first contract between two teams | Post-pilot review |
 | A contraction issue opened as soon as the expand lands | `03-contracts.md` §4, by hand | Medium | Low | The first versioned contract | Post-pilot review |
 | External dependency declared in the manifest | The security playbook, review | Medium | Medium | The first module with dependencies | Post-pilot review |
 | English is the repository's only language (ADR-0003) | `AGENTS.md`, `CONTRIBUTING.md`, review | Low | High — detection rests on accented letters: blind to English borrowings, false-positive on typographic punctuation and proper nouns | First outside contribution written in another language | Post-pilot review |
@@ -20,7 +19,8 @@
 | Rule | Automated by | Date |
 |---|---|---|
 | One PR = one module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.py`) | |
-| Declared graph = real graph | `nstack boundaries` | |
+| Declared graph = real graph, contracts included | `nstack boundaries` | 2026-09-19 |
+| Consumers of a removed version = 0 | `nstack boundaries` B6: a consumed version nobody provides fails | 2026-09-19 |
 | Deprecation dates not passed | `nstack manifests` | |
 | Runbook required when criticality is high | `nstack manifests` | |
 | No secret in the repository | gitleaks (hook and CI), push protection | 2026-09-13 |

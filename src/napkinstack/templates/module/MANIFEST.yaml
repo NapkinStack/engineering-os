@@ -31,7 +31,7 @@ module:
   #   replaced_by:
   #   removal_date: YYYY-MM-DD
 
-# Contracts PROVIDED by this module.
+# Contracts PROVIDED by this module. `path` holds its document (B7).
 provides: []
 #  - contract: {{MODULE_NAME}}-api
 #    version: v1
@@ -40,7 +40,8 @@ provides: []
 #    # removal_date: YYYY-MM-DD   # required when stability = deprecated
 
 # Contracts CONSUMED - this is the DECLARED graph.
-# CI compares it with the REAL graph extracted from the code: any gap is a violation.
+# CI compares it with the contracts this module's files read: one read and not declared
+# fails (B1), one declared and never read is reported (B4), one nobody provides fails (B6).
 consumes: []
 #  - contract: identity-api
 #    version: v1
