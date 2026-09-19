@@ -35,9 +35,7 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
       - name: NapkinStack, the project version
-        run: |
-          VERSION=$(yq '._commit' .copier-answers.yml)
-          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+        run: bash .nstack/install-engine.sh
 
       - name: Manifests, boundaries, skills
         run: nstack fitness --root .
@@ -56,9 +54,7 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
       - name: NapkinStack, the project version
-        run: |
-          VERSION=$(yq '._commit' .copier-answers.yml)
-          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+        run: bash .nstack/install-engine.sh
 
       - name: One PR = one module
         env:
@@ -83,9 +79,7 @@ jobs:
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', '.copier-answers.yml') }}
 
       - name: NapkinStack, the project version
-        run: |
-          VERSION=$(yq '._commit' .copier-answers.yml)
-          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+        run: bash .nstack/install-engine.sh
 
       # The same configuration as the local hooks. The "gitleaks" hook only scans the
       # staged changes, empty in CI: the next step covers the secrets.
