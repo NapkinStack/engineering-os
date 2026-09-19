@@ -87,7 +87,8 @@ MANIFEST_CASES = {
         provides=[{"contract": "billing-api", "version": "v1", "stability": "deprecated"}])), "M6", True),
     "M6 date passed": (lambda r: write_module(r, "billing", degrade(provides=[
         {"contract": "billing-api", "version": "v1", "stability": "deprecated", "removal_date": YESTERDAY}])), "M6", True),
-    "M7 missing verb": (lambda r: write_module(r, "billing", degrade(commands={"check": "true"})), "M7", True),
+    "M7 missing verb, the module holds code": (lambda r: write_module(
+        r, "billing", degrade(commands={"check": "true"}), {"src/app.py": "x\n"}), "M7", True),
     "M8 runbook missing": (lambda r: write_module(r, "billing", degrade(module__criticality="high")), "M8", True),
     "M9 AGENTS.md missing": (lambda r: (write_module(r, "billing") / "AGENTS.md").unlink(), "M9", True),
     "M9 tests missing": (lambda r: (write_module(r, "billing") / "tests").rmdir(), "M9", True),
@@ -101,6 +102,15 @@ def test_manifests(tmp_path, capsys, prepare, rule, fails):
     prepare(tmp_path)
     code = manifests.run(tmp_path)
     expect(code, capsys.readouterr().out, rule, fails)
+
+
+def test_a_module_holding_only_its_description_declares_no_verb(tmp_path, capsys):
+    """D33: nothing to check yet, so nothing to declare; docs/ and placeholders included."""
+    folder = write_module(tmp_path, "billing", degrade(commands={}), {"docs/adr/0001.md": "x\n", "src/.gitkeep": ""})
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+    (folder / "src" / "app.py").write_text("x\n", encoding="utf-8")
+    assert manifests.run(tmp_path) == 1
+    assert "[M7] billing" in capsys.readouterr().out
 
 
 def test_new_module_high_criticality_generates_a_runbook(tmp_path, capsys):
