@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import os
-import subprocess
+import json
 from pathlib import Path
 
 from napkinstack import __version__, discovery, doctor, modules, pull_request, skills
-from napkinstack.fitness import boundaries, hygiene, manifests, plan
-
-PACKAGE = Path(__file__).resolve().parent
+from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
 
 def _root(value: str) -> Path:
@@ -20,9 +17,14 @@ def _root(value: str) -> Path:
     return root
 
 
-def _script(relative: str, *args: str, root: Path) -> int:
-    env = {**os.environ, "NSTACK_ROOT": str(root)}
-    return subprocess.run(["bash", str(PACKAGE / relative), *args], cwd=root, env=env).returncode
+def _modules(args: argparse.Namespace) -> int:
+    found = modules.listing(args.root, args.changed_since)
+    if found is None:
+        print(f"FAIL [modules] base '{args.changed_since}' not found in {args.root}.\n"
+              "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
+        return 1
+    print(json.dumps(found) if args.json else "\n".join(f"{m['name']}\t{m['folder']}" for m in found))
+    return 0
 
 
 def _fitness(root: Path) -> int:
@@ -89,8 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
     rn = _add(sub, "run", "starts a module locally (commands.run)",
               lambda a: modules.run_verb(a.root, "run", a.module))
     rn.add_argument("module")
+    md = _add(sub, "modules", "the project's modules, or those a change touches", _modules)
+    md.add_argument("--changed-since", metavar="BASE", help="only the modules with a file changed since BASE")
+    md.add_argument("--json", action="store_true", help="a JSON list, for CI")
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
-              lambda a: _script("fitness/pr_scope.sh", a.base, root=a.root))
+              lambda a: pr_scope.run(a.root, a.base))
     ps.add_argument("--base", default="origin/main")
     pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5, K1-K4)",
               lambda a: pull_request.run(a.root, a.base, a.body_file))

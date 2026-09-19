@@ -128,6 +128,21 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
     return steps
 
 
+def listing(root: Path, base: str | None = None) -> list[dict[str, str]] | None:
+    """Every module — a folder holding a MANIFEST.yaml, contracts/ and platform/ included —
+    or, given a base, those with a file changed since it; None when the base is unknown."""
+    found = [{"name": manifest.parent.name, "folder": manifest.parent.relative_to(root).as_posix()}
+             for manifest in find_manifests(root)]
+    if base is None:
+        return found
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"], cwd=root,
+                      capture_output=True).returncode:
+        return None
+    changed = subprocess.run(["git", "diff", "--name-only", f"{base}...HEAD"], cwd=root,
+                             capture_output=True, text=True).stdout.split()
+    return [module for module in found if any(path.startswith(f"{module['folder']}/") for path in changed)]
+
+
 def _modules(root: Path) -> dict[str, Path]:
     """Name to folder, for every MANIFEST.yaml the fitness functions recognise."""
     return {manifest.parent.name: manifest.parent for manifest in find_manifests(root)}
