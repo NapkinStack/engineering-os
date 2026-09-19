@@ -26,9 +26,7 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
 
       - name: NapkinStack, the project version
-        run: |
-          VERSION=$(yq '._commit' .copier-answers.yml)
-          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+        run: bash .nstack/install-engine.sh
 
       - name: Test sheet and cycle
         env:

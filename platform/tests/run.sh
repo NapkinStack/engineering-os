@@ -251,6 +251,39 @@ for case in "run demo|commands.run not declared" "test unknown|module 'unknown' 
   echo "$OUT" | grep -qF "$message" || { echo "FAIL: message "$message" missing."; echo "$OUT"; exit 1; }
 done
 
+echo "-> CI engine: a published version from PyPI, anything else from the repository, announced (PDR-0005)"
+EI=$(mktemp -d)
+mkdir -p "$EI/bin" "$EI/project/.nstack"
+cp skeleton/.nstack/install-engine.sh "$EI/project/.nstack/"
+printf '#!/usr/bin/env python3\nimport sys, yaml\nprint(yaml.safe_load(open(sys.argv[2]))[sys.argv[1][1:]])\n' > "$EI/bin/yq"
+printf '#!/usr/bin/env bash\necho "uv $*"; [ -z "${UV_FAILS:-}" ]\n' > "$EI/bin/uv"
+chmod +x "$EI/bin/yq" "$EI/bin/uv"
+engine() {  # $1 = _commit, $2 = _src_path; prints what CI would run
+  printf '_commit: %s\n_src_path: %s\n' "$1" "$2" > "$EI/project/.copier-answers.yml"
+  (cd "$EI/project" && PATH="$EI/bin:$PATH" bash .nstack/install-engine.sh 2>&1)
+}
+URL=https://github.com/NapkinStack/engineering-os.git
+engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --with-executables-from pre-commit' \
+  || { echo "FAIL: a published version is not installed from PyPI."; engine v0.4.0 "$URL"; exit 1; }
+OUT=$(engine v0.4.0-3-g1a2b3c4 "$URL")
+echo "$OUT" | grep -qF "::warning::UNPUBLISHED NapkinStack: $URL@1a2b3c4" \
+  && echo "$OUT" | grep -qF "uv tool install napkinstack @ git+$URL@1a2b3c4" \
+  || { echo "FAIL: an unpublished commit is not installed from the repository, announced."; echo "$OUT"; exit 1; }
+engine v0.4.0-3-g1a2b3c4 gh:NapkinStack/engineering-os | grep -qF "git+https://github.com/NapkinStack/engineering-os@1a2b3c4" \
+  && engine v0.4.0-3-g1a2b3c4 git@github.com:NapkinStack/engineering-os.git \
+     | grep -qF "git+ssh://git@github.com/NapkinStack/engineering-os.git@1a2b3c4" \
+  || { echo "FAIL: Copier's short and scp-like sources not read as doctor L7 reads them."; exit 1; }
+if OUT=$(engine v0.4.0-3-g1a2b3c4 /srv/checkouts/framework); then
+  echo "FAIL: a source on one machine accepted in CI."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "is a path on one machine" || { echo "FAIL: no reason given."; echo "$OUT"; exit 1; }
+if OUT=$(UV_FAILS=1 engine v0.4.0-3-g0000000 "$URL"); then
+  echo "FAIL: a missing ref did not fail."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "framework ref '0000000' not found" && ! echo "$OUT" | grep -qF "napkinstack==" \
+  || { echo "FAIL: a missing ref fell back, or was not named."; echo "$OUT"; exit 1; }
+rm -rf "$EI"
+
 echo "-> nstack fitness: fails when any of the three checks fails"
 FT=$(mktemp -d)
 mkdir -p "$FT/.nstack" "$FT/playbooks"
@@ -824,6 +857,18 @@ INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Project 
   --github-repo acme/compliant --owner-team acme/platform 2>&1) \
   || { echo "FAIL: nstack init of project C."; echo "$INIT_OUT"; exit 1; }
 repo_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
+# Project C as the published template would have made it: its source a repository (L7).
+sed -i "s#^_src_path: .*#_src_path: https://github.com/NapkinStack/engineering-os.git#" "$C/.copier-answers.yml"
+# The engine under test as the registry installs it: no direct_url.json, so published. The
+# engine this suite runs is a checkout, unpublished, and has its own test below (PDR-0005).
+published() {
+  python3 - "$@" <<'PY'
+import sys
+from napkinstack import __version__, cli, provenance
+provenance.engine = lambda: (__version__, None)
+sys.exit(cli.main(sys.argv[1:]))
+PY
+}
 
 echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
 [ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 13 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
@@ -848,7 +893,7 @@ if unknown:
     sys.exit(f"FAIL: required checks no skeleton job produces (G4): {unknown}")
 EOF
 
-echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6)"
+echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6, L7)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from
 # the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
@@ -858,7 +903,7 @@ sed -i '/^\*/d' "$A/.github/CODEOWNERS"
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
 fi
-for rule in L1 L3 L4 L5 L6; do
+for rule in L1 L3 L4 L5 L6 L7; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -871,7 +916,7 @@ sed -i 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
 
 echo "-> doctor: GitHub repository without settings, every gap listed with its action (criterion 2)"
 repo_c acme/bare
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
 for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13; do
@@ -883,22 +928,22 @@ done
 
 echo "-> doctor: checklist applied, the command exits successfully (criterion 2)"
 repo_c acme/compliant
-if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 19 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 20 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: no ruleset at all, G12 names the ruleset to create, not an actor to remove (D25)"
 repo_c acme/bare
-OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1) || true
+OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1) || true
 echo "$OUT" | grep -A1 -E "FAIL +\[G12\]" | grep -qF "create the ruleset first (G1)" \
   && echo "$OUT" | grep -A2 -E "FAIL +\[G4\]" | grep -qF "only once it has run" \
   || { echo "FAIL: G12 or G4 action misleading without a ruleset."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: an approval that survives a push is a gap (G13, D31)"
 repo_c acme/stale
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: stale approvals kept, reported compliant."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "FAIL +\[G13\]" && echo "$OUT" | grep -qE "OK +\[G2\]" \
@@ -907,7 +952,7 @@ echo "$OUT" | grep -qE "FAIL +\[G13\]" && echo "$OUT" | grep -qE "OK +\[G2\]" \
 
 echo "-> doctor: a bypass actor on the main branch's ruleset is a gap (G12, ADR-0004)"
 repo_c acme/bypass
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: a bypassable ruleset accepted."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "FAIL +\[G12\]" && echo "$OUT" | grep -qE "OK +\[G1\]" \
@@ -916,7 +961,7 @@ echo "$OUT" | grep -qE "FAIL +\[G12\]" && echo "$OUT" | grep -qE "OK +\[G1\]" \
 
 echo "-> doctor: private repository on the Free plan, gaps naming the plan required, reporting not applicable"
 repo_c acme/private
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: private repository with no barrier accepted."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
@@ -927,15 +972,15 @@ echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
 
 echo "-> doctor: private repository under GitHub Team, compliant without private reporting"
 repo_c acme/private-team
-if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 18 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 19 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
-if OUT=$(env -u GH_TOKEN -u GITHUB_TOKEN nstack doctor --root "$C" 2>&1); then
+if OUT=$(unset GH_TOKEN GITHUB_TOKEN; published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant without a token."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
@@ -944,7 +989,7 @@ echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +
 
 echo "-> doctor: token without the Administration permission, unreadable settings are not verified"
 repo_c acme/restricted
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant without the Administration permission."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G5\]" \
@@ -953,11 +998,21 @@ echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G
   || { echo "FAIL: missing permission mishandled."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: API unreachable, nothing is declared compliant"
-if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant without the API."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G1\]" && echo "$OUT" | grep -qF "unreachable" \
   || { echo "FAIL: unreachable API mishandled."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: the engine of a checkout is unpublished, a gap and never compliance (L1, PDR-0005)"
+repo_c acme/compliant
+if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+  echo "FAIL: an unpublished engine reported compliant."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | head -1 | grep -qF "Judged by an UNPUBLISHED NapkinStack — a local checkout" \
+  && echo "$OUT" | grep -qE "FAIL +\[L1\]" && echo "$OUT" | grep -qF "The nstack running is unpublished" \
+  && echo "$OUT" | grep -qF "1 gap(s), 0 not verified" \
+  || { echo "FAIL: unpublished engine badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: outside a project, the command MUST explain it"
 if OUT=$(nstack doctor --root "$GN/occupied" 2>&1); then

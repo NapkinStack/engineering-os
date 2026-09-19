@@ -10,12 +10,14 @@ fine-grained, limited to the repository, Administration: read permission. Withou
 or when the API refuses a read, the setting is "not verified", never compliant. No write.
 
 Rules:
-  L1  nstack installed at the project version (_commit in .copier-answers.yml)
+  L1  nstack installed at the project version (_commit in .copier-answers.yml), both
+      published: an unpublished framework is a gap, never compliance (PDR-0005)
   L2  git and pre-commit available
   L3  pre-commit hooks installed
   L4  PRODUCT.md absent: that is NapkinStack's own development context (R6)
   L5  README personalised: the presentation sentence is written
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
+  L7  the template source reachable by anyone: a repository, not a path on one machine
   G1-G13  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12 and G13 name the GitHub plan or option required
 
@@ -38,7 +40,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack import __version__
+from napkinstack import __version__, provenance
 from napkinstack.project import ANSWERS
 
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
@@ -49,6 +51,7 @@ JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", 
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
 LABELS = ("cross-module", "over-budget", "out-of-cycle")
 PUBLISHED = re.compile(r"v\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?")
+REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
 
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"
@@ -220,8 +223,13 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     install = f'uv tool install "napkinstack=={project}" --with-executables-from pre-commit'
     results = []
 
+    _, origin = provenance.engine()
     if not PUBLISHED.fullmatch(commit):
-        l1 = (UNKNOWN, f"Reason: the project comes from an unpublished version ({commit or 'unknown'}).")
+        l1 = (GAP, f"The project is pinned to an unpublished framework ({commit or 'unknown'}): its "
+                   "verdicts come from rules nobody has published (PDR-0005).\nAction: once the change it "
+                   "waits for is released, nstack update --ref vX.Y.Z.")
+    elif origin is not None:
+        l1 = (GAP, f"The nstack running is unpublished ({origin}) (PDR-0005).\nAction: {install}")
     elif project != __version__:
         l1 = (GAP, f"nstack {__version__} installed, project on {project} (PDR-0001 R3).\nAction: {install}")
     else:
@@ -256,6 +264,12 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                     "Action: write the sentence that presents the project." if untouched else ""))
 
     results.append(("L6", "CODEOWNERS starts with a default owner", *_default_owner(root)))
+
+    source = str(answers.get("_src_path") or "")
+    local = not REMOTE.match(source)
+    results.append(("L7", "Template source reachable by anyone", GAP if local else OK,
+                    f"The project was generated from '{source}', a path on one machine: nobody else can "
+                    "update it (PDR-0005).\nAction: nstack update, from the published source." if local else ""))
     return results
 
 

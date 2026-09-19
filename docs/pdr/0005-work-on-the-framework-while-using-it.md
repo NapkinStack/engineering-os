@@ -1,8 +1,9 @@
 # PDR-0005 — Work on the framework while using it, and never be judged in silence
 
 - **Status**: Accepted (2026-09-18, by the maintainer; the success criterion is observed on
-  2027-03-31). The implementation waits for M9 to end: it touches the skeleton's workflow,
-  `fitness` and `doctor`, which are what M9 is measuring.
+  2027-03-31); implemented in v0.4.0 (M10g): every judging run names the framework that
+  judges, CI installs an unpublished pin from the repository and says so, `doctor` never
+  calls it compliant (L1, L7), and `CONTRIBUTING.md` names the contributor's loop.
 - **Date**: 2026-09-18
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (its workflow), `nstack` checks, `CONTRIBUTING.md`

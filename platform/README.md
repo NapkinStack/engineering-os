@@ -18,6 +18,7 @@ runbook, tests and configuration.
 | `src/napkinstack/skills.py` | Generates the Claude Code skills from the playbooks |
 | `src/napkinstack/project.py` | Project creation and update, through Copier |
 | `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
+| `src/napkinstack/provenance.py` | Which framework judges: published, or not — said on every judging run (PDR-0005) |
 | `src/napkinstack/pull_request.py` | The rules read from the pull request description: test sheet, cycle |
 | `src/napkinstack/fitness/plan.py` | The discovery, the charter and the cycles |
 | `src/napkinstack/fitness/hygiene.py` | What a shared repository must not carry |
@@ -28,6 +29,7 @@ runbook, tests and configuration.
 | `tests/test_guardrails.py` | Rules M, B, S, P, H: one failing case per rule (pytest, run by `run.sh`) |
 | `tests/test_pull_request.py` | Rules T and K: one failing case per rule |
 | `tests/test_compat.py` | Rule V1: one failing case per way to break it |
+| `tests/test_provenance.py` | The line naming the framework; `doctor` L1 and L7 on an unpublished one |
 | `tests/test_plan.py`, `tests/test_discovery.py` | Rules C: one failing case per rule; `nstack discover` |
 
 ## Fitness functions
@@ -41,6 +43,7 @@ runbook, tests and configuration.
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
+| `nstack doctor` | L1-L7, G1-G13: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene
