@@ -146,7 +146,7 @@ def update(root: Path, ref: str) -> int:
               "      Action: the changes stay in the working tree; create the branch "
               "by hand, then commit.")
         return 1
-    conflicts = _git(root, "diff", "--name-only", "--diff-filter=U").stdout.splitlines()
+    conflicts = [path for path in _git(root, "diff", "--name-only", "-z", "--diff-filter=U").stdout.split("\0") if path]
     if conflicts:
         print(f"FAIL [update] NapkinStack {previous} -> {current}: conflicts with the project's "
               f"adaptations, marked on branch {branch} in:")

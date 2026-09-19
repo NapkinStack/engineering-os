@@ -11,7 +11,8 @@ stable or deprecated. Both the freeze and the proof are read at the base: a pull
 neither thaw what it changes nor replace the command that judges it — a new proof is merged
 on its own first.
 An experimental version nobody consumes is free to change — nobody can break. Its files are
-those under provides[].path; a new version beside it changes nothing merged.
+those under provides[].path; a new version beside it changes nothing merged. A version still
+provided at the head is judged wherever it now lives: moving it is no removal (D36).
 
 The command is the project's (P1: no format assumed): an OpenAPI, protobuf or JSON Schema
 comparator, named in docs/tooling-profile.md. It runs from the holding module's folder with
@@ -36,7 +37,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import MODULE_DIRS, find_manifests
+from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests
 
 FROZEN_STABILITIES = {"stable", "deprecated"}
 
@@ -82,6 +83,17 @@ def frozen_versions(root: Path, base: str) -> dict[tuple[str, str], tuple[str, s
     return frozen
 
 
+def provided_now(root: Path) -> dict[tuple[str, str], str]:
+    """(contract, version) -> path, from the manifests at the head."""
+    now = {}
+    for manifest in find_manifests(root):
+        for entry in _entries(_load(manifest.read_text(encoding="utf-8")), "provides"):
+            key, path = (entry.get("contract"), entry.get("version")), entry.get("path")
+            if isinstance(path, str) and all(isinstance(part, str) for part in key):
+                now[key] = path.strip("/")
+    return now
+
+
 def _holder(root: Path, path: str) -> tuple[str, Path] | None:
     """The module whose folder holds `path`: its name and folder."""
     for manifest in sorted(find_manifests(root), key=lambda m: -len(m.parent.parts)):
@@ -105,22 +117,31 @@ def run(root: Path, module: str | None, base: str) -> int:
               "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
         return 1
     fork = _git(root, "merge-base", base, "HEAD").stdout.strip() or base
-    changed = _git(root, "diff", "--name-only", f"{fork}...HEAD").stdout.split()
+    changed = changed_files(root, fork)
+    now = provided_now(root)
     failures, checked = [], []
     for (contract, version), (path, why) in sorted(frozen_versions(root, fork).items()):
-        if not any(file == path or file.startswith(f"{path}/") for file in changed):
+        target = now.get((contract, version))
+        if not any(file == place or file.startswith(f"{place}/") for file in changed
+                   for place in {path, target} if place):
             continue
-        holder = _holder(root, path)
         label = f"{contract} {version} ({why})"
+        if target is None:
+            checked.append(f"{label}: no longer provided — its consumers are checked by B6")
+            continue
+        if target != path:
+            label += f", moved to {target}"
+        holder = _holder(root, target)
         if holder is None:
-            failures.append(f"[V1] {label} changed at '{path}', which no module holds: nothing declares "
+            failures.append(f"[V1] {label} changed at '{target}', which no module holds: nothing declares "
                             "how its versions are compared.\n      Action: keep contracts under contracts/ "
                             "(docs/os/03-contracts.md §2).")
             continue
         if module is not None and holder[0] != module:
             continue
-        if not (root / path).exists():
-            checked.append(f"{label}: removed — its consumers are checked by B6")
+        if not (root / target).exists():
+            failures.append(f"[V1] {label}: provided at '{target}', which holds no document (B7).\n"
+                            "      Action: commit the version there, or correct provides[].path.")
             continue
         if not _git(root, "ls-tree", "-r", "--name-only", fork, "--", path).stdout.strip():
             checked.append(f"{label}: no document at the base, nothing merged to compare")
@@ -138,7 +159,7 @@ def run(root: Path, module: str | None, base: str) -> int:
         with tempfile.TemporaryDirectory() as temporary:
             env = {**os.environ, "NSTACK_CONTRACT": contract, "NSTACK_VERSION": version,
                    "NSTACK_BASE_PATH": str(_extract(root, fork, path, Path(temporary))),
-                   "NSTACK_HEAD_PATH": str(root / path)}
+                   "NSTACK_HEAD_PATH": str(root / target)}
             print(f"-> {name}: {command}", flush=True)
             code = subprocess.run(command, shell=True, cwd=folder, env=env).returncode
         if code:

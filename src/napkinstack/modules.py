@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import find_manifests, module_content
+from napkinstack.fitness.manifests import changed_files, find_manifests, module_content
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
@@ -139,8 +139,7 @@ def listing(root: Path, base: str | None = None) -> list[dict[str, str]] | None:
     if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"], cwd=root,
                       capture_output=True).returncode:
         return None
-    changed = subprocess.run(["git", "diff", "--name-only", f"{base}...HEAD"], cwd=root,
-                             capture_output=True, text=True).stdout.split()
+    changed = changed_files(root, base)
     return [module for module in found if any(path.startswith(f"{module['folder']}/") for path in changed)]
 
 

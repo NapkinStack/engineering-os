@@ -44,6 +44,12 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           if ! git rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
+            if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+              echo "::error::Base $BASE of the pull request not found: its modules cannot be listed." \
+                "Action: run the jobs again; the checkout fetches the whole history."
+              exit 1
+            fi
+            # The first push of a branch has no previous commit: every file is new.
             BASE=$(git rev-list --max-parents=0 HEAD | tail -1)
           fi
           MODS=$(nstack modules --root . --changed-since "$BASE" --json)

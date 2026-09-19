@@ -116,6 +116,36 @@ def test_a_frozen_version_outside_any_module(tmp_path, capfd):
     assert "which no module holds" in capfd.readouterr().out
 
 
+MOVE = "contracts/customers-api/v1-current/openapi.yaml"
+
+
+def move_the_version(root) -> None:
+    """The frozen v1 moved to another folder, its provides[].path following it (D36)."""
+    git(root, "mv", "contracts/customers-api/v1", "contracts/customers-api/v1-current")
+    producer = root / "modules" / "customers" / "MANIFEST.yaml"
+    producer.write_text(producer.read_text(encoding="utf-8").replace(
+        "path: contracts/customers-api/v1\n", "path: contracts/customers-api/v1-current\n"), encoding="utf-8")
+
+
+def test_a_frozen_version_moved_and_broken(tmp_path, capfd):
+    """D36: moving v1 and breaking it is no removal — v1 is still provided, and judged."""
+    base = project(tmp_path, compat="exit 3")
+    move_the_version(tmp_path)
+    change(tmp_path, path=MOVE)
+    assert cli.main(["compat", "contracts", "--root", str(tmp_path), "--base", base]) == 1
+    output = capfd.readouterr().out
+    assert "moved to contracts/customers-api/v1-current" in output and "a breaking change" in output, output
+
+
+def test_a_frozen_version_moved_as_is(tmp_path, capfd):
+    """D36: a move alone is judged by the same proof, against the new folder; git sees a rename."""
+    base = project(tmp_path, compat='diff -r "$NSTACK_BASE_PATH" "$NSTACK_HEAD_PATH"')
+    move_the_version(tmp_path)
+    git(tmp_path, "commit", "-qam", "move")
+    assert cli.main(["compat", "--root", str(tmp_path), "--base", base]) == 0
+    assert "moved to contracts/customers-api/v1-current: proven compatible" in capfd.readouterr().out
+
+
 def test_a_version_whose_document_arrives_now(tmp_path, capfd):
     """Consumed at the base with no document there — possible before B7: nothing merged to break."""
     base = project(tmp_path, compat="exit 3")

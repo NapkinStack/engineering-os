@@ -23,6 +23,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from napkinstack.fitness.manifests import changed_files
 from napkinstack.pull_request import touched_modules
 
 GENERATED = re.compile(r"(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|uv\.lock"
@@ -38,7 +39,7 @@ def run(root: Path, base: str) -> int:
                       capture_output=True).returncode:
         print(f"Base '{base}' not found — check skipped.")
         return 0
-    files = _git(root, "diff", "--name-only", f"{base}...HEAD").split()
+    files = changed_files(root, base)
     if not files:
         print("No file changed.")
         return 0

@@ -84,6 +84,13 @@ MANIFEST_CASES = {
     "M5 deprecated without a date": (lambda r: write_module(r, "billing", degrade(module__lifecycle="deprecated")), "M5", True),
     "M5 date passed": (lambda r: write_module(r, "billing", degrade(
         module__lifecycle="deprecated", module__deprecation={"removal_date": YESTERDAY})), "M5", True),
+    "M2 a contract's version as a number (D36)": (lambda r: write_module(r, "billing", degrade(
+        provides=[{"contract": "billing-api", "version": 1, "path": "contracts/billing-api/v1"}])), "M2", True),
+    "M2 a stability nobody knows (D36)": (lambda r: write_module(r, "billing", degrade(
+        provides=[{"contract": "billing-api", "version": "v1", "path": "contracts/billing-api/v1",
+                   "stability": "Stable"}])), "M2", True),
+    "M2 a consumed contract's module as a number (D36)": (lambda r: write_module(r, "billing", degrade(
+        consumes=[{"contract": "customers-api", "version": "v1", "module": 7}])), "M2", True),
     "M6 deprecated contract without a date": (lambda r: write_module(r, "billing", degrade(
         provides=[{"contract": "billing-api", "version": "v1", "stability": "deprecated"}])), "M6", True),
     "M6 date passed": (lambda r: write_module(r, "billing", degrade(provides=[
@@ -182,6 +189,9 @@ def test_a_contract_read_and_declared_is_the_real_graph(tmp_path, capsys):
 
 
 def write_contract(root: Path, *versions: str) -> None:
+    """Contract documents under contracts/, the module that holds them in every project."""
+    (root / "contracts").mkdir(exist_ok=True)
+    (root / "contracts" / "MANIFEST.yaml").write_text("module: {name: contracts}\n", encoding="utf-8")
     for version in versions:
         (root / "contracts" / version).mkdir(parents=True)
         (root / "contracts" / version / "openapi.yaml").write_text("openapi: 3.1.0\n", encoding="utf-8")
@@ -237,6 +247,28 @@ def test_boundaries(tmp_path, capsys, modules_map, rule, fails):
         write_module(tmp_path, name, manifest, sources)
     code = boundaries.run(tmp_path)
     expect(code, capsys.readouterr().out, rule, fails)
+
+
+def test_a_cycle_through_contracts_is_a_cycle(tmp_path, capsys):
+    """D37: the contracts are the only dependency allowed, so B3 reads them."""
+    write_contract(tmp_path, "customers-api/v1", "billing-api/v1")
+    billing = consumes(provides(VALID, "billing"), "customers")
+    customers = consumes(PRODUCER, "billing")
+    write_module(tmp_path, "billing", billing, {"src/c.py": 'P = "contracts/customers-api/v1"\n'})
+    write_module(tmp_path, "customers", customers, {"src/c.py": 'P = "contracts/billing-api/v1"\n'})
+    assert boundaries.run(tmp_path) == 1
+    assert "[B3] billing → customers → billing" in capsys.readouterr().out
+
+
+def test_a_contract_outside_every_module_folder(tmp_path, capsys):
+    """D39: nothing would compare its versions — V1 runs for the module holding a contract."""
+    (tmp_path / "schemas" / "customers-api" / "v1").mkdir(parents=True)
+    (tmp_path / "schemas" / "customers-api" / "v1" / "openapi.yaml").write_text("x\n", encoding="utf-8")
+    producer = {**CUSTOMERS, "provides": [{"contract": "customers-api", "version": "v1",
+                                           "path": "schemas/customers-api/v1"}]}
+    write_module(tmp_path, "customers", producer)
+    assert boundaries.run(tmp_path) == 1
+    assert "[B7] customers" in capsys.readouterr().out
 
 
 NOT_ANOTHER_MODULE = {
@@ -346,6 +378,34 @@ def test_modules_changed_since(tmp_path, capsys):
                                                    {"name": "contracts", "folder": "contracts"}]
     assert cli.main(["modules", "--root", str(tmp_path), "--changed-since", "nope"]) == 1
     assert "FAIL [modules] base 'nope' not found" in capsys.readouterr().out
+
+
+def moved(root: Path, *commands: list[str]) -> str:
+    """A base holding modules a and b, then one commit running `commands`; returns the base."""
+    repository(root, TWO_MODULES)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
+           "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
+    base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
+    for command in commands:
+        subprocess.run(command, cwd=root, env=env, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "-m", "change"], cwd=root, env=env, check=True)
+    return base
+
+
+def test_a_file_moved_between_modules_touches_both(tmp_path, capsys):
+    """D38: git reports a rename under its new name only; the module it left changed too."""
+    base = moved(tmp_path, ["git", "mv", "modules/a/x.txt", "modules/b/x.txt"])
+    assert cli.main(["modules", "--root", str(tmp_path), "--changed-since", base, "--json"]) == 0
+    assert [m["name"] for m in json.loads(capsys.readouterr().out)] == ["a", "b"]
+    assert cli.main(["pr-scope", "--root", str(tmp_path), "--base", base]) == 1
+    assert "FAIL [P1]" in capsys.readouterr().out
+
+
+def test_a_file_named_in_any_script_is_seen(tmp_path, capsys):
+    """D38: git quotes a non-ASCII name unless told otherwise; the module still changed."""
+    base = moved(tmp_path, ["sh", "-c", "printf 'x' > 'modules/a/r\u00e9ponse.json' && git add -A"])
+    assert cli.main(["modules", "--root", str(tmp_path), "--changed-since", base, "--json"]) == 0
+    assert [m["name"] for m in json.loads(capsys.readouterr().out)] == ["a"]
 
 
 OWNERS = {

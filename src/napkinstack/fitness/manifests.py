@@ -40,6 +40,8 @@ SECTIONS = {"module": dict, "provides": list, "consumes": list, "data": dict,
             "commands": dict, "docs": dict, "dependencies": list}
 TYPES = {dict: "mapping", list: "list"}
 DESCRIPTION = {"MANIFEST.yaml", "AGENTS.md", "README.md"}
+STABILITIES = {"experimental", "stable", "deprecated"}
+CONTRACT_FIELDS = {"provides": ("contract", "version", "path"), "consumes": ("contract", "version", "module")}
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -91,6 +93,14 @@ def module_content(folder: Path) -> list[str]:
     else:
         files = [path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()]
     return sorted(path for path in files if not is_description(path))
+
+
+def changed_files(root: Path, base: str, head: str = "HEAD") -> list[str]:
+    """The files a change touches since its fork from `base`: both sides of a move, since git
+    reports a rename under its new name only, and every name as written, never quoted (D38)."""
+    listed = subprocess.run(["git", "diff", "--name-only", "--no-renames", "-z", f"{base}...{head}"],
+                            cwd=root, capture_output=True, text=True).stdout
+    return [path for path in listed.split("\0") if path]
 
 
 def parse_date(value) -> datetime.date | None:
@@ -151,6 +161,19 @@ def check_manifest(path: Path, today: datetime.date) -> None:
         elif removal < today:
             fail(rel, "M5", f"removal date passed ({removal}). Permanent intermediate state - "
                             "remove the module or supersede the decision.")
+
+    # M2 - the contract entries the boundaries and the versions are judged on (D36)
+    for section, fields in CONTRACT_FIELDS.items():
+        for entry in data.get(section) or []:
+            if not isinstance(entry, dict):
+                continue  # reported below for provides; ignored by the checks that read them
+            for field in fields:
+                if field in entry and not isinstance(entry[field], str):
+                    fail(rel, "M2", f"{section}: {field} {entry[field]!r} must be text — "
+                                    f"write it quoted, for example \"v1\".")
+            if section == "provides" and entry.get("stability", "experimental") not in STABILITIES:
+                fail(rel, "M2", f"provides: stability {entry.get('stability')!r}, expected one of "
+                                f"{sorted(STABILITIES)}: a stable or deprecated version is frozen (V1).")
 
     # M6 - deprecation of provided contracts
     for provided in data.get("provides") or []:
