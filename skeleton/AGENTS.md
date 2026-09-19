@@ -24,7 +24,9 @@ write, the **challenger**; to verify a change you did not write, the **verifier*
 loads its playbook (§4). You never verify, challenge or approve your own work.
 
 **Identity.** You work under your own GitHub identity, never with a human's credentials,
-and you never approve a pull request (`docs/os/07-governance.md` §7).
+and you never approve a pull request (`docs/os/07-governance.md` §7). Every commit you make
+carries the trailer `Agent-Session: <an identifier of this session>`; as a verifier, you
+sign the sheet `Verifier: session <that identifier>`, and CI refuses one among the authors.
 
 ---
 
@@ -104,6 +106,9 @@ kernel (this file)
   → code, tests and docs LOCAL to the module
   → contracts consumed (the contract alone, never someone else's implementation)
 ```
+
+One session, one working tree: never share a checkout with another session — a clone, or a
+`git worktree`, each.
 
 **Playbooks — triggers.** Load `playbooks/<x>.md` if and only if:
 

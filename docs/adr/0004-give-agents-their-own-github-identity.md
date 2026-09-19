@@ -1,6 +1,6 @@
 # ADR-0004 — Give agents their own GitHub identity, behind a human approval
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-19 (who verified, D32)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the skeleton, `nstack doctor`, and this repository)
@@ -244,6 +244,20 @@ that the verifier had missed. If, over the pilot's last 20 such pull requests, t
 found nothing the verifier missed, a new ADR may let a verifier agent's approval count for
 modules of criticality `prototype` and `standard` — never `high` or `critical`. That
 agent will need an App of its own: the author of a pull request cannot approve it.
+
+---
+
+## Clarification of 2026-09-19 — who verified (D32)
+
+Added when fixing D32, without changing the decision. Under one App, the forge cannot
+tell an author session from a verifier session. `pr-check` T2 therefore compares the
+verifier's declared name — `@handle` or `session <id>` — with the change's authors,
+read from the history: its commits' GitHub accounts and the sessions their
+`Agent-Session:` trailers name. It refuses a session verifying its own work; it cannot
+refuse one that lies about its name, and it does not need to while a human approves every
+pull request. The ADR this decision defers — a verifier agent's approval counting —
+comes with the verifier's own App, whose status check the ruleset requires from that
+App: from then, the verdict carries an identity the author cannot hold.
 
 ---
 

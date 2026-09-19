@@ -95,7 +95,7 @@ other: <specify>
 > not the author (`playbooks/verification.md`). Kind: automated · explored · human only —
 > reason. Result: passed · failed — what was observed · not verified.
 
-Verifier: <agent session or @human>
+Verifier: <@handle, or session and the agent session's identifier>
 
 | # | Given · when · then | Kind | Result | Evidence | Commit |
 |---|---|---|---|---|---|
