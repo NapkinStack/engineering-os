@@ -39,7 +39,11 @@ errors, authentication, authorisation, compatibility and deprecation rules.
 
 ## 3. Classifying a change
 
-This is the first question to ask, and it can be mechanised.
+This is the first question to ask, and it can be mechanised. It is: from the moment a
+module consumes a version, or its producer marks it `stable`, a change to its files needs the
+project's comparator — the `compat` command of the module holding it, as merged — to call it
+compatible; otherwise it becomes a new version beside it (`nstack compat`, rule V1). A version
+still experimental, which nobody consumes, is free to change.
 
 ```mermaid
 flowchart TD
@@ -109,9 +113,9 @@ sequenceDiagram
 | **1 — Expand contract** | Producer | v2 declared, additive. v1 untouched. | Contract tests v1 **and** v2 green |
 | **2 — Expand impl.** | Producer | Serves both versions at once | No consumer affected |
 | **3 — Migration** | Each consumer | Switches to v2, at its own pace | Manifest updated: version consumed |
-| **4 — Contract** | Producer | Removal of v1 | Review: v1 consumers = 0 (to automate) |
+| **4 — Contract** | Producer | Removal of v1 | v1 consumers = 0, checked (B6) |
 
-### The two guardrails
+### The three guardrails
 
 **① The deprecation date is a check.** From PR 1 onwards, v1 carries a removal date. A
 check fails once the date has passed and consumers remain. Without it, you accumulate
@@ -120,6 +124,9 @@ versions nobody dares remove.
 **② The contraction is mandatory.** Step 4 is the most often forgotten, and it is
 precisely what produces permanent intermediate states. PR 1 opens a contraction issue,
 assigned to the contract's owner: by hand, until opening it is automated.
+
+**③ A version someone relies on is frozen.** The expand step adds v2 beside v1; editing v1
+in place passes only when the merged comparator proves the edit compatible (V1).
 
 ---
 

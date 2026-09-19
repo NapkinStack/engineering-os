@@ -20,7 +20,7 @@ contracts/
 ## Evolving a contract
 
 **Additive** (optional field, new endpoint) → a simple pull request, contract tests
-green.
+green — and, once the version is consumed or stable, the `compat` command confirming it.
 
 **Breaking** → an expand/contract sequence in 4 pull requests, never one
 (`docs/os/03-contracts.md` §4):

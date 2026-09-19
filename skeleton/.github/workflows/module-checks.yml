@@ -27,6 +27,7 @@ jobs:
     outputs:
       modules: ${{ steps.list.outputs.modules }}
       any: ${{ steps.list.outputs.any }}
+      base: ${{ steps.list.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -49,6 +50,7 @@ jobs:
           fi
           MODS=$(nstack modules --root . --changed-since "$BASE" --json)
           echo "modules=$MODS" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if [ "$MODS" = '[]' ]; then echo "any=false" >> "$GITHUB_OUTPUT";
           else echo "any=true" >> "$GITHUB_OUTPUT"; fi
           echo "Touched modules: $MODS"
@@ -65,9 +67,11 @@ jobs:
     env:
       MODULE: ${{ matrix.module.name }}
       FOLDER: ${{ matrix.module.folder }}
+      BASE: ${{ needs.discover.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
@@ -93,6 +97,11 @@ jobs:
 
       - name: test
         run: nstack test "$MODULE"
+
+      # A contract version someone relies on changes only with the merged proof (V1,
+      # docs/os/03-contracts.md §4).
+      - name: compat
+        run: nstack compat "$MODULE" --base "$BASE"
 
       # Levels high and critical — not wired up yet (D9)
       - name: Integration tests

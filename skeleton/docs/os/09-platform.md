@@ -57,11 +57,12 @@ section, with its own stack's commands.
 | `test` | The module's test suite | With no dependency on another module |
 | `run` | Start the module locally | With doubles for the dependencies |
 | `e2e` | The module's end-to-end scenarios; evidence written to `.evidence/` | Against the running module, in CI |
+| `compat` | Tell whether a change to a contract version is compatible: exit 0 when `$NSTACK_HEAD_PATH` accepts what `$NSTACK_BASE_PATH` did | On the module holding contracts, once one is consumed or stable |
 | `contracts` | Validate and generate the contract artefacts | On every contract change |
 | `migrate` | Apply the data migrations | When the module owns data |
 | `release` | Produce the shippable artefact | Reproducibly |
 
-The engine runs `bootstrap`, `check`, `test`, `run` and `e2e`: it reads the command from
+The engine runs `bootstrap`, `check`, `test`, `run`, `e2e` and `compat`: it reads the command from
 the manifest and launches it from the module's folder, locally as in CI. `check` and
 `test` are mandatory as soon as the module holds anything beyond its description — its
 manifest, `AGENTS.md`, `README.md`, `docs/`; `bootstrap` and `e2e` are optional. A new module
