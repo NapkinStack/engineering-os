@@ -19,7 +19,7 @@
 
 | Rule | Automated by | Date |
 |---|---|---|
-| One PR = one module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.sh`) | |
+| One PR = one module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.py`) | |
 | Declared graph = real graph | `nstack boundaries` | |
 | Deprecation dates not passed | `nstack manifests` | |
 | Runbook required when criticality is high | `nstack manifests` | |

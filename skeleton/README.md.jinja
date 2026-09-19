@@ -162,6 +162,7 @@ nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: al
 nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
 nstack pr-check --body-file <file>   # test sheet and cycle, as CI reads them from the pull request
+nstack modules --changed-since <base>   # the modules a change touches, as CI lists them
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```
 

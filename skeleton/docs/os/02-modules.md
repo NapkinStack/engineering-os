@@ -259,6 +259,10 @@ violation becomes an architecture signal.
 **Rule.** A pull request changes the files of a single module. Exceptions exist but are
 visible, traced and counted.
 
+A module is touched when its behaviour changes: editing only its description — manifest,
+`AGENTS.md`, `README.md`, `docs/` — touches none, and `contracts/` is a module like the
+others.
+
 | Exception | Handling |
 |---|---|
 | Contract change | An expand/contract sequence, never a single PR (`03-contracts.md`) |

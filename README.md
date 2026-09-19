@@ -77,6 +77,7 @@ the commit of this repository
 | `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures |
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan |
 | `nstack pr-scope` | One PR = one module, review budget |
+| `nstack modules [--changed-since <base>]` | The project's modules, or those a change touches |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
 | `nstack skills` | Exposes the playbooks as skills for the agent |

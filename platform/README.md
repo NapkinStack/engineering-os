@@ -21,6 +21,7 @@ runbook, tests and configuration.
 | `src/napkinstack/pull_request.py` | The rules read from the pull request description: test sheet, cycle |
 | `src/napkinstack/fitness/plan.py` | The discovery, the charter and the cycles |
 | `src/napkinstack/fitness/hygiene.py` | What a shared repository must not carry |
+| `src/napkinstack/fitness/pr_scope.py` | One pull request, one module; the review budget |
 | `src/napkinstack/discovery.py` | `nstack discover`: a discovery started from an idea file, no model called |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |
 | `tests/test_guardrails.py` | Rules M, B, S, P, H: one failing case per rule (pytest, run by `run.sh`) |
@@ -33,7 +34,7 @@ runbook, tests and configuration.
 |---|---|
 | `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
 | `nstack boundaries` | B1-B5: declared graph vs real graph, internal imports, cycles, data access |
-| `nstack pr-scope` | P1-P2: one PR = one module, review budget |
+| `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
@@ -41,6 +42,7 @@ runbook, tests and configuration.
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene
 uv run nstack pr-scope --base origin/main
+uv run nstack modules --changed-since origin/main   # the modules a change touches, as CI lists them
 uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review
 uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
