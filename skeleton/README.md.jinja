@@ -163,6 +163,7 @@ nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
 nstack pr-check --body-file <file>   # test sheet and cycle, as CI reads them from the pull request
 nstack modules --changed-since <base>   # the modules a change touches, as CI lists them
+nstack compat [module] --base <base>    # a contract version consumed or stable: the merged proof
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```
 
@@ -221,7 +222,8 @@ Wiring them, and `run`, onto your own tooling is your job. The **names** never c
 ## What is left to wire after the installation
 
 - [ ] The `check` and `test` commands of every module, in its `MANIFEST.yaml`
-- [ ] The contract format chosen, and the contract tests that go with it
+- [ ] The contract format chosen, and the contract tests and the comparator behind
+      `commands.compat` that go with it
 - [ ] The review budget values (400 lines / 15 files are a starting point)
 - [ ] Re-read the `description` fields in `.nstack/skills.yaml` — they are what triggers
       the skills, and they must speak your domain's vocabulary

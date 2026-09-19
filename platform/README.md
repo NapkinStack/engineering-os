@@ -22,10 +22,12 @@ runbook, tests and configuration.
 | `src/napkinstack/fitness/plan.py` | The discovery, the charter and the cycles |
 | `src/napkinstack/fitness/hygiene.py` | What a shared repository must not carry |
 | `src/napkinstack/fitness/pr_scope.py` | One pull request, one module; the review budget |
+| `src/napkinstack/compat.py` | `nstack compat`: a contract version someone relies on changes only with a proof |
 | `src/napkinstack/discovery.py` | `nstack discover`: a discovery started from an idea file, no model called |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |
 | `tests/test_guardrails.py` | Rules M, B, S, P, H: one failing case per rule (pytest, run by `run.sh`) |
 | `tests/test_pull_request.py` | Rules T and K: one failing case per rule |
+| `tests/test_compat.py` | Rule V1: one failing case per way to break it |
 | `tests/test_plan.py`, `tests/test_discovery.py` | Rules C: one failing case per rule; `nstack discover` |
 
 ## Fitness functions
@@ -37,6 +39,7 @@ runbook, tests and configuration.
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
+| `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
 
 ```bash

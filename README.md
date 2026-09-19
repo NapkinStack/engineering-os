@@ -78,6 +78,7 @@ the commit of this repository
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those a change touches |
+| `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
 | `nstack skills` | Exposes the playbooks as skills for the agent |

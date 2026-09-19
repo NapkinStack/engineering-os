@@ -10,6 +10,8 @@ Defines and versions the interface contracts between modules.
 - Every deprecated version carries a `removal_date`. Without a date, the pull request is
   refused.
 - A breaking change goes through **4 pull requests** (expand/contract), never one.
+- A version a module consumes, or marked stable, changes only with the merged `compat`
+  command's approval (V1).
 - Contract tests run on **both sides**: producer and consumer.
 
 ## The main trap

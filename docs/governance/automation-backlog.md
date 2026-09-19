@@ -21,6 +21,7 @@
 | One PR = one module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.py`) | |
 | Declared graph = real graph, contracts included | `nstack boundaries` | 2026-09-19 |
 | Consumers of a removed version = 0 | `nstack boundaries` B6: a consumed version nobody provides fails | 2026-09-19 |
+| Backward compatibility of contracts | `nstack compat` V1, with the project's comparator | 2026-09-19 |
 | Deprecation dates not passed | `nstack manifests` | |
 | Runbook required when criticality is high | `nstack manifests` | |
 | No secret in the repository | gitleaks (hook and CI), push protection | 2026-09-13 |
