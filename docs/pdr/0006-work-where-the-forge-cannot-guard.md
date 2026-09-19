@@ -1,6 +1,8 @@
 # PDR-0006 — Work on a repository the forge cannot guard
 
-- **Status**: Proposed (2026-09-20)
+- **Status**: Accepted (2026-09-20, by the maintainer; the success criterion is observed
+  before 2027-03-31); to be implemented in v0.5.0, with ADR-0002's clarification of the same
+  day
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (its workflows, README and checklist), `nstack
