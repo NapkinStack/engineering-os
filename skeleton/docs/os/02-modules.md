@@ -192,9 +192,10 @@ flowchart LR
 
 **Legend** — dark grey: the declaration · green: the deterministic verdict.
 
-The essential point: **the manifest declares the intent, CI verifies reality.** An import
-towards an undeclared module fails in CI. A dependency declared but unused is reported.
-No semantic analysis is needed — it is a comparison of graphs.
+The essential point: **the manifest declares the intent, CI verifies reality.** A contract
+a module reads without declaring it fails in CI, and so does any reference to another
+module's code, declared or not; a contract declared and never read is reported. No semantic
+analysis is needed — it is a comparison of graphs.
 
 ---
 
@@ -318,7 +319,8 @@ forbidden paths.
 
 **Allowed but worth watching:** shared technical primitives (logging, errors, utilities
 with no business logic). As soon as a business rule enters a shared package, two modules
-become inseparable.
+become inseparable. They live outside the module folders: a module never imports another
+module's code, and declaring its contract in `consumes` does not change that.
 
 ---
 

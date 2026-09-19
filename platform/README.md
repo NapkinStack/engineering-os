@@ -33,7 +33,7 @@ runbook, tests and configuration.
 | Command | Rules |
 |---|---|
 | `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
-| `nstack boundaries` | B1-B5: declared graph vs real graph, internal imports, cycles, data access |
+| `nstack boundaries` | B1-B7: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
@@ -73,12 +73,14 @@ description produces a skill that never triggers, or one that triggers all the t
 `boundaries.py` detects dependencies **textually**, which is deliberately simple and
 therefore imperfect. Two settings at the top of the file:
 
-- `SOURCE_SUFFIXES` — the extensions scanned
+- `SOURCE_SUFFIXES` — the extensions whose import lines are read; contracts and paths into
+  another module are read in every file a module holds
 - `IMPORT_HINTS` — what looks like an import line in your language
 
-A false positive is fixed by declaring the dependency. A false negative is fixed by
-enriching the patterns — and deserves an issue, because it is a violation that was
-getting through.
+A false positive is fixed by rewording the line, or by the module's `code_name` when its
+code names it otherwise; declaring a contract never licenses another module's code. A false
+negative is fixed by enriching the patterns — and deserves an issue, because it is a
+violation that was getting through.
 
 ## Adding a fitness function
 
