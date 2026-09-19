@@ -1,9 +1,13 @@
 name: Modules
 
 # Runs the standard verbs on the touched modules only: nstack reads their commands
-# from the module's MANIFEST.yaml, assuming no stack (P1).
+# from the module's MANIFEST.yaml, assuming no stack (P1). A module is a folder holding a
+# MANIFEST.yaml, contracts/ included: nstack lists them, the workflow defines nothing.
 # The level of validation is proportionate to the criticality declared in the MANIFEST
 # (docs/os/07-governance.md §6).
+#
+# `Module checks` is the required check: a matrix job carries each module's name, which no
+# ruleset can require in advance, so this job fails whenever one of them failed.
 #
 # Module names come from the paths the pull request changed: they are never inserted
 # into a script, only read from an environment variable.
@@ -29,24 +33,28 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+
+      - name: NapkinStack, the project version
+        run: |
+          VERSION=$(yq '._commit' .copier-answers.yml)
+          uv tool install "napkinstack==${VERSION#v}" --with-executables-from pre-commit
+
       - id: list
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
+          if ! git rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
             BASE=$(git rev-list --max-parents=0 HEAD | tail -1)
           fi
-          MODS=$(git diff --name-only "$BASE"...HEAD \
-            | grep -E '^modules/[^/]+/' \
-            | cut -d/ -f2 | sort -u | jq -R . | jq -sc .)
-          [ "$MODS" = "" ] && MODS='[]'
+          MODS=$(nstack modules --root . --changed-since "$BASE" --json)
           echo "modules=$MODS" >> "$GITHUB_OUTPUT"
           if [ "$MODS" = '[]' ]; then echo "any=false" >> "$GITHUB_OUTPUT";
           else echo "any=true" >> "$GITHUB_OUTPUT"; fi
           echo "Touched modules: $MODS"
 
   validate:
-    name: ${{ matrix.module }}
+    name: ${{ matrix.module.name }}
     needs: discover
     if: needs.discover.outputs.any == 'true'
     runs-on: ubuntu-latest
@@ -55,7 +63,8 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.discover.outputs.modules) }}
     env:
-      MODULE: ${{ matrix.module }}
+      MODULE: ${{ matrix.module.name }}
+      FOLDER: ${{ matrix.module.folder }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,10 +80,9 @@ jobs:
       - name: Declared criticality
         id: crit
         run: |
-          LEVEL=$(grep -E '^\s*criticality:' "modules/$MODULE/MANIFEST.yaml" \
-                  | head -1 | awk '{print $2}')
-          echo "level=${LEVEL:-standard}" >> "$GITHUB_OUTPUT"
-          echo "Criticality: ${LEVEL:-standard}"
+          LEVEL=$(yq '.module.criticality // "standard"' "$FOLDER/MANIFEST.yaml")
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          echo "Criticality: $LEVEL"
 
       - name: bootstrap
         run: nstack bootstrap "$MODULE"
@@ -101,8 +109,22 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: evidence-${{ matrix.module }}
-          path: modules/${{ matrix.module }}/.evidence/
+          name: evidence-${{ matrix.module.name }}
+          path: ${{ matrix.module.folder }}/.evidence/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+
+  checks:
+    name: Module checks
+    needs: [discover, validate]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every touched module passed
+        env:
+          DISCOVERED: ${{ needs.discover.result }}
+          VALIDATED: ${{ needs.validate.result }}
+        run: |
+          echo "Touched modules: $DISCOVERED. Their checks: $VALIDATED."
+          [ "$DISCOVERED" = success ] && { [ "$VALIDATED" = success ] || [ "$VALIDATED" = skipped ]; }
