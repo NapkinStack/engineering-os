@@ -150,8 +150,19 @@ def test_new_module_user_facing(tmp_path, capsys):
 CUSTOMERS = degrade(module__name="customers", module__owner="acme/customers")
 
 
-def consumes(manifest, module):
-    return {**manifest, "consumes": [{"contract": f"{module}-api", "version": "v1", "module": module}]}
+def provides(manifest, module, versions=("v1",)):
+    """The module provides `<module>-api` in each version, at contracts/<module>-api/<version>."""
+    return {**manifest, "provides": [{"contract": f"{module}-api", "version": version,
+                                      "path": f"contracts/{module}-api/{version}", "stability": "stable"}
+                                     for version in versions]}
+
+
+def consumes(manifest, module, version="v1"):
+    return {**manifest, "consumes": [{"contract": f"{module}-api", "version": version, "module": module}]}
+
+
+PRODUCER = provides(CUSTOMERS, "customers")
+READS = {"src/client.py": 'SPEC = ROOT / "contracts" / "customers-api" / "v1" / "openapi.yaml"\n'}
 
 
 def test_valid_boundaries(tmp_path, capsys):
@@ -160,31 +171,93 @@ def test_valid_boundaries(tmp_path, capsys):
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
+def test_a_contract_read_and_declared_is_the_real_graph(tmp_path, capsys):
+    """D29: the only dependency allowed between modules is seen, and warns of nothing."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", consumes(VALID, "customers"), READS)
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 0
+    output = capsys.readouterr().out
+    assert "billing → customers (contract customers-api)" in output and "WARNING" not in output, output
+
+
+def write_contract(root: Path, *versions: str) -> None:
+    for version in versions:
+        (root / "contracts" / version).mkdir(parents=True)
+        (root / "contracts" / version / "openapi.yaml").write_text("openapi: 3.1.0\n", encoding="utf-8")
+
+
 BOUNDARY_CASES = {
-    "B1 undeclared reference": ({
+    "B1 a contract read without being declared (P3)": ({
+        "billing": (VALID, READS), "customers": (PRODUCER, {})}, "B1", True),
+    "B1 another version than the one consumed": ({
+        "billing": (consumes(VALID, "customers"), {"src/client.py": 'SPEC = "contracts/customers-api/v2"\n'}),
+        "customers": (provides(CUSTOMERS, "customers", ("v1", "v2")), {})}, "B1", True),
+    "B2 an import of another module": ({
         "billing": (VALID, {"src/app.py": "from modules.customers.api import customer\n"}),
-        "customers": (CUSTOMERS, {})}, "B1", True),
+        "customers": (CUSTOMERS, {})}, "B2", True),
+    "B2 its package, even with its contract consumed": ({
+        "billing": (consumes(VALID, "customers"), {**READS, "src/app.py": "from customers.models import Customer\n"}),
+        "customers": (PRODUCER, {})}, "B2", True),
     "B2 internal implementation": ({
-        "billing": (consumes(VALID, "customers"), {"src/app.js": 'import { db } from "../customers/src/db";\n'}),
+        "billing": (VALID, {"src/app.js": 'import { db } from "../customers/src/db";\n'}),
+        "customers": (CUSTOMERS, {})}, "B2", True),
+    "B2 a path into its folder, whatever the line (P2)": ({
+        "billing": (VALID, {"src/app.py": 'sys.path.insert(0, "../customers/src")\n'}),
+        "customers": (CUSTOMERS, {})}, "B2", True),
+    "B2 its package named by code_name": ({
+        "billing": (VALID, {"src/App.java": "import com.acme.customers.Customer;\n"}),
+        "customers": (degrade(CUSTOMERS, module__code_name="com.acme.customers"), {})}, "B2", True),
+    "B2 a path dependency in a build file": ({
+        "billing": (VALID, {"pyproject.toml": 'customers = { path = "../customers" }\n'}),
         "customers": (CUSTOMERS, {})}, "B2", True),
     "B3 circular dependency": ({
-        "billing": (consumes(VALID, "customers"), {"src/app.py": "from modules.customers.api import customer\n"}),
-        "customers": (consumes(CUSTOMERS, "billing"), {"src/app.py": "from modules.billing.api import invoice\n"})},
+        "billing": (VALID, {"src/app.py": "from modules.customers.api import customer\n"}),
+        "customers": (CUSTOMERS, {"src/app.py": "from modules.billing.api import invoice\n"})},
         "B3", True),
-    "B4 unused dependency": ({
-        "billing": (consumes(VALID, "customers"), {}), "customers": (CUSTOMERS, {})}, "B4", False),
+    "B4 a contract consumed and never read": ({
+        "billing": (consumes(VALID, "customers"), {}), "customers": (PRODUCER, {})}, "B4", False),
     "B5 another module's table": ({
         "billing": (degrade(data={"owns": ["invoices"], "shared": []}), {}),
         "customers": (CUSTOMERS, {"src/query.py": 'SQL = "SELECT * FROM invoices"\n'})}, "B5", True),
+    "B6 a consumed contract nobody provides": ({
+        "billing": (consumes(VALID, "customers"), READS), "customers": (CUSTOMERS, {})}, "B6", True),
+    "B6 the wrong producer named": ({
+        "billing": ({**VALID, "consumes": [{"contract": "customers-api", "version": "v1", "module": "orders"}]}, READS),
+        "customers": (PRODUCER, {})}, "B6", True),
+    "B7 a provided contract with no document": ({
+        "customers": (provides(CUSTOMERS, "customers", ("v9",)), {})}, "B7", True),
 }
 
 
 @pytest.mark.parametrize(("modules_map", "rule", "fails"), BOUNDARY_CASES.values(), ids=BOUNDARY_CASES.keys())
 def test_boundaries(tmp_path, capsys, modules_map, rule, fails):
+    write_contract(tmp_path, "customers-api/v1", "customers-api/v2")
     for name, (manifest, sources) in modules_map.items():
         write_module(tmp_path, name, manifest, sources)
     code = boundaries.run(tmp_path)
     expect(code, capsys.readouterr().out, rule, fails)
+
+
+NOT_ANOTHER_MODULE = {
+    "a submodule of its own named like another module": "from billing import customers\n",
+    "a local file named like another module": 'import { list } from "./customers";\n',
+    "a sentence naming the other module": "# Never reads customers directly: from `customers`, only the contract.\n",
+    "a word that starts like another module": "from billing.customersupport import ticket\n",
+    "a subpackage of its own named like another module": "from billing.customers.models import Customer\n",
+    "a relative import of its own": "from ..customers.models import Customer\n",
+    "a local folder named like another module": 'import { list } from "./lib/customers/list";\n',
+    "an alias of its own source root": 'import { list } from "@/customers/list";\n',
+    "a Go package of its own": 'import "example.com/billing/customers/store"\n',
+    "a file named like another module": 'DATA = open("../customers.csv")\n',
+}
+
+
+@pytest.mark.parametrize("line", NOT_ANOTHER_MODULE.values(), ids=NOT_ANOTHER_MODULE.keys())
+def test_boundaries_no_false_positive(tmp_path, capsys, line):
+    write_module(tmp_path, "billing", VALID, {"src/app.py": line})
+    write_module(tmp_path, "customers", CUSTOMERS)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
 def test_boundaries_unreadable_manifest_without_traceback(tmp_path, capsys):

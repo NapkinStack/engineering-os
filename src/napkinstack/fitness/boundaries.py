@@ -2,23 +2,32 @@
 """
 Fitness function 2 — Boundaries between modules.
 
-Compares the DECLARED graph (manifests) with the REAL graph (references in the code),
-then checks for cycles (docs/os/02-modules.md §8, docs/os/07-governance.md §3).
+Compares the DECLARED graph (manifests) with the REAL graph read from the modules' files,
+then checks for cycles (docs/os/02-modules.md §8, docs/os/07-governance.md §3). Two
+modules know each other only through a contract: the real graph is the contracts a
+module's files read, and any reference to another module's code is a violation.
 
 Rules:
-  B1  no reference to a module absent from `consumes`
-  B2  no direct import of another module's implementation (src/, internal/)
+  B1  no contract read without being declared: a module reads only the contracts it
+      provides, or consumes in the version it declares
+  B2  no reference to another module's code: an import of it, or a path into its folder
   B3  no circular dependency between modules
-  B4  dependency declared but never used (warning)
+  B4  consumed contract never read (warning)
   B5  no direct access to another module's data (tables declared elsewhere)
+  B6  a consumed contract is provided: its contract, version and module match a provides entry
+  B7  a provided contract exists: its path holds its document
 
-DETECTION — calibrate this for your language.
-Detection is textual and deliberately simple: in lines that look like an import, it
-looks for the tokens identifying another module. Two sources:
-  - the module path       ("modules/billing", "@org/billing", "org.billing")
-  - the manifest's `code_name` field, when it differs from the folder name.
-Adjust IMPORT_HINTS and SOURCE_SUFFIXES for your stack. A false positive is fixed by
-declaring the dependency; a false negative by enriching the patterns.
+DETECTION — textual and deliberately simple, with no stack assumed.
+  - A contract is read where a module's file names its path (contracts/billing-api/v1),
+    its name and version (billing-api/v1), or its name as a quoted string ("billing-api").
+  - Another module's code is referenced where an import line names its folder from the root
+    (modules.billing, modules/billing) or its package — opening the statement, or quoted as a
+    module specifier — or where any line reaches into its folder (../billing/, modules/billing/).
+    Its package is its folder's name, or `code_name` when the code names it otherwise
+    (com.acme.billing).
+A module's files are those git would commit, beyond its description (D33). A false positive
+is fixed by rewording the line, or by `code_name`; a false negative by the stack's own import
+checker, named in docs/tooling-profile.md and run by the module's `check` verb.
 
 Usage :  nstack boundaries [--root ROOT]
 """
@@ -29,6 +38,8 @@ import sys
 from pathlib import Path
 
 import yaml
+
+from napkinstack.fitness.manifests import module_content
 
 MODULE_DIRS = ["modules", "services", "apps", "packages"]
 SOURCE_SUFFIXES = {
@@ -41,7 +52,7 @@ IMPORT_HINTS = re.compile(
     r"\b(import|from|require|use|using|include|#include|extern crate|go:import)\b|"
     r"^\s*(import|from)\s", re.IGNORECASE
 )
-INTERNAL_MARKERS = ("/src/", "/internal/", "/lib/internal", "\\src\\")
+TOO_LARGE = 1_000_000  # bytes: a generated file or a data dump, not code
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -53,6 +64,11 @@ def fail(rule: str, where: str, message: str) -> None:
 
 def warn(rule: str, where: str, message: str) -> None:
     warnings.append(f"[{rule}] {where}\n      {message}")
+
+
+def _entries(data: dict, section: str) -> list[dict]:
+    value = data.get(section)
+    return [entry for entry in value if isinstance(entry, dict)] if isinstance(value, list) else []
 
 
 def load_modules(root: Path) -> dict[str, dict]:
@@ -69,7 +85,6 @@ def load_modules(root: Path) -> dict[str, dict]:
             mod = data.get("module") if isinstance(data, dict) else None
             if not isinstance(mod, dict):
                 continue  # reported by nstack manifests (M2)
-            consumes = data.get("consumes") if isinstance(data.get("consumes"), list) else []
             section = data.get("data") if isinstance(data.get("data"), dict) else {}
             owns = section.get("owns") if isinstance(section.get("owns"), list) else []
             name = mod.get("name") or manifest.parent.name
@@ -77,89 +92,159 @@ def load_modules(root: Path) -> dict[str, dict]:
                 "path": manifest.parent,
                 "dirname": manifest.parent.name,
                 "code_name": mod.get("code_name") or name,
-                "declared": {c.get("module") for c in consumes if isinstance(c, dict) and c.get("module")},
+                "provides": _entries(data, "provides"),
+                "consumes": _entries(data, "consumes"),
                 "owns_data": set(owns),
-                "raw": data,
             }
     return modules
 
 
-def iter_sources(module_path: Path):
-    for path in module_path.rglob("*"):
-        if not path.is_file() or path.suffix not in SOURCE_SUFFIXES:
+def read_files(module: dict):
+    """(relative path, lines) of every text file the module holds beyond its description."""
+    for relative in module_content(module["path"]):
+        path = module["path"] / relative
+        if any(part in SKIP_DIRS for part in Path(relative).parts) or not path.is_file():
             continue
-        if any(part in SKIP_DIRS for part in path.parts):
+        if path.stat().st_size > TOO_LARGE:
             continue
-        yield path
+        data = path.read_bytes()
+        if b"\0" in data[:8192]:
+            continue  # binary
+        yield relative, data.decode("utf-8", errors="ignore").splitlines()
 
 
-def tokens_for(other: dict) -> list[str]:
-    """Tokens identifying another module inside an import line."""
-    return list({
-        f"modules/{other['dirname']}",
-        f"services/{other['dirname']}",
-        f"packages/{other['dirname']}",
-        f"/{other['code_name']}/",
-        f"@{other['code_name']}",
-        f".{other['code_name']}.",
-    })
+def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern]:
+    """(import of its code, path into its folder). On an import line: its folder named from the
+    root, or its package opening the statement (Python, Rust, Java) or quoted as a module
+    specifier (JavaScript, TypeScript, Ruby). On any line: a relative or rooted path into its
+    folder — ending where the folder's name does, so that ../billing.csv is not billing."""
+    code, folder = re.escape(other["code_name"]), re.escape(other["dirname"])
+    rooted = "|".join(MODULE_DIRS)
+    imports = re.compile(rf"(?<![\w-])(?:{rooted})[./]{folder}(?![\w-])"
+                         rf"|^\s*(?:from|import|(?:pub\s+)?use|extern\s+crate)\s+{code}(?![\w-])"
+                         rf"|(?:\bfrom\s+|\b(?:require|import)\s*\(\s*|^\s*(?:import|require)\s+)"
+                         rf"[\"'](?:@[\w.-]+/)?{code}(?:/[^\"']*)?[\"']")
+    reach = re.compile(rf"(?<![\w.-])\.\./(?:\.\./)*{folder}(?=/|[\"'\s)]|$)"
+                       rf"|(?<![\w-])(?:{rooted})/{folder}/")
+    return imports, reach
 
 
-def analyse(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
-    real: dict[str, set[str]] = {name: set() for name in modules}
+def contract_patterns(modules: dict[str, dict]) -> list[tuple[str, str | None, re.Pattern]]:
+    """(contract, version or None, pattern) for every contract a module provides."""
+    patterns = []
+    for mod in modules.values():
+        for provided in mod["provides"]:
+            name, version = provided.get("contract"), provided.get("version")
+            if not isinstance(name, str) or not isinstance(version, str):
+                continue
+            n, v = re.escape(name), re.escape(version)
+            paths = [rf"(?<![\w-]){n}/{v}(?![\w-])"]
+            if isinstance(provided.get("path"), str):
+                paths.append(re.escape(provided["path"].strip("/")))
+            patterns.append((name, version, re.compile("|".join(paths))))
+            patterns.append((name, None, re.compile(rf"[\"'`]{n}[\"'`]")))
+    return patterns
+
+
+def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str, set[str]]]:
+    """B6, B7, B1 and B4. Returns module -> producer -> contracts it reads from it."""
+    provided = {(p.get("contract"), p.get("version")): name
+                for name, mod in modules.items() for p in mod["provides"]}
 
     for name, mod in modules.items():
-        for source in iter_sources(mod["path"]):
-            try:
-                lines = source.read_text(encoding="utf-8", errors="ignore").splitlines()
-            except OSError:
-                continue
+        # B7 - what a module provides exists
+        for p in mod["provides"]:
+            label = f"{p.get('contract')} {p.get('version')}"
+            path = root / str(p.get("path") or "")
+            if not p.get("path") or not path.exists() or (path.is_dir() and not any(
+                    f.is_file() for f in path.rglob("*"))):
+                fail("B7", name, f"provides {label} at '{p.get('path')}', which holds no document.\n"
+                                 "      Action: commit the contract there, or correct provides[].path.")
+        # B6 - what a module consumes is provided
+        for c in mod["consumes"]:
+            key = (c.get("contract"), c.get("version"))
+            producer = provided.get(key)
+            offered = ", ".join(f"{k[0]} {k[1]} by {v}" for k, v in sorted(provided.items(), key=str)) or "none"
+            if producer is None:
+                fail("B6", name, f"consumes {key[0]} {key[1]}, which no module provides (provided: {offered}).\n"
+                                 "      Action: consume a provided version, or have its producer declare it.")
+            elif c.get("module") not in (None, producer):
+                fail("B6", name, f"consumes {key[0]} {key[1]} from '{c.get('module')}', which is "
+                                 f"provided by '{producer}'.\n      Action: name the producer.")
+
+    patterns = contract_patterns(modules)
+    reads: dict[str, dict[str, set[str]]] = {name: {} for name in modules}
+    for name, mod in modules.items():
+        own = {p.get("contract") for p in mod["provides"]}
+        consumed = {(c.get("contract"), c.get("version")) for c in mod["consumes"]}
+        seen: set[tuple[str, str | None]] = set()
+        for relative, lines in read_files(mod):
             for lineno, line in enumerate(lines, 1):
-                if not IMPORT_HINTS.search(line):
-                    continue
-                for other_name, other in modules.items():
+                for contract, version, pattern in patterns:
+                    if contract in own or not pattern.search(line):
+                        continue
+                    producer = next((v for k, v in provided.items() if k[0] == contract), None)
+                    if producer:
+                        reads[name].setdefault(producer, set()).add(contract)
+                    where = f"{mod['path'].relative_to(root) / relative}:{lineno}"
+                    versions = {v for c, v in consumed if c == contract}
+                    # B1 - a contract read without being declared, or in another version
+                    if (contract, version) in seen:
+                        continue
+                    seen.add((contract, version))
+                    if not versions:
+                        fail("B1", where, f"'{name}' reads contract '{contract}' without declaring it.\n"
+                                          f"      Action: add {{contract: {contract}, version: "
+                                          f"{version or '<version>'}, module: {producer}}} to consumes "
+                                          "in its MANIFEST, or stop reading it.")
+                    elif version is not None and version not in versions:
+                        fail("B1", where, f"'{name}' reads {contract} {version} and consumes "
+                                          f"{', '.join(sorted(versions))}.\n      Action: declare the version "
+                                          "it reads (docs/os/03-contracts.md §4, the migration step).")
+        # B4 - declared but never read
+        for c in mod["consumes"]:
+            if c.get("contract") and not any(c.get("contract") in read for read in reads[name].values()):
+                warn("B4", name, f"consumes {c.get('contract')} {c.get('version')} but no file reads it.\n"
+                                 "      Action: remove the entry, or name the contract where it is read.")
+    return reads
+
+
+def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
+    """B2 and B5. Returns module -> modules whose code it references."""
+    code: dict[str, set[str]] = {name: set() for name in modules}
+    others = {name: code_patterns(mod) for name, mod in modules.items()}
+    for name, mod in modules.items():
+        for relative, lines in read_files(mod):
+            source = Path(relative).suffix in SOURCE_SUFFIXES
+            for lineno, line in enumerate(lines, 1):
+                imports = source and IMPORT_HINTS.search(line)
+                for other_name, (code_import, reach) in others.items():
                     if other_name == name:
                         continue
-                    if not any(tok in line for tok in tokens_for(other)):
+                    via_import = imports and code_import.search(line)
+                    if not via_import and not reach.search(line.replace("\\", "/")):
                         continue
-                    real[name].add(other_name)
-                    rel = source.relative_to(root)
-
-                    # B2 - import of the internal implementation
-                    if any(marker in line.replace("\\", "/") for marker in INTERNAL_MARKERS):
-                        fail("B2", f"{rel}:{lineno}",
-                             f"'{name}' imports the internal implementation of '{other_name}'. "
-                             f"Go through its contract (docs/os/03-contracts.md).")
-                    # B1 - undeclared dependency
-                    elif other_name not in mod["declared"]:
-                        fail("B1", f"{rel}:{lineno}",
-                             f"'{name}' references '{other_name}' without declaring it in "
-                             f"the MANIFEST consumes section. Declare the contract consumed, "
-                             f"or remove the dependency.")
+                    code[name].add(other_name)
+                    fail("B2", f"{mod['path'].relative_to(root) / relative}:{lineno}",
+                         f"'{name}' references the code of '{other_name}'"
+                         f"{' through an import' if via_import else ' through a path into its folder'}. "
+                         f"Two modules know each other only through a contract (docs/os/03-contracts.md): "
+                         f"read the one '{other_name}' provides.")
 
     # B5 - access to someone else's data
     for name, mod in modules.items():
-        others_tables = {t: o for o, m in modules.items() if o != name
-                         for t in m["owns_data"]}
+        others_tables = {t: o for o, m in modules.items() if o != name for t in m["owns_data"]}
         if not others_tables:
             continue
-        for source in iter_sources(mod["path"]):
-            text = source.read_text(encoding="utf-8", errors="ignore").lower()
+        for relative, lines in read_files(mod):
+            text = "\n".join(lines).lower()
             for table, owner in others_tables.items():
                 if re.search(rf"\b(from|join|into|update|table)\s+[\"'`\[]?{re.escape(table.lower())}\b", text):
-                    fail("B5", str(source.relative_to(root)),
+                    fail("B5", str(mod["path"].relative_to(root) / relative),
                          f"'{name}' accesses table '{table}' owned by '{owner}'. "
                          f"Coupling through the database (docs/os/08-quality.md §8).")
                     break
-
-    # B4 - declared but unused
-    for name, mod in modules.items():
-        for declared in mod["declared"]:
-            if declared in modules and declared not in real[name]:
-                warn("B4", name,
-                     f"dependency declared on '{declared}' but no use detected. "
-                     f"Clean up the MANIFEST, or adjust the detection patterns.")
-    return real
+    return code
 
 
 def find_cycles(graph: dict[str, set[str]]) -> list[list[str]]:
@@ -188,23 +273,24 @@ def run(root: Path) -> int:
     failures.clear()
     warnings.clear()
     modules = load_modules(root)
-
-    if len(modules) < 2:
-        print(f"{len(modules)} module(s): no boundary to check.")
+    if not modules:
+        print("0 module(s): no boundary to check.")
         return 0
 
-    real = analyse(root, modules)
-
-    for cycle in find_cycles(real):
+    reads = check_contracts(root, modules)
+    code = check_code(root, modules)
+    for cycle in find_cycles(code):
         fail("B3", " → ".join(cycle),
              "circular dependency: these modules have become inseparable "
              "(docs/os/02-modules.md §9).")
 
     print(f"Modules checked: {len(modules)}")
     print("Real graph detected:")
-    for name in sorted(real):
-        deps = ", ".join(sorted(real[name])) or "-"
-        print(f"  {name} → {deps}")
+    for name in sorted(modules):
+        edges = [f"{producer} (contract {', '.join(sorted(contracts))})"
+                 for producer, contracts in sorted(reads[name].items())]
+        edges += [f"{other} (code)" for other in sorted(code[name])]
+        print(f"  {name} → {', '.join(edges) or '-'}")
 
     for w in warnings:
         print(f"  WARNING {w}")
