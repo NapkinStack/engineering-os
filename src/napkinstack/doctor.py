@@ -16,8 +16,8 @@ Rules:
   L4  PRODUCT.md absent: that is NapkinStack's own development context (R6)
   L5  README personalised: the presentation sentence is written
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
-  G1-G12  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
-          repository, and on a private one G1-G5 and G12 name the GitHub plan or option required
+  G1-G13  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+          repository, and on a private one G1-G5, G12 and G13 name the GitHub plan or option required
 
 Usage :  nstack doctor [--root ROOT]
 Output:  0 when everything is verified and compliant, 1 otherwise.
@@ -61,7 +61,8 @@ CHECKLIST = [  # (rule, setting, action)
     ("G2", "At least 1 approving review", f"{RULESET}: at least 1 approval required"),
     ("G3", "Code owner review required", f"{RULESET}: require Code Owners review"),
     ("G4", "Required checks: " + ", ".join(f"`{job}`" for job in JOBS),
-     f"{RULESET}: require these status checks"),
+     f"{RULESET}: require these status checks. GitHub offers a check only once it has run: "
+     "open a first pull request, then select them"),
     ("G5", "Secret Protection and push protection",
      f"{SECURITY}: enable Secret Protection and push protection"),
     ("G6", "Private vulnerability reporting, public repository (the `SECURITY.md` channel)",
@@ -77,13 +78,15 @@ CHECKLIST = [  # (rule, setting, action)
      "Issues → Labels: create " + ", ".join(LABELS[:-1]) + f" and {LABELS[-1]}"),
     ("G12", "Bypass list empty: nobody merges around the rules, administrators included",
      f"{RULESET}: remove every bypass actor"),
+    ("G13", "Stale approvals dismissed when new commits are pushed",
+     f"{RULESET}: dismiss stale pull request approvals when new commits are pushed"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -92,6 +95,10 @@ PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; w
 
 class NotVerified(Exception):
     """Setting unreadable: token, permission or network."""
+
+
+class Gap(Exception):
+    """Setting missing, with an action more precise than the checklist's."""
 
 
 class GitHub:
@@ -164,7 +171,8 @@ def _no_bypass(client: GitHub) -> bool:
     """G12: every ruleset applying to main has an empty bypass list (ADR-0004)."""
     rulesets = {rule["ruleset_id"] for rule in client.get("/rules/branches/main") if rule.get("ruleset_id")}
     if not rulesets:
-        return False
+        raise Gap(f"no ruleset applies to main, so there is no bypass list to empty. {RULESET}: "
+                  "create the ruleset first (G1)")
     for ruleset in sorted(rulesets):
         actors = client.get(f"/rulesets/{ruleset}?includes_parents=true").get("bypass_actors")
         if actors is None:
@@ -189,6 +197,7 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G10": _workflows,
     "G11": lambda c: all(c.get(f"/labels/{label}", missing=True) is not None for label in LABELS),
     "G12": _no_bypass,
+    "G13": lambda c: _parameters(c, "pull_request").get("dismiss_stale_reviews_on_push") is True,
 }
 
 
@@ -298,6 +307,8 @@ def run(root: Path) -> int:
                 status, detail = (OK, "") if CHECKS[rule](client) else (GAP, f"Action: {action}")
             except NotVerified as reason:
                 status, detail = UNKNOWN, f"Reason: {reason}"
+            except Gap as action:
+                status, detail = GAP, f"Action: {action}"
             if private and status != OK and rule in PRIVATE_PLAN:
                 detail += f"\n{PRIVATE_PLAN[rule]}"
         results.append((rule, setting, status, detail))

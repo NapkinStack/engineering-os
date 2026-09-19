@@ -731,7 +731,8 @@ mkdir -p "$API"
 python3 - "$API/routes.json" <<'EOF'
 import json, sys
 rules = [
-    {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True}},
+    {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True,
+                                                             "dismiss_stale_reviews_on_push": True}},
     {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
         {"context": "Test sheet and cycle"}, {"context": "Module checks"}]}},
@@ -772,8 +773,11 @@ private_team = {path: response for path, response in compliant.items() if path !
 private_team[""] = {**compliant[""], "visibility": "private"}
 bypass = {**compliant, "/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": [
     {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]}}
+stale = {**compliant, "/rules/branches/main": [{**rules[0], "parameters": {**rules[0]["parameters"],
+          "dismiss_stale_reviews_on_push": False}}, rules[1]]}
 json.dump({"acme/compliant": compliant, "acme/bare": bare, "acme/restricted": restricted,
-           "acme/private": private, "acme/private-team": private_team, "acme/bypass": bypass}, open(sys.argv[1], "w"))
+           "acme/private": private, "acme/private-team": private_team, "acme/bypass": bypass,
+           "acme/stale": stale}, open(sys.argv[1], "w"))
 EOF
 cat > "$API/server.py" <<'EOF'
 import http.server, json, pathlib, sys
@@ -822,7 +826,7 @@ INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Project 
 repo_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
 
 echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 12 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 13 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/README.md.jinja \
@@ -870,7 +874,7 @@ repo_c acme/bare
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -882,8 +886,24 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 18 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 19 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: no ruleset at all, G12 names the ruleset to create, not an actor to remove (D25)"
+repo_c acme/bare
+OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1) || true
+echo "$OUT" | grep -A1 -E "FAIL +\[G12\]" | grep -qF "create the ruleset first (G1)" \
+  && echo "$OUT" | grep -A2 -E "FAIL +\[G4\]" | grep -qF "only once it has run" \
+  || { echo "FAIL: G12 or G4 action misleading without a ruleset."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: an approval that survives a push is a gap (G13, D31)"
+repo_c acme/stale
+if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+  echo "FAIL: stale approvals kept, reported compliant."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "FAIL +\[G13\]" && echo "$OUT" | grep -qE "OK +\[G2\]" \
+  && echo "$OUT" | grep -qF "dismiss stale pull request approvals" \
+  || { echo "FAIL: stale approvals badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: a bypass actor on the main branch's ruleset is a gap (G12, ADR-0004)"
 repo_c acme/bypass
@@ -900,7 +920,7 @@ if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: private repository with no barrier accepted."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 5 ] \
+  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 6 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
@@ -911,7 +931,7 @@ if ! OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 17 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 18 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
