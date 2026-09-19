@@ -150,6 +150,10 @@ tag, with a team owner and with a user owner, and a v0.2.0 project updated to v0
 accented letter and no word of M8.0's search in any tracked file of the three projects. To
 confirm on the pilot's own `nstack init`.
 
+**Observed again on 2026-09-19**, at the v0.4.0 release: `nstack init` from the published tag,
+with a team owner and with a user owner — no accented letter and no word of M8.0's search in
+the generated projects.
+
 ---
 
 ## Consequences
