@@ -9,7 +9,9 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 > the framework announces refuses what it claims to — the boundaries read the contracts a
 > module uses, a contract version someone relies on changes only with a proof, the module
 > checks and stale approvals are enforced, a verifier is not an author, and every verdict names
-> the framework that gave it. A first pilot project, private, starts from it. Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
+> the framework that gave it. Proved on the project that exposed the defects: eight probes
+> replayed, each refused or accepted as announced. A first pilot project, private, starts from
+> v0.4.1, which closes a way around the contract check found while proving it (D44). Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
 > [every barrier refuses](docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md),

@@ -365,11 +365,15 @@ it reaches GitHub (M8f).
 
 ## Task 10 — The first update (when the next NapkinStack version exists)
 
-- [ ] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
+- [x] `nstack update` in `tool-library` to the first version published after 0.3.1: its pull
       request passes the checks with no label and no sheet (D24), adaptations kept,
       modules untouched — PDR-0001's second criterion, rehearsed. *Not done at M9's closure,
       where it was ticked by mistake: no version after 0.3.1 exists yet. Carried to M10h, with
-      v0.4.0 ([M10 plan](2026-09-19-v0.4.0-every-barrier-refuses.md)).*
+      v0.4.0 ([M10 plan](2026-09-19-v0.4.0-every-barrier-refuses.md)).* **Done in M10h,
+      2026-09-19** (`tool-library` #31): Copier's merge, no conflict, `catalog` and `loans`
+      untouched; the update alone passes with no label and no sheet, and the pull request
+      that merged it also carried the adaptation v0.4.0 asks of a contracts module holding a
+      contract — tests added to a high-criticality module, hence a sheet and two labels.
 
 ---
 

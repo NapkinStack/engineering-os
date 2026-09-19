@@ -93,7 +93,7 @@ provides the layer that lets **the client's stack** hold up across several teams
 
 | User | What they must be able to do | Success criterion |
 |---|---|---|
-| **A tech lead** starting a project | Create a compliant repository, frame it and start a first cycle | The repository in under 30 min, the framing in one session of two hours, without reading the whole handbook |
+| **A tech lead** starting a project | Create a compliant repository, frame it and start a first cycle | The repository in under 30 min, the framing in one session of two hours **of effective work** — the wall clock recorded beside it (PDR-0002, clarified 2026-09-19) — without reading the whole handbook |
 | **A developer** joining a team | Contribute usefully | With no spoken conversation |
 | **An AI agent** on a task | Work bounded, be blocked when it drifts | An unmergeable PR rather than debt in `main` |
 | **A second team** arriving | Move forward without blocking the first | Zero synchronisation meetings |
@@ -161,8 +161,8 @@ written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `ne
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
-projects from v0.1.0 to v0.2.0 and from v0.2.0 to v0.3.1, all published, and the update's
-pull request passes the checks of the version it brings. This repository's agent works under
+projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1 and from v0.3.1 to v0.4.0, all
+published, and the update's pull request passes the checks of the version it brings. This repository's agent works under
 its own GitHub App, behind the maintainer's approval, and its session reaches none of the
 maintainer's credentials (ADR-0004).
 
@@ -175,8 +175,14 @@ the module checks are a required check; a verifier is compared with the change's
 approval is dismissed by a new push; every verdict names the framework that gave it, and a
 project may try an unpublished fix without being judged by it in silence (PDR-0005). An
 independent review before the tag found three ways around these barriers; the tag waited for
-their fix. What remains before the pilot, private and the first real use, is M10h: the same
-fixes proved on the project that exposed them. A direction is recorded and not yet built:
+their fix. **M10h then proved the fixes on the project that exposed them** (2026-09-19): the
+update paid for real, and eight probes replayed — the six that must be refused were refused,
+by the rule that names them, and the two that must pass passed; the forge's own checklist
+compliant. Its review found one more way around a barrier — the contract proof runs in the
+pull request's tree, so a proof calling a file of its module can be rewritten by the change
+it judges — and the maintainer's exit decision is **fix first**: the pilot, private and the
+first real use, starts on a v0.4.1 that closes it (D44 to D47). A direction is recorded and
+not yet built:
 PDR-0004, which routes the interview on the project's stage and the field the questions come
 from; its design is M11. The checks the handbook describes without them being automated are
 marked as such and listed in the automation backlog.
