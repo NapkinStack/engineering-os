@@ -76,6 +76,10 @@ The merge keeps the project's adaptations and never touches the modules' code. A
 stays marked in the file, uncommitted: the team decides, and both the hook and CI reject
 any remaining marker.
 
+A fix to NapkinStack itself can be tried here before it is released: `nstack update --ref
+<commit>` pins the unpublished commit, CI installs it from the framework's repository, and
+every run says so until a published version replaces it.
+
 ## To do once on GitHub — otherwise nothing is guaranteed
 
 Workflows **inform**; it is the rulesets that **block**. Without this step the whole

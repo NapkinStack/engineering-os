@@ -24,6 +24,28 @@ flowchart LR
 **Legend** — light grey: tracking (`docs/governance/`) · dark grey: work on the branch ·
 blue: review · green: merged into `main`.
 
+## Trying a change on a real project (PDR-0005)
+
+A defect of the framework is best fixed where it was found. From a checkout of this
+repository, judge the project that exposed it — nothing installed, nothing published:
+
+```bash
+uv run --project <checkout> nstack fitness --root <project>
+uv run --project <checkout> nstack pr-check --root <project> --base origin/main --body-file <description.md>
+uv run --project <checkout> nstack init <new-project> --source <checkout> --ref HEAD
+```
+
+`--root` and `--source` are how `platform/tests/run.sh` itself judges and creates its
+throwaway projects. Every run that judges says, on its first line, that an unpublished
+NapkinStack judged it. Attach that output, against the real project, to the pull request
+proposing the fix.
+
+While the fix is reviewed, the project may run on it: `nstack update --ref <commit>`
+records the commit, CI installs the framework from this repository at that commit —
+never a published version in its place — and every run says so; `nstack doctor` never
+calls such a project compliant (L1). Leave the pin with the first release carrying the
+fix: `nstack update --ref vX.Y.Z`.
+
 ## The rules of the batch
 
 - **One workstream = one pull request**, never two together. In the issue and pull
