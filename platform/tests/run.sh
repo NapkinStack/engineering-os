@@ -905,6 +905,24 @@ if "cancelled()" not in condition:
              f"hidden for a round trip. Condition read: {condition!r}")
 EOF
 
+echo "-> the record: the project receives it, read-only, and the engine knows its name (W1)"
+python3 - "$C" <<'EOF' || exit 1
+import pathlib, sys, yaml
+from napkinstack import landed
+project = pathlib.Path(sys.argv[1])
+workflow = project / landed.RECORD
+if not workflow.is_file():
+    sys.exit(f"FAIL: a generated project does not carry the record at {landed.RECORD} (PDR-0006).")
+data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+if data["permissions"] != {"contents": "read", "pull-requests": "read"}:
+    sys.exit(f"FAIL: the record must need no write access (G10): {data['permissions']}")
+steps = [step for job in data["jobs"].values() for step in job["steps"]]
+if not any("nstack landed" in str(step.get("run", "")) for step in steps):
+    sys.exit("FAIL: the record's workflow does not run nstack landed.")
+if not any(step.get("with", {}).get("fetch-depth") == 0 for step in steps):
+    sys.exit("FAIL: the record needs the history to know what predates it (fetch-depth: 0).")
+EOF
+
 echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6, L7)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from

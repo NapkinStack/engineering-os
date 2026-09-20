@@ -6,7 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from napkinstack import __version__, compat, discovery, doctor, modules, provenance, pull_request, skills
+from napkinstack import (__version__, compat, discovery, doctor, landed, modules, provenance,
+                         pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
 
@@ -105,6 +106,10 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: pull_request.run(a.root, a.base, a.body_file))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
+    ld = _add(sub, "landed", "what reached this branch outside a pull request, recorded (W1)",
+              lambda a: landed.run(a.root, a.span, landed.from_environment(a.root)))
+    ld.add_argument("--span", default="HEAD~1..HEAD",
+                    help="the commits to read, BEFORE..AFTER (default: the last commit)")
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent (PDR-0002)",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
@@ -124,7 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 JUDGES = {"manifests", "boundaries", "plan", "skills", "hygiene", "fitness", "doctor", "pr-scope",
-          "pr-check", "compat"}  # the commands whose verdict depends on the framework's rules
+          "pr-check", "compat", "landed"}  # the commands whose verdict depends on the framework's rules
 
 
 def main(argv: list[str] | None = None) -> int:

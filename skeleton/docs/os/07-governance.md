@@ -237,10 +237,18 @@ to use (GitHub wording, transposable elsewhere):
 | Rulesets with an empty bypass list | Nobody, administrators included, merges around a rule |
 | Stale approvals dismissed on push | An approval covers the commits its approver read |
 | A default code owner | The code owner review covers every path |
+| A record of what landed | Nothing reaches the protected branch in silence — it records, it never refuses |
 
 > **Critical rules must not be bypassable by an instruction given to the AI.** That is
 > the ultimate test of governance: if asking an agent nicely is enough to get around it,
 > the rule does not exist.
+
+**And when the forge cannot enforce any of it.** Every mechanism above depends on what the
+repository's plan allows; on some, none of them is available, and nothing refuses a merge at
+all. The diagnosis says so in one word — *unguarded* — and what remains is the last row: a
+run that fails when a commit reached the protected branch outside a pull request. That is a
+record, not a barrier, and it is worth exactly what a record is worth: the thing nobody would
+otherwise have been told. Reading it as a guarantee is the mistake it exists to prevent.
 
 ### Agents and approval
 
