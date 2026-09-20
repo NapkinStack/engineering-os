@@ -5,14 +5,15 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.4.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): every barrier
+> **Status: v0.5.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): every barrier
 > the framework announces refuses what it claims to — the boundaries read the contracts a
 > module uses, a contract version someone relies on changes only with a proof, the module
 > checks and stale approvals are enforced, a verifier is not an author, and every verdict names
 > the framework that gave it. Proved on the project that exposed the defects: eight probes
-> replayed, each refused or accepted as announced. A first pilot project, private, starts from
-> v0.5.0, which closes a way around the contract check found while proving it (D44) and says
-> what holds on a repository no plan lets the forge guard (PDR-0006).
+> replayed, each refused or accepted as announced. The contract proof now runs in the base's
+> tree, so a change cannot rewrite what judges it; the diagnosis says whether anything refuses
+> at all; and a record names what reached the default branch outside a pull request — it
+> records, it never refuses. A first pilot project, private, starts from here.
 > Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
