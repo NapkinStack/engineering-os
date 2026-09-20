@@ -68,9 +68,17 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
         return (f"FAIL [{command}] The project does not come from a published version (_commit in {ANSWERS}): "
                 f"no merge base.\n{action}create the project from a vX.Y.Z tag.")
     if isinstance(exc, OSError) or text == "Local template must be a directory.":
-        detail = [line.split("|", 1)[-1].strip() for line in text.splitlines() if line.strip()][-1]
+        lines = [line.split("|", 1)[-1].strip() for line in text.splitlines() if line.strip()]
+        # git writes the cause on an `error:` line and the outcome on a `fatal:` one; keeping
+        # the last line alone drops the only one that says what happened (D54).
+        detail = " — ".join(line for line in lines if line.startswith(("error:", "fatal:"))) or lines[-1]
+        # A git `error:` line means git refused something local, so the action is local too:
+        # Copier copies the template's uncommitted state into its clone before reading it.
+        local = ("git refused a file of the template's working tree, which Copier copies as it "
+                 "is: commit or stash it, or remove the file git names above.")
+        remote = "check --source and --ref (a vX.Y.Z tag), and network access."
         return (f"FAIL [{command}] Template {source} at version {ref} unreachable: {detail}\n"
-                f"{action}check --source and --ref (a vX.Y.Z tag), and network access.")
+                + action + (local if detail.startswith("error:") else remote))
     return f"FAIL [{command}] Copier: {text}"
 
 
