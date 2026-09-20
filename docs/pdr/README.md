@@ -29,3 +29,4 @@ The PDR describes **what the product must do and why**, never its implementation
 | [0003](./0003-approve-a-change-on-evidence-of-its-behaviour.md) | Approve a change on evidence of its behaviour | Accepted, clarified (what changes a module) | 2026-12-31, in the pilot project |
 | [0004](./0004-ask-the-right-question-to-the-right-person.md) | Ask the right question, to the right person, at the right moment | Accepted (2026-09-18), direction only; its criterion met on M9's log; its design is M11 | 2026-10-31, on M9's log |
 | [0005](./0005-work-on-the-framework-while-using-it.md) | Work on the framework while using it, and never be judged in silence | Accepted (2026-09-18), implemented in v0.4.0 | 2027-03-31 |
+| [0006](./0006-work-where-the-forge-cannot-guard.md) | Work on a repository the forge cannot guard | Accepted (2026-09-20), implemented in v0.5.0 | 2027-03-31, on a probe repository and the pilot |

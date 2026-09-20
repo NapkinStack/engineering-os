@@ -1,6 +1,7 @@
 # ADR-0002 — Distribute NapkinStack on PyPI
 
-- **Status**: Accepted (2026-09-15, after the v0.1.0 release)
+- **Status**: Accepted (2026-09-15, after the v0.1.0 release); clarified 2026-09-20 (two
+  channels, one published artefact)
 - **Date**: 2026-09-15
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the engine)
@@ -158,3 +159,49 @@ the `use-trusted-publishing` audit) and actionlint.
   with a Django module.
 - **The `napkinstack` command**: no collision, but long to type every time; it stays the
   distribution name.
+
+---
+
+## Clarification of 2026-09-20 — two channels, one published artefact
+
+Added while deciding how the framework is adopted (PDR-0006's neighbour question), without
+changing the decision.
+
+**Observation.** This ADR chose a registry and never said whether the repository is also a
+way in. Since [PDR-0005](../pdr/0005-work-on-the-framework-while-using-it.md) a project may
+already be pinned to a ref and its CI installs from the forge — but a newcomer has no
+documented gesture other than the registry, while the field's default in this niche is the
+forge: [Spec Kit](https://github.com/github/spec-kit/blob/main/docs/installation.md)
+documents "two official channels", its repository and PyPI — *"Either route is supported for
+normal installs"* — and pins its git route to a release tag. `uv` installs either without a
+line of code from us.
+
+**Clarification.** There are two channels and one artefact of reference.
+
+- **The registry publishes.** PyPI carries the artefact of a `vX.Y.Z` tag, with its
+  provenance attestation. That artefact, and only it, is *published*: it is what a project
+  records, what CI installs for a published pin, and what the checklist and the release
+  method talk about. Nothing here changes.
+- **The forge distributes the same tag's source.** `uvx --from git+<repository>@vX.Y.Z` and
+  `uv tool install` of the same are supported, documented gestures — to try the tool without
+  installing it, and to install it where the registry is awkward.
+- **A git install is never published.** A tag can be moved and carries no attestation, so
+  the tool keeps saying where its own code came from: it names the ref it was asked for, and
+  refuses to call it published. That is PDR-0005's rule applied to the tool itself.
+
+**Two consequences, both measured on 2026-09-20 against the published v0.4.0.**
+
+- A project created through the forge channel **at a tag** is identical to one created from
+  the registry: Copier records `_commit: v0.4.0` and the repository as `_src_path`, so the
+  project's own CI resolves the registry. The channel a project was born through leaves no
+  trace in what judges it, which is why the forge channel needs no mechanism of its own.
+- **A ref that is not a published tag is never a documented way to install the tool.** It
+  belongs to the contributor's loop (PDR-0005), which works from a local checkout or a commit
+  — `CONTRIBUTING.md`'s own commands — and where every run announces the unpublished framework
+  and the diagnosis reports it. pre-commit draws the same line for its hook repositories: a
+  branch in `rev:` "is not supported".
+
+**What this does not change:** the release method, the tag, Trusted Publishing, the
+attestations, or the definition of a published version. A project still moves between
+published versions on demand (PDR-0001), and the registry stays the only channel that
+publishes.
