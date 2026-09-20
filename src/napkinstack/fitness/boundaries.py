@@ -16,6 +16,8 @@ Rules:
   B5  no direct access to another module's data (tables declared elsewhere)
   B6  a consumed contract is provided: its contract, version and module match a provides entry
   B7  a provided contract exists: its path holds its document, inside a module's folder
+  B8  a contract consumed from a deprecated module (warning): a deprecated module takes no
+      new consumer, and the existing ones migrate before its removal date
 
 DETECTION — textual and deliberately simple, with no stack assumed.
   - A contract is read where a module's file names its path (contracts/billing-api/v1),
@@ -87,10 +89,13 @@ def load_modules(root: Path) -> dict[str, dict]:
             owns = section.get("owns") if isinstance(section.get("owns"), list) else []
             name = mod.get("name") if isinstance(mod.get("name"), str) and mod["name"] else manifest.parent.name
             code_name = mod.get("code_name")
+            deprecation = mod.get("deprecation") if isinstance(mod.get("deprecation"), dict) else {}
             modules[name] = {
                 "path": manifest.parent,
                 "dirname": manifest.parent.name,
                 "code_name": code_name if isinstance(code_name, str) and code_name else name,
+                "lifecycle": mod.get("lifecycle") if isinstance(mod.get("lifecycle"), str) else None,
+                "removal": deprecation.get("removal_date"),
                 "provides": contract_entries(data, "provides"),
                 "consumes": contract_entries(data, "consumes"),
                 "owns_data": {table for table in owns if isinstance(table, str)},
@@ -204,6 +209,15 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
             elif c.get("module") not in (None, producer):
                 fail("B6", name, f"consumes {key[0]} {key[1]} from '{c.get('module')}', which is "
                                  f"provided by '{producer}'.\n      Action: name the producer.")
+            # B8 - a deprecated producer. Reported, not refused: what is already declared is
+            # bounded by the removal date, which M5 turns red once it has passed.
+            elif modules[producer]["lifecycle"] == "deprecated":
+                when = modules[producer]["removal"]
+                warn("B8", name, f"consumes {key[0]} {key[1]} from '{producer}', which is deprecated"
+                                 + (f" (removal {when})" if when else "")
+                                 + ": a deprecated module takes no new consumer.\n      Action: "
+                                 "migrate to the module that replaces it before that date "
+                                 "(docs/os/02-modules.md §6); M5 turns red once it has passed.")
 
     patterns = contract_patterns(modules)
     reads: dict[str, dict[str, set[str]]] = {name: {} for name in modules}
