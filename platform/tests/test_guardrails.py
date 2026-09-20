@@ -102,6 +102,10 @@ MANIFEST_CASES = {
     "M9 tests missing": (lambda r: (write_module(r, "billing") / "tests").rmdir(), "M9", True),
     "M10 user_facing missing": (lambda r: write_module(r, "billing", degrade(module__user_facing=None)), "M10", True),
     "M10 user_facing as text": (lambda r: write_module(r, "billing", degrade(module__user_facing="yes")), "M10", True),
+    "M2 responsibility left as the template's, the module holds code (D51)": (lambda r: write_module(
+        r, "billing", degrade(module__responsibility="TODO - describe this module's business "
+                                                     "capability in one sentence."),
+        {"src/app.py": "x\n"}), "M2", True),
 }
 
 
@@ -119,6 +123,18 @@ def test_a_module_holding_only_its_description_declares_no_verb(tmp_path, capsys
     (folder / "src" / "app.py").write_text("x\n", encoding="utf-8")
     assert manifests.run(tmp_path) == 1
     assert "[M7] billing" in capsys.readouterr().out
+
+
+def test_a_generated_module_is_green_until_it_holds_code(tmp_path, capsys):
+    """D51 against D33: the template's responsibility is refused from the module's first
+    file of code, never before — a generator's output is green (Rails, Nx)."""
+    assert cli.main(["new-module", "billing", "acme/billing", "standard", "--root", str(tmp_path)]) == 0
+    capsys.readouterr()
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+    (tmp_path / "modules" / "billing" / "src" / "app.py").write_text("x\n", encoding="utf-8")
+    assert manifests.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "[M2] billing" in output and "still the template's" in output, output
 
 
 def test_new_module_between_two_cycles_names_the_cycle(tmp_path, capsys):

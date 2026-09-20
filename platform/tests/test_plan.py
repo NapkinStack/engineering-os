@@ -79,6 +79,12 @@ PLAN_CASES = {
     "C6 stopped, outcome of a closed cycle": (lambda r: framed(r, cycles={"01.md": cycle(
         status="stopped", outcome="shipped", ended_on=TODAY.isoformat())}), "C6", True),
     "C6 closed without its date": (lambda r: framed(r, cycles={"01.md": cycle(status="closed", outcome="completed")}), "C6", True),
+    "C2 success criterion left as the template's (D51)": (lambda r: framed(
+        r, {**CHARTER, "success_criteria": ["<An observable result, and when it is observed>"]}), "C2", True),
+    "C4 title left as the template's (D51)": (lambda r: framed(r, cycles={"01.md": cycle(deliverables=[
+        deliverable(title="<An outcome a user can observe; for a spike, the question it answers>")])}), "C4", True),
+    "C4 acceptance left as the template's (D51)": (lambda r: framed(r, cycles={"01.md": cycle(deliverables=[
+        deliverable(acceptance=["Given <context>, when <action>, then <observable result>"])])}), "C4", True),
 }
 
 
@@ -113,4 +119,14 @@ def test_plan_not_applicable(tmp_path, capsys):
 def test_plan_accepts_a_person(tmp_path, capsys, decider):
     """A decision has one owner, named the way GitHub names people (PDR-0004, rule 3)."""
     framed(tmp_path, {**CHARTER, "decider": decider})
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("criterion", [
+    "The first invoice reaches a customer before 2026-12-31",
+    "The 95th percentile stays < 200 ms on launch day",
+])
+def test_plan_accepts_a_filled_criterion(tmp_path, capsys, criterion):
+    """D51: a placeholder opens on a non-space, so a comparison is not one."""
+    framed(tmp_path, {**CHARTER, "success_criteria": [criterion]})
     assert plan.run(tmp_path) == 0, capsys.readouterr().out

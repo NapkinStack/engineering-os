@@ -25,6 +25,7 @@ Output:  0 if everything passes, 1 otherwise. Every failure explains the rule br
 from __future__ import annotations
 import sys
 import datetime
+import re
 import subprocess
 from pathlib import Path
 
@@ -84,6 +85,24 @@ def contract_entries(data: dict, section: str) -> list[dict]:
         return []
     return [entry for entry in value if isinstance(entry, dict)
             and all(isinstance(entry.get(field), (str, type(None))) for field in CONTRACT_FIELDS[section])]
+
+
+UNFILLED = re.compile(r"<[^<>\s][^<>]*>")  # the angle-bracket placeholder of a template
+TODO = re.compile(r"^TODO\b", re.I)
+
+
+def unfilled(value) -> bool:
+    """Whether a declaration still holds the template's words: empty, carrying a placeholder
+    such as <github-handle>, or opening with TODO (D51).
+
+    A *declaration* is unfilled as soon as it carries a placeholder — nobody writes a success
+    criterion around one. A *cell* of a test sheet is unfilled only when it is nothing but a
+    placeholder, which is the template's example row: that one is `pull_request.PLACEHOLDER`,
+    and the two meanings are deliberately different. A placeholder opens on a non-space, so
+    "stays < 200 ms" is a comparison, not a placeholder.
+    """
+    text = str(value or "").strip()
+    return not text or bool(UNFILLED.search(text)) or bool(TODO.match(text))
 
 
 def is_description(path: str) -> bool:
@@ -208,9 +227,18 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                 fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
                                 "Finish the contraction (docs/os/03-contracts.md §4).")
 
-    # M7 - standard verbs, once there is something to check (D33)
     commands = data.get("commands") or {}
     content = module_content(path.parent)
+
+    # M2 - the responsibility still the template's, once the module holds more than its
+    # description: a module is green as created (D33) and says what it does from its first
+    # file of code.
+    if content and unfilled(resp):
+        fail(rel, "M2", f'module.responsibility is still the template\'s: "{resp}"\n'
+                        "      Action: one sentence naming the capability this module covers, "
+                        "in MANIFEST.yaml (docs/os/02-modules.md §5).")
+
+    # M7 - standard verbs, once there is something to check (D33)
     for verb in REQUIRED_COMMANDS:
         if content and not commands.get(verb):
             fail(rel, "M7", f"standard verb missing: commands.{verb}, and the module holds more "

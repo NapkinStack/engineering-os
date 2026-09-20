@@ -31,6 +31,7 @@ from pathlib import Path
 
 import yaml
 
+from napkinstack.fitness.manifests import unfilled
 from napkinstack.modules import HANDLE
 
 PROJECT = Path("docs") / "project"
@@ -114,8 +115,9 @@ def _check_charter(path: Path, fail) -> bool:
         fail("C2", path, f"status '{data.get('status')}': expected one of {sorted(CHARTER_STATUSES)}")
     check_decider("C2", path, data.get("decider"), fail)
     criteria = data.get("success_criteria")
-    if not isinstance(criteria, list) or not [c for c in criteria if str(c or "").strip()]:
-        fail("C2", path, "success_criteria: at least one, they say when the project itself ends")
+    if not isinstance(criteria, list) or not [c for c in criteria if not unfilled(c)]:
+        fail("C2", path, "success_criteria: at least one, filled in — they say when the project "
+                         "itself ends. The template's example is not one")
     return data.get("status") == "accepted"
 
 
@@ -135,16 +137,17 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
         elif ident in seen:
             fail("C4", path, f"deliverable {ident}: id used twice")
         seen.add(ident)
-        if not str(item.get("title") or "").strip():
-            fail("C4", path, f"deliverable {where}: title missing")
+        if unfilled(item.get("title")):
+            fail("C4", path, f"deliverable {where}: title missing, or still the template's")
         state = item.get("state")
         if state not in DELIVERABLE_STATES:
             fail("C4", path, f"deliverable {where}: state '{state}', expected one of {sorted(DELIVERABLE_STATES)}")
         criteria = item.get("acceptance")
-        filled = isinstance(criteria, list) and [c for c in criteria if str(c or "").strip()]
+        filled = isinstance(criteria, list) and [c for c in criteria if not unfilled(c)]
         if state in DELIVERABLE_STATES - WITHOUT_CRITERIA and not filled:
-            fail("C4", path, f"deliverable {where}: state '{state}' requires acceptance criteria — "
-                             "the definition of ready, and the source of its test sheet (PDR-0003)")
+            fail("C4", path, f"deliverable {where}: state '{state}' requires acceptance criteria "
+                             "filled in — the definition of ready, and the source of its test "
+                             "sheet (PDR-0003)")
 
 
 def _check_cycle(path: Path, fail) -> str | None:
@@ -188,7 +191,7 @@ def _check_discovery(path: Path, fail) -> str | None:
         check_decider("C7", path, data.get("decider"), fail)
         if as_date(data.get("decided_on")) is None:
             fail("C7", path, f"a decision ({decision}) records decided_on, YYYY-MM-DD")
-        if decision == "go" and not str(data.get("challenger") or "").strip():
+        if decision == "go" and unfilled(data.get("challenger")):
             fail("C7", path, "a go names its challenger: another session, or a human, challenged the "
                              "document first (playbooks/discovery.md, stage 5)")
     return decision if isinstance(decision, str) else None
