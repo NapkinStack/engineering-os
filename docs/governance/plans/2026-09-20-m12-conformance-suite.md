@@ -7,8 +7,9 @@
 > one pull request, in the order of the roadmap, and each task is TDD: the failing test first,
 > seen red for the right reason, then the code (P5). Steps use checkboxes (`- [ ]`).
 > **The code below is a design, not an extract from a prototype** — unlike the M10 plan, whose
-> blocks were run before they were written down. Each task's first step is the test, and the
-> test decides.
+> blocks were run before they were written down. **M12a task 0 fixes that**: the runner is
+> prototyped in a throwaway clone and these blocks are rewritten from what actually ran, before
+> any other task starts. Until that task is done, read every block below as a proposal.
 
 **Goal:** turn the probes of M9 and M10h — run by hand, logged in issue comments, never
 replayed — into a **versioned suite of attacks that runs on every pull request and before every
@@ -58,7 +59,8 @@ was an attack somebody found by hand.
 |---|---|---|
 | What a scenario is | A record: the rule it attacks, a slug, the shape it takes, the mutation, the expected verdict, and a **neighbour** that must pass | The audit asked for a red team; P5 asks for a failure test. A scenario is both, so a rule cannot be satisfied by refusing everything |
 | Identifiers | `<rule>/<slug>` — `V1/proof-rewritten`, `B2/path-manipulation` | A report reads as a sentence, and the rule's own identifier is the primary key. No new numbering to maintain |
-| Where Tier 1's project comes from | One project generated per run with `nstack init --source .`, reused by every scenario, each scenario working on a copy | `run.sh` already does it; generating one per scenario would multiply a 3-minute cost by thirty |
+| Where Tier 1's project comes from | One project generated per run with `nstack init --source .`, reused by every scenario, each scenario working on a copy | `run.sh` already does it; generating one per scenario would multiply a 3-minute cost by thirty. **The copy's cost is measured in task 0**, and the choice changes if it is unusable |
+| How the engine is called | In-process, unless the prototype shows state leaking between scenarios | Speed, against the risk of a scenario going green because the previous one left the process dirty. **Decided by measurement in task 0**, not here |
 | How a mutation is expressed | A Python function that edits the copy, not a patch file | Patches rot against the skeleton; a function that writes "a line importing another module" survives a rename |
 | Where the catalogue lives | `platform/conformance/catalogue/`, one module per rule family | Files that change together live together; a family is what a workstream touches |
 | What the run produces | `docs/governance/conformance/latest.md`, regenerated, plus the same content as JSON for the release notes | A table a human reads, and a form the release can quote without reformatting |
@@ -110,6 +112,40 @@ have to be rewritten.
 ---
 
 ## M12a — The runner, and one scenario that fails first — PR 1
+
+### Task 0 — Prototype the runner, then rewrite this plan's blocks from what ran
+
+The M10 plan's code was extracted from a prototype, and that is why a fresh session could
+rebuild every workstream from it and find eleven real defects rather than eleven surprises.
+This plan was written the other way round, so it starts by earning the same standing. The
+prototype is throwaway: nothing it produces is committed except the corrected blocks below.
+
+Two questions decide the runner's shape, and neither can be answered by reasoning:
+
+- **In-process or a subprocess?** The blocks below call the engine inside the test's own
+  process. Our commands change the working directory and read manifests once; a second scenario
+  could therefore inherit the first one's state and go green for the wrong reason — which is
+  exactly the failure this suite exists to prevent elsewhere. Measure it: run two scenarios in
+  one process where the second must be refused, and see whether it is.
+- **What does a scenario's copy cost?** `nstack init` takes three to four minutes, and a
+  generated project carries a `.venv` and a git history. Copying it per scenario may be
+  unusable, and a copy that loses the git history breaks any scenario that judges against a
+  base. Measure the copy, with and without the ignored files.
+
+- [ ] **Step 1**: in a throwaway clone, generate one project with `nstack init --source .`.
+- [ ] **Step 2**: write the smallest runner that applies one attack and judges it, both ways —
+      in-process and as a subprocess — and run the B2 scenario of step 6 through each.
+- [ ] **Step 3**: run two scenarios in a row in one process, the second one an attack that must
+      be refused, and record whether it is. If it is not, the subprocess form wins and the
+      blocks below change.
+- [ ] **Step 4**: time one copy of the generated project, with and without `.venv` and the
+      ignored files, and time a full run of five scenarios. Record both numbers.
+- [ ] **Step 5**: rewrite this plan's code blocks and its decision table from what ran, and say
+      in the plan's observed section which of the two forms was chosen and why.
+- [ ] **Step 6**: commit the plan's correction on its own — `M12a — The runner, prototyped
+      before it is planned` — so the executing session reads code that has run.
+
+### The tasks below assume task 0 is done
 
 **Files:** create `platform/conformance/{__init__,scenario,runner}.py`,
 `platform/conformance/catalogue/__init__.py`, `platform/conformance/catalogue/boundaries.py`;
