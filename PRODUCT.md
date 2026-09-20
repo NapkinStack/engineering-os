@@ -181,8 +181,14 @@ by the rule that names them, and the two that must pass passed; the forge's own 
 compliant. Its review found one more way around a barrier — the contract proof runs in the
 pull request's tree, so a proof calling a file of its module can be rewritten by the change
 it judges — and the maintainer's exit decision is **fix first**: the pilot, private and the
-first real use, starts on a v0.5.0 that closes it (D44 to D47) and serves a repository the
-forge cannot guard (PDR-0006, accepted 2026-09-20). A direction is recorded and
+first real use, starts on **v0.5.0, published 2026-09-20**: the contract proof runs in the
+base's tree, so a change cannot rewrite what judges it, and says it did not prove compatibility
+rather than asserting a break it may not have seen; the diagnosis answers *guarded* or
+*unguarded* and stops reporting a project as faulty for what its plan forbids (PDR-0006); every
+project receives a record naming a commit that reached its default branch outside a pull
+request, which records and never refuses; and the repository is a documented way to install the
+tool beside the registry, which alone publishes (ADR-0002, clarified). Updating `tool-library`
+from v0.4.0 asked for no adaptation at all. A direction is recorded and
 not yet built:
 PDR-0004, which routes the interview on the project's stage and the field the questions come
 from; its design is M11. The checks the handbook describes without them being automated are
