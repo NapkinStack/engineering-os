@@ -49,6 +49,11 @@ in place yet. A project that has done everything its plan allows is reported as 
 and still told that it is unguarded: the checks below keep telling the truth, and none of
 them stops a merge on their own.
 
+Whatever the plan allows, the project receives one more workflow, **Commits on main**: it
+fails when a commit reached `main` outside a pull request, and names it. It records; it does
+not refuse — on a repository where nothing can refuse, it is the only thing that will ever
+mention such a commit, and where a ruleset does refuse, it catches a bypass.
+
 ## Installation
 
 ```bash
