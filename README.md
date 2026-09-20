@@ -5,21 +5,23 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.5.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): every barrier
-> the framework announces refuses what it claims to — the boundaries read the contracts a
-> module uses, a contract version someone relies on changes only with a proof, the module
-> checks and stale approvals are enforced, a verifier is not an author, and every verdict names
-> the framework that gave it. Proved on the project that exposed the defects: eight probes
-> replayed, each refused or accepted as announced. The contract proof now runs in the base's
-> tree, so a change cannot rewrite what judges it; the diagnosis says whether anything refuses
-> at all; and a record names what reached the default branch outside a pull request — it
-> records, it never refuses. A first pilot project, private, starts from here.
+> **Status: v0.6.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): what the
+> framework announces, it refuses — and what it cannot refuse, it says. The boundaries read the
+> contracts a module uses, a contract version someone relies on changes only with a proof that
+> runs in the base's tree, the module checks and stale approvals are enforced, a verifier is not
+> an author, and every verdict names the framework that gave it. Since v0.6.0, a document still
+> holding its template's words is refused, a deprecated module's consumers are named with their
+> removal date, and a contract change runs the checks of both sides — the producer and every
+> declared consumer. The diagnosis says whether anything refuses at all; a record names what
+> reached the default branch outside a pull request, and never refuses it. A first pilot
+> project, private, starts from here.
 > Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
 > [every barrier refuses](docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md),
 > [a proof that cannot be rewritten](docs/governance/plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md),
 > [the conformance suite](docs/governance/plans/2026-09-20-m12-conformance-suite.md),
+> [what is announced refuses](docs/governance/plans/2026-09-20-v0.6.0-what-is-announced-refuses.md),
 > [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey
