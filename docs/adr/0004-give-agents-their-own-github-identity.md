@@ -1,6 +1,8 @@
 # ADR-0004 — Give agents their own GitHub identity, behind a human approval
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-19 (who verified, D32; an approval covers what it read, D31)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in
+  the pilot project); clarified on 2026-09-19 (who verified, D32; an approval covers what it
+  read, D31) and on 2026-09-20 (two powers, never in the same hand, PDR-0008)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the skeleton, `nstack doctor`, and this repository)
@@ -266,6 +268,25 @@ Observed in M9: an approval survived a force-push, and only the agent's own
 ruleset of `main` dismisses stale approvals when new commits are pushed: checklist
 rule G13, checked by `nstack doctor`. The last pusher's own approval needs no rule of
 its own — the agent never approves, and a human's approval is dismissed by the next push.
+
+## Clarification of 2026-09-20 — two powers, never in the same hand (PDR-0008)
+
+Added when deciding how a repository's settings get applied, without changing the decision.
+The agent's App holds `Contents: write` — it pushes branches and, once a human has approved,
+merges. It holds **no** `Administration`, which is what creates a ruleset or a required check.
+That separation is what makes the barrier a barrier: an identity that can remove the rule and
+then merge under it is not constrained by the rule.
+
+PDR-0008 lets a person hand a **credential of the other kind** to their agent for one setup
+run. It stays inside this decision because of one rule, checked before anything is applied:
+
+> **The identity that configures the repository may never commit to it.**
+
+The forge answers the question directly — the calling identity's own permissions on the
+repository say whether it may push — so the command reads them first and refuses to act when
+the credential carries both powers. The framework's own agent never holds administration, in
+any mode; what PDR-0008 adds is a second, temporary identity whose only power is to raise the
+barrier, and which cannot work behind it.
 
 ---
 
