@@ -175,8 +175,11 @@ Both directions matter, and they catch different mistakes:
   non-contractual behaviour — the case where the producer breaks someone without having
   violated anything.
 
-Contract tests run in the CI of **both modules**. A contract change that breaks a
-declared consumer is caught before merge, without a meeting.
+Contract tests run in the CI of **both modules**: a change to a contract version runs the
+checks of the module that provides it and of every module that declares it in `consumes`,
+read from the manifests (`nstack modules --with-contract-sides`, wired into the module
+workflow). A contract change that breaks a declared consumer is caught before merge,
+without a meeting.
 
 ---
 

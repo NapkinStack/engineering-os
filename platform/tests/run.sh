@@ -912,6 +912,10 @@ if "cancelled()" not in condition:
              f"hidden for a round trip. Condition read: {condition!r}")
 EOF
 
+echo "-> module checks: a contract change verifies both sides (D53)"
+grep -qF -- "--with-contract-sides" skeleton/.github/workflows/module-checks.yml \
+  || { echo "FAIL: module-checks.yml no longer asks for the contract's sides (D53)."; exit 1; }
+
 echo "-> the record: the project receives it, read-only, and the engine knows its name (W1)"
 python3 - "$C" <<'EOF' || exit 1
 import pathlib, sys, yaml

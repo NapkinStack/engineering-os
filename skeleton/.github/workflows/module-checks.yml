@@ -9,6 +9,10 @@ name: Modules
 # `Module checks` is the required check: a matrix job carries each module's name, which no
 # ruleset can require in advance, so this job fails whenever one of them failed.
 #
+# A change to a contract version also runs the checks of the module that provides it and of
+# every module that declares it in consumes: the contract tests of both sides, which is what
+# docs/os/03-contracts.md section 5 promises.
+#
 # Module names come from the paths the pull request changed: they are never inserted
 # into a script, only read from an environment variable.
 
@@ -52,7 +56,7 @@ jobs:
             # The first push of a branch has no previous commit: every file is new.
             BASE=$(git rev-list --max-parents=0 HEAD | tail -1)
           fi
-          MODS=$(nstack modules --root . --changed-since "$BASE" --json)
+          MODS=$(nstack modules --root . --changed-since "$BASE" --with-contract-sides --json)
           echo "modules=$MODS" >> "$GITHUB_OUTPUT"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if [ "$MODS" = '[]' ]; then echo "any=false" >> "$GITHUB_OUTPUT";

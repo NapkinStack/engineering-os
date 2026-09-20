@@ -17,7 +17,8 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import changed_files, find_manifests, module_content
+from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
+                                           module_content)
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "module"
 NAME = re.compile(r"[a-z][a-z0-9-]*")
@@ -134,9 +135,40 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
     return steps
 
 
-def listing(root: Path, base: str | None = None) -> list[dict[str, str]] | None:
-    """Every module — a folder holding a MANIFEST.yaml, contracts/ and platform/ included —
-    or, given a base, those with a file changed since it; None when the base is unknown."""
+def _load(manifest: Path) -> dict:
+    try:
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return {}  # reported by nstack manifests (M2)
+    return data if isinstance(data, dict) else {}
+
+
+def _contract_sides(root: Path, changed: list[str]) -> set[str]:
+    """The folders of the modules on either side of a contract version the change touches: the
+    module that provides it, and those that declare it in consumes. The handbook asks for the
+    checks of both sides (docs/os/03-contracts.md §5); the declared graph says who they are, so
+    one repository needs no broker to know (D53)."""
+    provided: dict[tuple[str, str], tuple[str, str]] = {}
+    declared: list[tuple[str, list[dict]]] = []
+    for manifest in find_manifests(root):
+        data = _load(manifest)
+        folder = manifest.parent.relative_to(root).as_posix()
+        for entry in contract_entries(data, "provides"):
+            key, path = (entry.get("contract"), entry.get("version")), entry.get("path")
+            if isinstance(path, str) and all(isinstance(part, str) for part in key):
+                provided[key] = (path.strip("/"), folder)
+        declared.append((folder, contract_entries(data, "consumes")))
+    touched = {key: folder for key, (path, folder) in provided.items()
+               if any(file == path or file.startswith(f"{path}/") for file in changed)}
+    return set(touched.values()) | {folder for folder, consumes in declared for entry in consumes
+                                    if (entry.get("contract"), entry.get("version")) in touched}
+
+
+def listing(root: Path, base: str | None = None,
+            with_contract_sides: bool = False) -> list[dict[str, str]] | None:
+    """Every module — a folder holding a MANIFEST.yaml, contracts/ and platform/ included — or,
+    given a base, those with a file changed since it, and with `with_contract_sides` both sides
+    of a contract version the change touches (D53); None when the base is unknown."""
     found = [{"name": manifest.parent.name, "folder": manifest.parent.relative_to(root).as_posix()}
              for manifest in find_manifests(root)]
     if base is None:
@@ -145,7 +177,11 @@ def listing(root: Path, base: str | None = None) -> list[dict[str, str]] | None:
                       capture_output=True).returncode:
         return None
     changed = changed_files(root, base)
-    return [module for module in found if any(path.startswith(f"{module['folder']}/") for path in changed)]
+    folders = {module["folder"] for module in found
+               if any(path.startswith(f"{module['folder']}/") for path in changed)}
+    if with_contract_sides:
+        folders |= _contract_sides(root, changed)
+    return [module for module in found if module["folder"] in folders]
 
 
 def _modules(root: Path) -> dict[str, Path]:
