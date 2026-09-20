@@ -937,6 +937,8 @@ for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13; do
 done
 [ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
   || { echo "FAIL: actions or workstation incorrect."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "This repository: unguarded" && echo "$OUT" | grep -qF "Not yet in place" \
+  || { echo "FAIL: a public repository with no settings is unguarded, its gaps reachable (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: checklist applied, the command exits successfully (criterion 2)"
 repo_c acme/compliant
@@ -945,6 +947,8 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 20 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
+  || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: no ruleset at all, G12 names the ruleset to create, not an actor to remove (D25)"
 repo_c acme/bare
@@ -971,16 +975,22 @@ echo "$OUT" | grep -qE "FAIL +\[G12\]" && echo "$OUT" | grep -qE "OK +\[G1\]" \
   && echo "$OUT" | grep -qF "remove every bypass actor" \
   || { echo "FAIL: bypass actor badly reported."; echo "$OUT"; exit 1; }
 
-echo "-> doctor: private repository on the Free plan, gaps naming the plan required, reporting not applicable"
+echo "-> doctor: private repository on the Free plan is unguarded, and not at fault for it (PDR-0006)"
 repo_c acme/private
-if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
-  echo "FAIL: private repository with no barrier accepted."; echo "$OUT"; exit 1
+if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
+  echo "FAIL: a project that has done everything its plan allows must not be reported as faulty."
+  echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cF 'GitHub Team plan')" -eq 6 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 7 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "This repository: unguarded" \
+  && echo "$OUT" | grep -qF "Out of reach on this plan" \
+  && echo "$OUT" | grep -qF "make the repository public" \
+  && ! echo "$OUT" | grep -qE "^FAIL +\[G1\]" \
+  || { echo "FAIL: the unguarded state, its reason and its exits must be named (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: private repository under GitHub Team, compliant without private reporting"
 repo_c acme/private-team
@@ -998,6 +1008,8 @@ fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
   && echo "$OUT" | grep -qF "GH_TOKEN" \
   || { echo "FAIL: missing token mishandled."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "This repository: not verified" \
+  || { echo "FAIL: what cannot be read is never guarded (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: token without the Administration permission, unreadable settings are not verified"
 repo_c acme/restricted
