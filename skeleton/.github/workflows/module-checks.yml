@@ -101,8 +101,11 @@ jobs:
         run: nstack test "$MODULE"
 
       # A contract version someone relies on changes only with the merged proof (V1,
-      # docs/os/03-contracts.md §4).
+      # docs/os/03-contracts.md §4). The step runs even when an earlier one failed: a pull
+      # request that breaks a frozen version AND a test would otherwise meet V1 a round trip
+      # later, once the tests are green (D46).
       - name: compat
+        if: ${{ !cancelled() }}
         run: nstack compat "$MODULE" --base "$BASE"
 
       # Levels high and critical — not wired up yet (D9)

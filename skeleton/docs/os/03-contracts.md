@@ -46,6 +46,12 @@ compatible; otherwise it becomes a new version beside it (`nstack compat`, rule 
 the version to another folder changes nothing: it is judged wherever it now lives. A version
 still experimental, which nobody consumes, is free to change.
 
+**The proof runs as merged, and in the merged tree.** The command is read at the base, and it
+is executed in the repository as it is at the base — so a script, a fixture or a tool it calls
+is the merged one, not the one the pull request may have rewritten. Of the change, it is handed
+exactly one thing: the document it judges, at `NSTACK_HEAD_PATH`. A comparator therefore never
+takes its instructions from what it is judging.
+
 ```mermaid
 flowchart TD
     A["Contract change considered"] --> B{"Does an existing consumer<br/>keep working with no<br/>change at all?"}
