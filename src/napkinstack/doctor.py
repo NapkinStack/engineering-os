@@ -44,6 +44,10 @@ from napkinstack import __version__, provenance
 from napkinstack.project import ANSWERS
 
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
+OUT_OF_REACH = "OUT OF REACH"      # the plan forbids it: a state, not a fault (PDR-0006)
+# The settings that make the forge refuse a merge. A repository is guarded when they are
+# all in force; the others matter and none of them stops a merge.
+BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13")
 API_VERSION = "2026-03-10"
 PLACEHOLDER = "<One sentence: what this project does.>"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", "Test sheet and cycle",
@@ -287,6 +291,35 @@ def _display(rule: str, setting: str, status: str, detail: str) -> None:
         print(f"                 {line}")
 
 
+def _state(results: list[tuple[str, str, str, str]]) -> None:
+    """Guarded when every setting that refuses a merge is in force; unguarded otherwise, with
+    what a plan forbids kept apart from what is not yet done; never guarded on what could not
+    be read (PDR-0006)."""
+    status_of = {rule: status for rule, _, status, _ in results}
+    blocking = [status_of.get(rule, UNKNOWN) for rule in BLOCKING]
+    if any(status == UNKNOWN for status in blocking):
+        print("\nThis repository: not verified — what cannot be read is never reported as guarded.")
+        return
+    if all(status == OK for status in blocking):
+        print("\nThis repository: guarded — the forge refuses what the checklist asks it to refuse.")
+        return
+    groups = {name: [rule for rule, _, status, _ in results
+                     if status == name and rule.startswith("G")]
+              for name in (OK, GAP, OUT_OF_REACH)}
+    print("\nThis repository: unguarded — nothing here refuses a merge.")
+    for label, name in (("In force", OK), ("Not yet in place", GAP),
+                        ("Out of reach on this plan", OUT_OF_REACH)):
+        if groups[name]:
+            print(f"  {label:<26}: {', '.join(groups[name])}")
+    if groups[OUT_OF_REACH]:
+        print("  What it would take        : make the repository public, where these work at no "
+              "cost on any plan;\n                              or move the private repository to a "
+              "plan that enforces rules;\n                              or keep working here, "
+              "knowing that nothing refuses.")
+    if groups[GAP]:
+        print("  Each setting not yet in place carries its action above.")
+
+
 def run(root: Path) -> int:
     if not (root / ANSWERS).is_file():
         print(f"FAIL [doctor] {ANSWERS} not found in {root}: this folder is not a project "
@@ -324,16 +357,19 @@ def run(root: Path) -> int:
             except Gap as action:
                 status, detail = GAP, f"Action: {action}"
             if private and status != OK and rule in PRIVATE_PLAN:
-                detail += f"\n{PRIVATE_PLAN[rule]}"
+                status, detail = OUT_OF_REACH, f"Reason: {PRIVATE_PLAN[rule]}"
         results.append((rule, setting, status, detail))
         _display(rule, setting, status, detail)
 
     gaps = sum(status == GAP for _, _, status, _ in results)
     unknown = sum(status == UNKNOWN for _, _, status, _ in results)
     skipped = sum(status == NOT_APPLICABLE for _, _, status, _ in results)
+    out_of_reach = sum(status == OUT_OF_REACH for _, _, status, _ in results)
+    _state(results)
     suffix = f", {skipped} not applicable" if skipped else ""
     if not gaps and not unknown:
-        print(f"\nnstack doctor: compliant{suffix}.")
+        reach = f"; {out_of_reach} setting(s) out of reach on this plan" if out_of_reach else ""
+        print(f"\nnstack doctor: compliant{suffix}{reach}.")
         return 0
     print(f"\nnstack doctor: {gaps} gap(s), {unknown} not verified{suffix}.\nWorkflows inform; "
           "it is the GitHub settings that block, and they are not copied with the project.")

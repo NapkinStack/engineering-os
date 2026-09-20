@@ -42,8 +42,12 @@ CI decides as soon as the rulesets require it: what does not pass does not merge
 | Private vulnerability reporting | Yes | Does not exist | Does not exist |
 | CI minutes | Unlimited | 2 000 per month | Per the plan |
 
-`nstack doctor` follows the repository's visibility and names the plan required for every
-missing setting.
+`nstack doctor` reads these settings and answers in one word. **Guarded**: the forge refuses
+what the checklist asks it to refuse. **Unguarded**: nothing here refuses a merge — and it
+keeps apart what your plan forbids, which you can do nothing about, from what is simply not
+in place yet. A project that has done everything its plan allows is reported as compliant,
+and still told that it is unguarded: the checks below keep telling the truth, and none of
+them stops a merge on their own.
 
 ## Installation
 
