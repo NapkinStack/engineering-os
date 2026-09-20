@@ -1,6 +1,6 @@
 name: Modules
 
-# Runs the standard verbs on the touched modules only: nstack reads their commands
+# Runs the standard verbs on the changed modules only: nstack reads their commands
 # from the module's MANIFEST.yaml, assuming no stack (P1). A module is a folder holding a
 # MANIFEST.yaml, contracts/ included: nstack lists them, the workflow defines nothing.
 # The level of validation is proportionate to the criticality declared in the MANIFEST
@@ -135,7 +135,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Every touched module passed
+      - name: Every changed module passed
         env:
           DISCOVERED: ${{ needs.discover.result }}
           VALIDATED: ${{ needs.validate.result }}

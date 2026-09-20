@@ -284,7 +284,9 @@ def test_a_framework_update_is_neither_delivery_nor_a_sheet(tmp_path, capsys, mo
 
 BROKEN = cycle(start=datetime.date.today() - datetime.timedelta(days=22))  # ended yesterday
 CYCLE_CASES = {
-    "K1 not framed": (None, "", "", "FAIL [K1] the project is not framed", 1),
+    "K1 not framed": (None, "", "", "FAIL [K1] the project is not framed: no accepted charter", 1),
+    "K1 between two cycles names the cycle (D47)": (lambda r: framed(r, cycles={}), "Deliverable: D1", "",
+                                                    "FAIL [K1] no accepted cycle", 1),
     "K1 charter proposed": (lambda r: framed(r, {**CHARTER, "status": "proposed"}), "Deliverable: D1", "", "FAIL [K1]", 1),
     "K2 circuit breaker": (lambda r: framed(r, cycles={"01-first.md": BROKEN}), "Deliverable: D1", "",
                            "FAIL [K2] circuit breaker: 01-first.md ended on", 1),

@@ -11,7 +11,8 @@ Rules:
   T3  no scenario passed without its evidence and the commit it was verified on
   T4  evidence produced on the pull request's head commit: the others are to run again
   T5  no scenario failed; none left not verified, unless it is human only
-  K1  delivery work needs an accepted charter and an accepted cycle
+  K1  delivery work needs an accepted charter and an accepted cycle, and says which of
+      the two is missing
   K2  delivery work stops once the cycle is past its end date: the circuit breaker
   K3  delivery work names a ready or in-progress deliverable of the cycle
   K4  the out-of-cycle label carries its justification
@@ -257,9 +258,16 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
                        "\"Out of cycle: <reason>\" to the description — an incident, a production defect.")
         return
     cycle = plan.accepted_cycle(root)
-    if not plan.charter_accepted(root) or cycle is None:
-        fail("K1", "the project is not framed: no accepted charter and cycle in docs/project/.\n"
+    if not plan.charter_accepted(root):
+        fail("K1", "the project is not framed: no accepted charter in docs/project/.\n"
                    "      Action: frame it with your agent (playbooks/framing.md), or add the "
+                   f"{LABEL} label with a justification.")
+        return
+    if cycle is None:
+        # The charter is accepted: sending the reader back to framing would be false (D47).
+        fail("K1", "no accepted cycle: the charter is accepted, and no cycle is open.\n"
+                   "      Action: open the next cycle with your agent "
+                   "(docs/project/cycles/_TEMPLATE.md), or add the "
                    f"{LABEL} label with a justification.")
         return
     path, data = cycle

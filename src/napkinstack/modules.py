@@ -118,10 +118,15 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
         why = "user-facing" if user_facing else f"criticality {criticality}"
         steps.append(f"Every pull request that changes its behaviour carries a test sheet ({why}), "
                      "run by a verifier who is not its author (T1–T5, docs/os/05-workflow.md §7)")
-    cycle = plan.accepted_cycle(root) if plan.charter_accepted(root) else None
-    if cycle is None:
-        steps.append("The project is not framed: delivery work needs an accepted charter and cycle (K1), "
+    framed = plan.charter_accepted(root)
+    cycle = plan.accepted_cycle(root) if framed else None
+    if not framed:
+        steps.append("The project is not framed: delivery work needs an accepted charter (K1), "
                      "or the out-of-cycle label with its justification (K4)")
+    elif cycle is None:
+        # The charter is accepted: only the next cycle is missing (D47).
+        steps.append("No accepted cycle: delivery work needs one (K1), or the out-of-cycle label "
+                     "with its justification (K4)")
     else:
         steps.append(f"Delivery work names a ready deliverable of {cycle[0].name} (K3), "
                      "or carries the out-of-cycle label with its justification (K4)")
