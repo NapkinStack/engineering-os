@@ -9,6 +9,10 @@ from pathlib import Path
 
 from napkinstack import project
 
+CACHE = """Unexpected exit code: 128
+Command line: | /usr/bin/git fetch --tags
+Stderr:       | error: cannot open '/c/copier/git/81c2bf.git/FETCH_HEAD': Read-only file system
+              | fatal: could not fetch"""
 GIT_ADD = """Unexpected exit code: 128
 Command line: | /usr/bin/git --git-dir=.git --work-tree=/w add -A
 Stderr:       | error: .bash_profile: can only add regular files, symbolic links or git-directories
@@ -23,6 +27,14 @@ def test_a_git_error_keeps_the_line_that_says_what_happened():
     assert "fatal: adding files failed" in message, message
     assert "commit or stash" in message, message
     assert "network access" not in message, message
+
+
+def test_a_local_error_that_is_not_the_working_tree():
+    """D55: the action D54 added over-claims. A read-only Copier cache is a git `error:` line
+    too, and telling its reader to commit the template's working tree cannot help (P6)."""
+    message = project._explain(OSError(CACHE), "init", Path("/w"), ".", "v1.0.0")
+    assert "Read-only file system" in message, message
+    assert "git named what it could not handle above" in message, message
 
 
 def test_a_single_line_error_is_unchanged():
