@@ -35,6 +35,10 @@ def project(root, commit="v0.4.0", source="https://github.com/NapkinStack/engine
 ARCHIVE = {"url": "file:///somewhere/napkinstack-0.4.0-py3-none-any.whl", "archive_info": {}}
 VCS = {"url": "https://github.com/NapkinStack/engineering-os.git",
        "vcs_info": {"vcs": "git", "commit_id": "1a2b3c4d5e6f7a8b9c0d"}}
+# uv records the ref it was asked for beside the commit (PEP 610); measured on 2026-09-20.
+VCS_TAG = {"url": "https://github.com/NapkinStack/engineering-os.git",
+           "vcs_info": {"vcs": "git", "commit_id": "1a2b3c4d5e6f7a8b9c0d",
+                        "requested_revision": "v0.4.0"}}
 JUDGED = {
     "published engine, published project": (None, "v0.4.0",
                                              "Judged by NapkinStack 0.4.0, published, project recorded at v0.4.0."),
@@ -42,6 +46,9 @@ JUDGED = {
                                       "https://github.com/NapkinStack/engineering-os.git@1a2b3c4d5e6f"),
     "a project pinned to a commit": (None, "v0.4.0-3-g1a2b3c4", "project pinned to v0.4.0-3-g1a2b3c4"),
     "an engine from an archive (D40)": (ARCHIVE, "v0.4.0", "UNPUBLISHED NapkinStack — an archive, not the registry"),
+    "an engine from the repository at a tag (ADR-0002)": (
+        VCS_TAG, "v0.4.0", "UNPUBLISHED NapkinStack — https://github.com/NapkinStack/engineering-os.git "
+        "at v0.4.0 (commit 1a2b3c4d5e6f)"),
 }
 
 

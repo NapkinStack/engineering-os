@@ -3,7 +3,9 @@ Which framework judges a project (PDR-0005): a published version, or something n
 published — said out loud on every run that judges, never only in a file.
 
 The engine's origin is what its installer recorded (PEP 610, direct_url.json): nothing for a
-version from the registry; a repository and a commit, or a local checkout, otherwise.
+version from the registry; a repository with the ref it was asked for and the commit that ref
+resolved to, or a local checkout, otherwise. A repository is a supported channel and never a
+published one: a tag can be moved, and carries no attestation (ADR-0002).
 """
 
 from __future__ import annotations
@@ -30,7 +32,13 @@ def engine() -> tuple[str, str | None]:
         return distribution.version, None
     data = json.loads(record)
     if "vcs_info" in data:
-        return distribution.version, f"{data['url']}@{str(data['vcs_info'].get('commit_id', ''))[:12]}"
+        # The installer records the ref it was asked for beside the commit (PEP 610). Naming it
+        # says more than a bare sha — and no less: a tag can be moved, so this is still not the
+        # published artefact (ADR-0002, clarified 2026-09-20).
+        commit = str(data["vcs_info"].get("commit_id", ""))[:12]
+        wanted = str(data["vcs_info"].get("requested_revision") or "")
+        return distribution.version, (f"{data['url']} at {wanted} (commit {commit})" if wanted
+                                      else f"{data['url']}@{commit}")
     if "archive_info" in data:
         return distribution.version, "an archive, not the registry"
     path = Path(url2pathname(urlparse(data.get("url", "")).path))
