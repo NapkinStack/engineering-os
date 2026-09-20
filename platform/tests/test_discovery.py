@@ -72,6 +72,8 @@ DISCOVERY_CASES = {
     "C7 charter accepted before a go": (lambda r: (write(r, "discovery.md", decided("clarify")), framed(r)), "C7", True),
     "C7 go without a challenger": (lambda r: write(r, "discovery.md", decided("go", challenger="")), "C7", True),
     "C7 decider not a person": (lambda r: write(r, "discovery.md", decided("go", decider="the team")), "C7", True),
+    "C7 challenger left as the template's (D51)": (lambda r: write(
+        r, "discovery.md", decided("go", challenger="@<github-handle>")), "C7", True),
     "C1 discovery without front matter": (lambda r: write(r, "discovery.md", "# Discovery"), "C1", True),
 }
 

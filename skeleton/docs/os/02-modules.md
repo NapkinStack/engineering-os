@@ -175,6 +175,10 @@ The manifest `nstack new-module` writes is the reference for the full format;
 - contracts consumed, with versions;
 - standard commands.
 
+Each of these is filled in: a responsibility still holding the template's sentence fails
+M2 from the module's first file of code — never before, so a module the engine has just
+created is green.
+
 ### The three uses that justify its cost
 
 ```mermaid
