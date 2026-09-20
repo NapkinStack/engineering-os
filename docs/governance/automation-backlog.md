@@ -34,6 +34,7 @@
 | Delivery work inside an accepted cycle | `nstack pr-check` K1 to K4 | 2026-09-17 |
 | No path from one person's machine in a tracked file | `nstack hygiene` H1 | 2026-09-19 |
 | A commit that reached the default branch outside a pull request | `nstack landed` W1, recorded | 2026-09-20 |
+| No new consumer for a deprecated module | `nstack boundaries` B8, reported | 2026-09-20 |
 
 ## Review
 

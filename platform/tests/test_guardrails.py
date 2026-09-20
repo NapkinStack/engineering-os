@@ -23,6 +23,7 @@ from napkinstack import cli, skills
 from napkinstack.fitness import boundaries, hygiene, manifests
 
 YESTERDAY = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+LATER = (datetime.date.today() + datetime.timedelta(days=30)).isoformat()
 VALID = {
     "module": {"name": "billing", "responsibility": "Bills the customers.",
                "owner": "acme/billing", "lifecycle": "active", "criticality": "standard",
@@ -281,6 +282,10 @@ BOUNDARY_CASES = {
         "customers": (PRODUCER, {})}, "B6", True),
     "B7 a provided contract with no document": ({
         "customers": (provides(CUSTOMERS, "customers", ("v9",)), {})}, "B7", True),
+    "B8 a consumer of a deprecated module (D52)": ({
+        "billing": (consumes(VALID, "customers"), READS),
+        "customers": (degrade(PRODUCER, module__lifecycle="deprecated",
+                              module__deprecation={"removal_date": LATER}), {})}, "B8", False),
 }
 
 
@@ -356,6 +361,15 @@ def test_boundaries_no_false_positive(tmp_path, capsys, line):
     write_module(tmp_path, "billing", VALID, {"src/app.py": line})
     write_module(tmp_path, "customers", CUSTOMERS)
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_consumer_of_a_live_module_is_not_reported(tmp_path, capsys):
+    """D52: B8 names the consumers of a deprecated module, and only those."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", consumes(VALID, "customers"), READS)
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 0
+    assert "[B8]" not in capsys.readouterr().out
 
 
 MALFORMED = {

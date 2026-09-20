@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
     _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M10)",
          lambda a: manifests.run(a.root))
-    _add(sub, "boundaries", "declared graph against real graph (B1-B7)",
+    _add(sub, "boundaries", "declared graph against real graph (B1-B8)",
          lambda a: boundaries.run(a.root))
     _add(sub, "plan", "the discovery, the charter and the cycles (C1-C7)", lambda a: plan.run(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",

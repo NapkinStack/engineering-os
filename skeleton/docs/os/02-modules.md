@@ -250,10 +250,10 @@ The status lives in the manifest, so it is checkable:
 
 | Situation | CI result |
 |---|---|
-| A `maintenance` module whose contract changes | **Red** |
-| A `deprecated` module that gains a consumer | **Red** |
-| A `deprecated` module whose removal date has passed | **Red** |
-| An `active` module with no declared owner | **Red** |
+| A frozen contract version of a `maintenance` module changed | **Red** (V1): a version consumed or stable changes only with the merged proof |
+| A `deprecated` module with a consumer | Reported (B8), and **red** once its removal date has passed (M5) |
+| A `deprecated` module whose removal date has passed | **Red** (M5) |
+| An `active` module with no declared owner | **Red** (M2) |
 
 This is what avoids **permanent intermediate states**: a deprecated path that never
 disappears because nobody is responsible for removing it.
