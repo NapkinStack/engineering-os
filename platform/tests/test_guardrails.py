@@ -121,6 +121,17 @@ def test_a_module_holding_only_its_description_declares_no_verb(tmp_path, capsys
     assert "[M7] billing" in capsys.readouterr().out
 
 
+def test_new_module_between_two_cycles_names_the_cycle(tmp_path, capsys):
+    """D47: the charter is accepted; sending the reader back to framing would be false."""
+    from test_plan import framed
+
+    framed(tmp_path, cycles={})
+    assert cli.main(["new-module", "face", "acme/web", "standard", "--root", str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    assert "No accepted cycle: delivery work needs one (K1)" in output, output
+    assert "The project is not framed" not in output, output
+
+
 def test_new_module_says_what_its_pull_requests_will_need(tmp_path, capsys):
     """D33: green as created; the sheet and the cycle named from facts nstack holds."""
     from test_plan import framed
