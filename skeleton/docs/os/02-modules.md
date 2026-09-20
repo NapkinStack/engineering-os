@@ -164,7 +164,8 @@ traps, business invariants, non-standard commands, areas not to change and why.
 This is the piece that makes multi-team work operational. A single declarative file,
 readable by a human, by an agent **and by CI**.
 
-See `templates/MANIFEST.example.yaml` for the full format. It declares:
+The manifest `nstack new-module` writes is the reference for the full format;
+`contracts/MANIFEST.yaml` is the one every project already holds. It declares:
 
 - identity and responsibility in one sentence;
 - owner (a team, not an individual);

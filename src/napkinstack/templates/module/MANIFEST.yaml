@@ -71,12 +71,6 @@ commands:
 #  run:                          # optional: local start, with doubles for the dependencies
 #  e2e:                          # optional: end-to-end scenarios; evidence written to .evidence/
 
-# Review budget. Inherited from the project when absent (docs/os/05-workflow.md §4).
-review_budget:
-  max_lines: 400
-  max_files: 15
-  max_modules: 1                 # not adjustable
-
 docs:
   readme: README.md
   agents: AGENTS.md

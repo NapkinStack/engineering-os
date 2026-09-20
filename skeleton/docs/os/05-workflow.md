@@ -97,8 +97,9 @@ generation instead of observing the damage afterwards.
 > The project's real throughput is its verification throughput, not its generation
 > throughput.
 
-The budget is an explicit ceiling, declared at project level and adjustable per module
-according to its criticality. It covers:
+The budget is an explicit ceiling, set for the project — `MAX_LINES` and `MAX_FILES` in
+the pull request workflow. Adjusting it per module, by criticality, is not automated: it
+is in the automation backlog. It covers:
 
 | Dimension | Indicative ceiling |
 |---|---|

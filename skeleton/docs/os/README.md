@@ -101,4 +101,4 @@ rule live?" first. The answer is very often "in CI", not "in the prompt".
 
 This OS is subject to its own rules: it evolves in small steps, its structuring changes
 get an ADR, and every rule it contains is a candidate for automation. See
-`docs/10-measurement.md` § "Improving the OS".
+`10-measurement.md` § "Improving the OS".

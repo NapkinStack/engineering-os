@@ -258,7 +258,9 @@ What the skeleton and its engine provide from day one:
 - the kernel and the playbooks;
 - execution of the standard verbs declared in the manifests;
 - the ADR, PDR, issue and pull request templates;
-- the basic fitness functions (1 to 3 of `07-governance.md` §3);
+- the fitness functions of `07-governance.md` §3, 1 to 9: the declared graph, cycles,
+  another module's data, contract compatibility and consumers, lifecycle statuses and
+  dates, one pull request one module, the module envelope;
 - CI with the checks of the `standard` level;
 - CODEOWNERS, and the checklist of forge settings, which the engine verifies read-only;
 - module creation;

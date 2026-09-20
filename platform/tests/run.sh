@@ -21,19 +21,21 @@ echo "-> rules M, B, S, P: every rule proves it fails and names itself (pytest, 
 pytest -q platform/tests
 
 GIT_ID_RM=(-c user.name=test -c user.email=test@example.invalid)
-echo "-> docs: a link to the handbook's old location (docs/0X-...) MUST fail (D6)"
+echo "-> docs: a link to the handbook's old location (docs/NN-...) MUST fail (D6)"
 dead_links() {  # $1 = root of a git repository; prints the dead links, true when there are any
-  git -C "$1" grep -n -E '(^|[^/a-z])docs/0[0-9]-' -- ':!docs/governance/'
+  git -C "$1" grep -n -E '(^|[^/a-z])docs/[0-9][0-9]-' -- ':!docs/governance/'
 }
 RM=$(mktemp -d)
 git "${GIT_ID_RM[@]}" init -q "$RM"
-# Link assembled at run time: written literally, it would be detected in this file itself.
+# Links assembled at run time: written literally, they would be detected in this file itself.
 printf 'See `docs/%s-contracts.md` §4.\n' 03 > "$RM/rule.md"
-git -C "$RM" add rule.md
-dead_links "$RM" >/dev/null || { echo "FAIL: dead link not detected."; rm -rf "$RM"; exit 1; }
+printf 'See `docs/%s-measurement.md`.\n' 10 > "$RM/late.md"
+git -C "$RM" add rule.md late.md
+[ "$(dead_links "$RM" | wc -l)" -eq 2 ] \
+  || { echo "FAIL: dead link not detected."; dead_links "$RM"; rm -rf "$RM"; exit 1; }
 rm -rf "$RM"
 if DEAD=$(dead_links .); then
-  echo "FAIL: links to docs/0X-...; the handbook lives in docs/os/ (skeleton/docs/os/ at the root):"
+  echo "FAIL: links to docs/NN-...; the handbook lives in docs/os/ (skeleton/docs/os/ at the root):"
   echo "$DEAD"; exit 1
 fi
 

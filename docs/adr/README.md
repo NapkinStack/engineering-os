@@ -24,5 +24,5 @@ See `skeleton/docs/os/06-decisions.md`.
 |---|---|---|---|
 | [0001](./0001-adopt-copier-to-generate-and-update-projects.md) | Adopt Copier to generate and update projects | Accepted | Validated at the prototype (2026-09-15) |
 | [0002](./0002-distribute-napkinstack-on-pypi.md) | Distribute NapkinStack on PyPI | Accepted, clarified (two channels) | Validated at the v0.1.0 release (2026-09-15) |
-| [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepted | Observed at the v0.2.0, v0.3.0 and v0.4.0 releases; the pilot's `init` to confirm |
+| [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepted | Observed at the v0.2.0 to v0.5.0 releases; the pilot's `init` to confirm |
 | [0004](./0004-give-agents-their-own-github-identity.md) | Give agents their own GitHub identity, behind a human approval | Accepted, clarified (who verified; an approval covers what it read; two powers) | The pilot project, before 2026-12-31 |
