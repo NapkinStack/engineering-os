@@ -64,10 +64,11 @@ was an attack somebody found by hand.
 | How a mutation is expressed | A Python function that edits the copy, not a patch file | Patches rot against the skeleton; a function that writes "a line importing another module" survives a rename |
 | Where the catalogue lives | `platform/conformance/catalogue/`, one module per rule family | Files that change together live together; a family is what a workstream touches |
 | What the run produces | `docs/governance/conformance/latest.md`, regenerated, plus the same content as JSON for the release notes | A table a human reads, and a form the release can quote without reformatting |
+| The rule index | The report also generates one page listing every rule and what it refuses, from the engine's own docstrings | Every serious linter publishes one (ESLint, ruff, RuboCop, zizmor) and a project reading `FAIL [B7]` has none today. The catalogue needs the same data, so it costs one pass over what is already written |
 | Tier 2's form | A script that prints the exact calls for the maintainer to run, and a place to paste what the forge answered | The agent's own attempts at approval and merge are stopped by its harness before they leave the machine (M9), and that refusal proves nothing about the forge |
 | When the suite runs | Tier 1 on every pull request of this repository; both tiers before a tag | A suite that runs only at release time rots between releases |
 | What a red result does | Tier 1 fails the job. Tier 2 blocks the tag, by the release method | The gate is where the barrier is |
-| Scenarios from history | Every register row that was a walk-around — D29, D30, D31, D32, D35, D36 to D42, D44 to D47 — becomes a scenario, whatever else it also became | A defect that was found once and fixed is a regression waiting for a refactor. This is the suite's first population, and it is free: each one is already described |
+| Scenarios from history | Every register row that was a walk-around — D29, D30, D31, D32, D35, D36 to D42, D44 to D47, and D51 to D53 — becomes a scenario, whatever else it also became. D51 brings a shape the others do not have: a document that passes while holding nothing, so its neighbour is a filled document that must pass | A defect that was found once and fixed is a regression waiting for a refactor. This is the suite's first population, and it is free: each one is already described |
 
 ---
 

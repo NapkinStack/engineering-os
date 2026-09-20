@@ -165,13 +165,13 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.5.0 is published on PyPI (2026-09-20), with a provenance attestation, and
+NapkinStack v0.6.0 is published on PyPI (2026-09-20), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
-projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1, from v0.3.1 to v0.4.0 and from
-v0.4.0 to v0.5.0, all
+projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1, from v0.3.1 to v0.4.0, from v0.4.0
+to v0.5.0 and from v0.5.0 to v0.6.0, all
 published, and the update's pull request passes the checks of the version it brings. This
 repository's agent works under its own GitHub App, behind the maintainer's approval, and its
 session reaches none of the maintainer's credentials (ADR-0004).
@@ -204,6 +204,22 @@ PDR-0004, which routes the interview on the project's stage and the field the qu
 from; its design is M11. The checks the handbook describes without them being automated are
 marked as such and listed in the automation backlog.
 
+**An internal audit before the pilot, and v0.6.0 is what it found (2026-09-20)**: the whole
+repository was read against its own code, and three barriers the framework announces turned
+out not to refuse. A charter, a cycle, a deliverable or a module responsibility still holding
+its template's words went green — D28 had fixed that shape for one field only; nothing ever
+mentioned the consumers of a deprecated module, which `02-modules.md` promised would turn red;
+and a contract change ran the tests of the module holding the document and of nobody else,
+where `03-contracts.md` promises both sides. **v0.6.0 closes the three**: a declaration still
+carrying a placeholder is refused — for a module from its first file of code, so a generated
+module stays green (D33); a deprecated module's consumers are named with the removal date that
+will turn them red; and a contract change runs the checks of the producer and of every
+declared consumer, read from the manifests the project already writes. Eleven documents were
+brought back in line with the published version, a guardrail that could not see a whole decade
+of its own subject was widened, and a refusal that dropped the line saying what happened keeps
+it. Updating `tool-library` from v0.5.0 cost 9 files and no conflict, and none of the new
+refusals fired on it.
+
 **Two channels, one published artefact** (ADR-0002, clarified 2026-09-20): the registry
 publishes, with the attestation; this repository distributes the same tag's source, for
 trying the tool or installing it without the registry. A run installed from the forge says
@@ -217,6 +233,7 @@ Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-17-team-mode-validation.md`,
 `docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md`,
 `docs/governance/plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md`,
-`docs/governance/plans/2026-09-20-m12-conformance-suite.md`. Defects and decisions:
+`docs/governance/plans/2026-09-20-m12-conformance-suite.md`,
+`docs/governance/plans/2026-09-20-v0.6.0-what-is-announced-refuses.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.
