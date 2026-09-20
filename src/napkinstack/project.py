@@ -72,10 +72,13 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
         # git writes the cause on an `error:` line and the outcome on a `fatal:` one; keeping
         # the last line alone drops the only one that says what happened (D54).
         detail = " — ".join(line for line in lines if line.startswith(("error:", "fatal:"))) or lines[-1]
-        # A git `error:` line means git refused something local, so the action is local too:
-        # Copier copies the template's uncommitted state into its clone before reading it.
-        local = ("git refused a file of the template's working tree, which Copier copies as it "
-                 "is: commit or stash it, or remove the file git names above.")
+        # A git `error:` line means git refused something local, and git has already named it:
+        # a file of the template's uncommitted state, which Copier copies into its clone, or
+        # anything else it could not open. The action points at that line rather than guessing
+        # which of the two it was (D55).
+        local = ("git named what it could not handle above: fix that file, or, when the "
+                 "template's working tree is uncommitted, commit or stash it — Copier copies it "
+                 "as it is.")
         remote = "check --source and --ref (a vX.Y.Z tag), and network access."
         return (f"FAIL [{command}] Template {source} at version {ref} unreachable: {detail}\n"
                 + action + (local if detail.startswith("error:") else remote))
