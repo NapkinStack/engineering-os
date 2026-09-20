@@ -188,6 +188,12 @@ PDR-0004, which routes the interview on the project's stage and the field the qu
 from; its design is M11. The checks the handbook describes without them being automated are
 marked as such and listed in the automation backlog.
 
+**Two channels, one published artefact** (ADR-0002, clarified 2026-09-20): the registry
+publishes, with the attestation; this repository distributes the same tag's source, for
+trying the tool or installing it without the registry. A run installed from the forge says
+so on every line that judges, because a tag can be moved — and a project created through
+either channel at the same tag is identical, down to the version it records.
+
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-english-migration.md`,
 `docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`,

@@ -67,10 +67,25 @@ uv tool install napkinstack --with-executables-from pre-commit   # prerequisites
 nstack init my-project
 ```
 
-Each project then pins its version and changes it through `nstack update`. Every published
-version carries a provenance attestation, visible on PyPI, tying it to the workflow and
-the commit of this repository
-([ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md)).
+To try it without installing anything, or to install it from this repository instead of the
+registry — always pinned to a release tag:
+
+```bash
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.4.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.4.0"
+```
+
+**Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
+`vX.Y.Z` tag carries a provenance attestation tying it to the workflow and the commit of this
+repository. The forge distributes that same tag's source, which is a supported way in and
+never a published one — a tag can be moved, and carries no attestation — so a run installed
+that way says where its rules came from, on every line that judges
+([ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md),
+[PDR-0005](docs/pdr/0005-work-on-the-framework-while-using-it.md)). The project itself is
+unaffected: created from either channel at the same tag, it records the same version and its
+CI installs from the registry.
+
+Each project then pins its version and changes it through `nstack update`.
 
 ## The commands
 
