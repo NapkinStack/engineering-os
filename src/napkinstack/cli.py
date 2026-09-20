@@ -19,7 +19,7 @@ def _root(value: str) -> Path:
 
 
 def _modules(args: argparse.Namespace) -> int:
-    found = modules.listing(args.root, args.changed_since)
+    found = modules.listing(args.root, args.changed_since, args.with_contract_sides)
     if found is None:
         print(f"FAIL [modules] base '{args.changed_since}' not found in {args.root}.\n"
               "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
@@ -98,6 +98,9 @@ def build_parser() -> argparse.ArgumentParser:
     rn.add_argument("module")
     md = _add(sub, "modules", "the project's modules, or those with a file changed since a base", _modules)
     md.add_argument("--changed-since", metavar="BASE", help="only the modules with a file changed since BASE")
+    md.add_argument("--with-contract-sides", action="store_true",
+                    help="also the producer and the declared consumers of a contract version "
+                         "this change touches (with --changed-since)")
     md.add_argument("--json", action="store_true", help="a JSON list, for CI")
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: pr_scope.run(a.root, a.base))
