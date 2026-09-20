@@ -893,6 +893,18 @@ if unknown:
     sys.exit(f"FAIL: required checks no skeleton job produces (G4): {unknown}")
 EOF
 
+echo "-> module checks: the contract proof runs even when an earlier step failed (D46)"
+python3 - <<'EOF' || exit 1
+import sys, yaml
+steps = {step.get("name"): step for job in yaml.safe_load(
+             open("skeleton/.github/workflows/module-checks.yml", encoding="utf-8"))["jobs"].values()
+         for step in job.get("steps", [])}
+condition = str(steps.get("compat", {}).get("if", ""))
+if "cancelled()" not in condition:
+    sys.exit("FAIL: the compat step must run after a failed step (D46), or V1's verdict is "
+             f"hidden for a round trip. Condition read: {condition!r}")
+EOF
+
 echo "-> doctor: workstation gaps listed with their action (L1, L3, L4, L5, L6, L7)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from

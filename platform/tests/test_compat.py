@@ -62,8 +62,10 @@ CASES = {
         {}, {}, "FAIL [V1] customers-api v1 (consumed by billing) changed, and no merged compatibility command", 1),
     "V1 a stable version changed, no proof": (
         {"stability": "stable", "consumer": False}, {}, "FAIL [V1] customers-api v1 (stable) changed", 1),
-    "V1 the proof says breaking": (
-        {"compat": "exit 3"}, {}, "`exit 3` exited with 3, a breaking change", 1),
+    "V1 the proof did not prove it (D45)": (
+        {"compat": "exit 3"}, {},
+        "the compatibility command of module 'contracts' (contracts/MANIFEST.yaml) "
+        "did not prove the change compatible (exit 3)", 1),
     "V1 the proof says compatible, with what it needs": (
         {"compat": PROVEN}, {}, "Contract version customers-api v1 (consumed by billing): proven compatible", 0),
     "an experimental version nobody consumes is free": (
@@ -134,7 +136,8 @@ def test_a_frozen_version_moved_and_broken(tmp_path, capfd):
     change(tmp_path, path=MOVE)
     assert cli.main(["compat", "contracts", "--root", str(tmp_path), "--base", base]) == 1
     output = capfd.readouterr().out
-    assert "moved to contracts/customers-api/v1-current" in output and "a breaking change" in output, output
+    assert "moved to contracts/customers-api/v1-current" in output, output
+    assert "did not prove the change compatible (exit 3)" in output, output
 
 
 def test_a_frozen_version_moved_as_is(tmp_path, capfd):
@@ -161,3 +164,50 @@ def test_unknown_base(tmp_path, capfd):
     project(tmp_path)
     assert cli.main(["compat", "--root", str(tmp_path), "--base", "nope"]) == 1
     assert "FAIL [V1] base 'nope' not found" in capfd.readouterr().out
+
+
+SCRIPT = "contracts/compare.sh"
+
+
+def test_a_proof_that_calls_a_file_of_the_tree_runs_from_the_base(tmp_path, capfd):
+    """D44: the change rewrites the script its own proof calls. The base's script judges it."""
+    base = project(tmp_path, compat="sh compare.sh")
+    (tmp_path / SCRIPT).write_text("exit 3\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "the proof refuses a break")
+    base = git(tmp_path, "rev-parse", "HEAD")
+    (tmp_path / SCRIPT).write_text("exit 0\n", encoding="utf-8")   # the change rewrites its judge
+    change(tmp_path)
+    assert cli.main(["compat", "contracts", "--root", str(tmp_path), "--base", base]) == 1
+    assert "FAIL [V1]" in capfd.readouterr().out
+
+
+def test_a_proof_that_could_not_run_is_not_called_a_breaking_change(tmp_path, capfd):
+    """D45: a missing tool is the absence of a proof, not the presence of a break."""
+    base = project(tmp_path, compat="nstack-no-such-comparator")
+    change(tmp_path)
+    assert cli.main(["compat", "contracts", "--root", str(tmp_path), "--base", base]) == 1
+    output = capfd.readouterr().out
+    assert "did not prove the change compatible (exit 127)" in output, output
+    assert "breaking change" not in output.split("Action:")[0], output
+
+
+def test_the_command_is_printed_once(tmp_path, capfd):
+    """D45: a multi-line command repeated inside the failure buries the comparator's verdict."""
+    base = project(tmp_path, compat="echo comparing\nexit 3")
+    change(tmp_path)
+    assert cli.main(["compat", "contracts", "--root", str(tmp_path), "--base", base]) == 1
+    assert capfd.readouterr().out.count("echo comparing") == 1
+
+
+def test_a_module_without_a_folder_at_the_base(tmp_path, capfd):
+    """The command is read as merged; if its module's folder is not there, say so, never crash."""
+    base = project(tmp_path, compat="true")
+    git(tmp_path, "mv", "contracts", "shared-contracts")
+    producer = tmp_path / "modules" / "customers" / "MANIFEST.yaml"
+    producer.write_text(producer.read_text(encoding="utf-8").replace(
+        "path: contracts/", "path: shared-contracts/"), encoding="utf-8")
+    change(tmp_path, path="shared-contracts/customers-api/v1/openapi.yaml")
+    code = cli.main(["compat", "--root", str(tmp_path), "--base", base])
+    output = capfd.readouterr().out
+    assert code == 1 and "Traceback" not in output, output

@@ -98,12 +98,15 @@ def _holder(root: Path, path: str) -> tuple[str, Path] | None:
     return None
 
 
-def _extract(root: Path, base: str, path: str, into: Path) -> Path:
-    archive = subprocess.run(["git", "archive", "--format=tar", base, "--", path], cwd=root,
+def _base_tree(root: Path, base: str, into: Path) -> Path:
+    """The whole repository as it is at the base. The proof runs here, so the change it judges
+    cannot rewrite what judges it — a script, a fixture, anything it reads (D44). Measured on
+    2026-09-20: 7 ms for 1.6 MB."""
+    archive = subprocess.run(["git", "archive", "--format=tar", base], cwd=root,
                              capture_output=True, check=True).stdout
     with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
         tar.extractall(into, filter="data")
-    return into / path
+    return into
 
 
 def run(root: Path, module: str | None, base: str) -> int:
@@ -152,15 +155,26 @@ def run(root: Path, module: str | None, base: str) -> int:
                             "a new version beside it (docs/os/03-contracts.md §4).")
             continue
         with tempfile.TemporaryDirectory() as temporary:
+            tree = _base_tree(root, fork, Path(temporary))
+            where_it_runs = tree / folder.relative_to(root)
+            if not where_it_runs.is_dir():
+                failures.append(f"[V1] {label}: module '{name}' has no folder at the base, so its "
+                                f"compatibility command cannot be run as merged.\n      Action: "
+                                "declare the command where the module now lives, in a pull request "
+                                "of its own (docs/os/03-contracts.md §4).")
+                continue
             env = {**os.environ, "NSTACK_CONTRACT": contract, "NSTACK_VERSION": version,
-                   "NSTACK_BASE_PATH": str(_extract(root, fork, path, Path(temporary))),
-                   "NSTACK_HEAD_PATH": str(root / target)}
+                   "NSTACK_BASE_PATH": str(tree / path), "NSTACK_HEAD_PATH": str(root / target)}
             print(f"-> {name}: {command}", flush=True)
-            code = subprocess.run(command, shell=True, cwd=folder, env=env).returncode
+            code = subprocess.run(command, shell=True, cwd=where_it_runs, env=env).returncode
         if code:
-            failures.append(f"[V1] {label}: `{command}` exited with {code}, a breaking change.\n"
-                            "      Action: publish it as a new version beside it, then migrate its "
-                            "consumers (expand/contract, docs/os/03-contracts.md §4).")
+            failures.append(f"[V1] {label}: the compatibility command of module '{name}' ({where}) "
+                            f"did not prove the change compatible (exit {code}).\n"
+                            "      Action: read the comparator's output above. If the change is "
+                            "breaking, publish it as a new version beside this one and migrate its "
+                            "consumers (expand/contract, docs/os/03-contracts.md §4). If the command "
+                            "could not run — a missing tool, no network — fix the command: V1 cannot "
+                            "pass without a proof.")
         else:
             checked.append(f"{label}: proven compatible")
     for line in checked:
