@@ -162,9 +162,9 @@ the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-ch
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
 projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1 and from v0.3.1 to v0.4.0, all
-published, and the update's pull request passes the checks of the version it brings. This repository's agent works under
-its own GitHub App, behind the maintainer's approval, and its session reaches none of the
-maintainer's credentials (ADR-0004).
+published, and the update's pull request passes the checks of the version it brings. This
+repository's agent works under its own GitHub App, behind the maintainer's approval, and its
+session reaches none of the maintainer's credentials (ADR-0004).
 
 **M9 rehearsed a full team cycle on a public subject (2026-09-19)**: one cycle end to end in a
 day, zero sync events during the work, a review median of 10 minutes — and two probes accepted
@@ -181,7 +181,8 @@ by the rule that names them, and the two that must pass passed; the forge's own 
 compliant. Its review found one more way around a barrier — the contract proof runs in the
 pull request's tree, so a proof calling a file of its module can be rewritten by the change
 it judges — and the maintainer's exit decision is **fix first**: the pilot, private and the
-first real use, starts on a v0.4.1 that closes it (D44 to D47). A direction is recorded and
+first real use, starts on a v0.5.0 that closes it (D44 to D47) and serves a repository the
+forge cannot guard (PDR-0006, accepted 2026-09-20). A direction is recorded and
 not yet built:
 PDR-0004, which routes the interview on the project's stage and the field the questions come
 from; its design is M11. The checks the handbook describes without them being automated are

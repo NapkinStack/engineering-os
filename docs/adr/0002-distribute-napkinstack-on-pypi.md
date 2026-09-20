@@ -1,6 +1,7 @@
 # ADR-0002 — Distribute NapkinStack on PyPI
 
-- **Status**: Accepted (2026-09-15, after the v0.1.0 release); clarified 2026-09-20 (two channels, one published artefact)
+- **Status**: Accepted (2026-09-15, after the v0.1.0 release); clarified 2026-09-20 (two
+  channels, one published artefact)
 - **Date**: 2026-09-15
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the engine)
@@ -171,8 +172,9 @@ way in. Since [PDR-0005](../pdr/0005-work-on-the-framework-while-using-it.md) a 
 already be pinned to a ref and its CI installs from the forge — but a newcomer has no
 documented gesture other than the registry, while the field's default in this niche is the
 forge: [Spec Kit](https://github.com/github/spec-kit/blob/main/docs/installation.md)
-documents "two official channels", its repository and PyPI, and shows the git route first,
-pinned to a release tag. `uv` installs either without a line of code from us.
+documents "two official channels", its repository and PyPI — *"Either route is supported for
+normal installs"* — and pins its git route to a release tag. `uv` installs either without a
+line of code from us.
 
 **Clarification.** There are two channels and one artefact of reference.
 
@@ -193,9 +195,10 @@ pinned to a release tag. `uv` installs either without a line of code from us.
   the registry: Copier records `_commit: v0.4.0` and the repository as `_src_path`, so the
   project's own CI resolves the registry. The channel a project was born through leaves no
   trace in what judges it, which is why the forge channel needs no mechanism of its own.
-- A **mutable ref** — a branch, `HEAD` — is never a documented gesture for a user. It is the
-  contributor's loop (PDR-0005), where every run announces the unpublished framework and the
-  diagnosis reports it. pre-commit draws the same line for its own hook repositories: a
+- **A ref that is not a published tag is never a documented way to install the tool.** It
+  belongs to the contributor's loop (PDR-0005), which works from a local checkout or a commit
+  — `CONTRIBUTING.md`'s own commands — and where every run announces the unpublished framework
+  and the diagnosis reports it. pre-commit draws the same line for its hook repositories: a
   branch in `rev:` "is not supported".
 
 **What this does not change:** the release method, the tag, Trusted Publishing, the
