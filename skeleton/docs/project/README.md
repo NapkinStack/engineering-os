@@ -9,7 +9,7 @@ cycle before working (`AGENTS.md` §4).
 | `discovery.md` | An idea tested: evidence, value hypothesis, challenge, decision | The framer, then the challenger (`playbooks/discovery.md`) | The decider |
 | `charter.md` | Users, problem, constraints, risks, success criteria, out of scope | The framer (`playbooks/framing.md`) | The decider |
 | `cycles/NN-<slug>.md` | One goal, a finite list of deliverables, an appetite, an end date, the closure | The framer | The decider |
-| `_CHARTER_TEMPLATE.md`, `cycles/_TEMPLATE.md` | The templates | — | — |
+| `_DISCOVERY_TEMPLATE.md`, `_CHARTER_TEMPLATE.md`, `cycles/_TEMPLATE.md` | The templates | — | — |
 
 ```mermaid
 flowchart LR

@@ -18,6 +18,8 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
 > [every barrier refuses](docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md),
+> [a proof that cannot be rewritten](docs/governance/plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md),
+> [the conformance suite](docs/governance/plans/2026-09-20-m12-conformance-suite.md),
 > [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey
@@ -72,8 +74,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.4.0" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.4.0"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.5.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.5.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
@@ -104,6 +106,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
+| `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
 | `nstack update` | Lays the new version on a branch to review |
 

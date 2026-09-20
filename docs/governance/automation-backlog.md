@@ -13,6 +13,7 @@
 | A contraction issue opened as soon as the expand lands | `03-contracts.md` §4, by hand | Medium | Low | The first versioned contract | Post-pilot review |
 | External dependency declared in the manifest | The security playbook, review | Medium | Medium | The first module with dependencies | Post-pilot review |
 | English is the repository's only language (ADR-0003) | `AGENTS.md`, `CONTRIBUTING.md`, review | Low | High — detection rests on accented letters: blind to English borrowings, false-positive on typographic punctuation and proper nouns | First outside contribution written in another language | Post-pilot review |
+| Review budget adjusted per module, by criticality | `05-workflow.md` §4 | Low | Low | A module whose budget is genuinely different | Post-pilot review |
 
 ## Rules already automated — removed from the prompt
 
@@ -27,6 +28,12 @@
 | No secret in the repository | gitleaks (hook and CI), push protection | 2026-09-13 |
 | No update conflict marker left | `check-merge-conflict --assume-in-merge` (hook and CI) | 2026-09-15 |
 | Forge settings matching the checklist | `nstack doctor`, read-only | 2026-09-15 |
+| No direct access to another module's data | `nstack boundaries` B5 | 2026-09-19 |
+| Stale approvals dismissed on push | `nstack doctor` G13 | 2026-09-19 |
+| The test sheet: verifier, evidence, commit, results | `nstack pr-check` T1 to T5 | 2026-09-17 |
+| Delivery work inside an accepted cycle | `nstack pr-check` K1 to K4 | 2026-09-17 |
+| No path from one person's machine in a tracked file | `nstack hygiene` H1 | 2026-09-19 |
+| A commit that reached the default branch outside a pull request | `nstack landed` W1, recorded | 2026-09-20 |
 
 ## Review
 

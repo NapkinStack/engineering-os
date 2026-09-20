@@ -123,7 +123,8 @@ green.
 ## 5. How to work on this repository
 
 The kernel `skeleton/AGENTS.md` stays your reference for **method** — oracle first,
-minimal change, five-block summary, stop on a high-risk action. Three adaptations:
+minimal change, five-block summary, stop on a high-risk action. Three adaptations, and
+what does not judge here:
 
 **"A module" reads "a workstream".** There are no modules here. The unit of batch is the
 workstream listed in `docs/governance/workstreams.md`. One workstream, one pull request, one
@@ -135,6 +136,14 @@ which also runs the pytest cases for rules M, B, S, P and H
 proves it fails when the rule is broken, and watch it fail. The pattern exists in both
 files: a fitness function rule gains a parameterised case there, a command behaviour gains
 a block of `run.sh`.
+
+**Three of the five required checks run here.** `Fitness functions`, `PR scope and review
+budget` and `Hooks and secrets` judge this repository. `Test sheet and cycle` does not: there is
+no `docs/project/` here, and `platform/` is of criticality `high`, so T1 would ask for a test
+sheet on almost every pull request of a repository whose deliverable is the framework itself.
+`Commits on main` does not either: the ruleset refuses a direct push, which is the barrier that
+record exists to compensate for. Both are exemptions, not oversights, and PDR-0007 is where the
+first of them becomes a state a project can declare.
 
 **The "client" is fictional but demanding.** Before every change, ask which of the four
 users of §3 benefits, and how we will know. An improvement that serves none of them is not
@@ -156,12 +165,13 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.4.0 is published on PyPI (2026-09-19), with a provenance attestation, and
+NapkinStack v0.5.0 is published on PyPI (2026-09-20), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
 PDR-0002). Every check has a test that proves its failure. `nstack update` has carried
-projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1 and from v0.3.1 to v0.4.0, all
+projects from v0.1.0 to v0.2.0, from v0.2.0 to v0.3.1, from v0.3.1 to v0.4.0 and from
+v0.4.0 to v0.5.0, all
 published, and the update's pull request passes the checks of the version it brings. This
 repository's agent works under its own GitHub App, behind the maintainer's approval, and its
 session reaches none of the maintainer's credentials (ADR-0004).
@@ -205,6 +215,8 @@ Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md`,
 `docs/governance/plans/2026-09-17-v0.3.1-what-changes-a-module.md`,
 `docs/governance/plans/2026-09-17-team-mode-validation.md`,
-`docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md`. Defects and decisions:
+`docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md`,
+`docs/governance/plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md`,
+`docs/governance/plans/2026-09-20-m12-conformance-suite.md`. Defects and decisions:
 `docs/governance/workstreams.md`. Beyond that, let the pilot's usage dictate the next
 fitness functions and agent adapters: nothing is built before it has served once.
