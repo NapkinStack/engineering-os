@@ -712,6 +712,11 @@ fi
 echo "$OUT" | grep -qF "older than the project version (90.2.0)" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
   || { echo "FAIL: downgrade badly refused."; echo "$OUT"; exit 1; }
+# P6: the action is a command to run, not a description of one. Found in real use on
+# 2026-09-20: the maintainer met this refusal, then tried `uv tool upgrade`, which does
+# nothing on a pinned install.
+echo "$OUT" | grep -qF 'uv tool install "napkinstack@latest"' \
+  || { echo "FAIL: the refusal must name the command that moves the workstation forward."; echo "$OUT"; exit 1; }
 
 echo "-> update: a modified working tree MUST be refused, without changing anything"
 echo "local change" >> "$A/README.md"

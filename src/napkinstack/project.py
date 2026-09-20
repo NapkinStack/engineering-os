@@ -55,8 +55,12 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
         return (f"FAIL [{command}] Working tree modified in {where}: an update starts from a "
                 f"committed state (PDR-0001).\n{action}commit or stash (git stash), then run again.")
     if match := DOWNGRADE.search(text):
+        # The action is a command, not a description of one: an install pinned to an exact
+        # version is not moved by `uv tool upgrade`, which is what a reader tries first.
         return (f"FAIL [{command}] Target version {match[2]} older than the project version ({match[1]}): "
-                f"no going back (PDR-0001).\n{action}use nstack {match[1]} or newer.")
+                f"no going back (PDR-0001).\n{action}move this workstation forward first — "
+                'uv tool install "napkinstack@latest" --with-executables-from pre-commit — '
+                f"or pin the version you want, {match[1]} or newer.")
     if text.startswith("Updating is only supported in git-tracked subprojects"):
         return (f"FAIL [{command}] {where} is not a git repository: the merge relies on "
                 f"history.\n{action}git init, commit, then run again.")
