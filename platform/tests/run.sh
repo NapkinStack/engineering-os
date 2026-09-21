@@ -519,6 +519,15 @@ echo "$OUT" | grep -qF "Project created in" \
   || { echo "FAIL: the project is not committed on main."; git -C "$PROJECT" status; exit 1; }
 LEFTOVERS=$(find "$PROJECT" -name '*.jinja')
 [ -z "$LEFTOVERS" ] || { echo "FAIL: template files copied as is:"; echo "$LEFTOVERS"; exit 1; }
+# D58: what an agent's runtime writes as it runs is ignored; what a team shares is not.
+for ignored in .mcp.json .claude/launch.json .claude/routines/x.md .claude/.cc-writes/x; do
+  git -C "$PROJECT" check-ignore -q "$ignored" \
+    || { echo "FAIL: the project does not ignore $ignored, left by an agent's runtime (D58)."; exit 1; }
+done
+for tracked in .claude/settings.json .claude/hooks/check.sh; do
+  git -C "$PROJECT" check-ignore -q "$tracked" \
+    && { echo "FAIL: the project ignores $tracked, which a team shares on purpose (D58)."; exit 1; }
+done
 for expected in ".github/CODEOWNERS|@acme/platform" \
                ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
                "contracts/MANIFEST.yaml|owner: acme/platform" \

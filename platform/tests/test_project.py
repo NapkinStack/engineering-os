@@ -37,6 +37,18 @@ def test_a_local_error_that_is_not_the_working_tree():
     assert "git named what it could not handle above" in message, message
 
 
+def test_init_names_what_makes_the_folder_full(tmp_path, capsys):
+    """D56: "pick a folder that is missing or empty" sends the reader hunting, and what fills
+    the folder is usually hidden files an editor or an agent left. Found on the pilot, at the
+    framework's very first gesture."""
+    (tmp_path / ".vscode").mkdir()
+    (tmp_path / ".mcp.json").write_text("{}\n", encoding="utf-8")
+    assert project.init(tmp_path, {}, "unused", "v1.0.0") == 1
+    output = capsys.readouterr().out
+    assert ".mcp.json" in output and ".vscode" in output, output
+    assert str(tmp_path) in output, output
+
+
 def test_a_single_line_error_is_unchanged():
     """The neighbour: with nothing to prefer, the last line still carries the message."""
     message = project._explain(OSError("Could not resolve host: github.com"), "init",

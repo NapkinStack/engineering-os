@@ -92,9 +92,18 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     from napkinstack.doctor import CHECKLIST
 
     destination = destination.resolve()
-    if destination.exists() and (not destination.is_dir() or any(destination.iterdir())):
-        print(f"FAIL [init] {destination} is not empty: nstack init creates a new project.\n"
-              "      Action: pick a folder that is missing or empty.")
+    if destination.exists() and not destination.is_dir():
+        print(f"FAIL [init] {destination} is a file, not a folder: nstack init creates a new "
+              "project.\n      Action: pick a folder that is missing or empty.")
+        return 1
+    # Naming what fills the folder: it is usually hidden — an editor's, an agent's — and a
+    # reader told only "not empty" goes hunting for it (D56).
+    entries = sorted(entry.name for entry in destination.iterdir()) if destination.exists() else []
+    if entries:
+        listed = ", ".join(entries[:4]) + (f", and {len(entries) - 4} more" if len(entries) > 4 else "")
+        print(f"FAIL [init] {destination} is not empty: it holds {listed}.\n"
+              "      Action: pick a folder that is missing or empty, or create the project in a "
+              f"folder inside it — nstack init {destination}/<project>.")
         return 1
     data = {question: value for question, value in answers.items() if value is not None}
     try:
