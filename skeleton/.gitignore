@@ -28,6 +28,22 @@ coverage/
 # Local agent settings: machine-specific paths and permissions
 .claude/settings.local.json
 
+# Agent session and machine state: written by the tool as it runs, never by the project.
+# `.claude/settings.json` and `.claude/hooks/` are deliberately absent from this list —
+# project-level settings and hooks are shared with the team on purpose. What follows is
+# per-machine or per-run, and would carry one workstation's paths into a tracked file,
+# which hygiene H1 refuses.
+.claude/.cc-writes/
+.claude/launch.json
+.claude/loop.md
+.claude/scheduled_tasks.json
+.claude/output-styles/
+.claude/routines/
+.claude/workflows/
+
+# MCP server configuration: names local commands and absolute paths (hygiene H1)
+.mcp.json
+
 # System noise
 Thumbs.db
 Desktop.ini
