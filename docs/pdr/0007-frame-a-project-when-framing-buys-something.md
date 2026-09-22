@@ -1,6 +1,8 @@
 # PDR-0007 — Frame a project when framing buys something
 
-- **Status**: Proposed (2026-09-20)
+- **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
+  before 2027-03-31); to be implemented in **M11**, with PDR-0008 and PDR-0010, which answer the same
+  hour of a project's life
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack pr-check` (rules K1 to K3), `nstack plan`, the skeleton's

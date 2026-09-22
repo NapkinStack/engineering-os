@@ -1,6 +1,7 @@
 # PDR-0010 — The framework imposes the form, the project writes the content
 
-- **Status**: Proposed (2026-09-22)
+- **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
+  before 2027-03-31); to be implemented in **M11**, with PDR-0007 and PDR-0008; it closes D59 and D60
 - **Date**: 2026-09-22
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's `README.md.jinja` and `.github/ISSUE_TEMPLATE/`,
