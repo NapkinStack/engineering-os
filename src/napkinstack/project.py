@@ -80,6 +80,15 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
     if text.startswith("Cannot update: version from last update not detected"):
         return (f"FAIL [{command}] The project does not come from a published version (_commit in {ANSWERS}): "
                 f"no merge base.\n{action}create the project from a vX.Y.Z tag.")
+    # An OSError carrying an errno is the filesystem answering, not the template being out of
+    # reach: a full disk, a read-only path, a directory an interrupted run left behind. Calling
+    # it "unreachable" sends the reader to --source, --ref and the network, none of which can
+    # help (D65). The OSErrors Copier raises for a template it could not read carry no errno.
+    if isinstance(exc, OSError) and exc.errno:
+        return (f"FAIL [{command}] {command} stopped on a local filesystem error: {text}\n"
+                f"{action}read the error above and fix what it names \u2014 space, permissions, or "
+                "something left behind by an interrupted run. The template and the network are "
+                "not in question.")
     if isinstance(exc, OSError) or text == "Local template must be a directory.":
         lines = [line.split("|", 1)[-1].strip() for line in text.splitlines() if line.strip()]
         # git writes the cause on an `error:` line and the outcome on a `fatal:` one; keeping
