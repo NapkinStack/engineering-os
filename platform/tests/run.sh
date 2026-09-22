@@ -4,6 +4,14 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 REPO=$(pwd)
 
+# Every repository this suite creates is thrown away within seconds, and git's automatic
+# maintenance has no business running inside one: it writes into .git/objects/pack while a
+# temporary clone is being removed. Seen once on CI as "[Errno 39] Directory not empty:
+# 'pack'" during an update, never reproduced locally (D64). Disabled through the
+# environment, so no machine configuration is touched — and justified on its own terms,
+# whatever that failure turns out to have been.
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=gc.auto GIT_CONFIG_VALUE_0=0
+
 echo "-> nstack: the command responds and prints its version"
 uv run nstack --version | grep -qE '^nstack [0-9]+\.[0-9]+' \
   || { echo "FAIL: nstack --version does not respond."; exit 1; }

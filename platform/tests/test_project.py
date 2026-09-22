@@ -67,6 +67,17 @@ def test_update_says_where_the_notes_are(source, expected):
     assert project.release_notes(source, "v1.2.3") == expected
 
 
+def test_a_filesystem_error_is_not_a_reachability_problem():
+    """D65: every OSError was reported as "Template unreachable", with an action about
+    --source, --ref and the network. `Directory not empty` during a cleanup is none of those,
+    and that wrong label cost ten minutes of diagnosis on a red main."""
+    message = project._explain(OSError(39, "Directory not empty", "pack"), "update",
+                               Path("/w"), "/srv/template", "v1.2.3")
+    assert "unreachable" not in message, message
+    assert "Directory not empty" in message, message
+    assert "--source" not in message, message
+
+
 def test_a_single_line_error_is_unchanged():
     """The neighbour: with nothing to prefer, the last line still carries the message."""
     message = project._explain(OSError("Could not resolve host: github.com"), "init",
