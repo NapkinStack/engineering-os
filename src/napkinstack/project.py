@@ -23,11 +23,24 @@ from napkinstack import __version__
 SOURCE = "https://github.com/NapkinStack/engineering-os.git"
 ANSWERS = ".copier-answers.yml"
 DOWNGRADE = re.compile(r"You are downgrading from (\S+) to (\S+)\.")
+# The forms of a GitHub source Copier records, from which a release page can be named.
+GITHUB = re.compile(r"^(?:https://github\.com/|git@github\.com:|gh:)(?P<repo>[^/]+/[^/]+?)(?:\.git)?/?$")
 
 
 def default_ref() -> str:
     """The skeleton of the engine version: they move up together (PDR-0001 R2)."""
     return f"v{__version__}"
+
+
+def release_notes(source: str, ref: str) -> str:
+    """Where to read what a version changes, before taking it. The published package carries
+    the engine and not the skeleton, so comparing two releases of it cannot show what an update
+    merges (D63): the notes are the only channel, and the command that brings the change names
+    them (D62)."""
+    found = GITHUB.match(source.strip())
+    if found:
+        return f"https://github.com/{found['repo']}/releases/tag/{ref}"
+    return f"CHANGELOG.md, section {ref}, in {source}"
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -190,5 +203,7 @@ def update(root: Path, ref: str) -> int:
 
     print(f"Branch {branch}: NapkinStack {previous} -> {current}, merged with the project's "
           "adaptations.")
+    print(f"What {current} changes, engine and project apart: "
+          f"{release_notes(str(_answers(root).get('_src_path') or ''), current)}")
     print(f"\nNext step: git push -u origin {branch}, then open the PR; CI validates it.")
     return 0
