@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from napkinstack import project
 
 CACHE = """Unexpected exit code: 128
@@ -47,6 +49,22 @@ def test_init_names_what_makes_the_folder_full(tmp_path, capsys):
     output = capsys.readouterr().out
     assert ".mcp.json" in output and ".vscode" in output, output
     assert str(tmp_path) in output, output
+
+
+@pytest.mark.parametrize(("source", "expected"), [
+    ("https://github.com/NapkinStack/engineering-os.git",
+     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
+    ("https://github.com/NapkinStack/engineering-os",
+     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
+    ("gh:NapkinStack/engineering-os",
+     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
+    ("https://gitlab.com/acme/os.git", "CHANGELOG.md, section v1.2.3, in https://gitlab.com/acme/os.git"),
+    ("/srv/checkouts/framework", "CHANGELOG.md, section v1.2.3, in /srv/checkouts/framework"),
+])
+def test_update_says_where_the_notes_are(source, expected):
+    """D62: an update is offered for review, and nothing says what it changes. The published
+    package does not carry the skeleton, so the artefacts cannot answer either (D63)."""
+    assert project.release_notes(source, "v1.2.3") == expected
 
 
 def test_a_single_line_error_is_unchanged():

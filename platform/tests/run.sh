@@ -48,6 +48,15 @@ rm -f "$KB"
 within_budget skeleton/AGENTS.md \
   || { echo "FAIL: skeleton/AGENTS.md has $(wc -l < skeleton/AGENTS.md) lines, over 250 (P4). Move a rule to a playbook, or to CI."; exit 1; }
 
+echo "-> changelog: every published version has its section (D62)"
+MISSING=""
+for tag in $(git tag -l 'v*'); do
+  grep -qE "^## ${tag}( |$)" CHANGELOG.md || MISSING="$MISSING $tag"
+done
+[ -z "$MISSING" ] \
+  || { echo "FAIL: no CHANGELOG section for:$MISSING. A published version nobody can read"; \
+       echo "      before taking it is what D62 is about."; exit 1; }
+
 echo "-> an invalid manifest MUST fail"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/broken"
