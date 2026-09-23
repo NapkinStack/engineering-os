@@ -812,8 +812,16 @@ labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget
           "/labels/out-of-cycle": {"name": "out-of-cycle"}}
 ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
 active = {"status": "enabled"}
+# G14 to G16: shaped as the rules want them. Readable without the Administration permission
+# and settable on any plan, which is why they carry no PRIVATE_PLAN entry (D61).
+merges_ok = {"allow_auto_merge": True, "allow_squash_merge": True, "allow_merge_commit": False,
+             "allow_rebase_merge": False, "delete_branch_on_merge": True}
+# GitHub's own defaults for a fresh repository: auto-merge off, three methods allowed, branches kept.
+merges_default = {"allow_auto_merge": False, "allow_squash_merge": True, "allow_merge_commit": True,
+                  "allow_rebase_merge": True, "delete_branch_on_merge": False}
 compliant = {
-    "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active}},
+    "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active},
+         **merges_ok},
     "/rules/branches/main": rules,
     "/private-vulnerability-reporting": {"enabled": True},
     "/actions/permissions": {"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True},
@@ -824,7 +832,8 @@ compliant = {
 }
 inactive = {"status": "disabled"}
 bare = {
-    "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
+    "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive},
+         **merges_default},
     "/rules/branches/main": [],
     "/private-vulnerability-reporting": {"enabled": False},
     "/actions/permissions": {"enabled": True, "allowed_actions": "all", "sha_pinning_required": False},
@@ -836,7 +845,8 @@ compliant[""]["visibility"] = "public"
 bare[""]["visibility"] = "public"
 actions = {path: response for path, response in compliant.items() if path.startswith("/actions/")}
 private = {
-    "": {"visibility": "private", "security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive}},
+    "": {"visibility": "private", "security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive},
+         **merges_ok},
     "/rules/branches/main": [],
     **actions, **labels,
 }
@@ -909,7 +919,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 13 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 16 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/README.md.jinja \
@@ -991,12 +1001,15 @@ repo_c acme/bare
 if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
-[ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 10 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
+[ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 13 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
   || { echo "FAIL: actions or workstation incorrect."; echo "$OUT"; exit 1; }
+# P6: each of the three merge rules names the place to go, not just the rule it broke (D61).
+[ "$(echo "$OUT" | grep -cF 'Action: Settings → General → Pull Requests')" -eq 3 ] \
+  || { echo "FAIL: G14-G16 without their setting's location."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: unguarded" && echo "$OUT" | grep -qF "Not yet in place" \
   || { echo "FAIL: a public repository with no settings is unguarded, its gaps reachable (PDR-0006)."; echo "$OUT"; exit 1; }
 
@@ -1005,7 +1018,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 20 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 23 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1058,7 +1071,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 19 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 22 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
