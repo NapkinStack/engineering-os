@@ -53,18 +53,35 @@ def test_init_names_what_makes_the_folder_full(tmp_path, capsys):
 
 @pytest.mark.parametrize(("source", "expected"), [
     ("https://github.com/NapkinStack/engineering-os.git",
-     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
+     "https://github.com/NapkinStack/engineering-os/blob/v1.2.3/CHANGELOG.md"
+     " — every section above v1.0.0"),
     ("https://github.com/NapkinStack/engineering-os",
-     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
+     "https://github.com/NapkinStack/engineering-os/blob/v1.2.3/CHANGELOG.md"
+     " — every section above v1.0.0"),
     ("gh:NapkinStack/engineering-os",
-     "https://github.com/NapkinStack/engineering-os/releases/tag/v1.2.3"),
-    ("https://gitlab.com/acme/os.git", "CHANGELOG.md, section v1.2.3, in https://gitlab.com/acme/os.git"),
-    ("/srv/checkouts/framework", "CHANGELOG.md, section v1.2.3, in /srv/checkouts/framework"),
+     "https://github.com/NapkinStack/engineering-os/blob/v1.2.3/CHANGELOG.md"
+     " — every section above v1.0.0"),
+    ("https://gitlab.com/acme/os.git",
+     "CHANGELOG.md, every section above v1.0.0, in https://gitlab.com/acme/os.git"),
+    ("/srv/checkouts/framework",
+     "CHANGELOG.md, every section above v1.0.0, in /srv/checkouts/framework"),
 ])
 def test_update_says_where_the_notes_are(source, expected):
     """D62: an update is offered for review, and nothing says what it changes. The published
     package does not carry the skeleton, so the artefacts cannot answer either (D63)."""
-    assert project.release_notes(source, "v1.2.3") == expected
+    assert project.release_notes(source, "v1.0.0", "v1.2.3") == expected
+
+
+def test_the_notes_cover_every_version_crossed_not_only_the_target():
+    """D66: the first form named the target version's release page alone. A project moving
+    0.6.0 -> 0.6.2 was sent to a page that holds v0.6.2 only, while the conflict the update
+    had just created came from v0.6.1's skeleton change. The reader's own reasoning was
+    sound; the page could not answer it."""
+    crossed = project.release_notes("gh:NapkinStack/engineering-os", "v0.6.0", "v0.6.2")
+    assert "v0.6.0" in crossed, crossed
+    assert "/releases/tag/" not in crossed, crossed
+    one_hop = project.release_notes("gh:NapkinStack/engineering-os", "v0.6.1", "v0.6.2")
+    assert "above v0.6.1" in one_hop, one_hop
 
 
 def test_a_filesystem_error_is_not_a_reachability_problem():

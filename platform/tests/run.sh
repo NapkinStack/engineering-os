@@ -715,6 +715,11 @@ grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
   || { echo "FAIL: project version not bumped."; exit 1; }
 echo "$OUT" | grep -qF "git push -u origin nstack/update-v90.2.0" \
   || { echo "FAIL: next step missing."; echo "$OUT"; exit 1; }
+# D66: the notes name the distance travelled, never the target alone — one update can cross
+# several versions, and the change that conflicts may come from any of them.
+echo "$OUT" | grep -qF "What v90.1.0 -> v90.2.0 changes, engine and project apart:" \
+  && echo "$OUT" | grep -qF "every section above v90.1.0" \
+  || { echo "FAIL: the notes do not name every version crossed (D66)."; echo "$OUT"; exit 1; }
 
 echo "-> update: a file the team deleted is not recreated (criterion 6)"
 [ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "FAIL: deleted file recreated."; exit 1; }

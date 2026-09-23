@@ -32,15 +32,21 @@ def default_ref() -> str:
     return f"v{__version__}"
 
 
-def release_notes(source: str, ref: str) -> str:
+def release_notes(source: str, previous: str, current: str) -> str:
     """Where to read what a version changes, before taking it. The published package carries
     the engine and not the skeleton, so comparing two releases of it cannot show what an update
     merges (D63): the notes are the only channel, and the command that brings the change names
-    them (D62)."""
+    them (D62).
+
+    It names the whole distance travelled, never the target alone (D66). One `nstack update`
+    can cross several versions, and the change that conflicts with the project's own files may
+    come from any of them: a release page holds one version and cannot answer for the others.
+    The CHANGELOG at the tag holds them all."""
     found = GITHUB.match(source.strip())
     if found:
-        return f"https://github.com/{found['repo']}/releases/tag/{ref}"
-    return f"CHANGELOG.md, section {ref}, in {source}"
+        return (f"https://github.com/{found['repo']}/blob/{current}/CHANGELOG.md"
+                f" — every section above {previous}")
+    return f"CHANGELOG.md, every section above {previous}, in {source}"
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -212,7 +218,7 @@ def update(root: Path, ref: str) -> int:
 
     print(f"Branch {branch}: NapkinStack {previous} -> {current}, merged with the project's "
           "adaptations.")
-    print(f"What {current} changes, engine and project apart: "
-          f"{release_notes(str(_answers(root).get('_src_path') or ''), current)}")
+    print(f"What {previous} -> {current} changes, engine and project apart: "
+          f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
     print(f"\nNext step: git push -u origin {branch}, then open the PR; CI validates it.")
     return 0
