@@ -20,6 +20,34 @@ a patch.
 
 ---
 
+## v0.6.2 — 2026-09-23
+
+**In the engine**
+
+- **What a version changes is published.** This file is the source: the release workflow refuses
+  to publish a version whose section is missing, then posts that section as the tag's release
+  page. `nstack update` names where to read it once the branch is laid down (D62).
+- Every entry separates **what changes in the engine** from **what changes in your project**,
+  because the published package carries `src/napkinstack/` and not `skeleton/`: comparing two
+  releases of the package is structurally blind to what `nstack update` merges (D63).
+- Those notes name **every version crossed**, not the target alone. One update can cross several
+  versions, and the change that conflicts with your own files may come from any of them; a
+  release page holds one version and cannot answer for the others (D66).
+- A refusal carrying an `errno` names the filesystem and says to read what it names, instead of
+  reporting every `OSError` as *"Template unreachable"* with an action about `--source`, `--ref`
+  and the network (D65).
+
+**In your project** — nothing
+
+`skeleton/` is unchanged since v0.6.1. `nstack update` lays down a branch that bumps the
+recorded version and merges no file, so it cannot conflict.
+
+**Migration**
+
+None from v0.6.1. **Coming from v0.6.0 or below, read the sections above your own version**:
+v0.6.1 changes `.gitignore` and carries its own migration note — which is exactly the case D66
+exists for.
+
 ## v0.6.1 — 2026-09-22
 
 **In the engine**
