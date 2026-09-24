@@ -87,6 +87,7 @@ You **stop and report** in these cases, without looking for a way around:
 | A quality gate blocks | Stop. Never a workaround, a `skip`, a `--no-verify` or a disabled test. |
 | Potentially destructive action | Stop. See §5. |
 | A blocking piece of information is missing after searching | Ask for clarification. Once, precisely. |
+| A module's criticality has to be chosen | Propose it with what it costs, and let the decider settle it: it is a product decision (`docs/os/05-workflow.md` §7). |
 
 A red CI is never a detail. A bypassed gate is an incident.
 

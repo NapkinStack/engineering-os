@@ -288,27 +288,27 @@ MATRIX = {
 **Done when:** the four values produce four different regimes, each proven by a test that was
 seen red, and no step in a generated project passes without being able to fail.
 
-## M11c — The choice returns to the decider — PR 3
+## M11c — The choice returns to the decider — PR 3 *(delivered)*
 
 The defect: `cli.py:83` declares `criticality` with `choices=[...]` and **no `help`**, while its
 neighbours `name` and `owner` have one. The agent types a word with no criteria at hand and
 picks the prudent one.
 
-- [ ] **Task 1.** Help text on the argument, one line per value, phrased as a consequence:
+- [x] **Task 1.** Help text on the argument, one line per value, phrased as a consequence:
       *"prototype: thrown away, nothing depends on it · standard: real code, no money, no
       personal data · high: a failure costs a day · critical: a key, an order, money, or
       someone's data."*
-- [ ] **Task 2.** `new-module` prints, **before creating**, what the chosen value will require
+- [x] **Task 2.** `new-module` prints, **before creating**, what the chosen value will require
       and what the neighbouring values would change — the matrix rows that apply, not a link.
-- [ ] **Task 3.** `next_steps` gains one line: the creation ADR records the criticality **and one
+- [x] **Task 3.** `next_steps` gains one line: the creation ADR records the criticality **and one
       sentence of justification**. The ADR already goes through the decider's approval, so the
       choice becomes a reviewed act rather than a keystroke.
-- [ ] **Task 4.** One line in the kernel (`skeleton/AGENTS.md`), under the stopping rules: *"The
+- [x] **Task 4.** One line in the kernel (`skeleton/AGENTS.md`), under the stopping rules: *"The
       criticality of a module is a product decision. You propose it with its consequence; the
       decider settles it."* Check the 250-line budget after the edit; if it exceeds, the sentence
       about session identity that `07-governance.md` §7 already carries in full is the one to
       shorten.
-- [ ] **Task 5.** `platform/tests/` asserts the help text exists and that the consequences are
+- [x] **Task 5.** `platform/tests/` asserts the help text exists and that the consequences are
       printed — a silent generator is the defect being fixed.
 
 **Done when:** `nstack new-module --help` answers "which one do I pick?" without opening a
