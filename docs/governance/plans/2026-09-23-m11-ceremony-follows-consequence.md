@@ -129,19 +129,30 @@ the floor.
 ```mermaid
 flowchart TD
     V62["v0.6.2<br/>D62-D66 published<br/>(precondition)"]:::done --> A
-    A["M11a<br/>one matrix, prototype included<br/>machine vs owed"] --> B["M11b<br/>the engine spends it"]
-    B --> C["M11c<br/>the choice returns to the decider"]
-    B --> D["M11d<br/>T4 stops being a ratchet"]
-    A --> E["M11e<br/>non-code work leaves<br/>the deliverables"]
-    F["M11f<br/>approval mechanics<br/>auto-merge, squash, D61"] --> G
-    C --> G["M11g<br/>OSPS Baseline levels<br/>probe first"]
-    D --> G
-    E --> G
-    G --> H["M11h<br/>PDR-0011, records<br/>corrected in place"]
-    H --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
+    A["M11a<br/>one matrix, prototype included<br/>machine vs owed"]:::done --> B["M11b<br/>the engine spends it"]:::done
+    B --> C["M11c<br/>the choice returns to the decider"]:::done
+    B --> D["M11d<br/>T4 stops being a ratchet"]:::done
+    A --> E["M11e<br/>a criterion nobody can meet<br/>is a spike"]:::done
+    F["M11f<br/>approval mechanics<br/>auto-merge, squash, D61"]:::done --> H
+    C --> H["M11h<br/>PDR-0011, records<br/>corrected in place"]:::done
+    D --> H
+    E --> H
+    H --> G["M11g<br/>OSPS Baseline levels<br/>probe first"]
+    H --> J["M11j<br/>unframed<br/>PDR-0007"]
+    H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77"]
+    H --> L["M11l<br/>the form<br/>PDR-0010"]
+    H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]
+    G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
+    J --> I
+    K --> I
+    L --> I
+    M --> I
 
     classDef done fill:#065f46,color:#fff
 ```
+
+**Legend** — green: merged · no fill: to do. Redrawn by M11h on 2026-09-24: M11h was taken
+before M11g, which may evaporate on its probe, and M11j to M11m were added before the release.
 
 M11f has no dependency and gives the largest immediate relief for the smallest change: it may be
 taken first if the pilot's next cycle starts before M11a lands.
@@ -172,7 +183,7 @@ taken first if the pilot's next cycle starts before M11a lands.
 | `docs/adr/0005-*.md` | new: adopt the OSPS Baseline rather than invent a scale | M11g |
 | `docs/adr/0003-*.md` | shrunk to the rule in force | M11h |
 | `AGENTS.md`, `PRODUCT.md` §2, §3, §5 | the M7 sentence, the fifth user, the honest claim, the records exemption | M11h |
-| `docs/governance/workstreams.md` | D66 to D72 recorded | M11h |
+| `docs/governance/workstreams.md` | D66 to D77 recorded | M11h |
 | `CHANGELOG.md` | the v0.7.0 section, engine and project apart | M11i |
 
 ---
@@ -445,28 +456,30 @@ and the framework stops charging level 3 to a project that has no users.
 
 ## M11h — The records, corrected in place — PR 8
 
-- [ ] **Task 1.** **PDR-0011 — Ceremony follows consequence.** The product decision: two axes,
+- [x] **Task 1.** **PDR-0011 — Ceremony follows consequence.** The product decision: two axes,
       two owners; the framework says what each level buys; a dated success criterion
       (**2027-03-31**) and a removal condition, per the PDR format.
-- [ ] **Task 2.** `PRODUCT.md` §3 gains a fifth user — *a solo founder before there is a product*
+- [x] **Task 2.** `PRODUCT.md` §3 gains a fifth user — *a solo founder before there is a product*
       — with a measurable criterion, because the plan is about serving them without betraying the
-      other four.
-- [ ] **Task 3.** `PRODUCT.md` §2, *what it does not sell*, gains the honest sentence the market
+      other four. *Done as one user, not two:* PDR-0006 had promised §3 its user — one person
+      with agents, on a repository the forge cannot guard — and it was never added. It is the same
+      person, so it is one row, its criterion drawn from PDR-0006, PDR-0007 and PDR-0011.
+- [x] **Task 3.** `PRODUCT.md` §2, *what it does not sell*, gains the honest sentence the market
       data supports: **NapkinStack costs on day one and pays from the first module someone else
       must review.** Stanford's measurement — 35-40% AI speedup on simple greenfield, under 10%
       on complex legacy — says plainly that we do not beat plain iterative prompting on a
       three-day greenfield MVP, and pretending otherwise is how trust is lost.
-- [ ] **Task 4.** `PRODUCT.md` §5 declares the records exemption: ADRs and PDRs of *this*
+- [x] **Task 4.** `PRODUCT.md` §5 declares the records exemption: ADRs and PDRs of *this*
       repository are corrected in place until the framework has an outside user; the supersession
       rule of `06-decisions.md` §134 applies here **from v1.0**. An undeclared exemption is D57.
-- [ ] **Task 5.** `PDR-0007` is clarified in place: its sentence *"removes a bound on the work,
+- [x] **Task 5.** `PDR-0007` is clarified in place: its sentence *"removes a bound on the work,
       never a check on the change"* is true of framing and false of criticality, which has always
       moved checks. One paragraph, dated.
-- [ ] **Task 6.** `ADR-0003` is shrunk to the rule in force — English everywhere including machine
+- [x] **Task 6.** `ADR-0003` is shrunk to the rule in force — English everywhere including machine
       values, **no localisation mechanism**, git history not rewritten — and loses the migration
       narrative, the old value table and the correction log. `AGENTS.md:10-12` loses the M7
       sentence and keeps the rule. The skeleton needs no change: it contains **zero** occurrences.
-- [ ] **Task 7.** `workstreams.md` records **D66** (an update names only the target version's
+- [x] **Task 7.** `workstreams.md` records **D66** (an update names only the target version's
       release page, so a project jumping versions lands where its conflict is not explained),
       **D67** (criticality declared on four values, spent on one threshold; proportionality
       promised in three documents and executed by nothing), **D68** (nothing says when to take an update),
@@ -474,30 +487,94 @@ and the framework stops charging level 3 to a project that has no users.
       **D70** (the criticality is chosen by the agent on a command line with no help, no criteria
       and no consequence shown), **D71** (T4's ratchet: one fix invalidates every scenario),
       **D72** (a deliverable that depends on people outside the project has no executable oracle;
-      the framework demanded one and was paid in simulated evidence).
-- [ ] **Task 8 — the two plans downstream.** **M12**'s catalogue enumerates the rules it attacks:
+      the framework demanded one and was paid in simulated evidence). *Done, with **D73 to D77**
+      besides* — found at the pilot's cycle boundary — and the three accepted decisions no
+      workstream carried (below, M11j to M11l).
+- [x] **Task 8 — the two plans downstream.** **M12**'s catalogue enumerates the rules it attacks:
       it gains M11, G14, G15, G16, and its T1, T4 and M8 entries are rewritten to the new
       behaviour — a conformance suite that attacks the previous rules proves nothing. **M13**'s
       row in `workstreams.md` loses the OSPS mapping, which M11g has taken, and keeps the merge
-      record (PDR-0009).
-- [ ] **Task 9 — a measurement the documents are still waiting for.** `07-governance.md` §7 ends
+      record (PDR-0009). *Done, with two corrections:* there is no rule **M11** to add — M11b
+      built the e2e rule and removed it — and of G14 to G16 only **G15** refuses anything, so it
+      alone gains a forge scenario. M13 keeps the mapping **conditionally**: M11g has not run, and
+      its probe may send the mapping back.
+- [x] **Task 9 — a measurement the documents are still waiting for.** `07-governance.md` §7 ends
       on an open condition: an agent's approval does not count *"until the test sheets show,
       module by module, that an independent verifier finds what a human would"*. The pilot
       produced the first data point — a delegated verifier found **8 real defects, 2 of which the
       author would have shipped**, forced 3 refusals to merge, and showed 5 of the author's
       fixtures proved nothing. The measurement is recorded beside the condition. **The rule does
       not change**: one data point on one module is not the module-by-module evidence the
-      sentence asks for, and saying so is the point.
+      sentence asks for, and saying so is the point. *Done in PDR-0003, not beside the sentence:*
+      `07-governance.md` is in the skeleton, and a figure from this framework's pilot has no place
+      in every project's handbook (PDR-0010). The record the condition answers to is PDR-0003's
+      success criterion, and that is where it is written.
 
 **Done when:** every document says what is true now, the exemption that lets us do that is
 written down, the register holds what was found, and no downstream plan still attacks a rule
 that no longer exists.
 
+**What M11h found that this plan had missed.** Three decisions accepted on 2026-09-22 —
+PDR-0007, PDR-0008 and PDR-0010 — each said *"to be implemented in M11"*, and so did M11's row
+in the register; this plan, written the next day, carried none of them, beyond D61's half of
+PDR-0008 in M11f. On 2026-09-24 the maintainer decided they are built **in M11, before
+v0.7.0**. They are M11j to M11l below; M11m gathers what the pilot's cycle boundary found.
+Each is planned in detail when it starts — the decisions already carry testable acceptance
+criteria, and those are the oracle.
+
+## M11j — The unframed state (PDR-0007) — PR 10
+
+A project with no accepted charter is **unframed**: K1 to K3 do not apply, every other rule
+does, and every judging run names the state. Its oracle is PDR-0007's six acceptance criteria.
+It builds PDR-0004's first axis, the stage, read from the repository and never declared.
+
+**Done when:** a first delivery pull request on an unframed project merges with no charter,
+no cycle and no label, while another rule still refuses something in that project.
+
+## M11k — The forge's settings in one gesture (PDR-0008), and D77 — PR 11
+
+One command beside `doctor`: it computes the distance to the checklist and prints the calls
+that close it; applying is a choice, and only with a credential that **cannot commit**, checked
+first and failing closed. Its oracle is PDR-0008's eight acceptance criteria. **D77** is fixed
+here, because the command and `doctor` share one checklist and one verdict: *not read* and
+*not in place* get two exit codes, and the summary says which.
+
+**Done when:** a repository reaches the checklist in one gesture, no credential ever reaches
+the output, and a script can tell a gap from what could not be read.
+
+## M11l — The form, not the content (PDR-0010) — PR 12
+
+`nstack init` writes a README stub that belongs to the product; the foundation's manual moves
+to `docs/os/INSTALL.md`; `06-decisions.md` §9 names different places for planned and
+unplanned work; the issue forms name kinds of work no deliverable claims; the documentation
+standard is stated once. Its oracle is PDR-0010's five acceptance criteria. **The CHECKLIST's
+second copy moves with the manual** — M11f bound it to `skeleton/README.md.jinja` by a test,
+and that test is the first thing to see red.
+
+**Done when:** a generated project's front page describes the product, and its manual is one
+click away, unchanged in substance.
+
+## M11m — What the pilot's cycle boundary found — PR 13
+
+- **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch
+  from the default branch, or refuses and names the branch it would have carried; the test,
+  seen red first, decides which.
+- **D68**: the pilot's sentence, *"upgrading mid-cycle changes the judge while a cycle is being
+  judged"*, where the handbook describes an update.
+- **D75**: one question in `playbooks/verification.md` — is the entry point a real user calls
+  exercised the way they call it? A playbook line, not a check (P1).
+
+**Done when:** an update started from a feature branch cannot carry a foreign commit
+silently, and the two sentences are where the next reader looks.
+
 ## M11i — v0.7.0, and the two projects that already exist — PR 9 and the release
 
 - [ ] **Task 1.** The `CHANGELOG` v0.7.0 section, **engine and project apart** (D63), with a
       **Migration** paragraph: what a project at the default target level sees change, and what a
-      project that wants to keep today's behaviour declares.
+      project that wants to keep today's behaviour declares. **Written from an update actually
+      run against a copy of each real project before the tag, not predicted from the diff**
+      (D73): our v0.6.1 note announced a conflict on the one project where it could not happen.
+      And **both projects will turn red on G15 and G16**: each allows merge commits today.
 - [ ] **Task 2.** The release, with explicit consent, and the release page produced by the
       workflow rather than by hand — its second live run after v0.6.2.
 - [ ] **Task 3.** `tool-library` takes the update and is observed, not coached.
@@ -544,7 +621,7 @@ that no longer exists.
   coherence map, found by search. Three gaps the first draft had missed are closed: the third
   table (`08-quality.md` §7), the pull request template's sheet, and the CHECKLIST's second copy
   in the skeleton README.
-- **Scope.** Nine workstreams, each tracing to a measured defect: D61, D66 to D72. Nothing here
+- **Scope.** Nine workstreams at planning time, each tracing to a measured defect: D61, D66 to D72; M11h added four more (M11j to M11m), for three accepted decisions and D68, D74, D75, D77. Nothing here
   serves a user of `PRODUCT.md` §3 that is not named, and the fifth user is added explicitly
   rather than assumed.
 - **Ambiguity.** "One round" (M11a task 3) is a statement about what the *framework* requires,

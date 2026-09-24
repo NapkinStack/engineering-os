@@ -8,5 +8,5 @@ This repository develops NapkinStack; it is not a project that uses it.
 3. Oracle: `uv run bash platform/tests/run.sh`.
 4. Language: everything written here is **English** — code, identifiers, documentation,
    machine values, commit messages, pull requests (ADR-0003). Git history is not
-   rewritten. M7 finished on 2026-09-16: what remains in French is quoted history — an
-   old pull request title, a machine value as it was. Never add French.
+   rewritten; what remains in another language is quoted history. Never add any other
+   language.

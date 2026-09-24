@@ -1,8 +1,8 @@
 # PDR-0007 — Frame a project when framing buys something
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); to be implemented in **M11**, with PDR-0008 and PDR-0010, which answer the same
-  hour of a project's life
+  before 2027-03-31); to be implemented in **M11j**, before v0.7.0, with PDR-0008 (M11k) and
+  PDR-0010 (M11l), which answer the same hour of a project's life; clarified 2026-09-24
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack pr-check` (rules K1 to K3), `nstack plan`, the skeleton's
@@ -234,3 +234,21 @@ before it is useful has already lost the person it was written for.
   `PRODUCT.md` §3's tech lead criterion is unchanged, and the fifth user of PDR-0006 gains a
   path that does not start with a charter.
 - **Data**: nothing is collected. The state is read from the tracked files at each run.
+
+---
+
+## Clarification of 2026-09-24 — a bound on the work, and criticality
+
+Added in M11h, without changing the decision.
+
+**Observation:** the decision says it *"removes a bound on the work, never a check on the
+change"*. That is true of framing, and it was written as if it were true of every axis the
+framework reads. It is not true of criticality, which has always moved checks: a `prototype`
+module has never needed a test sheet, and since PDR-0011 the matrix of `05-workflow.md` §7
+says, row by row, which checks each value buys.
+
+**Clarification:** the sentence describes **the stage** alone. Being unframed changes which
+rules bound the work — K1 to K3 — and nothing else. Which checks judge a change is decided by
+the module's declared criticality, on the other axis, in every state. An unframed project with
+a `critical` module pays that module's checks in full; a framed one with a `prototype` module
+does not pay them. The two never substitute for each other.

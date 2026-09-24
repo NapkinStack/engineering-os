@@ -1,9 +1,10 @@
 # PDR-0008 — Configure the repository in one gesture, without handing over the keys
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); to be implemented in **M11**, with PDR-0007 and PDR-0010. It absorbs D61: the merge
-  method and branch deletion join the checklist, both readable without the Administration
-  permission
+  before 2027-03-31); to be implemented in **M11k**, before v0.7.0, with PDR-0007 (M11j) and
+  PDR-0010 (M11l). It absorbs D61: the merge method and branch deletion join the checklist, both
+  readable without the Administration permission — **that half is done** (M11f: G15, G16, and
+  G14 auto-merge); the command is not
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and

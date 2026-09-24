@@ -273,13 +273,23 @@ def test_every_boundary_scenario_is_refused_and_its_neighbour_passes(scenario, p
       added as their neighbour (P4b); V1 the proof rewritten by the change that is judged
       (D44) — the attack declares a `compat` command that reads a file of its own module, and
       the change rewrites that file to exit 0; V1 a frozen version moved to another folder
-      (D36); M2 a version written as a number, or a stability misspelt (D36).
+      (D36); M2 a version written as a number, or a stability misspelt (D36); M8 a `high`
+      module with no runbook, with a `standard` module without one as its neighbour — M8 reads
+      the assurance matrix since M11b.
 
-- [ ] **Step 5: `sheet.py`** — T1 a user-facing change with no sheet (M9's P5); T2 a sheet
-      signed by the session that wrote the change (M10h's P12), with a trailing full stop and a
-      capital as the variants D40 found; T3 a scenario marked passed with no evidence (M9's P6);
-      T4 a sheet verified on another commit; the neighbour for T2 is a sheet signed by another
-      session, which must pass.
+- [ ] **Step 5: `sheet.py`** — T1 a user-facing change with no sheet (M9's P5), and a `high`
+      module changed with no sheet, with a `prototype` module and a `standard` module no user
+      sees as the neighbours that must pass — T1 reads the assurance matrix since M11b; T2 a
+      sheet signed by the session that wrote the change (M10h's P12), with a trailing full stop
+      and a capital as the variants D40 found; T3 a scenario marked passed with no evidence
+      (M9's P6); T4, split by kind since M11d: an automated scenario verified on another commit,
+      and an explored scenario neither re-run nor confirmed at the head, with an explored
+      scenario **confirmed** at the head on a `high` module as the neighbour that must pass — and
+      the same confirmation on a `critical` module refused, because that value re-runs
+      everything; the neighbour for T2 is a sheet signed by another session, which must pass.
+      *(Rewritten by M11h, 2026-09-24: a conformance suite that attacks the previous rules proves
+      nothing. M11's plan also announced an e2e rule, **M11**; M11b built it and removed it —
+      see `src/napkinstack/assurance.py` — so there is nothing to attack.)*
 
 - [ ] **Step 6: `scope.py`** — P1 one change to two modules with no label (M9's P1); K3 a
       delivery pull request naming no deliverable (M9's P7); K4 the `out-of-cycle` label with no
@@ -293,7 +303,8 @@ def test_every_boundary_scenario_is_refused_and_its_neighbour_passes(scenario, p
 
 - [ ] **Step 8: Count them in the test** — assert the catalogue holds at least one scenario per
       rule the engine implements, and list by name the rules deliberately left without one (the
-      forge's G rules, which are Tier 2, and L rules, which describe a workstation).
+      forge's G rules, which are Tier 2 — G14 and G16 with none at all, since they refuse
+      nothing — and L rules, which describe a workstation).
 
 - [ ] **Step 9: Commit** — `M12b — Every walk-around ever found becomes a scenario`.
 
@@ -328,7 +339,10 @@ def test_the_forge_script_names_every_expected_refusal():
       approve your own pull request"*), `G13/stale-approval` (approve, force-push, read the
       review state → dismissed), `G4/required-check-red` (a module test made to fail → the pull
       request BLOCKED, `Module checks` failing and required — M10h's P13), `G12/bypass-list`
-      (read the ruleset's bypass actors → empty).
+      (read the ruleset's bypass actors → empty), and `G15/merge-commit` (`PUT …/pulls/N/merge
+      merge_method=merge` on a repository allowing squash only → refused; its answer recorded at
+      its first run, since no earlier probe ran it). **G14** (auto-merge) and **G16** (branch
+      deletion) relieve rather than refuse: nothing attacks them, and `doctor` reads them.
 
 - [ ] **Step 4: Run the test, see it pass.**
 
