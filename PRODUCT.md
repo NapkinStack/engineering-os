@@ -258,8 +258,10 @@ charges what a failure costs, and nothing more (PDR-0011). On `main`, not yet pu
 assurance matrix, executed by the engine and marked row by row *machine* or *owed*; a fix that
 costs a confirmation rather than a round; a criterion nobody can meet sent to the spike it
 should have been; the criticality returned to the decider with its price shown; and an
-approval that is one gesture. Before v0.7.0: the exposure level (M11g, on a probe), and the
-three decisions accepted for M11 that its first plan did not carry — the unframed state
+approval that is one gesture. The exposure level did not survive its probe — the OSPS
+Baseline's identifiers are stable, but six of our sixteen forge rules have no control to map to
+— and returned to M13. Before v0.7.0: the three decisions accepted for M11 that its first plan
+did not carry — the unframed state
 (PDR-0007), the settings in one gesture (PDR-0008), and the form without the content
 (PDR-0010).
 

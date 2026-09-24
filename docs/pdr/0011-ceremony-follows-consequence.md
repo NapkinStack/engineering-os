@@ -47,8 +47,8 @@ nothing more — and every price is stated before it is chosen.
 - **Routing by the size of a change.** Refused by PDR-0007, for the same reason: it invites
   splitting a change to buy silence.
 - **Inventing a scale for the project's exposure.** One exists, is machine-readable and is
-  mapped to regulation; whether it maps cleanly onto our rules is a probe, recorded in its own
-  ADR.
+  mapped to regulation; whether it maps cleanly onto our rules was a probe, and its answer —
+  not cleanly — is recorded in `docs/governance/audits/2026-09-24-osps-baseline-probe.md`.
 - **A cap on verification.** The framework asks for one round; a project that wants more
   decides it, in its own ADR.
 - **Certifying anything.** The tool reports what it observes, never conformity.
@@ -60,7 +60,7 @@ nothing more — and every price is stated before it is chosen.
 | Product / reference | Solution chosen | What we keep from it |
 |---|---|---|
 | [DO-178C](https://en.wikipedia.org/wiki/DO-178C) Design Assurance Levels, ISO 26262 ASIL, IEC 61508 SIL | An objectives table indexed on the consequence of a failure, audited by humans | **The table.** Ours already existed; the difference is that CI executes its machine rows and the others are named as owed |
-| [OpenSSF OSPS Baseline](https://baseline.openssf.org/) | Three maturity levels of controls for a project, machine-readable, mapped to the EU Cyber Resilience Act | **The scale for exposure**, if M11g's probe finds the mapping clean — a sentence a project can say to someone outside it |
+| [OpenSSF OSPS Baseline](https://baseline.openssf.org/) | Three maturity levels of controls for a project, machine-readable, mapped to the EU Cyber Resilience Act | **The candidate scale for exposure** — a sentence a project can say to someone outside it. M11g's probe found our rules do not map onto it cleanly (2026-09-24); it stays M13's reference |
 | [GitHub Spec Kit](https://github.com/github/spec-kit), issue #1174 and Scott Logic's review | One process for every task, then a `lean` preset after the complaint *"this workflow behaves the same regardless of task complexity"* | **The warning.** The market leader's second weakness was ours too; its answer came late and by preset, ours is by declared consequence |
 | DORA, *ROI of AI-assisted Software Development* (2026) | Names the **verification tax** and finds AI is an amplifier of the system around it | **Where the cost is.** It is in verifying and approving, so that is where proportionality has to act |
 | [PDR-0003](0003-approve-a-change-on-evidence-of-its-behaviour.md) and [PDR-0007](0007-frame-a-project-when-framing-buys-something.md) | Evidence proportionate to criticality; framing paid when it buys something | **The same principle**, applied to the whole matrix rather than to one rule or one stage |
@@ -109,8 +109,9 @@ neighbour would have cost before anyone pays for it.
 **Human review belongs to exposure.** Approval by a non-author human protects the people who
 depend on a project, not the code of one module; it leaves the criticality matrix. The four
 settings of `07-governance.md` §7 keep holding together where they are required, so ADR-0004
-needs no amendment. Which exposure scale, and from which level approval blocks, is M11g's to
-settle in ADR-0005 — **after** its probe. Until then, the forge's checklist applies as today.
+needs no amendment. Which exposure scale, and from which level approval blocks, was M11g's to
+settle in ADR-0005 after a probe; **the probe found the OSPS mapping not clean (2026-09-24)**,
+and the question returned to M13. Until it is answered, the forge's checklist applies as today.
 
 **The approval is one gesture.** Auto-merge removes the human from the merge, never from the
 approval.
@@ -156,8 +157,8 @@ approval.
 - [x] Given a repository, when the diagnosis runs, then it reads whether auto-merge, squash-only
       and branch deletion are on. *(M11f)*
 - [ ] Given a declared exposure target, when the diagnosis runs, then it reports the level
-      observed and the target apart, and never reads as a certification. *(M11g, after its
-      probe)*
+      observed and the target apart, and never reads as a certification. *(M13: M11g's probe
+      found the mapping not clean)*
 
 ---
 
@@ -198,8 +199,8 @@ than a statement.
 - **Modules and contracts**: `criticality` keeps its four values; no field is added.
 - **Decisions**: **PDR-0003** keeps its rule — a sheet and an independent verifier — and gains
   the matrix as the place its trigger is read. **PDR-0007** is clarified: criticality has always
-  moved checks, framing never does. **ADR-0004** is unchanged. **ADR-0005** (M11g) records the
-  exposure scale, or records that the probe sent it to M13.
+  moved checks, framing never does. **ADR-0004** is unchanged. **ADR-0005** is not written: the
+  probe sent the exposure scale to M13.
 - **Support and documentation**: `05-workflow.md` §7 is the matrix; `07-governance.md` §6 and
   `08-quality.md` §7 point at it; `PRODUCT.md` §2 says what the framework does not buy on day
   one, and §3 names the user it now serves.
