@@ -259,9 +259,13 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     if assurance.requires(criticality, "runbook"):
         runbook = (data.get("docs") or {}).get("runbook")
         if not runbook or not (path.parent / runbook).is_file():
-            fail(rel, "M8", f"criticality={criticality} requires an existing runbook "
-                            "(docs/os/05-workflow.md §7; its contents: 08-quality.md §7)"
-                            f"{_relief(criticality, 'runbook')}")
+            declared = (f"criticality={criticality}" if criticality in assurance.CRITICALITIES
+                        else f"criticality {criticality!r} is not a value M3 accepts and is "
+                             "read as critical, which")
+            fail(rel, "M8", f"{declared} requires an existing runbook "
+                            "(docs/os/05-workflow.md §7; what it holds: playbooks/operations.md)"
+                            f"{_relief(criticality, 'runbook')}\n      Action: declare docs.runbook "
+                            "in MANIFEST.yaml and create that file — nstack new-module writes one.")
 
     # M9 - file envelope
     for expected in ["AGENTS.md", "README.md"]:
@@ -273,7 +277,8 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     # M10 - a user-visible surface declared: it decides the test sheet (docs/os/05-workflow.md §7)
     if not isinstance(mod.get("user_facing"), bool):
         fail(rel, "M10", "module.user_facing must be true or false: does a user see this module? "
-                         "true requires a test sheet on its pull requests (docs/os/05-workflow.md §7)")
+                         "true requires a test sheet on its pull requests from standard up "
+                         "(docs/os/05-workflow.md §7)")
 
 
 def run(root: Path) -> int:

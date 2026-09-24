@@ -1,7 +1,8 @@
 # PDR-0004 — Ask the right question, to the right person, at the right moment
 
 - **Status**: Accepted (2026-09-18, by the maintainer; the success criterion is observed on
-  M9's log). The direction only: the design waits on what M9 records.
+  M9's log). The direction only: the design waits on what M9 records. Built in part by
+  M11c (the criticality routed to the decider, 2026-09-24); its stage axis is M11j
 - **Date**: 2026-09-18
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (playbooks, handbook), `nstack` checks,

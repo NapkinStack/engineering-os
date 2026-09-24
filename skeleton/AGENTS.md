@@ -61,7 +61,7 @@ directly, run the local checks, summarise. No ceremony.
 2.  Scope        identify THE module concerned (§4)
 3.  Inventory    existing code, tests, contracts and decisions — in that module
 4.  Oracle       write the executable success criterion, watch it FAIL
-                 a user sees the change: write its test sheet too
+                 a sheet is due (docs/os/05-workflow.md §7): write it too
 5.  Size         does the batch fit the review budget? if not, split it
 6.  Implement    the minimal change
 7.  Validate     actually run the local checks
@@ -190,9 +190,9 @@ being blocking: move forward with an **explicitly stated assumption**.
 
 **Done** — a task is finished when the *applicable* validations have actually passed:
 oracle green, local checks green, contracts validated, the test sheet run by a verifier
-when a user sees the change, affected documentation up to date, diff self-reviewed,
+when one is due, affected documentation up to date, diff self-reviewed,
 summary produced. The level required depends on the criticality declared in the module's
-manifest (`docs/os/07-governance.md` § proportionate governance).
+manifest (`docs/os/05-workflow.md` §7).
 
 ---
 

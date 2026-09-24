@@ -71,6 +71,31 @@ def test_every_row_of_the_matrix_says_who_judges_it() -> None:
     assert not unmarked, f"rows without a judge: {unmarked}"
 
 
+# The machine rows of the table, and the key of `assurance.MATRIX` that executes each one.
+MACHINE_ROWS = {
+    "Test sheet run by a verifier, with evidence": "sheet",
+    "Runbook present": "runbook",
+    "Every scenario re-run at the head commit": "rerun_at_head",
+}
+CELLS = {"✔": True, "—": False, "if user-facing": "user_facing"}
+
+
+def test_the_table_and_the_engine_price_the_machine_rows_alike() -> None:
+    """`assurance.py` says a rule reading it cannot drift from the table, and that this file
+    guards the other direction. Without this case it did not: a cell of the table could change
+    and every assertion above would still pass, while the engine kept the old price."""
+    from napkinstack.assurance import MATRIX as ENGINE
+
+    header, *data = rows(section(WORKFLOW, 7))
+    table = {row[0]: row for row in data}
+    for label, key in MACHINE_ROWS.items():
+        assert label in table, f"machine row missing from the table: {label}"
+        for value in CRITICALITIES:
+            cell = table[label][header.index(value)]
+            assert CELLS.get(cell) == ENGINE[value][key], (
+                f"{label} at {value}: the table says {cell!r}, the engine {ENGINE[value][key]!r}")
+
+
 def test_human_review_is_not_in_the_matrix() -> None:
     """Who must approve is a property of the project's exposure, not of the code's blast radius
     (`07-governance.md` §7). Two axes, two owners: a row here would give it two homes."""

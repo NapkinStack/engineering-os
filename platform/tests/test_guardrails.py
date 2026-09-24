@@ -208,6 +208,24 @@ def test_the_first_edit_of_a_new_manifest_is_valid(tmp_path, capsys):
     assert manifests.run(tmp_path) == 0, capsys.readouterr().out
 
 
+@pytest.mark.parametrize("value", ["severe", None])
+def test_m8_says_an_unknown_criticality_is_read_as_the_strictest(tmp_path, capsys, value):
+    """An unknown or missing value is judged as `critical` until M3 is satisfied (assurance.py).
+    The refusal said "criticality=None requires an existing runbook", as if None had a price."""
+    write_module(tmp_path, "billing", degrade(module__criticality=value))
+    manifests.run(tmp_path)
+    out = capsys.readouterr().out
+    m8 = out[out.index("[M8]"):].split("FAIL [", 1)[0]
+    assert "read as critical" in m8 and f"criticality={value} requires" not in m8, out
+
+
+def test_m8_names_the_action(tmp_path, capsys):
+    """P6: rule, file, action. The refusal named the requirement and not what to write where."""
+    write_module(tmp_path, "billing", degrade(module__criticality="high"))
+    manifests.run(tmp_path)
+    assert "docs.runbook" in capsys.readouterr().out
+
+
 def test_new_module_high_criticality_generates_a_runbook(tmp_path, capsys):
     """M8 requires a runbook from criticality=high on: the scaffolding must write it."""
     assert cli.main(["new-module", "demo", "acme/demo-team", "high", "--root", str(tmp_path)]) == 0
@@ -668,3 +686,25 @@ def test_hygiene_leaves_the_generator_its_own_file(tmp_path, capsys):
     expect(code, output, "H1", True)
     assert ".copier-answers.yml" not in output, output
     assert "docs/answers.md:1" in output, output
+
+
+class _Repository:
+    """A forge answering the repository object alone, as `doctor` reads it for G14 to G16."""
+
+    def __init__(self, fields: dict) -> None:
+        self.fields = fields
+
+    def get(self, path: str, missing: bool = False):
+        assert path == "", path
+        return self.fields
+
+
+@pytest.mark.parametrize("rule", ["G14", "G15", "G16"])
+def test_a_merge_setting_absent_from_the_answer_is_not_verified_never_a_gap(rule):
+    """`_merges` says absent means a degraded read, never a setting that is off. It held only
+    when every field was absent: one field present was enough to turn the others into gaps."""
+    from napkinstack import doctor
+
+    with pytest.raises(doctor.NotVerified):
+        doctor.CHECKS[rule](_Repository({"visibility": "public", "allow_update_branch": True,
+                                         **({} if rule == "G14" else {"allow_auto_merge": True})}))

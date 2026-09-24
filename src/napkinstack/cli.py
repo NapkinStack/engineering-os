@@ -88,7 +88,8 @@ def build_parser() -> argparse.ArgumentParser:
                          "key, an order, money, or someone's personal data. The decider "
                          "settles it (docs/os/05-workflow.md §7)")
     nm.add_argument("--user-facing", action="store_true",
-                    help="a user sees this module: its pull requests carry a test sheet")
+                    help="a user sees this module: from standard up, its pull requests carry a "
+                         "test sheet (docs/os/05-workflow.md §7)")
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
                             ("test", "tests of one module, or of all of them (commands.test)"),

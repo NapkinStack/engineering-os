@@ -127,7 +127,7 @@ journeys, not from free exploration of the interface.
 
 The test sheet (`05-workflow.md` §7) is the everyday form of acceptance: the acceptance
 criteria turned into scenarios, run by someone other than the author, each with its
-evidence. UAT remains for `critical` modules, on top of it.
+evidence. UAT remains for `critical` modules on top of it, and for `high` ones as needed.
 
 ---
 
@@ -165,9 +165,9 @@ is made of; **when** each capability is required is read from the one table that
 question, `05-workflow.md` §7. Below `standard` — a `prototype` module, thrown away, that
 nothing depends on — none of it is required.
 
-The rows below are **owed to a human**: no check in the framework reads them. They are the
-detail behind the *Observability added*, *Runbook present* and *Rollback verified* rows of the
-table.
+The rows below are **owed to a human**, except the runbook's presence, which M8 checks. They
+are the detail behind the *Observability added*, *Runbook present* and *Rollback verified*
+rows of the table, and where a cell here and the table differ, the table decides.
 
 | Capability | standard | high | critical |
 |---|---|---|---|
@@ -182,7 +182,7 @@ table.
 | Idempotence | case by case | ✔ | ✔ |
 | SLI / SLO | — | as needed | ✔ |
 | Runbook | — | ✔ | ✔ |
-| Tested rollback | — | ✔ | ✔ |
+| Tested rollback | — | per risk | ✔ |
 | Controlled degradation | — | as needed | ✔ |
 
 > **Never add automatic retries without analysing the side effects.** A retry on a

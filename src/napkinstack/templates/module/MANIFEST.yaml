@@ -21,8 +21,8 @@ module:
   # prototype | standard | high | critical
   criticality: "{{CRITICALITY}}"
 
-  # Does a user see this module? true requires a test sheet on its pull requests
-  # (docs/os/05-workflow.md §7).
+  # Does a user see this module? true requires a test sheet on its pull requests from
+  # standard up (docs/os/05-workflow.md §7).
   user_facing: false
 
   # The module's name in the code, when it differs from the folder (package, namespace).

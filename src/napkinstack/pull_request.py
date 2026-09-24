@@ -3,8 +3,9 @@ Pull request rules read from its description: the test sheet (PDR-0003) and the 
 (PDR-0002).
 
 Rules:
-  T1  a test sheet when the pull request changes a user-facing module, or one of
-      criticality high or critical — at the base or at the head, the stricter
+  T1  a test sheet when the matrix asks one of a module the pull request changes — a
+      user-facing one from standard up, any high or critical one — at the base or at the
+      head, the stricter
   T2  a verifier named who is not an author of the change, and every scenario row filled
       in: id, given · when · then, a kind (automated, explored, human only — reason), a
       result (passed, failed, not verified)
@@ -257,8 +258,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             fail("T3", f"scenario {ident}: passed without evidence and the commit verified.\n"
                        "      Action: link the screenshot, video, trace or log, and give the commit.")
         elif result in {"passed", "failed"} and SHA.fullmatch(commit) and not head.startswith(commit):
-            # T4 split by kind (D71). An automated scenario is cheap and CI replays it anyway, so it
-            # is re-run. One that was explored by hand costs a round: its evidence keeps the commit
+            # T4 split by kind (D71). An automated scenario is cheap and CI replays it when e2e is
+            # declared, so it is re-run. One that was explored by hand costs a round: its evidence keeps the commit
             # it was produced on, and the verifier confirms at the head, naming what moved since.
             # At `critical` nothing stands in for a re-run: that is what the top value buys.
             confirmed = row.get(CONFIRMED, "").strip().split(" ", 1)[0].strip("`").lower()
@@ -277,7 +278,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
     if rerun:
         why = ("At criticality critical every scenario is re-run at the head, and the confirmation "
                "a lighter value allows does not apply" if strict else
-               "An automated scenario is re-run, never confirmed: CI replays it anyway")
+               "An automated scenario is re-run, never confirmed: CI replays it when the module "
+               "declares e2e, and its Commit cell takes the head")
         fail("T4", f"scenarios verified on another commit than the head {head[:7]}: "
                    f"{', '.join(rerun)}.\n      Action: run them again on the head commit.\n"
                    f"      {why} (docs/os/05-workflow.md §7).")

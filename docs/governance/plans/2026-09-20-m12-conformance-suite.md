@@ -98,8 +98,9 @@ have to be rewritten.
 | `platform/conformance/__init__.py` | create | | | |
 | `platform/conformance/scenario.py` | the record and the verdict | | | |
 | `platform/conformance/runner.py` | the run, one project, copies per scenario | | | |
-| `platform/conformance/catalogue/boundaries.py` | one scenario | B1–B7 | | |
-| `platform/conformance/catalogue/contracts.py` | | V1, M2 | | |
+| `platform/conformance/catalogue/boundaries.py` | one scenario | B1–B8 | | |
+| `platform/conformance/catalogue/plan.py` | | C2, C4, C7 (D51) | | |
+| `platform/conformance/catalogue/contracts.py` | | V1, M2, M8, contract sides (D53) | | |
 | `platform/conformance/catalogue/sheet.py` | | T1–T4 | | |
 | `platform/conformance/catalogue/scope.py` | | P1, K1–K4, H1 | | |
 | `platform/conformance/forge.py` | | | create | |
@@ -243,7 +244,7 @@ PATH_MANIPULATION = Scenario(
 
 ## M12b — The catalogue: every walk-around that was ever found — PR 2
 
-**Files:** `platform/conformance/catalogue/{boundaries,contracts,sheet,scope}.py`;
+**Files:** `platform/conformance/catalogue/{boundaries,contracts,sheet,scope,plan}.py`;
 `platform/tests/test_conformance.py`.
 
 Each register row below was a real walk-around, found by a probe or by a review. Each becomes a
@@ -266,7 +267,8 @@ def test_every_boundary_scenario_is_refused_and_its_neighbour_passes(scenario, p
 - [ ] **Step 3: `boundaries.py`** — B1 `consumes` emptied while the contract is read (M9's P3);
       B2 path manipulation (done in M12a) and a relative path from the module's own folder as its
       neighbour (D41); B3 a cycle through contracts (D37); B6 a consumed version nobody provides;
-      B7 a contract document outside a module's folder (D39).
+      B7 a contract document outside a module's folder (D39); B8 a deprecated module gaining a
+      consumer (D52).
 
 - [ ] **Step 4: `contracts.py`** — V1 a frozen version broken with the examples left behind
       (M9's P4) and the same break made consistently (M10h's P4c), with an optional property
@@ -275,7 +277,11 @@ def test_every_boundary_scenario_is_refused_and_its_neighbour_passes(scenario, p
       the change rewrites that file to exit 0; V1 a frozen version moved to another folder
       (D36); M2 a version written as a number, or a stability misspelt (D36); M8 a `high`
       module with no runbook, with a `standard` module without one as its neighbour — M8 reads
-      the assurance matrix since M11b.
+      the assurance matrix since M11b; a contract change that runs only the producer's checks,
+      the consumer's sides skipped (D53).
+- [ ] **Step 4b: `plan.py`** — C2, C4 and C7 on a charter, a deliverable and a closure still
+      holding their template's words (D51), with a filled one as the neighbour; and C4 on a
+      deliverable with no acceptance criteria, whose refusal must name the spike (D72).
 
 - [ ] **Step 5: `sheet.py`** — T1 a user-facing change with no sheet (M9's P5), and a `high`
       module changed with no sheet, with a `prototype` module and a `standard` module no user

@@ -88,11 +88,11 @@ CHECKLIST = [  # (rule, setting, action)
      f"{RULESET}: remove every bypass actor"),
     ("G13", "Stale approvals dismissed when new commits are pushed",
      f"{RULESET}: dismiss stale pull request approvals when new commits are pushed"),
-    # G14 to G16 shape the merge; they never refuse one, so they are not in BLOCKING. They are
-    # the only rules here that need neither the Administration permission nor a paid plan (D61).
-    ("G14", "Auto-merge available: an approved pull request merges itself once CI is green",
+    # G14 to G16 shape the merge; they never refuse one, so they are not in BLOCKING. Like G11,
+    # they need neither the Administration permission nor a paid plan (D61).
+    ("G14", "Auto-merge available: a pull request armed for it merges itself once approved and green",
      f"{MERGES}: allow auto-merge"),
-    ("G15", "Squash the only merge method: one workstream, one commit on main",
+    ("G15", "Squash the only merge method: one pull request, one commit on main",
      f"{MERGES}: allow squash merging, and turn off merge commits and rebase merging"),
     ("G16", "Head branch deleted on merge: a merged branch is history, not a place to work",
      f"{MERGES}: automatically delete head branches"),
@@ -202,14 +202,15 @@ MERGE_SETTINGS = ("allow_auto_merge", "allow_squash_merge", "allow_merge_commit"
                   "allow_rebase_merge", "delete_branch_on_merge")
 
 
-def _merges(client: GitHub) -> dict:
+def _merges(client: GitHub, *keys: str) -> dict:
     """G14 to G16 read the repository object, which carries these fields in every answer and
     asks for no Administration permission (D61). Absent means a degraded read, never a setting
     that is off: the difference between "not verified" and "missing" is the whole point of this
-    command (PDR-0005)."""
+    command (PDR-0005). Each rule names the fields it reads, and one of them absent is enough."""
     repo = client.get("")
-    if not any(key in repo for key in MERGE_SETTINGS):
-        raise NotVerified("merge settings not visible in the repository's own object")
+    absent = [key for key in keys or MERGE_SETTINGS if key not in repo]
+    if absent:
+        raise NotVerified(f"{', '.join(absent)} not visible in the repository's own object")
     return repo
 
 
@@ -218,7 +219,7 @@ def _squash_only(client: GitHub) -> bool:
     the branch's commits on main beside a merge of its own; a rebase puts them there without
     one. Measured on two repositories before the rule existed: 22 branches for 23 merged pull
     requests, and four commits on main for two workstreams (D61)."""
-    repo = _merges(client)
+    repo = _merges(client, "allow_squash_merge", "allow_merge_commit", "allow_rebase_merge")
     return (repo.get("allow_squash_merge") is True
             and repo.get("allow_merge_commit") is False
             and repo.get("allow_rebase_merge") is False)
@@ -240,9 +241,9 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G11": lambda c: all(c.get(f"/labels/{label}", missing=True) is not None for label in LABELS),
     "G12": _no_bypass,
     "G13": lambda c: _parameters(c, "pull_request").get("dismiss_stale_reviews_on_push") is True,
-    "G14": lambda c: _merges(c).get("allow_auto_merge") is True,
+    "G14": lambda c: _merges(c, "allow_auto_merge").get("allow_auto_merge") is True,
     "G15": _squash_only,
-    "G16": lambda c: _merges(c).get("delete_branch_on_merge") is True,
+    "G16": lambda c: _merges(c, "delete_branch_on_merge").get("delete_branch_on_merge") is True,
 }
 
 

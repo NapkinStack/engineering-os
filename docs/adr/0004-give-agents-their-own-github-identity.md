@@ -32,7 +32,9 @@ belonging to the maintainer's account. Two consequences:
   the rule does not exist" (`skeleton/docs/os/07-governance.md` §7).
 
 The pilot project is about to start: private, in the `NapkinStack` organisation, with one
-human maintainer. The question has to be settled before its `nstack init`.
+human maintainer. The question has to be settled before its `nstack init`. *(Corrected in
+place, 2026-09-24: the pilot started public, on the Free plan, where the whole checklist is
+available.)*
 
 ## Problem
 
@@ -152,7 +154,7 @@ accepted result · red: the refusal · dotted cross: what the agent's session ne
 | The agent's session | Reaches no human credential: no SSH key, token or GitHub CLI login of a human (a sandbox, a container or a dedicated system user) | Otherwise the agent approves under a human's name |
 | Merge | Ruleset on the main branch: pull request, at least 1 approval, code owner review, required checks, **empty bypass list** | Administrators bypass only when listed: with an empty list, this repository's ruleset answers `current_user_can_bypass: never` to the organisation owner |
 | Code owners | A default owner — `*` followed by the foundation team, first line of `CODEOWNERS` — so the code owner review covers every path | A dedicated App's approval can count toward the approval count — the `renovate-approve` App exists for that — but an App is never a code owner |
-| Who approves | A human code owner — during the pilot, see "Deferred, decided on evidence". In a team, preferably not the one who drove the agent; for a `critical` module, its owner (`05-workflow.md` §7) | GitHub cannot tie a local agent's pull request to the person who drove it |
+| Who approves | A human code owner — during the pilot, see "Deferred, decided on evidence". In a team, preferably not the one who drove the agent; for every module, its owner — the `CODEOWNERS` line `nstack new-module` writes, required by G3 (`07-governance.md` §7; corrected 2026-09-24: the matrix used to say it for `critical` alone) | GitHub cannot tie a local agent's pull request to the person who drove it |
 | Who merges | Anyone with write access, the agent included, once the approval and the checks are there | The barrier is the approval, not the click |
 | Traceability | The agent assigns the pull request to the human who drove it | — |
 | Local tooling | An established tool mints the tokens and serves git's credentials; chosen, pinned and verified when the pilot starts, never built | Candidates: `gh-token`, `gh-app-auth`, `git-credential-github-app`, each to pass the niche filter (`06-decisions.md` §3) |

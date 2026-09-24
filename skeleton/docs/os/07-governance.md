@@ -291,9 +291,10 @@ module, that an independent verifier finds what a human would (`05-workflow.md` 
 ### The approval is one gesture, not three
 
 Approving and merging are two different acts, and only the first needs a human. With
-**auto-merge** on the repository, an approved pull request merges itself the moment its
-required checks go green: nobody waits on the reviewer to come back and press a button, and
-no agent is told to merge on their behalf. The barrier is untouched — the approval is still
+**auto-merge** allowed on the repository, the author arms it on the pull request when opening
+it (`gh pr merge <number> --auto --squash`), and the pull request merges itself the moment it
+is approved and its required checks go green: nobody waits on the reviewer to come back and
+press a button, and no agent is told to merge on their behalf. The barrier is untouched — the approval is still
 required, still human, still dismissed when new commits are pushed.
 
 What it removes is the round trip. Measured on one project's first three days: of the

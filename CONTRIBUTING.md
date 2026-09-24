@@ -79,8 +79,10 @@ flowchart LR
 **Legend** — green: a maintainer's action · grey: `.github/workflows/release.yml` ·
 blue: PyPI. Decision: [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md).
 
-1. Bump the version in a pull request: `uv version --bump patch` (or `minor`); a maintainer
-   approves it, then it merges.
+1. Bump the version in a pull request: `uv version --bump patch` (or `minor`), and write its
+   `## vX.Y.Z` section in `CHANGELOG.md` — engine and project apart, with a **Migration**
+   paragraph when taking it costs more than reading it; `release.yml` refuses to publish a
+   version whose section is missing. A maintainer approves it, then it merges.
 2. With a maintainer's explicit consent, the agent tags the merged commit —
    `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>` — and pushes it under its App.
 3. Approve the deployment in GitHub Actions ("Review deployments").
