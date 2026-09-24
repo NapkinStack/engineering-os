@@ -18,7 +18,7 @@ Rules:
   L5  README personalised: the presentation sentence is written
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
   L7  the template source reachable by anyone: a repository, not a path on one machine
-  G1-G13  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+  G1-G16  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12 and G13 name the GitHub plan or option required
 
 Usage :  nstack doctor [--root ROOT]
@@ -60,6 +60,7 @@ REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/instal
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"
 ACTIONS = "Settings → Actions → General"
+MERGES = "Settings → General → Pull Requests"
 CODEOWNERS = Path(".github") / "CODEOWNERS"
 
 CHECKLIST = [  # (rule, setting, action)
@@ -87,6 +88,14 @@ CHECKLIST = [  # (rule, setting, action)
      f"{RULESET}: remove every bypass actor"),
     ("G13", "Stale approvals dismissed when new commits are pushed",
      f"{RULESET}: dismiss stale pull request approvals when new commits are pushed"),
+    # G14 to G16 shape the merge; they never refuse one, so they are not in BLOCKING. They are
+    # the only rules here that need neither the Administration permission nor a paid plan (D61).
+    ("G14", "Auto-merge available: an approved pull request merges itself once CI is green",
+     f"{MERGES}: allow auto-merge"),
+    ("G15", "Squash the only merge method: one workstream, one commit on main",
+     f"{MERGES}: allow squash merging, and turn off merge commits and rebase merging"),
+    ("G16", "Head branch deleted on merge: a merged branch is history, not a place to work",
+     f"{MERGES}: automatically delete head branches"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
@@ -189,6 +198,32 @@ def _no_bypass(client: GitHub) -> bool:
     return True
 
 
+MERGE_SETTINGS = ("allow_auto_merge", "allow_squash_merge", "allow_merge_commit",
+                  "allow_rebase_merge", "delete_branch_on_merge")
+
+
+def _merges(client: GitHub) -> dict:
+    """G14 to G16 read the repository object, which carries these fields in every answer and
+    asks for no Administration permission (D61). Absent means a degraded read, never a setting
+    that is off: the difference between "not verified" and "missing" is the whole point of this
+    command (PDR-0005)."""
+    repo = client.get("")
+    if not any(key in repo for key in MERGE_SETTINGS):
+        raise NotVerified("merge settings not visible in the repository's own object")
+    return repo
+
+
+def _squash_only(client: GitHub) -> bool:
+    """G15: squash alone, so that a workstream reaches main as one commit. A merge commit puts
+    the branch's commits on main beside a merge of its own; a rebase puts them there without
+    one. Measured on two repositories before the rule existed: 22 branches for 23 merged pull
+    requests, and four commits on main for two workstreams (D61)."""
+    repo = _merges(client)
+    return (repo.get("allow_squash_merge") is True
+            and repo.get("allow_merge_commit") is False
+            and repo.get("allow_rebase_merge") is False)
+
+
 CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G1": lambda c: _rule(c, "pull_request") is not None,
     "G2": lambda c: _parameters(c, "pull_request").get("required_approving_review_count", 0) >= 1,
@@ -205,6 +240,9 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G11": lambda c: all(c.get(f"/labels/{label}", missing=True) is not None for label in LABELS),
     "G12": _no_bypass,
     "G13": lambda c: _parameters(c, "pull_request").get("dismiss_stale_reviews_on_push") is True,
+    "G14": lambda c: _merges(c).get("allow_auto_merge") is True,
+    "G15": _squash_only,
+    "G16": lambda c: _merges(c).get("delete_branch_on_merge") is True,
 }
 
 
