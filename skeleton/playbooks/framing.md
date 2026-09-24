@@ -57,6 +57,18 @@ on.
 2. **Deliverables** — a finite list, `D1`, `D2`…, each an outcome a user can observe — for a
    spike, the question it answers for the decider. Each gets acceptance criteria, written
    *given · when · then*; they become its test sheet (`verification.md`).
+
+   **Two questions to ask of each one, before writing its criteria:**
+   - *Can the team finish it alone, inside this cycle?* If it waits on someone outside the
+     project — a reply, an opinion, a decision elsewhere — it is a **dependency with a date**,
+     not a deliverable. Name it in the risks and give it a date; the cycle does not hold it.
+   - *Is its product knowledge rather than code?* Then it is a **spike**, and its criteria say
+     **what will be recorded** and **the threshold it is read against** — never that the answer
+     comes out a particular way. **A refuted result is a delivered one.** "Five people were
+     asked, one acted, below the threshold of two" closes the deliverable; it does not fail it.
+
+   A criterion nobody can meet is not met. It is answered with something that looks like proof,
+   and that answer is reviewed and merged like the rest.
 3. **Unknowns** — a blocking unknown becomes a *spike* deliverable, whose output is
    knowledge (`docs/os/05-workflow.md` §3). After a discovery's go, the tests the decider kept
    are the first cycle's spikes. A spike's criteria name what is recorded and the threshold it
