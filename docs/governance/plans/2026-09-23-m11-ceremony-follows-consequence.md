@@ -107,8 +107,10 @@ the floor.
    belongs to the OSPS axis. This removes any need to amend ADR-0004 — the four settings of
    `07-governance.md` §7 keep holding together at level 3, which is where they are required.
 4. **Each matrix row is marked *machine* or *owed*.** A framework that pretends CI verifies UAT
-   teaches people to ignore it. Seven rows are executable; ten are owed to a human and named as
-   such.
+   teaches people to ignore it. **Eight rows are executable; ten are owed** to a human and named
+   as such. The count changed once during M11b: the e2e row was written as *machine* and moved to
+   *owed* when building it showed a check could not tell an end-to-end suite from a unit suite
+   renamed — see M11b task 4.
 5. **`high` and `critical` finally differ, without a new field.** `critical` adds: the sheet
    confirmed at head after the last fix, e2e present and green, and the runbook referenced by the
    sheet. The four values plus `user_facing` are enough; no `read_only` field is added.
@@ -157,6 +159,7 @@ taken first if the pilot's next cycle starts before M11a lands.
 | `skeleton/README.md.jinja` | the CHECKLIST copy, word for word, with its test | M11f, M11g |
 | `skeleton/.github/workflows/module-checks.yml` | already branches on criticality; the dead *"Not wired up (D9)"* step goes | M11b |
 | `skeleton/docs/os/07-governance.md` §7 | approval is described by exposure level, not as an absolute | M11g |
+| `src/napkinstack/assurance.py` | **new**: the machine half of the matrix, read by every rule that spends it | M11b |
 | `src/napkinstack/fitness/manifests.py` | M8 reads the matrix instead of a hard-coded threshold | M11b |
 | `src/napkinstack/pull_request.py` | T1 and T4 read the matrix; T4 splits by scenario kind | M11b, M11d |
 | `src/napkinstack/modules.py`, `cli.py` | `criticality` gains help text and printed consequences | M11c |
@@ -260,9 +263,16 @@ MATRIX = {
       `standard` user-facing one must.
 - [ ] **Task 3.** M8 reads `["runbook"]`. Test first: a `standard` module with no runbook passes;
       a `high` one fails with the action naming the file to create.
-- [ ] **Task 4.** A new rule — **M11**, the next free identifier: M1 to M10 are taken — `e2e`: a module whose matrix row requires
-      e2e declares `commands.e2e`. Test first, both directions. It checks the *declaration*, not
-      the scenarios' quality: a check that cannot fail honestly is worse than none.
+- [x] **Task 4 — built, then removed. The rule does not ship.** A new rule `M11` was to require
+      `commands.e2e` wherever the matrix asked for e2e. It was written, its test was seen red, and
+      then **this repository's own `platform` module refused it for a good reason**: `platform`
+      declares its entire oracle as `commands.test`, because its test suite *is* its end-to-end
+      suite. The rule would have asked it to declare one command under two names.
+      A check can read that an `e2e` verb exists; it cannot read that the verb runs end-to-end
+      scenarios rather than the unit suite renamed. **A rule a one-line alias satisfies teaches the
+      alias** — which is what P6 says of every contournable check. The e2e row moved to *owed*,
+      with that reason written in `05-workflow.md` §7 where a reader will meet it.
+      Ten minutes of dogfood against a rule the plan had already approved. Recorded, not hidden.
 - [ ] **Task 5.** Every message names the criticality that produced the requirement and what the
       neighbouring value would change (P6). Example: *"FAIL [T1] … required at criticality
       `high`. At `standard` this module would need a sheet only if it were user-facing."*

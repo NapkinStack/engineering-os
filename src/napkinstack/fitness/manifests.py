@@ -31,8 +31,10 @@ from pathlib import Path
 
 import yaml
 
+from napkinstack import assurance
+
 LIFECYCLES = {"proposed", "active", "maintenance", "deprecated", "retired"}
-CRITICALITIES = {"prototype", "standard", "high", "critical"}
+CRITICALITIES = set(assurance.CRITICALITIES)  # one list, ascending, held in assurance
 REQUIRED_FIELDS = ["name", "responsibility", "owner", "lifecycle", "criticality"]
 REQUIRED_COMMANDS = ["check", "test"]
 MODULE_DIRS = ["modules", "services", "apps", "packages", "contracts", "platform"]
@@ -110,6 +112,12 @@ def is_description(path: str) -> bool:
     placeholder, `path` relative to the module's folder. Changing it changes no behaviour
     (D24); a module holding nothing else has nothing to check yet (D33)."""
     return path in DESCRIPTION or path.startswith("docs/") or path.rsplit("/", 1)[-1] == ".gitkeep"
+
+
+def _relief(criticality: str | None, row: str, user_facing: bool = False) -> str:
+    """assurance.relief as a refusal's closing line (P6): what the value below would change."""
+    said = assurance.relief(criticality, row, user_facing)
+    return f".\n      {said[0].upper()}{said[1:]}." if said else "."
 
 
 def module_content(folder: Path) -> list[str]:
@@ -245,12 +253,15 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                             f"than its description ({content[0]}).\n      Action: declare its stack's "
                             "command in the manifest (docs/os/09-platform.md §2).")
 
-    # M8 - runbook when criticality is high
-    if criticality in {"high", "critical"}:
+    # M8 - what the criticality requires, read from the matrix of 05-workflow.md §7 and
+    # never from a threshold copied here (D67). Each refusal names the value that produced it and
+    # what the value below would change, so that the declaration can be judged (P6, D70).
+    if assurance.requires(criticality, "runbook"):
         runbook = (data.get("docs") or {}).get("runbook")
         if not runbook or not (path.parent / runbook).is_file():
             fail(rel, "M8", f"criticality={criticality} requires an existing runbook "
-                            "(docs/os/08-quality.md §7)")
+                            "(docs/os/05-workflow.md §7; its contents: 08-quality.md §7)"
+                            f"{_relief(criticality, 'runbook')}")
 
     # M9 - file envelope
     for expected in ["AGENTS.md", "README.md"]:

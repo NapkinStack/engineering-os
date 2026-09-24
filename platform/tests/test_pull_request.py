@@ -20,6 +20,7 @@ IDENTITY = {"GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid
             "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
 USER_FACING = degrade(module__user_facing=True)
 HIGH = degrade(module__criticality="high")
+PROTOTYPE_FACING = degrade(module__criticality="prototype", module__user_facing=True)
 
 
 def git(root, *args: str) -> str:
@@ -68,6 +69,12 @@ SHEET_CASES = {
     "T1 high criticality without a sheet": (HIGH, "", "(criticality high)", 1),
     "T1 the template's row only": (USER_FACING, sheet(TEMPLATE), "FAIL [T1]", 1),
     "T1 a standard module needs none": (VALID, "", "Test sheet      : not required", 0),
+    # The matrix of 05-workflow.md §7: at `prototype` the sheet is never required, and that is
+    # what the value buys. A throwaway a user sees costs no verifier (M11a).
+    "T1 a user-facing prototype needs none": (PROTOTYPE_FACING, "", "Test sheet      : not required", 0),
+    # P6 on a threshold: the refusal says what the value below would have changed, so that
+    # the reader can judge the declaration instead of only obeying it.
+    "T1 the refusal names the value below": (HIGH, "", "at standard it would be required only", 1),
     "T2 no verifier": (USER_FACING, sheet(PASSED, verifier="<@handle, or session and the agent session's identifier>"),
                        "FAIL [T2] Test sheet: no verifier", 1),
     "T2 a verifier named in prose only (D32)": (USER_FACING, sheet(PASSED, verifier="a fresh agent session"),
@@ -181,7 +188,7 @@ def test_a_file_moved_out_of_a_user_facing_module(tmp_path, capsys, monkeypatch)
     git(tmp_path, "commit", "-q", "-m", "move")
     head = git(tmp_path, "rev-parse", "HEAD")
     assert check(tmp_path, base, head, "No sheet.", monkeypatch) == 1
-    assert "FAIL [T1] Test sheet missing: this pull request touches modules/login (user-facing)" in capsys.readouterr().out
+    assert "modules/login (criticality standard, user-facing)" in capsys.readouterr().out
 
 
 def test_a_short_row_is_a_finding_not_a_crash(tmp_path, capsys, monkeypatch):
@@ -245,8 +252,8 @@ MODULE_CASES = {
     "an empty placeholder: no change": (HIGH, {"src/.gitkeep": None, "tests/.gitkeep": ""}, "Modules touched : 0", 0),
     "a source file: a change": (USER_FACING, {"src/page.txt": "new\n"}, "FAIL [T1]", 1),
     "the stricter of base and head": (USER_FACING, {"MANIFEST.yaml": yaml.safe_dump(VALID), "src/page.txt": "new\n"},
-                                      "FAIL [T1] Test sheet missing: this pull request touches modules/login (user-facing)", 1),
-    "a deleted module: a change": (USER_FACING, {".": None}, "FAIL [T1] Test sheet missing: this pull request touches modules/login", 1),
+                                      "modules/login (criticality standard, user-facing)", 1),
+    "a deleted module: a change": (USER_FACING, {".": None}, "FAIL [T1] Test sheet missing", 1),
 }
 
 

@@ -657,7 +657,7 @@ git -C "$CLONE" add -A && git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -
 if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack pr-check --root . --base HEAD~1 2>&1); then
   echo "FAIL: a user-facing change with the template's empty sheet went green."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [T1] Test sheet missing: this pull request touches modules/face (user-facing)" \
+echo "$OUT" | grep -qF "modules/face (criticality standard, user-facing)" \
   && echo "$OUT" | grep -qF "FAIL [K1] the project is not framed" \
   || { echo "FAIL: expected T1 and K1 messages missing."; echo "$OUT"; exit 1; }
 
