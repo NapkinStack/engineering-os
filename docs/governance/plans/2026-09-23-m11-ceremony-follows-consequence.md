@@ -349,27 +349,36 @@ O(rounds × scenarios) instead of O(scenarios + fixes). Measured: six rounds on 
 **Done when:** fixing a blocker costs a confirmation, not a round, `critical` is the only value
 that still pays the full price, and the template shows the form.
 
-## M11e — Non-code work leaves the deliverables — PR 5
+## M11e — A criterion nobody can meet gets met with counterfeit — PR 5 *(delivered)*
 
-The defect: C4 requires acceptance criteria on every `ready` deliverable and law 2 requires an
-executable oracle. A deliverable such as *"five private invitations, and we count who acts"* has
-neither: its completion depends on people outside the project. The agent stopped and asked — the
-rule worked — and the answer, five times, was *"simulate it"*. **A gate that cannot be paid is
-paid in counterfeit**, and the counterfeit is merged and reviewed.
+**Renamed while building it.** The plan said non-code work should *leave* the deliverables. It
+should not: **the framework already had the right home for it, and the refusal did not mention
+it.** `05-workflow.md` §3 says an exploratory task is a **spike** — *"the deliverable is
+knowledge, not code"* — and `playbooks/framing.md` says a spike's criteria *"name what is
+recorded and the threshold it is read against; a refuted result is still a delivered one."*
 
-- [ ] **Task 1.** `05-workflow.md` and `playbooks/framing.md` state it: **a cycle's deliverables
-      are delivery work.** Work whose product is knowledge — a market probe, a legal opinion, a
-      user conversation — is discovery, or it is a typed issue (PDR-0010), never a deliverable.
-- [ ] **Task 2.** The framing playbook gains the test to apply: *"Can this deliverable be
-      finished by the team alone, this cycle? If it waits on somebody outside the project, it is
-      a dependency with a date, not a deliverable."*
-- [ ] **Task 3.** `plan.py` C4 is unchanged in shape but its message gains the alternative: a
-      deliverable whose acceptance criteria cannot be written is named, with the action — move it
-      to discovery, or open the issue, and say which.
-- [ ] **Task 4.** A test proves the message appears, with a fixture built from the pilot's own D1.
+The pilot's D1, *"five private invitations, and we count who acts"*, was a legitimate spike. Its
+criteria could have read *"we record how many of the five act within seven days; below two, the
+demand is not shown"*, and **"nobody acted" would have been a delivered deliverable**. It did not
+know that, so it answered a criterion it could not meet with five simulated proofs — merged and
+reviewed like the rest. Sending the work to discovery or to an issue, as the plan proposed, would
+have contradicted the framework's own answer and taught it as a second rule.
 
-**Done when:** the framework stops asking for a proof the world cannot supply, and names where
-the work belongs instead.
+- [x] **Task 1.** C4's refusal names the door: write the criteria, **or make it a spike** — what
+      will be recorded, the threshold, and a refuted result is a delivered one. And what has no
+      criterion at all, because it waits on someone outside the project, is **a dependency with a
+      date, not a deliverable**. The rule itself is unchanged.
+- [x] **Task 2.** `playbooks/framing.md` step 2 gains the two questions to ask of every
+      deliverable before writing its criteria, and the sentence that explains why one door is not
+      enough: *a criterion nobody can meet is not met, it is answered with something that looks
+      like proof.*
+- [x] **Task 3.** `05-workflow.md` §3's diagnosis table gains the row it was missing — *it waits
+      on someone outside the project* — and the spike row now says what a spike's criteria hold.
+- [x] **Task 4.** The pilot's D1 is the fixture: the refusal must name knowledge, the spike, the
+      refuted result, the dependency with a date, and what a criterion nobody can meet is answered
+      with.
+
+**Done when:** the framework stops offering one door to work that has two, and says which.
 
 ## M11f — Approval mechanics: the relief that weakens nothing — PR 6
 

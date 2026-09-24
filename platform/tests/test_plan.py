@@ -97,6 +97,28 @@ def test_plan(tmp_path, capsys, prepare, rule, fails):
     assert code == (1 if fails else 0), output
 
 
+def test_a_deliverable_with_no_executable_criterion_is_told_where_it_belongs(tmp_path, capsys):
+    """D72. The pilot's D1 was "five private invitations, and we count who acts". C4 asked for
+    acceptance criteria; the agent stopped and asked — the rule worked — and the answer, five
+    times, was "simulate it". A gate that cannot be paid is paid in counterfeit, and the
+    counterfeit is merged and reviewed like the rest.
+
+    The framework already had the right home: a **spike**, whose criteria name what will be
+    recorded and the threshold it is read against, and where **a refuted result is a delivered
+    one** (05-workflow.md §3, playbooks/framing.md). "Nobody acted" was a delivered D1. The door
+    existed and the refusal did not mention it, so the rule stays and the message opens it."""
+    framed(tmp_path, cycles={"01.md": cycle(deliverables=[deliverable(
+        title="The private invitation: five DMs, and we count who acts", acceptance=None)])})
+    assert plan.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "[C4]" in output, output
+    assert "knowledge" in output, output            # what such work produces
+    assert "spike" in output, output                # the framework's own home for it
+    assert "refuted result is a delivered one" in output, output   # what the pilot did not know
+    assert "dependency with a date" in output, output              # and what is not a deliverable
+    assert "looks like proof" in output, output     # why leaving one door open costs
+
+
 def test_plan_framed(tmp_path, capsys):
     framed(tmp_path, cycles={"01-first.md": cycle(), "_TEMPLATE.md": "not a cycle",
                              "00-before.md": cycle(status="closed", outcome="completed", ended_on=TODAY.isoformat()),

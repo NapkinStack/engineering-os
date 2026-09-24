@@ -145,9 +145,23 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
         criteria = item.get("acceptance")
         filled = isinstance(criteria, list) and [c for c in criteria if not unfilled(c)]
         if state in DELIVERABLE_STATES - WITHOUT_CRITERIA and not filled:
+            # The criteria are right, and the refusal names the door the framework already had.
+            # Work whose product is knowledge is a SPIKE: its criteria name what will be recorded
+            # and the threshold it is read against, and a refuted result is a delivered one. The
+            # pilot did not know that and answered a criterion it could not meet with five
+            # simulated proofs, merged and reviewed like the rest (D72). The door existed; the
+            # refusal did not mention it.
             fail("C4", path, f"deliverable {where}: state '{state}' requires acceptance criteria "
                              "filled in — the definition of ready, and the source of its test "
-                             "sheet (PDR-0003)")
+                             "sheet (PDR-0003).\n      Action: write them, or make it a spike. "
+                             "A deliverable whose product is knowledge — a probe, interviews, a "
+                             "legal question — names what will be recorded and the threshold it "
+                             "is read against, and a refuted result is a delivered one "
+                             "(playbooks/framing.md, docs/os/05-workflow.md §3).\n      What has "
+                             "no criterion at all, because it waits on someone outside the "
+                             "project, is a dependency with a date and not a deliverable. A "
+                             "criterion nobody can meet gets met with something that looks like "
+                             "proof.")
 
 
 def _check_cycle(path: Path, fail) -> str | None:
