@@ -37,7 +37,7 @@ subject at a time, asking only what you cannot infer:
 | Users | Who uses it, in what situation, with what problem? | The users and their problem |
 | Outcome | What must be true for the project to be finished? | Success criteria, measurable, dated — or relative to a named event, such as launch day, that a later framing dates |
 | Constraints | Law, money, security, data, platforms, deadlines | The constraints |
-| Risks | What could make it fail, or cause harm? | The risks, and the criticality they imply (`docs/os/07-governance.md` §6) |
+| Risks | What could make it fail, or cause harm? | The risks, and the criticality they imply — what a failure of each module would cost, which the decider settles and `docs/os/05-workflow.md` §7 prices |
 | Vocabulary | The domain's words, and what each one means | The vocabulary |
 | Not this project | What it will deliberately not do | Out of scope |
 

@@ -193,26 +193,43 @@ The level of requirement depends on the **criticality declared in the manifest**
 a uniform rule. Never impose the ceremony of a critical system on a small module; never
 treat a critical system like a prototype.
 
+**What each of the four values requires is written in exactly one place: the table of
+`05-workflow.md` §7.** This section says why the axis exists and how a module changes value;
+it does not repeat the requirements, because a second copy of a table is a second answer
+waiting to contradict the first.
+
 ```mermaid
-flowchart TD
+flowchart LR
     A["Module"] --> B{"Declared<br/>criticality"}
+    B --> P["prototype"]:::light
+    B --> S["standard"]
+    B --> H["high"]
+    B --> C["critical"]:::heavy
+    P --> T["05-workflow.md §7<br/>what each one requires"]
+    S --> T
+    H --> T
+    C --> T
 
-    B -->|"prototype / internal"| P["MINIMAL<br/>lint · types · unit tests<br/>manifest · owner"]
-    B -->|"standard"| S["STRUCTURED<br/>+ validated contracts · fitness functions<br/>+ structuring ADRs · review"]
-    B -->|"high"| E["REINFORCED<br/>+ integration · critical E2E<br/>+ observability · security · runbook"]
-    B -->|"critical / sensitive"| C["MAXIMAL<br/>+ review by the owner · UAT<br/>+ verified rollback · post-deployment<br/>+ compliance requirements"]
-
-    style P fill:#1f2937,color:#fff
-    style C fill:#7c2d12,color:#fff
+    classDef light fill:#1f2937,color:#fff
+    classDef heavy fill:#7c2d12,color:#fff
 ```
 
-**Legend** — dark grey: the lightest level · red: the heaviest.
+**Legend** — dark grey: the lightest value · red: the heaviest · the table is the single
+source of what they require.
+
+**The value answers one question**, and it is a question about consequence, not about effort:
+*what does a failure of this module cost?* Nothing, because it is thrown away — a user's
+patience — a day of work — or a key, an order, money, someone's personal data. That is a
+product decision, so **the decider settles it**; an agent proposes it with its price and does
+not choose alone.
 
 Criticality is declared in the manifest, so CI knows which checks to apply to which
 module. It is not decided pull request by pull request, which would trigger the
 discussion at the worst possible moment.
 
-**It is revisable**, by ADR: a module going to production changes level.
+**It is revisable**, by ADR: a module going to production changes value. Raising it takes
+effect on the next run, with no migration; the checks the new value requires apply to the next
+pull request that changes the module.
 
 ---
 
