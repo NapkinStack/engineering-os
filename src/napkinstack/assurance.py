@@ -31,13 +31,14 @@ CRITICALITIES = ("prototype", "standard", "high", "critical")
 # What each value requires, machine rows only:
 #   sheet            a test sheet run by a verifier who is not an author (T1)
 #   runbook          a runbook declared in the manifest and present (M8)
-#   confirm_at_head  the sheet confirmed at the head commit after the last fix (T4)
+#   rerun_at_head    every scenario re-run at the head; no confirmation stands in for a
+#                    re-run, which is what the top value costs (T4)
 # `"user_facing"` means: required only when the module declares a user-visible surface (M10).
 MATRIX: dict[str, dict[str, bool | str]] = {
-    "prototype": {"sheet": False, "runbook": False, "confirm_at_head": False},
-    "standard": {"sheet": "user_facing", "runbook": False, "confirm_at_head": False},
-    "high": {"sheet": True, "runbook": True, "confirm_at_head": False},
-    "critical": {"sheet": True, "runbook": True, "confirm_at_head": True},
+    "prototype": {"sheet": False, "runbook": False, "rerun_at_head": False},
+    "standard": {"sheet": "user_facing", "runbook": False, "rerun_at_head": False},
+    "high": {"sheet": True, "runbook": True, "rerun_at_head": False},
+    "critical": {"sheet": True, "runbook": True, "rerun_at_head": True},
 }
 
 

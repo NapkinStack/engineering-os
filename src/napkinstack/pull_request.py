@@ -9,7 +9,8 @@ Rules:
       in: id, given · when · then, a kind (automated, explored, human only — reason), a
       result (passed, failed, not verified)
   T3  no scenario passed without its evidence and the commit it was verified on
-  T4  evidence produced on the pull request's head commit: the others are to run again
+  T4  evidence at the head commit: an automated scenario is run again, one explored by hand
+      is confirmed at the head instead — and at criticality critical, run again like the rest
   T5  no scenario failed; none left not verified, unless it is human only
   K1  delivery work needs an accepted charter and an accepted cycle, and says which of
       the two is missing
@@ -55,6 +56,9 @@ DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
 JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
 
 COLUMNS = ("#", "given · when · then", "kind", "result", "evidence", "commit")
+# Optional seventh column, read only when a scenario needs it: the head commit and what
+# changed since. A sheet no fix has disturbed never has to carry it (T4, D71).
+CONFIRMED = "confirmed"
 KINDS = {"automated", "explored"}
 RESULTS = {"passed", "failed", "not verified"}
 SECTION = re.compile(r"^##[ \t]+Test sheet[ \t]*$", re.I | re.M)
@@ -118,6 +122,17 @@ def sheet_reason(folder: str, manifests: list[dict]) -> str | None:
         relief = assurance.relief(criticality, "sheet", facing)
         return f"{folder} ({why})" + (f" — {relief}" if relief else "")
     return None
+
+
+def rerun_at_head(found: dict[str, list[dict]]) -> bool:
+    """True when a touched module is strict enough that no confirmation stands in for a re-run:
+    the `rerun_at_head` row of the matrix, `critical` alone (docs/os/05-workflow.md §7)."""
+    for manifests in found.values():
+        for data in manifests:
+            module = data.get("module")
+            if isinstance(module, dict) and assurance.requires(module.get("criticality"), "rerun_at_head"):
+                return True
+    return False
 
 
 def _cells(line: str) -> list[str]:
@@ -199,7 +214,8 @@ def _result(cell: str) -> str:
 
 
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
-                authorship: tuple[set[str], set[str], list[str]] = (set(), set(), [])) -> list[str]:
+                authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
+                strict: bool = False) -> list[str]:
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
@@ -221,7 +237,7 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                    "\"Verifier: session <id>\", someone other than the author of the change.")
     else:
         check_verifier(verifier, authorship, fail)
-    human_only, rerun = [], []
+    human_only, rerun, unconfirmed = [], [], []
     for row in rows:
         ident = row["#"] or "?"
         kind = row["kind"]
@@ -241,7 +257,15 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             fail("T3", f"scenario {ident}: passed without evidence and the commit verified.\n"
                        "      Action: link the screenshot, video, trace or log, and give the commit.")
         elif result in {"passed", "failed"} and SHA.fullmatch(commit) and not head.startswith(commit):
-            rerun.append(ident)
+            # T4 split by kind (D71). An automated scenario is cheap and CI replays it anyway, so it
+            # is re-run. One that was explored by hand costs a round: its evidence keeps the commit
+            # it was produced on, and the verifier confirms at the head, naming what moved since.
+            # At `critical` nothing stands in for a re-run: that is what the top value buys.
+            confirmed = row.get(CONFIRMED, "").strip().split(" ", 1)[0].strip("`").lower()
+            if kind.lower() == "automated" or strict:
+                rerun.append(ident)
+            elif not (SHA.fullmatch(confirmed) and head.startswith(confirmed)):
+                unconfirmed.append(ident)
         if result == "failed":
             fail("T5", f"scenario {ident}: failed.\n      Action: fix the change, or have the decider "
                        "change the expected result, visibly in the sheet's history.")
@@ -251,8 +275,19 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             fail("T5", f"scenario {ident}: not verified.\n      Action: run it, or mark it "
                        "human only — <reason>.")
     if rerun:
+        why = ("At criticality critical every scenario is re-run at the head, and the confirmation "
+               "a lighter value allows does not apply" if strict else
+               "An automated scenario is re-run, never confirmed: CI replays it anyway")
         fail("T4", f"scenarios verified on another commit than the head {head[:7]}: "
-                   f"{', '.join(rerun)}.\n      Action: run them again on the head commit.")
+                   f"{', '.join(rerun)}.\n      Action: run them again on the head commit.\n"
+                   f"      {why} (docs/os/05-workflow.md §7).")
+    if unconfirmed:
+        fail("T4", f"scenarios explored before the head {head[:7]} and not confirmed on it: "
+                   f"{', '.join(unconfirmed)}.\n      Action: re-read what changed since, then "
+                   f"add the head commit in a Confirmed column: `{head[:7]} — <what moved, and why "
+                   "it leaves this scenario's result standing>`.\n      Running the whole sheet "
+                   "again is the other way, and it is not required: a confirmation is not a round "
+                   "(docs/os/05-workflow.md §7).")
     return human_only
 
 
@@ -322,7 +357,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
 
     reasons = [reason for folder, found in modules.items() if (reason := sheet_reason(folder, found))]
     authorship = authors(root, base, head, os.environ.get("PR_AUTHOR", ""))
-    human_only = check_sheet(body, head, reasons, fail, authorship)
+    human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules))
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail)
 
