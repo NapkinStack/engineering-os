@@ -4,8 +4,8 @@ Creating and updating a project (PDR-0001), through Copier (ADR-0001).
 Copier is driven by its API, never in "unsafe" mode. Its refusals arrive before any
 change and are translated into messages naming the rule, the place and the action (P6).
 
-An update starts from a committed state and lays the target version, merged with the
-project's adaptations, on the branch nstack/update-<version>. A conflict is never
+An update starts from a committed state on the default branch and lays the target version,
+merged with the project's adaptations, on the branch nstack/update-<version>. A conflict is never
 committed: it stays marked in the file for the team, and both the check-merge-conflict
 hook and CI reject any remaining marker.
 """
@@ -163,6 +163,17 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     return 0
 
 
+def _default_branch(root: Path) -> str | None:
+    """The branch an update starts from: the remote's default, else the `main` that `init`
+    creates. None when neither can be read — then nothing is refused on a guess."""
+    remote = _git(root, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    if remote.returncode == 0 and "/" in remote.stdout.strip():
+        return remote.stdout.strip().split("/", 1)[1]
+    if _git(root, "rev-parse", "--verify", "--quiet", "refs/heads/main").returncode == 0:
+        return "main"
+    return None
+
+
 def update(root: Path, ref: str) -> int:
     import copier
     from copier.errors import CopierError
@@ -180,6 +191,14 @@ def update(root: Path, ref: str) -> int:
     if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
         print(f"FAIL [update] Branch {branch} already exists in {root}.\n"
               "      Action: merge it or delete it (git branch -D), then run again.")
+        return 1
+    # D74: the update branch is created where HEAD stands. From a feature branch it carries that
+    # branch's commits, and the pull request that should hold the framework alone does not.
+    default, current_branch = _default_branch(root), _git(root, "branch", "--show-current").stdout.strip()
+    if default and current_branch != default:
+        where = current_branch or "a detached HEAD"
+        print(f"FAIL [update] {where} is checked out, not {default}: the update branch would "
+              f"carry its commits.\n      Action: git switch {default}, then run again.")
         return 1
     try:
         copier.run_update(root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,

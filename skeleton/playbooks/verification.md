@@ -43,7 +43,9 @@ change's authors and refuses a match.
    fix, an *automated* scenario is run again at the head; an *explored* one is confirmed in
    the `Confirmed` column with the head commit and what moved since; at criticality
    `critical`, every scenario is run again (`docs/os/05-workflow.md` §7).
-5. **Only then read the diff**, to explain a failure — never to decide a result.
+5. **Only then read the diff**, to explain a failure — never to decide a result — and ask one
+   question of its tests: **is the entry point a real user calls exercised the way they call
+   it?** A suite that always passes what the user never passes is green on a path nobody takes.
 6. **Report** the failures first — observed, expected, evidence — then any optional
    remark, marked as such.
 

@@ -702,6 +702,19 @@ nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
 commit_project "$A" "Adaptations and first module"
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
 
+echo "-> update: started from another branch, it MUST be refused and name both (D74)"
+# The pilot ran it from cycle/03-framing: the update branch carried a foreign commit and was
+# replanted by hand. Refused before anything is written, and the way back is a command.
+git -C "$A" switch -q -c cycle/03-framing
+if OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
+  echo "FAIL: update accepted from a feature branch."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "cycle/03-framing" && echo "$OUT" | grep -qF "git switch main" \
+  && [ -z "$(git -C "$A" status --porcelain)" ] \
+  && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v90.2.0 >/dev/null \
+  || { echo "FAIL: update from a feature branch badly refused."; echo "$OUT"; exit 1; }
+git -C "$A" switch -q main && git -C "$A" branch -q -D cycle/03-framing
+
 echo "-> update: fix and adaptation merged, committed on a branch (criterion 4)"
 if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
   echo "FAIL: nstack update failed."; echo "$OUT"; exit 1
@@ -729,6 +742,9 @@ echo "-> update: no module file changed, the skeleton README follows (criterion 
   || { echo "FAIL: modules/demo changed by the update (PDR-0001 R4)."; exit 1; }
 grep -qF "Fix v90.2." "$A/modules/README.md" \
   || { echo "FAIL: modules/README.md did not follow the version."; exit 1; }
+
+# The team merges the update's pull request and comes back to main, as it would.
+git -C "$A" switch -q main && git -C "$A" merge -q --ff-only nstack/update-v90.2.0
 
 echo "-> update: a project already up to date creates no branch"
 if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
