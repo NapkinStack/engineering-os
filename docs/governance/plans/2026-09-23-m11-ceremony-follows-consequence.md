@@ -137,9 +137,9 @@ flowchart TD
     C --> H["M11h<br/>PDR-0011, records<br/>corrected in place"]:::done
     D --> H
     E --> H
-    H --> G["M11g<br/>OSPS Baseline levels<br/>probe first"]
+    H --> G["M11g<br/>OSPS probe: not clean<br/>returns to M13"]:::done
     H --> J["M11j<br/>unframed<br/>PDR-0007"]
-    H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77"]
+    H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77, D78"]
     H --> L["M11l<br/>the form<br/>PDR-0010"]
     H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]
     G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
@@ -151,7 +151,7 @@ flowchart TD
     classDef done fill:#065f46,color:#fff
 ```
 
-**Legend** — green: merged · no fill: to do. Redrawn by M11h on 2026-09-24: M11h was taken
+**Legend** — green: merged, or closed by its probe · no fill: to do. Redrawn by M11h on 2026-09-24: M11h was taken
 before M11g, which may evaporate on its probe, and M11j to M11m were added before the release.
 
 M11f has no dependency and gives the largest immediate relief for the smallest change: it may be
@@ -423,11 +423,16 @@ ADR-0004 intact.
 
 ## M11g — The exposure level, anchored on the OSPS Baseline — PR 7
 
-- [ ] **Task 0 — probe, before any block below is trusted.** Read `ossf/security-baseline`'s
+- [x] **Task 0 — probe, before any block below is trusted.** Read `ossf/security-baseline`'s
       YAML catalogue and its Gemara mappings. Confirm that G1 to G13 and the five required checks
       map onto stable control identifiers, and that the three levels' membership is readable as
       data. **If the mapping is not clean, this workstream stops and returns to M13 as originally
       planned** — the rest of M11 does not depend on it. Record the outcome either way.
+      **Done 2026-09-24: not clean** — [the probe's record](../audits/2026-09-24-osps-baseline-probe.md).
+      Identifiers are stable and levels readable, but six of our sixteen rules have no control,
+      four compose one, and task 3 would have to give the six a level of our own making. **M11g
+      stops; tasks 1 to 6 return to M13.** The probe also found **D78**: `OSPS-AC-03.02`, level
+      1, protects the primary branch from deletion, and our checklist never asks for it.
 - [ ] **Task 1.** A mapping table, in the repository, from our rule identifiers to OSPS control
       identifiers, with the level each control belongs to. Our identifiers stay ours; theirs are
       referenced, never copied.
@@ -453,6 +458,9 @@ ADR-0004 intact.
 
 **Done when:** a project knows which level it is at, which it targets, what the next one costs,
 and the framework stops charging level 3 to a project that has no users.
+
+**Closed by its probe on 2026-09-24.** Tasks 1 to 6 are M13's, with the probe's table as their
+starting point; M11 ships without the exposure axis, and D69 stays open.
 
 ## M11h — The records, corrected in place — PR 8
 
@@ -531,13 +539,16 @@ It builds PDR-0004's first axis, the stage, read from the repository and never d
 **Done when:** a first delivery pull request on an unframed project merges with no charter,
 no cycle and no label, while another rule still refuses something in that project.
 
-## M11k — The forge's settings in one gesture (PDR-0008), and D77 — PR 11
+## M11k — The forge's settings in one gesture (PDR-0008), D77 and D78 — PR 11
 
 One command beside `doctor`: it computes the distance to the checklist and prints the calls
 that close it; applying is a choice, and only with a credential that **cannot commit**, checked
 first and failing closed. Its oracle is PDR-0008's eight acceptance criteria. **D77** is fixed
 here, because the command and `doctor` share one checklist and one verdict: *not read* and
-*not in place* get two exit codes, and the summary says which.
+*not in place* get two exit codes, and the summary says which. **D78** too: the checklist
+gains the protection of the default branch against deletion and force-push, which the command
+then applies like any other setting — `OSPS-AC-03.02` puts it at level 1, and this repository's
+own ruleset already has both.
 
 **Done when:** a repository reaches the checklist in one gesture, no credential ever reaches
 the output, and a script can tell a gap from what could not be read.
