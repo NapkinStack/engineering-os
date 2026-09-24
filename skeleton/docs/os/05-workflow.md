@@ -207,7 +207,7 @@ satisfies teaches the alias, so that row is owed to a human.
 | Contract tests | machine | if there is a contract | if there is a contract | ✔ | ✔ |
 | Test sheet run by a verifier, with evidence | machine | — | if user-facing | ✔ | ✔ |
 | Runbook present | machine | — | — | ✔ | ✔ |
-| Sheet confirmed at the head commit | machine | — | — | — | ✔ |
+| Every scenario re-run at the head commit | machine | — | — | — | ✔ |
 | Build | owed | ✔ | ✔ | ✔ | ✔ |
 | Integration tests | owed | — | per risk | ✔ | ✔ |
 | Security analysis | owed | — | ✔ | ✔ | ✔ |
@@ -231,9 +231,9 @@ that had no ceiling: six rounds on a read-only module, and **three of the eleven
 were introduced by the late rounds themselves**.
 
 **What separates `high` from `critical`.** At `high` the sheet is required and the verifier is
-independent. `critical` adds three things, and they are the three that cost: the sheet
-**confirmed at the head commit** after the last fix, **e2e present and green**, and the
-**runbook referenced by the sheet** rather than merely existing. A module that holds a key,
+independent. `critical` adds three things, and they are the three that cost: **every scenario
+re-run at the head commit** after the last fix — no confirmation stands in for a run — **e2e
+present and green**, and the **runbook referenced by the sheet** rather than merely existing. A module that holds a key,
 places an order, moves money or touches someone's personal data is `critical`; one whose
 failure costs a day is `high`.
 
@@ -249,11 +249,11 @@ only a module's description — its manifest, `AGENTS.md`, `README.md`, `docs/` 
 behaviour and needs no sheet, a framework update included. The user-visible surface and the
 criticality are read before and after the change, and the stricter applies:
 
-| # | Given · when · then | Kind | Result | Evidence | Commit |
-|---|---|---|---|---|---|
-| S2 | Given an account, when the password is wrong, then a message says what to do and the email stays typed | automated | passed | the CI run's trace | `a1b2c3d` |
-| S5 | Given a 375-pixel-wide phone, when the keyboard opens, then the button stays reachable | explored | failed — the button is hidden | emulator screenshot | `a1b2c3d` |
-| S8 | Given a real mailbox, when a reset is asked, then the email arrives | human only — no test mailbox | not verified | — | — |
+| # | Given · when · then | Kind | Result | Evidence | Commit | Confirmed |
+|---|---|---|---|---|---|---|
+| S2 | Given an account, when the password is wrong, then a message says what to do and the email stays typed | automated | passed | the CI run's trace | `a1b2c3d` | — |
+| S5 | Given a 375-pixel-wide phone, when the keyboard opens, then the button stays reachable | explored | failed — the button is hidden | emulator screenshot | `a1b2c3d` | `e4f5a6b` — three fixes under src/, none on this path |
+| S8 | Given a real mailbox, when a reset is asked, then the email arrives | human only — no test mailbox | not verified | — | — | — |
 
 - **Written before the code**, from the acceptance criteria: it is part of the oracle.
 - **Run by a verifier who is not the author**: another agent session with a fresh
@@ -262,14 +262,25 @@ criticality are read before and after the change, and the stricter applies:
   the pull request's, the commits' GitHub accounts (read from their noreply addresses), and
   the sessions their `Agent-Session` trailers name — and refuses a match: a declaration
   checked against the history, not a proof of identity.
-- **No result without evidence**, tied to the commit tested. A new commit sends the
-  scenarios back to be run again.
+- **No result without evidence**, tied to the commit tested. A new commit does not send the
+  whole sheet back:
+  - an **automated** scenario is **run again** at the head — CI replays it anyway, so it costs
+    nothing;
+  - one **explored** by hand keeps the commit its evidence was produced on, and the verifier
+    adds a **`Confirmed`** column on the head commit saying **what moved since and why it leaves
+    the result standing**. Reading three fixes is not the same work as driving six scenarios
+    again, and the sheet should not charge the second for the first.
+  - at criticality **`critical`**, nothing stands in for a run: every scenario goes again.
+
+  A confirmation is not a round. A project that wants another adversarial round decides so
+  itself; the sheet never demands one because a fix landed.
 - **Kinds**: *automated* — replayable, run by CI through the module's `e2e` command;
   *explored* — judged by driving the interface; *human only* — what no agent can run, with
   the reason, listed apart for the approver.
 
-The engine's pull request check reads the sheet in CI: missing, unfilled, without evidence, verified on
-another commit, failed. The approver decides on the sheet, and notes what they found that
+**`Confirmed` is optional**: a sheet no fix has disturbed never carries it. The engine's pull
+request check reads the sheet in CI: missing, unfilled, without evidence, verified before the
+head and not confirmed on it, failed. The approver decides on the sheet, and notes what they found that
 the verifier had missed — that measurement decides, one day and module by module, whether
 a verifier agent's approval may count.
 

@@ -209,34 +209,34 @@ G1-G13, H1-H2, K1-K4, L0-L7, M1-M10, P1-P6, S1-S8, T1-T5, V1, W1.
 
 No behaviour change. This workstream makes the contract readable before any code spends it.
 
-- [ ] **Task 1.** In `05-workflow.md` §7, add the `prototype` column and remove the *Human
+- [x] **Task 1.** In `05-workflow.md` §7, add the `prototype` column and remove the *Human
       review* row (it moves to `07-governance.md` §7 in M11g, as an exposure requirement).
-- [ ] **Task 2.** Mark every row. A row is **machine** when a check in this repository can fail
+- [x] **Task 2.** Mark every row. A row is **machine** when a check in this repository can fail
       on it today, **owed** otherwise. The seven machine rows: oracle green · lint, format,
       types · unit tests · contract tests · fitness functions · test sheet run by an independent
       verifier · e2e. The ten owed rows keep their place and gain one sentence: *"owed to a human;
       no check reads it."*
-- [ ] **Task 3.** Add, under the matrix: **one round.** The framework asks for one sheet and one
+- [x] **Task 3.** Add, under the matrix: **one round.** The framework asks for one sheet and one
       verifier who is not an author. Further adversarial rounds are a project's own decision,
       recorded in its own ADR — never a framework requirement.
-- [ ] **Task 4.** State what separates `high` from `critical`, in the matrix itself: `critical`
+- [x] **Task 4.** State what separates `high` from `critical`, in the matrix itself: `critical`
       adds the sheet **confirmed at head** after the last fix, **e2e present and green**, and the
       **runbook referenced** by the sheet.
-- [ ] **Task 5.** In `07-governance.md` §6, replace the four-cran diagram's content with a
+- [x] **Task 5.** In `07-governance.md` §6, replace the four-cran diagram's content with a
       pointer to the matrix, keeping the principle sentence (*"never impose the ceremony of a
       critical system on a small module"*) and the revision rule.
-- [ ] **Task 6 — the third table.** `08-quality.md` §7 holds a **thirteen-row reliability table**
+- [x] **Task 6 — the third table.** `08-quality.md` §7 holds a **thirteen-row reliability table**
       on the same three columns, also without `prototype`, and `modules.py:37` cites it as the
       authority for the runbook while the DoD matrix carries a runbook row too. **One fact, one
       home**: the matrix says *when* a runbook is required, `08-quality.md` §7 says *what it
       contains* and points at the matrix for the when. Its own columns gain `prototype`, or state
       in one sentence that operability starts at `standard`.
-- [ ] **Task 7 — the comment the agent actually reads.** `src/napkinstack/templates/module/
+- [x] **Task 7 — the comment the agent actually reads.** `src/napkinstack/templates/module/
       MANIFEST.yaml:18` points the `criticality` field at `07-governance.md` §6. It is the line
       under the agent's cursor when it chooses (D70). It points at the matrix.
       `skeleton/playbooks/framing.md:40`, which derives the criticality from the risks, does the
       same.
-- [ ] **Task 8.** `platform/tests/` gains a case that fails when **any two** of the three
+- [x] **Task 8.** `platform/tests/` gains a case that fails when **any two** of the three
       documents describe different sets of criticality values — the defect this workstream exists
       to close, and it had three homes, not two.
 
@@ -245,7 +245,7 @@ row says who judges it, and a test refuses a second description of the same fact
 
 ## M11b — The engine spends the matrix — PR 2
 
-- [ ] **Task 1.** A single module holds the matrix as data, read by `manifests.py` and
+- [x] **Task 1.** A single module holds the matrix as data, read by `manifests.py` and
       `pull_request.py`, so a change to the contract is one edit:
 
 ```python
@@ -258,10 +258,10 @@ MATRIX = {
 }
 ```
 
-- [ ] **Task 2.** T1 reads `MATRIX[...]["sheet"]` instead of a hard-coded set. Test first: a
+- [x] **Task 2.** T1 reads `MATRIX[...]["sheet"]` instead of a hard-coded set. Test first: a
       `prototype` module changed beyond its description must **not** be asked for a sheet, and a
       `standard` user-facing one must.
-- [ ] **Task 3.** M8 reads `["runbook"]`. Test first: a `standard` module with no runbook passes;
+- [x] **Task 3.** M8 reads `["runbook"]`. Test first: a `standard` module with no runbook passes;
       a `high` one fails with the action naming the file to create.
 - [x] **Task 4 — built, then removed. The rule does not ship.** A new rule `M11` was to require
       `commands.e2e` wherever the matrix asked for e2e. It was written, its test was seen red, and
@@ -273,16 +273,16 @@ MATRIX = {
       alias** — which is what P6 says of every contournable check. The e2e row moved to *owed*,
       with that reason written in `05-workflow.md` §7 where a reader will meet it.
       Ten minutes of dogfood against a rule the plan had already approved. Recorded, not hidden.
-- [ ] **Task 5.** Every message names the criticality that produced the requirement and what the
+- [x] **Task 5.** Every message names the criticality that produced the requirement and what the
       neighbouring value would change (P6). Example: *"FAIL [T1] … required at criticality
       `high`. At `standard` this module would need a sheet only if it were user-facing."*
-- [ ] **Task 6 — the CI already knows.** `module-checks.yml` reads `.module.criticality` and
+- [x] **Task 6 — the CI already knows.** `module-checks.yml` reads `.module.criticality` and
       branches on it already; it also runs `nstack e2e` unconditionally. Two consequences: M11's
       rule adds the **declaration** requirement, not the run, and the dead step *"Levels high and
       critical — not wired up yet (D9)"*, which prints a sentence and passes in **every generated
       project**, is removed. A step that cannot fail is the residue this milestone exists to
       remove; D9 stays open in the register, without a decorative step to stand for it.
-- [ ] **Task 7.** Run the real commands on a generated project, not only unit tests: one module
+- [x] **Task 7.** Run the real commands on a generated project, not only unit tests: one module
       per criticality value, and the four outcomes observed.
 
 **Done when:** the four values produce four different regimes, each proven by a test that was
@@ -320,27 +320,27 @@ The defect: T4 requires every scenario's evidence to be produced on the head com
 the head, so **one blocker invalidates the whole sheet** and calls a full round. Cost is
 O(rounds × scenarios) instead of O(scenarios + fixes). Measured: six rounds on one module.
 
-- [ ] **Task 1.** T4 splits by the scenario's declared kind.
+- [x] **Task 1.** T4 splits by the scenario's declared kind.
       - **automated** — must be green at head. CI re-runs them; this costs nothing and stays.
       - **explored** and **human only** — the evidence keeps the commit it was produced on, and
         the sheet carries a **confirmation at head**: the verifier's line naming what changed
         since that commit and that it does not touch the behaviour the scenario covers.
-- [ ] **Task 2.** The sheet's table gains one column, `Confirmed`, empty for automated scenarios.
+- [x] **Task 2.** The sheet's table gains one column, `Confirmed`, empty for automated scenarios.
       Test first: a sheet with an explored scenario whose evidence predates the head and carries
       no confirmation must fail; the same sheet with a confirmation must pass.
-- [ ] **Task 3.** At criticality `critical`, the confirmation is required for **every** scenario,
+- [x] **Task 3.** At criticality `critical`, the confirmation is required for **every** scenario,
       automated included — that is the `confirm_at_head` row of M11b's matrix, and it is where
       the two top values finally differ.
-- [ ] **Task 4.** The refusal message says which of the two paths applies, and gives the line to
+- [x] **Task 4.** The refusal message says which of the two paths applies, and gives the line to
       add (P6).
-- [ ] **Task 5.** `skeleton/.github/pull_request_template.md` carries the sheet's table for every
+- [x] **Task 5.** `skeleton/.github/pull_request_template.md` carries the sheet's table for every
       project: it gains the `Confirmed` column, and the two places where it explains the sheet
       say what fills it. A rule whose form is not in the template is a rule nobody can satisfy on
       the first try.
-- [ ] **Task 6.** Rerun the pilot's own case as a fixture: a sheet of six scenarios, three fixes
+- [x] **Task 6.** Rerun the pilot's own case as a fixture: a sheet of six scenarios, three fixes
       after the first verification, must pass with one confirmation block instead of three full
       re-runs.
-- [ ] **Task 7 — checked, and no record to correct.** PDR-0003 promises *scenarios written before
+- [x] **Task 7 — checked, and no record to correct.** PDR-0003 promises *scenarios written before
       the code, run by someone other than the author, each result backed by evidence*. It never
       promises evidence produced on the head commit — T4 is the engine's reading of it, not the
       decision. **PDR-0003 is untouched by this workstream**, and this line exists so that nobody
@@ -377,26 +377,26 @@ Seven of the decider's sixteen approval turns carried no judgement: they existed
 had enabled auto-merge and the agent waited to be told. This workstream removes the relay, not
 the approval.
 
-- [ ] **Task 0 — probe, before any block below is trusted.** On a throwaway repository: enable
+- [x] **Task 0 — probe, before any block below is trusted.** On a throwaway repository: enable
       auto-merge, approve a pull request with CI pending, confirm it merges on green; then push a
       commit to an approved and armed pull request and confirm G13 dismisses the approval and the
       merge waits. Rewrite the tasks below from what actually ran.
-- [ ] **Task 1.** A checklist rule — provisionally **G14** — auto-merge enabled on the
+- [x] **Task 1.** A checklist rule — provisionally **G14** — auto-merge enabled on the
       repository, with `doctor` reading `allow_auto_merge`. Not blocking: a project that wants
       the agent to merge by hand keeps that.
-- [ ] **Task 2.** **G15**, squash-only merges, and **G16**, branch deletion on merge (D61, absorbed
+- [x] **Task 2.** **G15**, squash-only merges, and **G16**, branch deletion on merge (D61, absorbed
       by PDR-0008). Both readable through the API **without the Administration permission**, so
       both are verified rather than merely written. The pilot's repository currently shows 22
       branches for 23 merged pull requests and four commits on `main` for two workstreams.
-- [ ] **Task 3.** The skeleton's `README` and `playbooks/verification.md` document the one-gesture
+- [x] **Task 3.** The skeleton's `README` and `playbooks/verification.md` document the one-gesture
       approval: the human approves from their own terminal, under their own identity, without a
       browser round-trip. The agent still never approves.
-- [ ] **Task 4.** `doctor`'s output names the three new rules with the exact setting to change.
-- [ ] **Task 5 — the checklist has two copies and a test that binds them.** `CHECKLIST` lives in
+- [x] **Task 4.** `doctor`'s output names the three new rules with the exact setting to change.
+- [x] **Task 5 — the checklist has two copies and a test that binds them.** `CHECKLIST` lives in
       `doctor.py`, is printed by `nstack init`, read by `project.py`, and **repeated word for word
       in `skeleton/README.md.jinja`**, with a test that verifies it. G14 to G16 land in both, and
       the test is the guard — it must be seen red before the README is edited.
-- [ ] **Task 6.** The CI replay test asserts the message text for each of the three.
+- [x] **Task 6.** The CI replay test asserts the message text for each of the three.
 
 **Done when:** an approval is one gesture and the merge follows by itself, with every barrier of
 ADR-0004 intact.

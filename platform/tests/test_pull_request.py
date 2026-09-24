@@ -21,6 +21,7 @@ IDENTITY = {"GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid
 USER_FACING = degrade(module__user_facing=True)
 HIGH = degrade(module__criticality="high")
 PROTOTYPE_FACING = degrade(module__criticality="prototype", module__user_facing=True)
+CRITICAL = degrade(module__criticality="critical", docs__runbook="docs/runbook.md")
 
 
 def git(root, *args: str) -> str:
@@ -42,9 +43,13 @@ def change(root, manifest=VALID, frame: bool = True) -> tuple[str, str]:
     return base, git(root, "rev-parse", "HEAD")
 
 
-def sheet(*rows: tuple[str, ...], verifier: str = "session verifier-7 — ran the sheet before the diff") -> str:
+def sheet(*rows: tuple[str, ...], verifier: str = "session verifier-7 — ran the sheet before the diff",
+          confirmed: bool = False) -> str:
+    columns = "| # | Given · when · then | Kind | Result | Evidence | Commit |"
+    if confirmed:  # the optional column of T4: present in the template, read only when needed
+        columns = columns + " Confirmed |"
     lines = ["## Test sheet", "", f"Verifier: {verifier}", "",
-             "| # | Given · when · then | Kind | Result | Evidence | Commit |", "|---|---|---|---|---|---|"]
+             columns, "|" + "---|" * (columns.count("|") - 1)]
     return "\n".join([*lines, *(f"| {' | '.join(row)} |" for row in rows), "", "## Summary", ""])
 
 
@@ -59,6 +64,11 @@ def check(root, base: str, head: str, body: str, monkeypatch, labels: str = "",
 
 PASSED = ("S1", "Given an account, when the password is valid, then the dashboard", "automated",
           "passed", "https://ci.example/run/1", "{head}")
+OLD = "1111111"  # a commit that is not the head: the evidence was produced before the last fix
+EXPLORED_OLD = ("S2", "Given the form, when it is submitted, then the page confirms",
+                "explored", "passed", "https://ci.example/shot/2", OLD)
+AUTOMATED_OLD = ("S3", "Given a user, when they sign in, then the session opens",
+                 "automated", "passed", "https://ci.example/run/3", OLD)
 HUMAN = ("S8", "Given a real mailbox, when a reset is asked, then the email arrives",
          "human only — no test mailbox", "not verified", "—", "—")
 TEMPLATE = ("S1", "<Given …, when …, then …>", "<automated · explored · human only — reason>",
@@ -89,8 +99,22 @@ SHEET_CASES = {
     "T2 unknown kind": (USER_FACING, sheet(("S1", "Given x", "guessed", "passed", "link", "{head}")), "FAIL [T2] scenario S1: kind", 1),
     "T2 unknown result": (USER_FACING, sheet(("S1", "Given x", "explored", "ok", "link", "{head}")), "FAIL [T2] scenario S1: result", 1),
     "T3 passed without evidence": (USER_FACING, sheet(("S1", "Given x", "explored", "passed", "—", "{head}")), "FAIL [T3] scenario S1", 1),
-    "T4 verified on another commit": (USER_FACING, sheet(("S1", "Given x", "explored", "passed", "link", "0000000")),
-                                      "FAIL [T4] scenarios verified on another commit", 1),
+    # T4 stops being a ratchet. An explored scenario keeps the commit its evidence was produced
+    # on, and the sheet confirms at the head: one line instead of a full round (D71).
+    "T4 an explored scenario confirmed at the head passes": (
+        USER_FACING, sheet((*EXPLORED_OLD, "{head} — only modules/login/src/page.txt changed since"),
+                           confirmed=True), "Pull request rules: compliant.", 0),
+    "T4 an explored scenario with no confirmation is refused": (
+        USER_FACING, sheet(EXPLORED_OLD), "add the head commit in a Confirmed column", 1),
+    # At `critical` nothing stands in for a re-run. That is the rerun_at_head row of the matrix,
+    # and the first thing the top value has ever cost that `high` does not.
+    "T4 at criticality critical a confirmation does not stand in": (
+        CRITICAL, sheet((*EXPLORED_OLD, "{head} — nothing that touches it"), confirmed=True),
+        "At criticality critical every scenario is re-run at the head", 1),
+    # An automated scenario is cheap to re-run and CI re-runs it anyway: no relief for it.
+    "T4 an automated scenario is re-run, never confirmed": (
+        USER_FACING, sheet((*AUTOMATED_OLD, "{head} — nothing that touches it"), confirmed=True),
+        "run them again on the head commit", 1),
     "T5 failed": (USER_FACING, sheet(("S1", "Given x", "explored", "**failed** — the button is hidden", "link", "{head}")),
                   "FAIL [T5] scenario S1: failed", 1),
     "T5 not verified": (USER_FACING, sheet(("S1", "Given x", "automated", "not verified", "—", "—")),
@@ -98,6 +122,34 @@ SHEET_CASES = {
     "compliant, human only listed apart": (USER_FACING, sheet(PASSED, HUMAN),
                                            "For the approver, human only: S8 — no test mailbox", 0),
 }
+
+
+def test_a_fix_costs_a_confirmation_not_a_round(tmp_path, capsys, monkeypatch):
+    """D71, measured on the pilot: six scenarios, three blockers fixed after the first
+    verification, and T4 called the whole sheet stale each time — six rounds on one read-only
+    module, three of whose eleven defects were introduced by the late rounds themselves.
+
+    The same sheet now passes with one confirmation: the automated scenarios are replayed by CI at
+    the head, the three explored by hand keep the commit their evidence was produced on and are
+    confirmed on the head. And the refusal, when a confirmation is missing, names that scenario
+    alone — not the five that are fine."""
+    base, head = change(tmp_path, USER_FACING)
+    explored = [(f"S{n}", f"Given step {n}, when it runs, then the page shows it", "explored",
+                 "passed", f"https://ci.example/shot/{n}", OLD) for n in (1, 2, 3)]
+    automated = [(f"S{n}", f"Given step {n}, when it runs, then the log says so", "automated",
+                  "passed", f"https://ci.example/run/{n}", "{head}") for n in (4, 5, 6)]
+    confirmation = "{head} — three fixes under src/, none inside this scenario's path"
+    whole = sheet(*[(*row, confirmation) for row in explored], *[(*row, "") for row in automated],
+                  confirmed=True)
+    assert check(tmp_path, base, head, whole, monkeypatch) == 0, capsys.readouterr().out
+    assert "compliant" in capsys.readouterr().out
+
+    one_missing = sheet((*explored[0], ""), *[(*row, confirmation) for row in explored[1:]],
+                        *[(*row, "") for row in automated], confirmed=True)
+    assert check(tmp_path, base, head, one_missing, monkeypatch) == 1
+    output = capsys.readouterr().out
+    assert "not confirmed on it: S1." in output, output
+    assert "S2" not in output.split("not confirmed on it:")[1], output
 
 
 @pytest.mark.parametrize(("manifest", "body", "expected", "code"), SHEET_CASES.values(), ids=SHEET_CASES.keys())

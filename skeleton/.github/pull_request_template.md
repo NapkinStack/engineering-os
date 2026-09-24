@@ -95,12 +95,16 @@ other: <specify>
 > criteria and are written before the code; the results are filled in by a verifier who is
 > not the author (`playbooks/verification.md`). Kind: automated · explored · human only —
 > reason. Result: passed · failed — what was observed · not verified.
+>
+> **Confirmed** is for a fix landed after the verification: an *automated* scenario is simply run
+> again at the head, one *explored* by hand keeps its commit and gets the head commit here with
+> what moved since. Leave it empty when nothing moved — a confirmation is not a round.
 
 Verifier: <@handle, or session and the agent session's identifier>
 
-| # | Given · when · then | Kind | Result | Evidence | Commit |
-|---|---|---|---|---|---|
-| S1 | <Given …, when …, then …> | <automated · explored · human only — reason> | <passed · failed · not verified> | <link> | <commit> |
+| # | Given · when · then | Kind | Result | Evidence | Commit | Confirmed |
+|---|---|---|---|---|---|---|
+| S1 | <Given …, when …, then …> | <automated · explored · human only — reason> | <passed · failed · not verified> | <link> | <commit> | — |
 
 ---
 
