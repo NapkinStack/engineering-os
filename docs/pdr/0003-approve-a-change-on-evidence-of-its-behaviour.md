@@ -233,6 +233,21 @@ verifier agent's approval count for `prototype` and `standard` modules.
 If the criterion is not met: adjust the format or the trigger when the cost comes from
 the sheet itself; remove the rule if it catches nothing the existing tests do not.
 
+**Measured on the pilot, recorded 2026-09-24 (M11h).** The first figures on the question
+`07-governance.md` §7 leaves open — whether an independent verifier finds what a human
+would. On one `high` deliverable, a delegated verifier found **8 real defects, 2 of which the
+author would have shipped**, forced 3 refusals to merge, showed 5 of the author's fixtures to
+prove nothing and disproved 4 of its measurements (D49). At the cycle's closure, the pilot's
+own count on that read-only module was **six adversarial rounds and six confirmation runs:
+eleven real defects, five refusals, every refusal correct** (its pull request #27). Three of
+the defects were introduced by the author in later rounds, in changes nobody had asked for,
+and three refusals were about a sentence in a decision record rather than about code.
+
+**The rule does not change.** This is one module, in one project, where the condition asks for
+evidence module by module over twenty pull requests. It says the verifier finds; it does not
+yet say it finds everything a human would, and the six rounds were the framework's cost as much
+as the verifier's merit — PDR-0011 is the answer to that half.
+
 ---
 
 ## Removal condition
