@@ -46,13 +46,14 @@ from pathlib import Path
 import yaml
 
 from napkinstack.fitness import plan
+from napkinstack import assurance
 from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests, is_description
 from napkinstack.modules import LOGIN
 
 LABEL = "out-of-cycle"
 DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
 JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
-SHEET_CRITICALITIES = {"high", "critical"}
+
 COLUMNS = ("#", "given · when · then", "kind", "result", "evidence", "commit")
 KINDS = {"automated", "explored"}
 RESULTS = {"passed", "failed", "not verified"}
@@ -105,13 +106,17 @@ def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[d
 
 def sheet_reason(folder: str, manifests: list[dict]) -> str | None:
     """Why a module requires a test sheet (T1), or None: the stricter of its manifests, so
-    that a pull request cannot lower its own requirement."""
+    that a pull request cannot lower its own requirement. What each criticality requires is read
+    from the matrix of docs/os/05-workflow.md §7, never from a threshold copied here."""
     modules = [data["module"] for data in manifests if isinstance(data.get("module"), dict)]
-    if any(module.get("user_facing") is True for module in modules):
-        return f"{folder} (user-facing)"
     for module in modules:
-        if module.get("criticality") in SHEET_CRITICALITIES:
-            return f"{folder} (criticality {module['criticality']})"
+        criticality = module.get("criticality")
+        facing = module.get("user_facing") is True
+        if not assurance.requires(criticality, "sheet", facing):
+            continue
+        why = f"criticality {criticality}" + (", user-facing" if facing else "")
+        relief = assurance.relief(criticality, "sheet", facing)
+        return f"{folder} ({why})" + (f" — {relief}" if relief else "")
     return None
 
 
@@ -198,7 +203,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
-        fail("T1", f"Test sheet missing: this pull request touches {', '.join(reasons)}.\n"
+        fail("T1", "Test sheet missing: this pull request touches\n"
+                   + "".join(f"      - {reason}\n" for reason in reasons) +
                    "      Action: fill in the \"Test sheet\" section of the description — scenarios "
                    "from the acceptance criteria, run by a verifier who is not the author "
                    "(docs/os/05-workflow.md §7).")

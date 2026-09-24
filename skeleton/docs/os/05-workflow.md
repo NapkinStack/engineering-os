@@ -193,7 +193,10 @@ Each row says who judges it:
   nobody does is a decision the project took in silence.
 
 The distinction is deliberate. A framework that claims CI verifies a UAT teaches its readers
-to stop believing the rest of the table.
+to stop believing the rest of the table. **E2E is the honest case to look at**: a check can
+read that a module declares an end-to-end command; it cannot read that the command runs
+end-to-end scenarios rather than the unit suite under another name. A rule a one-line alias
+satisfies teaches the alias, so that row is owed to a human.
 
 | Validation | Judged by | prototype | standard | high | critical |
 |---|---|---|---|---|---|
@@ -203,7 +206,6 @@ to stop believing the rest of the table.
 | Fitness functions | machine | ✔ | ✔ | ✔ | ✔ |
 | Contract tests | machine | if there is a contract | if there is a contract | ✔ | ✔ |
 | Test sheet run by a verifier, with evidence | machine | — | if user-facing | ✔ | ✔ |
-| E2E on critical journeys | machine | — | — | ✔ | ✔ |
 | Runbook present | machine | — | — | ✔ | ✔ |
 | Sheet confirmed at the head commit | machine | — | — | — | ✔ |
 | Build | owed | ✔ | ✔ | ✔ | ✔ |
@@ -211,6 +213,7 @@ to stop believing the rest of the table.
 | Security analysis | owed | — | ✔ | ✔ | ✔ |
 | Affected documentation up to date | owed | — | ✔ | ✔ | ✔ |
 | Accessibility | owed | — | if UI | if UI | ✔ |
+| E2E on critical journeys | owed | — | — | ✔ | ✔ |
 | Observability added | owed | — | — | ✔ | ✔ |
 | Rollback verified | owed | — | — | per risk | ✔ |
 | UAT | owed | — | — | as needed | ✔ |

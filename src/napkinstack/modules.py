@@ -17,6 +17,7 @@ from pathlib import Path
 
 import yaml
 
+from napkinstack import assurance
 from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
                                            module_content)
 
@@ -29,8 +30,7 @@ LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a ha
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
-NEEDS_RUNBOOK = {"high", "critical"}  # M8, kept in step with CRITICALITIES
-NEEDS_SHEET = {"high", "critical"}  # pull_request.SHEET_CRITICALITIES, T1
+# What a criticality requires is the matrix of docs/os/05-workflow.md §7, read once (assurance).
 
 RUNBOOK = """# Runbook - {name}
 
@@ -80,7 +80,7 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
         manifest.write_text(re.sub(r"^( *)user_facing: false", r"\1user_facing: true",
                                    manifest.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
 
-    runbook = criticality in NEEDS_RUNBOOK
+    runbook = assurance.requires(criticality, "runbook")
     if runbook:
         (folder / "docs").mkdir(exist_ok=True)
         (folder / "docs" / "runbook.md").write_text(
@@ -115,7 +115,7 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
              f"modules/{name}/AGENTS.md: what is specific to the module, never the kernel",
              "Before its first file of code: commands.check and commands.test for its stack — "
              "fitness (M7) requires them once the module holds more than its description"]
-    if user_facing or criticality in NEEDS_SHEET:
+    if assurance.requires(criticality, "sheet", user_facing):
         why = "user-facing" if user_facing else f"criticality {criticality}"
         steps.append(f"Every pull request that changes its behaviour carries a test sheet ({why}), "
                      "run by a verifier who is not its author (T1–T5, docs/os/05-workflow.md §7)")
