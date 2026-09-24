@@ -37,13 +37,13 @@ runbook, tests and configuration.
 | Command | Rules |
 |---|---|
 | `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
-| `nstack boundaries` | B1-B7: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed |
+| `nstack boundaries` | B1-B8: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
-| `nstack doctor` | L1-L7, G1-G13: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
+| `nstack doctor` | L1-L7, G1-G16: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene

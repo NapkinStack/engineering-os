@@ -118,11 +118,12 @@ Settings → Actions → General:
 - [ ] Workflow approval for every outside contributor
 - [ ] Workflow token read-only; Actions neither creates nor approves pull requests
 
-Settings → General → Pull Requests — the only three that need no paid plan and no
-Administration permission, so they hold on any repository:
+Settings → General → Pull Requests — three that need no paid plan and no Administration
+permission, so they hold on any repository. Auto-merge is armed on each pull request by its
+author, when it is opened:
 
-- [ ] Auto-merge available: an approved pull request merges itself once CI is green
-- [ ] Squash the only merge method: one workstream, one commit on main
+- [ ] Auto-merge available: a pull request armed for it merges itself once approved and green
+- [ ] Squash the only merge method: one pull request, one commit on main
 - [ ] Head branch deleted on merge: a merged branch is history, not a place to work
 
 Issues → Labels:

@@ -34,8 +34,8 @@ OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"} 
 
 RUNBOOK = """# Runbook - {name}
 
-> Required for criticality={criticality} (docs/os/08-quality.md §7).
-> An empty runbook fails CI. Fill it in before going to production.
+> Required for criticality={criticality} (docs/os/05-workflow.md §7).
+> CI checks that it exists, not what it says: fill it in before going to production.
 
 ## Alerts and responses
 | Alert | Meaning | First action |

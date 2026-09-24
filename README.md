@@ -79,8 +79,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.5.0" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.5.0"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.6.2" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.6.2"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a

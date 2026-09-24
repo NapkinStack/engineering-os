@@ -14,7 +14,9 @@ them is in the published package**:
 
 A **Migration** paragraph appears whenever taking the version costs more than reading it.
 
-Format: [Keep a Changelog](https://keepachangelog.com), dates are the tag's.
+Format: inspired by [Keep a Changelog](https://keepachangelog.com), dates are the tag's. There
+is no `Unreleased` section: what `main` holds beyond the last tag is written up in the version's
+own section, in its version pull request, and the release refuses a tag without it.
 Versions are [semantic](https://semver.org): a version that turns a green project red is never
 a patch.
 

@@ -45,7 +45,7 @@ flowchart TD
 
     K --> L["DOCUMENT the<br/>sources of truth affected"]
     L --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
-    M --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — user-facing change"]
+    M --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — when §7 requires one"]
     V --> N["Human review + CI"]
 
     style D fill:#1f2937,color:#fff
@@ -98,8 +98,8 @@ generation instead of observing the damage afterwards.
 > The project's real throughput is its verification throughput, not its generation
 > throughput.
 
-The budget is an explicit ceiling, set for the project — `MAX_LINES` and `MAX_FILES` in
-the pull request workflow. Adjusting it per module, by criticality, is not automated: it
+The budget is an explicit ceiling, set for the project — the `MAX_LINES` and `MAX_FILES`
+environment variables of the pull request's scope check, 400 lines and 15 files by default. Adjusting it per module, by criticality, is not automated: it
 is in the automation backlog. It covers:
 
 | Dimension | Indicative ceiling |
@@ -205,7 +205,8 @@ satisfies teaches the alias, so that row is owed to a human.
 | Lint, format, types | machine | ✔ | ✔ | ✔ | ✔ |
 | Unit tests | machine | ✔ | ✔ | ✔ | ✔ |
 | Fitness functions | machine | ✔ | ✔ | ✔ | ✔ |
-| Contract tests | machine | if there is a contract | if there is a contract | ✔ | ✔ |
+| A frozen contract version proved compatible (V1) | machine | if there is one | if there is one | if there is one | if there is one |
+| Contract tests | owed | if there is a contract | if there is a contract | ✔ | ✔ |
 | Test sheet run by a verifier, with evidence | machine | — | if user-facing | ✔ | ✔ |
 | Runbook present | machine | — | — | ✔ | ✔ |
 | Every scenario re-run at the head commit | machine | — | — | — | ✔ |
@@ -222,7 +223,8 @@ satisfies teaches the alias, so that row is owed to a human.
 
 **Human review is not in this table.** Who must approve a change is not a property of the
 code's blast radius but of the project's exposure — how many people depend on it, and what
-the forge is able to require. It lives in `07-governance.md` §7.
+the forge is able to require. It lives in `07-governance.md` §7, where today it is the same
+for every project: a human code owner.
 
 **One round.** The framework asks for **one** sheet, run by **one** verifier who is not an
 author. It never asks for a second adversarial round, and no check counts them. A project may
@@ -232,11 +234,11 @@ that had no ceiling: six rounds on a read-only module, and **three of the eleven
 were introduced by the late rounds themselves**.
 
 **What separates `high` from `critical`.** At `high` the sheet is required and the verifier is
-independent. `critical` adds three things, and they are the three that cost: **every scenario
-re-run at the head commit** after the last fix — no confirmation stands in for a run — **e2e
-present and green**, and the **runbook referenced by the sheet** rather than merely existing. A module that holds a key,
-places an order, moves money or touches someone's personal data is `critical`; one whose
-failure costs a day is `high`.
+independent. `critical` adds one machine row, the one that costs: **every scenario re-run at
+the head commit** after the last fix — no confirmation stands in for a run. And the owed rows
+that `high` leaves to judgement — rollback, UAT, post-deployment verification, accessibility —
+become due. A module that holds a key, places an order, moves money or touches someone's
+personal data is `critical`; one whose failure costs a day is `high`.
 
 > **Never write "tests passing" if the tests were not actually run.** It is the gravest
 > violation in the system, because it corrupts the one thing everything else rests on.
@@ -244,16 +246,17 @@ failure costs a day is `high`.
 ### The test sheet
 
 Reading a diff tells nobody whether the product behaves as needed; an agent reads code as
-well as a human. So a pull request that changes what a user sees — or changes a module of
-criticality `high` or `critical` — carries a **test sheet** in its description. Editing
+well as a human. So a pull request that changes a module the table above asks a sheet of —
+one a user sees, from `standard` up, and any module of criticality `high` or `critical` —
+carries a **test sheet** in its description. Editing
 only a module's description — its manifest, `AGENTS.md`, `README.md`, `docs/` — changes no
 behaviour and needs no sheet, a framework update included. The user-visible surface and the
 criticality are read before and after the change, and the stricter applies:
 
 | # | Given · when · then | Kind | Result | Evidence | Commit | Confirmed |
 |---|---|---|---|---|---|---|
-| S2 | Given an account, when the password is wrong, then a message says what to do and the email stays typed | automated | passed | the CI run's trace | `a1b2c3d` | — |
-| S5 | Given a 375-pixel-wide phone, when the keyboard opens, then the button stays reachable | explored | failed — the button is hidden | emulator screenshot | `a1b2c3d` | `e4f5a6b` — three fixes under src/, none on this path |
+| S2 | Given an account, when the password is wrong, then a message says what to do and the email stays typed | automated | passed | the CI run's trace | `e4f5a6b` | — |
+| S5 | Given a 375-pixel-wide phone, when the keyboard opens, then the button stays reachable | explored | passed | emulator screenshot | `a1b2c3d` | `e4f5a6b` — three fixes under src/, none on this path |
 | S8 | Given a real mailbox, when a reset is asked, then the email arrives | human only — no test mailbox | not verified | — | — | — |
 
 - **Written before the code**, from the acceptance criteria: it is part of the oracle.
@@ -265,8 +268,8 @@ criticality are read before and after the change, and the stricter applies:
   checked against the history, not a proof of identity.
 - **No result without evidence**, tied to the commit tested. A new commit does not send the
   whole sheet back:
-  - an **automated** scenario is **run again** at the head — CI replays it anyway, so it costs
-    nothing;
+  - an **automated** scenario is **run again** at the head — CI replays it when the module
+    declares `e2e`, so it costs nothing; its Commit cell takes the head commit;
   - one **explored** by hand keeps the commit its evidence was produced on, and the verifier
     adds a **`Confirmed`** column on the head commit saying **what moved since and why it leaves
     the result standing**. Reading three fixes is not the same work as driving six scenarios

@@ -92,7 +92,12 @@ jobs:
       # judged, as every other verdict does (PDR-0005).
       - name: Declared criticality
         run: |
-          echo "Criticality: $(yq '.module.criticality // "standard"' "$FOLDER/MANIFEST.yaml")"
+          value=$(yq '.module.criticality // "undeclared"' "$FOLDER/MANIFEST.yaml")
+          echo "Criticality: $value"
+          case "$value" in
+            prototype|standard|high|critical) ;;
+            *) echo "Not a value the engine knows: judged as critical until M3 is satisfied." ;;
+          esac
 
       - name: bootstrap
         run: nstack bootstrap "$MODULE"

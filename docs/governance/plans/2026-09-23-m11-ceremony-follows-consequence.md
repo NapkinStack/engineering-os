@@ -24,6 +24,9 @@ it was building.
 | **Assurance** — what a failure of *this code* costs | the **module** | `criticality` in `MANIFEST.yaml` | the engine's checks: test sheet, verifier, e2e, runbook, contract tests | the **decider**, recorded in the module's creation ADR |
 | **Exposure** — what a failure of *this project* costs others | the **project** | an OSPS Baseline target level | the forge's requirements: pull requests, status checks, human approval | the **decider**, at init or later |
 
+*Exposure returned to M13 on 2026-09-24: M11g's probe found the OSPS mapping not clean. M11
+ships the assurance axis alone.*
+
 They never override each other. A project at the lowest exposure level can hold a `critical`
 module and pays its assurance in full; a widely used project at level 3 can hold a `prototype`
 module and pays no assurance for it. This separation is what makes both axes small.
@@ -98,7 +101,7 @@ the floor.
    commercial value. Inventing `solo`/`team` was measured against the pilot's 23 pull requests
    and would have changed **none of them**; it was dropped.
 2. **The criticality matrix of `05-workflow.md` §7 is the single source for *when*.** The
-   framework describes proportionate requirements in **three** places: the four-cran diagram of
+   framework describes proportionate requirements in **three** places: the four-level diagram of
    `07-governance.md` §6, the seventeen-row Definition of Done of `05-workflow.md` §7, and the
    thirteen-row reliability table of `08-quality.md` §7 — three shapes, and only the diagram
    carries `prototype`. The matrix says **when** a requirement applies; §6 points at it; §7 of
@@ -106,21 +109,29 @@ the floor.
 3. **Human review leaves the criticality matrix.** Approval is exposure, not blast radius: it
    belongs to the OSPS axis. This removes any need to amend ADR-0004 — the four settings of
    `07-governance.md` §7 keep holding together at level 3, which is where they are required.
+   *Since M11g's probe (2026-09-24), required at every level until M13 — D69 stays open.*
 4. **Each matrix row is marked *machine* or *owed*.** A framework that pretends CI verifies UAT
    teaches people to ignore it. **Eight rows are executable; ten are owed** to a human and named
    as such. The count changed once during M11b: the e2e row was written as *machine* and moved to
    *owed* when building it showed a check could not tell an end-to-end suite from a unit suite
-   renamed — see M11b task 4.
+   renamed — see M11b task 4. *And once more in the coherence pass of 2026-09-24: "contract tests"
+   were marked machine while no check requires them; the row became owed, and the check that does
+   exist — a frozen version proved compatible, V1 — became its own machine row. Eight and eleven.*
 5. **`high` and `critical` finally differ, without a new field.** `critical` adds: the sheet
    confirmed at head after the last fix, e2e present and green, and the runbook referenced by the
    sheet. The four values plus `user_facing` are enough; no `read_only` field is added.
+   *As built: `critical` adds every scenario re-run at the head (M11d) and makes the owed rows
+   `high` leaves to judgement due; e2e is owed at `high` already (M11b task 4), and nothing reads
+   a runbook reference — the coherence pass aligned §7 on this.*
 6. **The framework never asks for N verification rounds.** It asks for one sheet and one
    independent verifier. The six rounds came from T4 and from silence; the matrix says
    explicitly that further rounds are a project's own decision.
 7. **Auto-merge is a correction, not an option.** It removes the human from the *merge*, never
    from the *approval*. ADR-0004 requires an approval; it never required a human to press merge.
 8. **Market research is not a deliverable.** PDR-0010, accepted 2026-09-22, already gives it a
-   home: a typed issue. No new artefact, no new field on cycles.
+   home: a typed issue. No new artefact, no new field on cycles. *Superseded by M11e: such work
+   is a spike, a deliverable whose product is knowledge — the door `05-workflow.md` §3 already
+   had.*
 
 ---
 
@@ -167,23 +178,23 @@ taken first if the pilot's next cycle starts before M11a lands.
 | `src/napkinstack/templates/module/MANIFEST.yaml` | the `criticality` comment points at the matrix, not at the diagram — it is what the agent reads when it chooses | M11a |
 | `skeleton/playbooks/framing.md` | the criticality implied by the risks points at the matrix; the decision is the decider's | M11a, M11c |
 | `skeleton/.github/pull_request_template.md` | the sheet's table gains the `Confirmed` column | M11d |
-| `skeleton/README.md.jinja` | the CHECKLIST copy, word for word, with its test | M11f, M11g |
+| `skeleton/README.md.jinja` | the CHECKLIST copy, word for word, with its test | M11f |
 | `skeleton/.github/workflows/module-checks.yml` | already branches on criticality; the dead *"Not wired up (D9)"* step goes | M11b |
-| `skeleton/docs/os/07-governance.md` §7 | approval is described by exposure level, not as an absolute | M11g |
+| `skeleton/docs/os/07-governance.md` §7 | approval is described by exposure level, not as an absolute | M13 (returned by M11g's probe) |
 | `src/napkinstack/assurance.py` | **new**: the machine half of the matrix, read by every rule that spends it | M11b |
 | `src/napkinstack/fitness/manifests.py` | M8 reads the matrix instead of a hard-coded threshold | M11b |
 | `src/napkinstack/pull_request.py` | T1 and T4 read the matrix; T4 splits by scenario kind | M11b, M11d |
 | `src/napkinstack/modules.py`, `cli.py` | `criticality` gains help text and printed consequences | M11c |
 | `skeleton/AGENTS.md` | one routing line: the criticality is the decider's | M11c |
-| `skeleton/playbooks/framing.md`, `discovery.md` | non-code work goes to an issue, not a deliverable | M11e |
-| `src/napkinstack/fitness/plan.py` | C4's acceptance criteria apply to delivery deliverables | M11e |
-| `src/napkinstack/doctor.py` | auto-merge, squash-only, branch deletion; then OSPS levels | M11f, M11g |
+| `skeleton/playbooks/framing.md`, `05-workflow.md` §3 | a deliverable waiting on someone outside is a spike, or a dependency with a date | M11e |
+| `src/napkinstack/fitness/plan.py` | C4's refusal names the spike and a dependency with a date | M11e |
+| `src/napkinstack/doctor.py` | auto-merge, squash-only, branch deletion; OSPS levels in M13 | M11f |
 | `skeleton/.github/CODEOWNERS.jinja` | unchanged — the default owner stays | — |
 | `docs/pdr/0011-*.md` | new: ceremony follows consequence | M11h |
-| `docs/adr/0005-*.md` | new: adopt the OSPS Baseline rather than invent a scale | M11g |
+| `docs/adr/0005-*.md` | not written: the probe sent the scale to M13 | — |
 | `docs/adr/0003-*.md` | shrunk to the rule in force | M11h |
 | `AGENTS.md`, `PRODUCT.md` §2, §3, §5 | the M7 sentence, the fifth user, the honest claim, the records exemption | M11h |
-| `docs/governance/workstreams.md` | D66 to D77 recorded | M11h |
+| `docs/governance/workstreams.md` | D66 to D77 recorded, D78 by M11g | M11h, M11g |
 | `CHANGELOG.md` | the v0.7.0 section, engine and project apart | M11i |
 
 ---
@@ -210,9 +221,10 @@ it points at still says what the citing file claims.
 **Two copies bound by a test:** `CHECKLIST` in `doctor.py`, printed by `nstack init`, read by
 `project.py`, repeated word for word in `skeleton/README.md.jinja`.
 
-**Identifiers, verified free before use:** M1 to M10 are taken, so the e2e rule is **M11**;
-G1 to G13 are taken, so the forge rules are **G14, G15, G16**. Families in use: B1-B9, C1-C7,
-G1-G13, H1-H2, K1-K4, L0-L7, M1-M10, P1-P6, S1-S8, T1-T5, V1, W1.
+**Identifiers, verified free before use:** M1 to M10 are taken, so the e2e rule is **M11**
+(built and removed in M11b: it does not exist); G1 to G13 are taken, so the forge rules are
+**G14, G15, G16**. Families the engine emits: B1-B8, C1-C7, G1-G16, H1, K1-K4, L1-L7, M1-M10,
+P1-P2, S1-S4, T1-T5, V1, W1.
 
 ---
 
@@ -226,14 +238,15 @@ No behaviour change. This workstream makes the contract readable before any code
       on it today, **owed** otherwise. The seven machine rows: oracle green · lint, format,
       types · unit tests · contract tests · fitness functions · test sheet run by an independent
       verifier · e2e. The ten owed rows keep their place and gain one sentence: *"owed to a human;
-      no check reads it."*
+      no check reads it."* *(As built: e2e moved to owed in M11b task 4, runbook and re-run at the
+      head were added as machine.)*
 - [x] **Task 3.** Add, under the matrix: **one round.** The framework asks for one sheet and one
       verifier who is not an author. Further adversarial rounds are a project's own decision,
       recorded in its own ADR — never a framework requirement.
 - [x] **Task 4.** State what separates `high` from `critical`, in the matrix itself: `critical`
       adds the sheet **confirmed at head** after the last fix, **e2e present and green**, and the
       **runbook referenced** by the sheet.
-- [x] **Task 5.** In `07-governance.md` §6, replace the four-cran diagram's content with a
+- [x] **Task 5.** In `07-governance.md` §6, replace the four-level diagram's content with a
       pointer to the matrix, keeping the principle sentence (*"never impose the ceremony of a
       critical system on a small module"*) and the revision rule.
 - [x] **Task 6 — the third table.** `08-quality.md` §7 holds a **thirteen-row reliability table**
@@ -288,8 +301,8 @@ MATRIX = {
       neighbouring value would change (P6). Example: *"FAIL [T1] … required at criticality
       `high`. At `standard` this module would need a sheet only if it were user-facing."*
 - [x] **Task 6 — the CI already knows.** `module-checks.yml` reads `.module.criticality` and
-      branches on it already; it also runs `nstack e2e` unconditionally. Two consequences: M11's
-      rule adds the **declaration** requirement, not the run, and the dead step *"Levels high and
+      branches on it already; it also runs `nstack e2e` unconditionally. Two consequences: the
+      planned e2e rule would have added the **declaration** requirement, not the run, and the dead step *"Levels high and
       critical — not wired up yet (D9)"*, which prints a sentence and passes in **every generated
       project**, is removed. A step that cannot fail is the residue this milestone exists to
       remove; D9 stays open in the register, without a decorative step to stand for it.
@@ -408,8 +421,8 @@ the approval.
       by PDR-0008). Both readable through the API **without the Administration permission**, so
       both are verified rather than merely written. The pilot's repository currently shows 22
       branches for 23 merged pull requests and four commits on `main` for two workstreams.
-- [x] **Task 3.** The skeleton's `README` and `playbooks/verification.md` document the one-gesture
-      approval: the human approves from their own terminal, under their own identity, without a
+- [x] **Task 3.** The skeleton documents the one-gesture approval — as built, in
+      `07-governance.md` §7, the README carrying only the checklist lines: the human approves from their own terminal, under their own identity, without a
       browser round-trip. The agent still never approves.
 - [x] **Task 4.** `doctor`'s output names the three new rules with the exact setting to change.
 - [x] **Task 5 — the checklist has two copies and a test that binds them.** `CHECKLIST` lives in
@@ -539,7 +552,7 @@ It builds PDR-0004's first axis, the stage, read from the repository and never d
 **Done when:** a first delivery pull request on an unframed project merges with no charter,
 no cycle and no label, while another rule still refuses something in that project.
 
-## M11k — The forge's settings in one gesture (PDR-0008), D77 and D78 — PR 11
+## M11k — The forge's settings in one gesture (PDR-0008), D57, D77 and D78 — PR 11
 
 One command beside `doctor`: it computes the distance to the checklist and prints the calls
 that close it; applying is a choice, and only with a credential that **cannot commit**, checked
@@ -548,7 +561,9 @@ here, because the command and `doctor` share one checklist and one verdict: *not
 *not in place* get two exit codes, and the summary says which. **D78** too: the checklist
 gains the protection of the default branch against deletion and force-push, which the command
 then applies like any other setting — `OSPS-AC-03.02` puts it at level 1, and this repository's
-own ruleset already has both.
+own ruleset already has both. **D57** closes here too: the kernel says *"never with a human's
+credentials"* without the exception PDR-0008 makes for a credential that cannot commit, and
+one of the two has to say it.
 
 **Done when:** a repository reaches the checklist in one gesture, no credential ever reaches
 the output, and a script can tell a gap from what could not be read.
@@ -560,7 +575,8 @@ to `docs/os/INSTALL.md`; `06-decisions.md` §9 names different places for planne
 unplanned work; the issue forms name kinds of work no deliverable claims; the documentation
 standard is stated once. Its oracle is PDR-0010's five acceptance criteria. **The CHECKLIST's
 second copy moves with the manual** — M11f bound it to `skeleton/README.md.jinja` by a test,
-and that test is the first thing to see red.
+and that test is the first thing to see red. **D79** belongs here as well: the framework's
+own decision numbers, rule codes and pilot figures reach a project that cannot read them.
 
 **Done when:** a generated project's front page describes the product, and its manual is one
 click away, unchanged in substance.
@@ -581,8 +597,8 @@ silently, and the two sentences are where the next reader looks.
 ## M11i — v0.7.0, and the two projects that already exist — PR 9 and the release
 
 - [ ] **Task 1.** The `CHANGELOG` v0.7.0 section, **engine and project apart** (D63), with a
-      **Migration** paragraph: what a project at the default target level sees change, and what a
-      project that wants to keep today's behaviour declares. **Written from an update actually
+      **Migration** paragraph: what M11a to M11f and M11j to M11m change for a project — there is
+      no target level in v0.7.0, M11g having returned it to M13. **Written from an update actually
       run against a copy of each real project before the tag, not predicted from the diff**
       (D73): our v0.6.1 note announced a conflict on the one project where it could not happen.
       And **both projects will turn red on G15 and G16**: each allows merge commits today.
@@ -614,8 +630,8 @@ silently, and the two sentences are where the next reader looks.
 |---|---|---|
 | **The OSPS mapping is not clean** | Their controls are written for projects, ours for changes; the granularity may not line up | M11g task 0 is a probe with an explicit exit: the workstream returns to M13 and the rest of M11 ships without it |
 | **`prototype` becomes a hiding place** | A module declared `prototype` to escape a sheet | The value is declared in a reviewed file, printed in every run, and `nstack modules` lists how many sit at each value. Measured, then judged — not guessed at now |
-| **Lowering the assurance floor reads as lowering quality** | It is the product's promise: quality does not depend on vigilance | The floor is never lowered on a module that declares what it is; only the *default target* of the project moves, anchored on an external standard, and `doctor` names the gap to the next level at every run |
-| **`doctor` is read as a certification** | "OSPS level 2" is a sentence people will put in a sales deck | M11g task 4 audits the wording; the word *observed* appears in every line, and what cannot be seen is listed |
+| **Lowering the assurance floor reads as lowering quality** | It is the product's promise: quality does not depend on vigilance | The floor is never lowered on a module that declares what it is; only the *default target* of the project moves, anchored on an external standard, and `doctor` names the gap to the next level at every run — *M13's, since M11g's probe* |
+| **`doctor` is read as a certification** | "OSPS level 2" is a sentence people will put in a sales deck | M11g task 4 audits the wording; the word *observed* appears in every line, and what cannot be seen is listed — *M13's, since M11g's probe* |
 | **The kernel exceeds 250 lines** | M11c adds a routing line; the kernel is at **226 of 250**, so one line fits and the risk is only that M11c grows | Checked in the task; if it grows, the sentence duplicated from `07-governance.md` §7 comes out |
 | **The two existing projects conflict on update** | Both are ours, both take the skeleton | M11i does them one at a time, and the `CHANGELOG`'s Migration paragraph is written before the tag, not after |
 
@@ -623,7 +639,8 @@ silently, and the two sentences are where the next reader looks.
 
 - **No placeholder, no TBD.** The two blocks that are not yet proven are marked as probes with a
   named exit (M11f task 0, M11g task 0).
-- **Internal consistency.** Human review appears in exactly one axis (exposure, M11g) and is
+- **Internal consistency.** Human review appears in exactly one axis (exposure — M13's since
+  M11g's probe) and is
   removed from the other (M11a task 1). `confirm_at_head` is introduced in M11b's matrix and
   spent in M11d task 3. No rule is added without its failing test (P5). The three proportionality
   tables are reconciled by subject — when, what, and a pointer — rather than merged into one, and
@@ -632,7 +649,8 @@ silently, and the two sentences are where the next reader looks.
   coherence map, found by search. Three gaps the first draft had missed are closed: the third
   table (`08-quality.md` §7), the pull request template's sheet, and the CHECKLIST's second copy
   in the skeleton README.
-- **Scope.** Nine workstreams at planning time, each tracing to a measured defect: D61, D66 to D72; M11h added four more (M11j to M11m), for three accepted decisions and D68, D74, D75, D77. Nothing here
+- **Scope.** Nine workstreams at planning time, each tracing to a measured defect: D61, D66 to D72; M11h added four more (M11j to M11m), for three accepted decisions and D57, D68, D74, D75, D77,
+D78 and D79. Nothing here
   serves a user of `PRODUCT.md` §3 that is not named, and the fifth user is added explicitly
   rather than assumed.
 - **Ambiguity.** "One round" (M11a task 3) is a statement about what the *framework* requires,

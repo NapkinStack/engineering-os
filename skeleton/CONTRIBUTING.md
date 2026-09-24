@@ -49,7 +49,8 @@ The template applies the Definition of Done. Three things not to skate over:
 
 - **The summary** — `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS`.
   A summary with nothing under `ASSUMED` and `NOT VERIFIED` is almost always incomplete.
-- **The test sheet** — when a user sees the change: scenarios written before the code,
+- **The test sheet** — when one is due (`docs/os/05-workflow.md` §7: a module a user sees,
+  from `standard` up, and every `high` or `critical` one): scenarios written before the code,
   results filled in by a verifier who is not you, each with its evidence
   (`playbooks/verification.md`).
 - **The signals to report** — that is how the system improves

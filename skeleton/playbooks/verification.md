@@ -39,7 +39,10 @@ change's authors and refuses a match.
      result;
    - *human only* — do not run it; check that its reason is stated.
 4. **Record** each result in the sheet — `passed`, `failed — <what you observed>`, or
-   `not verified` — with its evidence and the short hash of the commit you tested.
+   `not verified` — with its evidence and the short hash of the commit you tested. After a
+   fix, an *automated* scenario is run again at the head; an *explored* one is confirmed in
+   the `Confirmed` column with the head commit and what moved since; at criticality
+   `critical`, every scenario is run again (`docs/os/05-workflow.md` §7).
 5. **Only then read the diff**, to explain a failure — never to decide a result.
 6. **Report** the failures first — observed, expected, evidence — then any optional
    remark, marked as such.

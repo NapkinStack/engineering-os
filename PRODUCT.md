@@ -150,9 +150,10 @@ a block of `run.sh`.
 budget` and `Hooks and secrets` judge this repository. `Test sheet and cycle` does not: there is
 no `docs/project/` here, and `platform/` is of criticality `high`, so T1 would ask for a test
 sheet on almost every pull request of a repository whose deliverable is the framework itself.
-`Commits on main` does not either: the ruleset refuses a direct push, which is the barrier that
-record exists to compensate for. Both are exemptions, not oversights, and PDR-0007 is where the
-first of them becomes a state a project can declare.
+`Module checks` does not either: there are no modules here. Nor does the record of `Commits on
+main`, which is not a required check: the ruleset refuses a direct push, which is the barrier
+that record exists to compensate for. These are exemptions, not oversights; PDR-0007 makes the
+cycle half of the first one a state read from the repository.
 
 **The records are corrected in place, until v1.0.** `06-decisions.md` says a replaced
 decision is superseded by a new one, never rewritten. Here, until the framework has a
@@ -208,8 +209,8 @@ update paid for real, and eight probes replayed — the six that must be refused
 by the rule that names them, and the two that must pass passed; the forge's own checklist
 compliant. Its review found one more way around a barrier — the contract proof runs in the
 pull request's tree, so a proof calling a file of its module can be rewritten by the change
-it judges — and the maintainer's exit decision is **fix first**: the pilot, private and the
-first real use, starts on **v0.5.0, published 2026-09-20**: the contract proof runs in the
+it judges — and the maintainer's exit decision is **fix first**: the first real use waits
+for **v0.5.0, published 2026-09-20**: the contract proof runs in the
 base's tree, so a change cannot rewrite what judges it, and says it did not prove compatibility
 rather than asserting a break it may not have seen; the diagnosis answers *guarded* or
 *unguarded* and stops reporting a project as faulty for what its plan forbids (PDR-0006); every
@@ -217,9 +218,9 @@ project receives a record naming a commit that reached its default branch outsid
 request, which records and never refuses; and the repository is a documented way to install the
 tool beside the registry, which alone publishes (ADR-0002, clarified). Updating `tool-library`
 from v0.4.0 asked for no adaptation at all. A direction is recorded and
-not yet built:
+built in part:
 PDR-0004, which routes the interview on the project's stage and the field the questions come
-from; its design is M11. The checks the handbook describes without them being automated are
+from — M11c routes the criticality to the decider, and M11j builds the stage. The checks the handbook describes without them being automated are
 marked as such and listed in the automation backlog.
 
 **An internal audit before the pilot, and v0.6.0 is what it found (2026-09-20)**: the whole
@@ -261,9 +262,8 @@ should have been; the criticality returned to the decider with its price shown; 
 approval that is one gesture. The exposure level did not survive its probe — the OSPS
 Baseline's identifiers are stable, but six of our sixteen forge rules have no control to map to
 — and returned to M13. Before v0.7.0: the three decisions accepted for M11 that its first plan
-did not carry — the unframed state
-(PDR-0007), the settings in one gesture (PDR-0008), and the form without the content
-(PDR-0010).
+did not carry — the unframed state (PDR-0007), the settings in one gesture (PDR-0008), and the
+form without the content (PDR-0010) — and what the pilot's cycle boundary found (M11m).
 
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-english-migration.md`,

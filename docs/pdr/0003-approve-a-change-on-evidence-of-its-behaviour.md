@@ -1,6 +1,7 @@
 # PDR-0003 — Approve a change on evidence of its behaviour
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-17 (what changes a module)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-17 (what changes a module); measured on the pilot, recorded
+  2026-09-24 — the rule unchanged
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, pull request
