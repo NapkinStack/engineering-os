@@ -160,7 +160,14 @@ authentication, authorisation, secrets, personal data or external input.
 
 ## 7. Reliability and operations
 
-A module destined for production must be **operable**. Depending on its criticality:
+A module destined for production must be **operable**. This section says **what** operability
+is made of; **when** each capability is required is read from the one table that answers that
+question, `05-workflow.md` §7. Below `standard` — a `prototype` module, thrown away, that
+nothing depends on — none of it is required.
+
+The rows below are **owed to a human**: no check in the framework reads them. They are the
+detail behind the *Observability added*, *Runbook present* and *Rollback verified* rows of the
+table.
 
 | Capability | standard | high | critical |
 |---|---|---|---|

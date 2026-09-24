@@ -180,29 +180,59 @@ gradual drift and opportunistic refactoring.
 
 ## 7. Definition of Done
 
-A task is finished when the **applicable** validations have actually passed. Which ones
-apply depends on the module's declared criticality (`07-governance.md` § proportionate
-governance).
+A task is finished when the **applicable** validations have actually passed. Which ones apply
+depends on the module's declared `criticality`. **This table is the only place that says
+which** — nothing else in the framework holds a second version of it, and a check that
+refuses a change reads it here.
 
-| Validation | standard | high | critical |
-|---|---|---|---|
-| Oracle green | ✔ | ✔ | ✔ |
-| Lint, format, types | ✔ | ✔ | ✔ |
-| Unit tests | ✔ | ✔ | ✔ |
-| Build | ✔ | ✔ | ✔ |
-| Contract tests | if there is a contract | ✔ | ✔ |
-| Fitness functions | ✔ | ✔ | ✔ |
-| Integration tests | per risk | ✔ | ✔ |
-| Security analysis | ✔ | ✔ | ✔ |
-| Human review | ✔ | ✔ | ✔ + owner |
-| Affected documentation up to date | ✔ | ✔ | ✔ |
-| Accessibility | if UI | if UI | ✔ |
-| Test sheet run by a verifier, with evidence | if user-facing | ✔ | ✔ |
-| E2E on critical journeys | — | ✔ | ✔ |
-| Observability added | — | ✔ | ✔ |
-| Runbook / rollback verified | — | per risk | ✔ |
-| UAT | — | as needed | ✔ |
-| Post-deployment verification | — | per risk | ✔ |
+Each row says who judges it:
+
+- **machine** — a check in CI fails when it is missing. You cannot forget it, and you cannot
+  talk your way past it.
+- **owed** — no check reads it. It is owed to a human, by name, and a row marked *owed* that
+  nobody does is a decision the project took in silence.
+
+The distinction is deliberate. A framework that claims CI verifies a UAT teaches its readers
+to stop believing the rest of the table.
+
+| Validation | Judged by | prototype | standard | high | critical |
+|---|---|---|---|---|---|
+| Oracle green | machine | ✔ | ✔ | ✔ | ✔ |
+| Lint, format, types | machine | ✔ | ✔ | ✔ | ✔ |
+| Unit tests | machine | ✔ | ✔ | ✔ | ✔ |
+| Fitness functions | machine | ✔ | ✔ | ✔ | ✔ |
+| Contract tests | machine | if there is a contract | if there is a contract | ✔ | ✔ |
+| Test sheet run by a verifier, with evidence | machine | — | if user-facing | ✔ | ✔ |
+| E2E on critical journeys | machine | — | — | ✔ | ✔ |
+| Runbook present | machine | — | — | ✔ | ✔ |
+| Sheet confirmed at the head commit | machine | — | — | — | ✔ |
+| Build | owed | ✔ | ✔ | ✔ | ✔ |
+| Integration tests | owed | — | per risk | ✔ | ✔ |
+| Security analysis | owed | — | ✔ | ✔ | ✔ |
+| Affected documentation up to date | owed | — | ✔ | ✔ | ✔ |
+| Accessibility | owed | — | if UI | if UI | ✔ |
+| Observability added | owed | — | — | ✔ | ✔ |
+| Rollback verified | owed | — | — | per risk | ✔ |
+| UAT | owed | — | — | as needed | ✔ |
+| Post-deployment verification | owed | — | — | per risk | ✔ |
+
+**Human review is not in this table.** Who must approve a change is not a property of the
+code's blast radius but of the project's exposure — how many people depend on it, and what
+the forge is able to require. It lives in `07-governance.md` §7.
+
+**One round.** The framework asks for **one** sheet, run by **one** verifier who is not an
+author. It never asks for a second adversarial round, and no check counts them. A project may
+decide to spend more — on a module where it is worth it, recorded in its own ADR — and that is
+the project's decision, never a requirement read out of this table. Measured on one project
+that had no ceiling: six rounds on a read-only module, and **three of the eleven defects found
+were introduced by the late rounds themselves**.
+
+**What separates `high` from `critical`.** At `high` the sheet is required and the verifier is
+independent. `critical` adds three things, and they are the three that cost: the sheet
+**confirmed at the head commit** after the last fix, **e2e present and green**, and the
+**runbook referenced by the sheet** rather than merely existing. A module that holds a key,
+places an order, moves money or touches someone's personal data is `critical`; one whose
+failure costs a day is `high`.
 
 > **Never write "tests passing" if the tests were not actually run.** It is the gravest
 > violation in the system, because it corrupts the one thing everything else rests on.
