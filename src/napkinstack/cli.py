@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from napkinstack import assurance
 from napkinstack import (__version__, compat, discovery, doctor, landed, modules, provenance,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
@@ -80,7 +81,12 @@ def build_parser() -> argparse.ArgumentParser:
     nm.add_argument("name", help="module name, kebab-case")
     nm.add_argument("owner", help="GitHub team, organisation/team, or a user when the project has "
                                   "no organisation")
-    nm.add_argument("criticality", choices=["prototype", "standard", "high", "critical"])
+    nm.add_argument("criticality", choices=list(assurance.CRITICALITIES),
+                    help="what a failure of this module costs — prototype: nothing, it is "
+                         "thrown away and nothing depends on it · standard: real code, no "
+                         "money and no personal data · high: a day of work · critical: a "
+                         "key, an order, money, or someone's personal data. The decider "
+                         "settles it (docs/os/05-workflow.md §7)")
     nm.add_argument("--user-facing", action="store_true",
                     help="a user sees this module: its pull requests carry a test sheet")
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),

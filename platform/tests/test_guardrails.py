@@ -149,6 +149,38 @@ def test_new_module_between_two_cycles_names_the_cycle(tmp_path, capsys):
     assert "The project is not framed" not in output, output
 
 
+def test_the_criticality_argument_answers_which_one_do_i_pick(tmp_path, capsys):
+    """D70. `criticality` was a positional argument with `choices` and no help, while its two
+    neighbours `name` and `owner` each had one. An agent had to type one of four words with no
+    criteria at hand and no consequence shown, mid-task, so it took the prudent one: the pilot
+    declared a read-only module holding no key and placing no order `high`, and paid six
+    verification rounds for it.
+
+    The help answers with consequences, not definitions, and the four values are all there."""
+    import contextlib
+    import io
+
+    help_text = io.StringIO()
+    with contextlib.redirect_stdout(help_text), contextlib.suppress(SystemExit):
+        cli.main(["new-module", "--help"])
+    shown = help_text.getvalue()
+    for value in ("prototype", "standard", "high", "critical"):
+        assert value in shown, shown
+    assert "thrown away" in shown, shown        # what prototype means, not what it is called
+    assert "money" in shown or "key" in shown, shown   # what critical means
+
+
+def test_new_module_prints_what_the_value_costs_before_it_is_lived(tmp_path, capsys):
+    """The consequence is shown where the choice is made, and so is the neighbour's: a reader who
+    cannot see what the value below would change cannot judge the declaration (P6)."""
+    assert cli.main(["new-module", "reader", "acme/web", "high", "--root", str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    assert "test sheet" in output, output
+    assert "runbook" in output, output
+    assert "At standard" in output, output
+    assert "creation adr" in output.lower(), output
+
+
 def test_new_module_says_what_its_pull_requests_will_need(tmp_path, capsys):
     """D33: green as created; the sheet and the cycle named from facts nstack holds."""
     from test_plan import framed

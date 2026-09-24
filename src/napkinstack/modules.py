@@ -101,16 +101,43 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     print(f"Module created: modules/{name} (owner {owner}, criticality {criticality}"
           + (", user-facing" if user_facing else "") + (", runbook to fill in" if runbook else "") + ").")
     print("It holds only its description: fitness, check and test pass as it stands.")
+    for line in price(criticality, user_facing):
+        print(f"  {line}")
     for number, step in enumerate(next_steps(root, name, criticality, user_facing), 1):
         print(("\nNext steps:\n" if number == 1 else "") + f"  {number}. {step}")
     return 0
+
+
+def price(criticality: str, user_facing: bool) -> list[str]:
+    """What the chosen value requires, and what the value below would change — printed where the
+    choice is made rather than discovered later (P6, D70). A reader who cannot see the neighbour
+    cannot judge the declaration, which is the decision an agent took alone when nothing told it
+    where to stop."""
+    rows = [("a test sheet on every pull request that changes its behaviour, run by a verifier "
+             "who is not its author", "sheet"),
+            ("a runbook", "runbook"),
+            ("every scenario of the sheet re-run at the head commit after a fix", "rerun_at_head")]
+    required = [what for what, row in rows if assurance.requires(criticality, row, user_facing)]
+    said = [f"At criticality {criticality} it needs: " + "; ".join(required) + "."
+            if required else f"At criticality {criticality} it needs none of the sheet, the "
+                             "runbook or a re-run at the head."]
+    below = assurance.below(criticality)
+    if below is not None:
+        dropped = [what for what, row in rows
+                   if assurance.requires(criticality, row, user_facing)
+                   and not assurance.requires(below, row, user_facing)]
+        said.append(f"At {below} it would drop: " + "; ".join(dropped) + "." if dropped
+                    else f"At {below} nothing of that would change.")
+    return said
 
 
 def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> list[str]:
     """What the module's first pull requests will be asked, from facts nstack holds (D33)."""
     from napkinstack.fitness import plan  # here: plan reads HANDLE from this module
 
-    steps = ["Creation ADR in docs/adr/: capability, boundary, alternatives",
+    steps = ["Creation ADR in docs/adr/: capability, boundary, alternatives — and the criticality "
+             f"with one sentence saying why {criticality} and not the value below or above; it is "
+             "the decider who settles it",
              "MANIFEST.yaml: the responsibility in ONE sentence",
              f"modules/{name}/AGENTS.md: what is specific to the module, never the kernel",
              "Before its first file of code: commands.check and commands.test for its stack — "
