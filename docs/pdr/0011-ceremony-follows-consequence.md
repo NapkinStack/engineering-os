@@ -1,6 +1,7 @@
 # PDR-0011 — Ceremony follows consequence
 
-- **Status**: Proposed (2026-09-24)
+- **Status**: Accepted (2026-09-24, by the maintainer; the success criterion is observed
+  before 2027-03-31). The exposure axis stays with M13, after M11g's probe
 - **Date**: 2026-09-24
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack pr-check` (T1, T4), `nstack manifests` (M8), `nstack
