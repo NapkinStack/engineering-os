@@ -594,6 +594,10 @@ click away, unchanged in substance.
 **Done when:** an update started from a feature branch cannot carry a foreign commit
 silently, and the two sentences are where the next reader looks.
 
+**Done (2026-09-24).** D74 refuses rather than switches: switching would
+change a user's checkout without a word, the same shape as the defect. D68 lands in the
+skeleton's README, where an update is described; D75 at the verifier's diff-reading step.
+
 ## M11i — v0.7.0, and the two projects that already exist — PR 9 and the release
 
 - [ ] **Task 1.** The `CHANGELOG` v0.7.0 section, **engine and project apart** (D63), with a

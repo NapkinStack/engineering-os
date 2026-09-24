@@ -77,9 +77,13 @@ in a reviewed pull request.
 
 ```bash
 uv tool install "napkinstack==X.Y.Z" --with-executables-from pre-commit  # the version you want
+git switch main                          # an update starts from the default branch
 nstack update                            # branch nstack/update-vX.Y.Z, merged and committed
 git push -u origin nstack/update-vX.Y.Z  # then the PR, validated by CI
 ```
+
+**When: at a cycle's boundary** — close the cycle, take the update, then accept the next one.
+Upgrading mid-cycle changes the judge while a cycle is being judged.
 
 The merge keeps the project's adaptations and never touches the modules' code. A conflict
 stays marked in the file, uncommitted: the team decides, and both the hook and CI reject
