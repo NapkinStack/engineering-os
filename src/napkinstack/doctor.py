@@ -3,7 +3,7 @@ Read-only diagnosis of a project: the workstation and the GitHub settings (PDR-0
 
 Workflows inform; it is the GitHub settings that block, and they are not copied with the
 project. CHECKLIST is printed by nstack init, checked here, and repeated word for word in
-the skeleton README (a test verifies it).
+the foundation manual, skeleton/docs/os/INSTALL.md.jinja (a test verifies it).
 
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
 fine-grained, limited to the repository, Administration: read permission. Without a token,

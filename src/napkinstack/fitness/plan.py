@@ -15,6 +15,7 @@ Rules:
   C6  a closed or stopped cycle records its outcome and the date it ended
   C7  discovery: a known decision, its decider and date once decided, a challenger for a go;
       a charter follows a go
+  C8  front page: under an accepted charter, README.md no longer holds its form's words
 
 Templates, whose file name starts with "_", are not checked.
 
@@ -38,6 +39,15 @@ PROJECT = Path("docs") / "project"
 CHARTER = PROJECT / "charter.md"
 CYCLES = PROJECT / "cycles"
 DISCOVERY = PROJECT / "discovery.md"
+FRONT_PAGE = Path("README.md")
+# The words the skeleton writes where the project's go (skeleton/README.md.jinja; a test binds
+# the two). Exact lines, never a pattern: a front page may hold any tag or any <argument>.
+FRONT_PAGE_FORM = (
+    "<One sentence: what this project does.>",
+    "<A diagram of the product, with its legend: who uses it, what it does for them, what it talks to. "
+    "Then three lines at most.>",
+    "<How to start it and see it work, from a fresh clone.>",
+)
 DECISIONS = {"proposed", "go", "clarify", "kill"}
 CHARTER_STATUSES = {"proposed", "accepted"}
 CYCLE_STATUSES = {"proposed", "accepted", "closed", "stopped"}
@@ -104,6 +114,19 @@ def accepted_cycle(root: Path) -> tuple[Path, dict] | None:
         if data and data.get("status") == "accepted":
             return path, data
     return None
+
+
+def _check_front_page(path: Path, fail) -> None:
+    """C8: the charter's acceptance is the first moment the front page can be written — who it
+    is for is decided — and from then on a form left as it came says nothing to a visitor."""
+    lines = {line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()}
+    left = [words for words in FRONT_PAGE_FORM if words in lines]
+    if left:
+        quoted = "\n      ".join(f'"{words}"' for words in left)
+        fail("C8", path, "the charter is accepted and the front page still holds its form's words:\n"
+                         f"      {quoted}\n      Action: write them from the charter, in the pull "
+                         "request that accepts it (playbooks/framing.md). What a front page holds: "
+                         "docs/os/06-decisions.md §10.")
 
 
 def _check_charter(path: Path, fail) -> bool:
@@ -232,6 +255,8 @@ def run(root: Path) -> int:
     if accepted_charter and discovery.is_file() and decision != "go":
         fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "
                             "a charter follows a go (docs/project/discovery.md)")
+    if accepted_charter and (root / FRONT_PAGE).is_file():
+        _check_front_page(root / FRONT_PAGE, fail)
     accepted = [path for path in cycles if _check_cycle(path, fail) == "accepted"]
     if len(accepted) > 1:
         names = ", ".join(path.name for path in accepted)

@@ -50,6 +50,12 @@ flowchart LR
 The project owns its skeleton and adapts it freely. Every new version reaches it on
 demand, merged with its adaptations; the conflicts are left to the team.
 
+Four files are never merged again, because their content is the product's: the front page
+`README.md`, the module map and the two decision indexes. `nstack init` writes them as a
+form — headings and the place of a diagram — and the foundation's manual sits one click
+away, in `docs/os/INSTALL.md`
+([PDR-0010](docs/pdr/0010-the-framework-imposes-the-form.md)).
+
 ```mermaid
 flowchart LR
     V1["Skeleton v0.1<br/>common base"]:::ref --> F{"Three-way<br/>merge"}
@@ -143,8 +149,8 @@ generation; dotted: a versioned dependency.
 
 | Path | Role |
 |---|---|
-| `skeleton/` | What every project receives: kernel, playbooks, handbook, CI, hooks |
-| `copier.yml` | The questions asked at creation (a Copier template, ADR-0001) |
+| `skeleton/` | What every project receives: kernel, playbooks, handbook and its manual, CI, hooks — and four forms the project writes |
+| `copier.yml` | The questions asked at creation, and the files no update touches again (a Copier template, ADR-0001) |
 | `src/napkinstack/` | The engine, the `nstack` command |
 | `platform/` | The engine module's envelope: manifest, runbook, tests |
 | `PRODUCT.md`, `docs/governance/` | The working context for NapkinStack itself |

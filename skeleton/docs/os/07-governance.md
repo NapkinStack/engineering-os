@@ -297,9 +297,8 @@ is approved and its required checks go green: nobody waits on the reviewer to co
 press a button, and no agent is told to merge on their behalf. The barrier is untouched — the approval is still
 required, still human, still dismissed when new commits are pushed.
 
-What it removes is the round trip. Measured on one project's first three days: of the
-decider's sixteen approval messages, **seven carried no judgement at all** — they existed
-only to tell an agent that a merge could now happen.
+What it removes is the round trip: **the approval message that carries no judgement at
+all**, and exists only to tell an agent that a merge could now happen.
 
 The approval itself can also be given from wherever the decision was made, under the
 approver's own identity, rather than by walking to the browser:

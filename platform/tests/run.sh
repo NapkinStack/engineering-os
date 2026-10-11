@@ -549,11 +549,21 @@ for expected in ".github/CODEOWNERS|@acme/platform" \
                ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
                "contracts/MANIFEST.yaml|owner: acme/platform" \
                "README.md|# Demo project" \
+               "README.md|docs/os/INSTALL.md" \
+               "docs/os/INSTALL.md|## To do once on GitHub" \
+               "docs/os/INSTALL.md|uv tool install \"napkinstack==" \
                ".copier-answers.yml|owner_team: acme/platform"; do
   file=${expected%%|*}; text=${expected#*|}
   grep -qF -- "$text" "$PROJECT/$file" 2>/dev/null \
     || { echo "FAIL: $file does not contain '$text'."; exit 1; }
 done
+
+echo "-> init: the front page is the project's, the manual is one click away (PDR-0010)"
+if grep -niE 'napkinstack|\bnstack\b' "$PROJECT/README.md"; then
+  echo "FAIL: the project's front page names the framework."; exit 1
+fi
+[ "$(wc -l < "$PROJECT/README.md")" -lt 40 ] \
+  || { echo "FAIL: the project's front page is $(wc -l < "$PROJECT/README.md") lines of form."; exit 1; }
 
 echo "-> init: NapkinStack's own development context is never copied (R6)"
 for absent in PRODUCT.md docs/governance platform src pyproject.toml uv.lock copier.yml skeleton; do
@@ -684,7 +694,12 @@ template_version() {  # $1 = tag, the template changes having been made
 template_version v90.1.0
 printf '\nFix v90.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests.md"
 printf '\nFix v90.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
-printf '\nFix v90.2.\n' >> "$TPL/skeleton/modules/README.md"
+printf '\nFix v90.2.\n' >> "$TPL/skeleton/contracts/README.md"
+# A seat is the project's from its first commit: the template may rewrite it, no project
+# that already exists receives a line of it (PDR-0010).
+for seat in README.md.jinja modules/README.md docs/adr/README.md docs/pdr/README.md; do
+  printf '\nSeat rewritten in v90.2.\n' >> "$TPL/skeleton/$seat"
+done
 template_version v90.2.0
 sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/security.md"
 template_version v90.3.0
@@ -699,7 +714,10 @@ project_v01 "$A"
 sed -i '1s/.*/# Tests — local adaptation/' "$A/playbooks/tests.md"
 rm "$A/docs/pdr/_TEMPLATE.md"
 nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
+printf '\nNeighbours lend each other tools.\n' >> "$A/README.md"
+rm "$A/docs/adr/README.md"
 commit_project "$A" "Adaptations and first module"
+SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
 
 echo "-> update: started from another branch, it MUST be refused and name both (D74)"
@@ -737,11 +755,20 @@ echo "$OUT" | grep -qF "What v90.1.0 -> v90.2.0 changes, engine and project apar
 echo "-> update: a file the team deleted is not recreated (criterion 6)"
 [ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "FAIL: deleted file recreated."; exit 1; }
 
-echo "-> update: no module file changed, the skeleton README follows (criterion 7)"
+echo "-> update: no module file changed, a method file beside them follows (criterion 7)"
 [ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_BEFORE" ] \
   || { echo "FAIL: modules/demo changed by the update (PDR-0001 R4)."; exit 1; }
-grep -qF "Fix v90.2." "$A/modules/README.md" \
-  || { echo "FAIL: modules/README.md did not follow the version."; exit 1; }
+grep -qF "Fix v90.2." "$A/contracts/README.md" \
+  || { echo "FAIL: contracts/README.md did not follow the version."; exit 1; }
+
+echo "-> update: a seat the template rewrote MUST stay as the project wrote it (PDR-0010)"
+[ "$(git -C "$A" rev-parse HEAD:README.md HEAD:modules/README.md HEAD:docs/pdr/README.md)" = "$SEATS_BEFORE" ] \
+  || { echo "FAIL: an update rewrote a file that belongs to the project."
+       git -C "$A" diff --stat main HEAD -- README.md modules/README.md docs/pdr/README.md; exit 1; }
+# Unlike a method file (criterion 6), a seat that is missing comes back, as its form: that is
+# what Copier's _skip_if_exists means, and a project with no front page gets one to write.
+grep -qF "Seat rewritten in v90.2." "$A/docs/adr/README.md" \
+  || { echo "FAIL: a missing seat was not recreated from the version's form."; exit 1; }
 
 # The team merges the update's pull request and comes back to main, as it would.
 git -C "$A" switch -q main && git -C "$A" merge -q --ff-only nstack/update-v90.2.0
@@ -934,12 +961,12 @@ sys.exit(cli.main(sys.argv[1:]))
 PY
 }
 
-echo "-> init: GitHub checklist printed, identical to the skeleton README and to the CI jobs"
+echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
 [ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 16 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
-  grep -qF -- "$line" skeleton/README.md.jinja \
-    || { echo "FAIL: '$line' missing from the skeleton README."; exit 1; }
+  grep -qF -- "$line" skeleton/docs/os/INSTALL.md.jinja \
+    || { echo "FAIL: '$line' missing from the foundation manual (docs/os/INSTALL.md)."; exit 1; }
 done
 python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
 import re, sys, yaml
