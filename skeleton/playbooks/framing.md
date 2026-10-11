@@ -92,6 +92,11 @@ cycle — in a pull request they approve; accepted after `start`, the cycle's `s
 move in the same pull request. The modules accepted there are created with the engine's
 module scaffolding, declared user-facing when a user sees them.
 
+**The pull request that accepts the charter writes the project's front page from it** —
+`README.md`: the sentence, a diagram of who uses the product and what it talks to, how to run
+what exists. Until then the front page is a form and stays one; from then on the plan check
+refuses an accepted charter over a form left as it came (`docs/os/06-decisions.md` §10).
+
 ## 4. During the cycle
 
 - **A new idea** goes to *later*. It enters the cycle only if the decider re-frames:
@@ -106,7 +111,9 @@ module scaffolding, declared user-facing when a user sees them.
 ## 5. The end of a cycle
 
 **Every deliverable accepted** — write the closure: what was delivered, which success
-criteria moved, what was deferred; set `status: closed`, `outcome: completed`, `ended_on`.
+criteria moved, what was deferred, and **which documents the cycle brought current** — the
+front page and the module map first, each with its pull request; set `status: closed`,
+`outcome: completed`, `ended_on`.
 When a spike refutes what the charter rests on, present stopping the project too.
 
 **The end date reached first** — the circuit breaker: nothing is extended. Present the

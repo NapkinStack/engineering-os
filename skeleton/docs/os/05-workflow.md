@@ -229,9 +229,8 @@ for every project: a human code owner.
 **One round.** The framework asks for **one** sheet, run by **one** verifier who is not an
 author. It never asks for a second adversarial round, and no check counts them. A project may
 decide to spend more — on a module where it is worth it, recorded in its own ADR — and that is
-the project's decision, never a requirement read out of this table. Measured on one project
-that had no ceiling: six rounds on a read-only module, and **three of the eleven defects found
-were introduced by the late rounds themselves**.
+the project's decision, never a requirement read out of this table. Rounds without a ceiling
+are not free: **a late round introduces defects of its own**, in changes nobody had asked for.
 
 **What separates `high` from `critical`.** At `high` the sheet is required and the verifier is
 independent. `critical` adds one machine row, the one that costs: **every scenario re-run at

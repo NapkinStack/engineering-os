@@ -122,7 +122,7 @@ It **does not replace** unit, integration, security or technical tests. A UAT us
 technical safety net is the symptom of an insufficient test suite — and it arrives too
 late and costs too much for that role.
 
-It starts from the acceptance criteria of the PDR or the issue and from real user
+It starts from the acceptance criteria of the PDR or the deliverable and from real user
 journeys, not from free exploration of the interface.
 
 The test sheet (`05-workflow.md` §7) is the everyday form of acceptance: the acceptance

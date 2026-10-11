@@ -2,7 +2,8 @@
 
 ## Before you start
 
-1. Pick a **Ready** issue, tied to a deliverable of the current cycle (`docs/project/`).
+1. Pick a **ready** deliverable of the current cycle (`docs/project/cycles/`) — or an issue,
+   for what nobody planned: a defect, a debt.
 2. Identify **the** target module — exactly one.
 3. Read its `MANIFEST.yaml`, then its `AGENTS.md`.
 4. `nstack bootstrap <name> && nstack check <name>`

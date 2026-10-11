@@ -135,6 +135,9 @@ A replaced decision is **superseded by a new decision**, never rewritten quietly
 history of abandoned decisions is often worth more than the current one: it explains why
 the apparently obvious does not work.
 
+A record is a file of `docs/adr/`, named `NNNN-verb-phrase-title.md` — `0001-adopt-postgres.md`
+— and listed in that folder's index, which the project keeps.
+
 ### PDR — Product Decision Record
 
 For an important **product** decision: a user goal, an expected behaviour, a trade-off, a
@@ -145,10 +148,13 @@ The PDR describes **what the product must do and why**, never its implementation
 Minimum content: the user problem · **prior art** · options · decision · a **dated
 success criterion** · a **removal condition** · impacts.
 
+A record is a file of `docs/pdr/`, named `NNNN-user-oriented-title.md`, and listed in that
+folder's index.
+
 ### Why only two formats
 
 The **FDR** (Functional Design Record) format was removed. Between the PDR (the what and
-the why) and the issue's acceptance criteria (the expected, testable behaviour), almost
+the why) and the deliverable's acceptance criteria (the expected, testable behaviour), almost
 nothing was left to justify a third format — and one more format means one more place to
 look, one more to maintain, one more that will diverge.
 
@@ -287,10 +293,12 @@ Every important piece of information has one identifiable source, and only one.
 |---|---|
 | Product decision | PDR |
 | Technical decision | ADR |
-| Expected behaviour of a feature | The issue's acceptance criteria |
+| Expected behaviour of a feature | The deliverable's acceptance criteria |
 | Interface between modules | The versioned contract |
 | A module's identity and dependencies | MANIFEST |
-| Work to be done | Issues / the project board |
+| Planned work | The current cycle's deliverables, in `docs/project/cycles/` |
+| Unplanned work | A typed issue: a defect, an architecture question, a debt, a request |
+| What the project must remember | One named issue, the project's log: what was tried, what it cost, what was refused |
 | Real behaviour | Code and tests |
 | Quality rules | Versioned CI |
 | Infrastructure | Versioned configuration |
@@ -300,3 +308,66 @@ Every important piece of information has one identifiable source, and only one.
 > **Never leave an important decision only inside a conversation with an AI.** A
 > conversation is not versioned, not reviewable, not enforceable, and not findable by
 > somebody arriving in six months.
+
+### What binds is reviewed; what tracks, and what arrives, is an issue
+
+A plan, a decision, a charter and a cycle are **files, reviewed in a pull request**: an issue
+is edited in silence — no diff, no owner, no review — and a plan that can change without
+review is not a plan of record. An issue carries what a file carries badly: the state of the
+work, and whatever nobody planned. Each form names one kind of unplanned work, and none of
+them asks for a deliverable — work a cycle plans is described once, in the cycle. A request
+is not work yet: the next framing makes it a deliverable, or refuses it with a reason.
+
+A project that tracks its unplanned work in another tool, or keeps everything in files,
+breaks no rule here: it has chosen where, which is all this section asks.
+
+---
+
+## 10. The project's documents
+
+The framework writes none of them. It names the documents a project holds, the event that
+brings each one current, and the standard they are written to.
+
+```mermaid
+flowchart LR
+    CH["Charter accepted"]:::event --> FP["Front page"]:::doc
+    CY["Cycle closed"]:::event --> FP
+    CY --> MM
+    MO["Module created,<br/>merged or retired"]:::event --> MM["Module map"]:::doc
+    BE["Behaviour changed"]:::event --> MD["The module's page<br/>and its runbook"]:::doc
+    DE["Decision taken"]:::event --> IX["The record<br/>and its index"]:::doc
+
+    classDef event fill:#1e3a8a,color:#fff
+    classDef doc fill:#065f46,color:#fff
+```
+
+**Legend** — blue: an event of the project's life · green: the document that event brings
+current, in the same pull request.
+
+| Document | Says | Written by | Brought current by |
+|---|---|---|---|
+| Front page — `README.md` | What the product is, how to run it, where its decisions live | The framer, from the charter | The charter's acceptance, then each cycle's closure |
+| Module map — `modules/README.md` | The modules, and the contracts between them | Whoever creates the module | The pull request that creates, merges or retires a module |
+| A module's `README.md` and runbook | What it is for, how to start it, how to operate it | Its owner | The pull request that changes its behaviour |
+| Charter and cycles — `docs/project/` | Who it is for, when it is finished, what is delivered now | The framer | The decider alone (§4) |
+| A decision and its index — `docs/adr/`, `docs/pdr/` | A trade-off, with its dated criterion | Its author | Never: a decision is superseded, and the index gains a line |
+
+**The standard — four rules, and no content:**
+
+1. **Shape first**: a diagram with its legend before the prose, wherever there is a structure,
+   a flow or a state to show — written as text in the file, so that a pull request shows what
+   changed in it. Then a few lines. A reader who stops after the diagram has understood.
+2. **A source for every claim about the outside world** — a market, a law, a tool's
+   behaviour, a number.
+3. **A date on every decision**, and on every criterion that will judge it.
+4. **Current, or deleted.** Each document has the event above that brings it current, and the
+   pull request of that event carries the change. A document nobody is due to update is
+   deleted: a stale page costs more than a missing one, because it is believed.
+
+**What a machine reads, and what is owed.** One thing is decidable and is checked: a front
+page still holding its form's words under an accepted charter is refused (rule C8). Whether a
+page is *true* is not decidable: it is owed — "affected documentation up to date" in the
+Definition of Done (`05-workflow.md` §7), and the cycle's closure, which names the documents
+it brought current.
+
+This handbook is written to the same standard; that is where it comes from.

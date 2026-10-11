@@ -149,6 +149,22 @@ delivery: it lengthens the queue and degrades the quality of the review itself.
 written in a project document, never in the kernel or a playbook: the framework's files
 keep merging cleanly at every update.
 
+### Method and seat: whose file it is
+
+Every file the framework writes into a project is one of two things, never both.
+
+| | Method | Seat |
+|---|---|---|
+| **Whose** | The framework's | The project's |
+| **At creation** | Written whole | Written as a form: headings, and the place of a diagram |
+| **At an update** | Merged | Never touched again — recreated only when missing |
+| **Which** | Everything else: the kernel, the playbooks, this handbook, the templates, the checks | `README.md`, `modules/README.md`, `docs/adr/README.md`, `docs/pdr/README.md` |
+
+A file holding the framework's words *and* waiting for the project's belongs to nobody: the
+project does not delete what looks official, and an update conflicts on what the project
+wrote. So a seat carries no manual, and the manual sits in no seat. What a seat must hold,
+and what keeps it current: `06-decisions.md` §10.
+
 ---
 
 ## 6. Glossary
@@ -179,7 +195,7 @@ These terms have a precise meaning in the OS. Using them differently creates amb
 | **Test sheet** | The scenarios of a change, written before the code and run by a verifier who is not the author, each with its evidence (`05-workflow.md` §7). |
 
 > **Note.** The **FDR** (Functional Design Record) format does not exist in this OS. It
-> overlapped the PDR and an issue's acceptance criteria without adding distinct value.
+> overlapped the PDR and a deliverable's acceptance criteria without adding distinct value.
 > For genuinely complex cases, it becomes an **optional section of the PDR**.
 > Justification: `06-decisions.md` § "Why only two formats".
 

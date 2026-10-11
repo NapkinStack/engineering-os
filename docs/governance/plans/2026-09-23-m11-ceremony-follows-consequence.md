@@ -151,8 +151,10 @@ flowchart TD
     H --> G["M11g<br/>OSPS probe: not clean<br/>returns to M13"]:::done
     H --> J["M11j<br/>unframed<br/>PDR-0007"]
     H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77, D78"]
-    H --> L["M11l<br/>the form<br/>PDR-0010"]
-    H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]
+    H --> L["M11l<br/>the form<br/>PDR-0010"]:::done
+    H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]:::done
+    H --> N["M11n<br/>identifiers stay home<br/>D79"]
+    N --> I
     G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
     J --> I
     K --> I
@@ -570,16 +572,189 @@ the output, and a script can tell a gap from what could not be read.
 
 ## M11l — The form, not the content (PDR-0010) — PR 12
 
-`nstack init` writes a README stub that belongs to the product; the foundation's manual moves
-to `docs/os/INSTALL.md`; `06-decisions.md` §9 names different places for planned and
-unplanned work; the issue forms name kinds of work no deliverable claims; the documentation
-standard is stated once. Its oracle is PDR-0010's five acceptance criteria. **The CHECKLIST's
-second copy moves with the manual** — M11f bound it to `skeleton/README.md.jinja` by a test,
-and that test is the first thing to see red. **D79** belongs here as well: the framework's
-own decision numbers, rule codes and pilot figures reach a project that cannot read them.
+**Planned in detail on 2026-10-12**, the day the maintainer created a third project and read
+it: of its 48 Markdown files, three mention the product, and its front page is a title, an
+unwritten sentence and 249 lines of this framework's manual. PDR-0010's criteria name the
+README alone; the reading showed the same defect in four more files, and two requirements the
+decision implied without stating — **a diagram before prose**, and **documents that stay
+current**. Both are written into the decision by this workstream, in place.
 
-**Done when:** a generated project's front page describes the product, and its manual is one
-click away, unchanged in substance.
+```mermaid
+flowchart LR
+    subgraph T["A file of the skeleton is one of two things"]
+        M["METHOD<br/>the framework writes it<br/>every update merges it"]:::method
+        S["SEAT<br/>the framework writes its form once<br/>the project writes the content<br/>no update touches it again"]:::seat
+    end
+    I["nstack init"]:::cmd --> M
+    I --> S
+    U["nstack update"]:::cmd --> M
+    U -. "never" .-> S
+    S --> C1["charter accepted<br/>the front page is written<br/>C8 refuses the form left empty"]:::event
+    C1 --> C2["cycle closed<br/>the closure names what<br/>was brought current"]:::event
+    C2 --> C2
+
+    classDef method fill:#374151,color:#fff
+    classDef seat fill:#065f46,color:#fff
+    classDef cmd fill:#1f2937,color:#fff
+    classDef event fill:#1e3a8a,color:#fff
+```
+
+**Legend** — grey: the method, the framework's and received through updates · green: a seat,
+the product's from the first commit · blue: the two events that bring a seat current — one a
+machine reads, one owed to the decider.
+
+### Decisions taken while planning M11l
+
+1. **The defect is the mixed file.** A file that holds the framework's words *and* waits for the
+   project's is owned by nobody: the project does not delete what looks official, and the
+   framework conflicts on what the project wrote. Each of the skeleton's files becomes method or
+   seat, never both.
+2. **Ownership is update behaviour, and Copier already has the word for it.** A seat is listed
+   in `copier.yml` under `_skip_if_exists`: written at `init`, recreated if missing, never
+   merged again. No engine code, no marker, no detection.
+3. **Four seats, not twelve.** `README.md`, `modules/README.md`, `docs/adr/README.md`,
+   `docs/pdr/README.md`, and nothing else moves. `contracts/README.md` shrinks to a pointer and
+   stays method. `docs/project/README.md`, `CONTRIBUTING.md`, `SECURITY.md`, the templates, the
+   playbooks, the kernel and `docs/os/` are method and say so. `CODEOWNERS`, `contracts/MANIFEST.yaml`
+   and `docs/tooling-profile.md` are mixed too, merge cleanly today on both real projects, and
+   are **left alone**: no observed defect, no change.
+4. **The standard names no tool.** *"A diagram written as text in the file, with its legend,
+   before the prose"* is the rule; the tooling profile maps it to Mermaid, the way it maps every
+   other capability (P7).
+5. **Currency gets one machine rule and one owed line, and no more.** Whether a README is *true*
+   is not decidable. Whether it still holds its form's words under an accepted charter is: that
+   is **C8**, the same family as D51. Everything after that is owed, named at the cycle's
+   closure, and marked owed.
+6. **No diagram is demanded of a decision record.** A charter gets one — who uses the product
+   and what it talks to. An ADR or a PDR is most often a table of options; a compulsory diagram
+   there produces decoration.
+7. **The Feature form and the Spike form go.** Each names work a deliverable already claims
+   (K3; and M11e made the spike a deliverable). What arrives unplanned and is not yet work is a
+   **Request**. Four forms: Request, Bug, Architecture, Debt.
+8. **D79 leaves this workstream and becomes M11n.** It rewrites the engine's messages and gains
+   a rule index: another subject, another review. M11l keeps only the D79 items that sit in the
+   files it already rewrites.
+9. **No early v0.7.0.** The third project is re-created from the merged commit with `--ref`,
+   the door PDR-0005 built for exactly this; it takes v0.7.0 by `nstack update` like the other
+   two. M11i's order — after j, k, l, n — stands.
+
+### File map
+
+| File | Change |
+|---|---|
+| `copier.yml` | `_skip_if_exists`: the four seats |
+| `skeleton/README.md.jinja` | The stub: name, sentence, one pointer line, four headings, a diagram's place |
+| `skeleton/docs/os/INSTALL.md.jinja` | **New.** The manual, moved, unchanged in substance |
+| `skeleton/modules/README.md` | The project's module map: a diagram's place, one pointer to `02-modules.md` |
+| `skeleton/contracts/README.md` | Three lines and a pointer to `03-contracts.md` |
+| `skeleton/docs/adr/README.md`, `skeleton/docs/pdr/README.md` | The index and a pointer to `06-decisions.md` |
+| `skeleton/docs/os/06-decisions.md` | §9 planned / unplanned / the log; **§10, the project's documents** — the standard, once |
+| `skeleton/docs/os/00-overview.md` §5 | Method and seat, the table the test reads |
+| `skeleton/docs/os/README.md`, `09-platform.md` | The map and the trees name `INSTALL.md` |
+| `skeleton/docs/tooling-profile.md` | One row: diagrams as text |
+| `skeleton/docs/project/_CHARTER_TEMPLATE.md` | A context diagram's place |
+| `skeleton/docs/project/cycles/_TEMPLATE.md` | Closure: the documents brought current |
+| `skeleton/playbooks/framing.md` | Charter accepted → the front page written; closure → brought current |
+| `skeleton/.github/ISSUE_TEMPLATE/` | `01-request.yml` replaces `01-feature.yml`; `04-spike.yml` removed; `05-debt.yml` → `04-debt.yml` |
+| `skeleton/CONTRIBUTING.md` | Step 1 picks a deliverable, not an issue |
+| `src/napkinstack/fitness/plan.py` | **C8** |
+| `src/napkinstack/project.py`, `doctor.py` | The token line and the docstring name `docs/os/INSTALL.md` |
+| `platform/tests/test_seats.py` | **New.** Seats bound to the handbook's table; a seat names the framework once; the manual whole; the standard once; the forms |
+| `platform/tests/test_plan.py`, `run.sh` | C8; the checklist copy; the stub; an update that leaves a seat alone |
+| `docs/pdr/0010-…`, `docs/governance/workstreams.md`, this plan | Corrected in place |
+
+### Tasks
+
+- [x] **Task 0 — probe: `_skip_if_exists` across an update.** In `run.sh`'s update block, where
+      a template moves from v90.2 to v90.3: change the template's `README.md.jinja` between the
+      two, and assert the project's `README.md` is byte-identical after `nstack update`, and
+      that a seat deleted by the project comes back. **Seen red first** (today the README
+      merges). If Copier's behaviour is not this, stop: decision 2 is wrong and the seats need
+      another mechanism.
+- [x] **Task 1 — the seats, bound.** `00-overview.md` §5 gains the method/seat table;
+      `test_seats.py` asserts (a) the table's seats equal `copier.yml`'s `_skip_if_exists`,
+      (b) every seat exists in the skeleton, (c) **a seat names the framework or its engine on
+      at most one line**. (c) is red on all four files before they are rewritten.
+- [x] **Task 2 — the checklist's second copy moves, test first.** `run.sh` reads
+      `skeleton/docs/os/INSTALL.md.jinja` instead of `README.md.jinja`: red, the file does not
+      exist. Then the manual moves **by `git mv` and a new stub**, so the diff shows no line of
+      the manual changed but its opening paragraph. `init`'s third next step and `doctor`'s
+      docstring name the new path.
+- [x] **Task 3 — the stub.** Name, the sentence `doctor` L5 already reads, one line to
+      `docs/os/INSTALL.md` that says it may be deleted, then *What it is* (a diagram's place,
+      then three lines), *Run it*, *Contribute*, *Decisions*. `run.sh` asserts: fewer than 40
+      lines, exactly one line naming `INSTALL.md`, no installation command.
+- [x] **Task 4 — the folder files.** For each paragraph removed from `modules/`, `contracts/`,
+      `docs/adr/` and `docs/pdr/` READMEs: found in the handbook first, moved there if absent
+      (the naming rule of a decision file and the *Rule to automate* row are the two to check).
+      `modules/README.md` becomes the module map — a diagram of the modules and the contracts
+      between them, brought current by the pull request that creates or retires one.
+- [x] **Task 5 — the standard, once (criterion 5).** `06-decisions.md` §10: a diagram of who
+      writes which document and what brings it current; the table; three rules of form — a
+      diagram with its legend before the prose, a source for every claim about the outside
+      world, a date on every decision — and one of currency: every document names the event that
+      brings it current. A test counts the standard's sentence in the skeleton (**one**) and
+      refuses a tool's name in the section. The tooling profile gains its row. Kernel untouched:
+      227 of 250.
+- [x] **Task 6 — current (C8 and the owed line).** `test_plan.py`: an accepted charter beside a
+      README still holding the stub's words is refused, naming the words; a proposed charter is
+      not; a project with no README is not. Red, then C8. The charter template gains its
+      diagram's place, owed like the rest of its prose (C2 reads the front matter). The cycle template's Closure
+      gains *Documents brought current*; `framing.md` says who writes the front page, when, in
+      which pull request. The matrix keeps "Affected documentation up to date" as **owed**: C8
+      does not make it machine.
+- [x] **Task 7 — planned and unplanned (criteria 3 and 4).** `06-decisions.md` §9: *planned
+      work → the cycle's deliverables*, *unplanned work → a typed issue*, *what the project
+      must remember → one named issue, the log*; "expected behaviour" reads the deliverable's
+      acceptance criteria. The same words corrected where they are repeated (`00-overview.md`
+      glossary, `06` §4, `08-quality.md` §9, `CONTRIBUTING.md` step 1). Forms as decision 7. A
+      test lists the forms and refuses a `Deliverable` field in any of them.
+- [x] **Task 8 — D79's share.** The two measurements from this framework's pilot leave
+      `05-workflow.md` §7 and `07-governance.md` §7, or stay as a rule with no figure. The rest
+      of D79 is M11n's.
+- [x] **Task 9 — the records.** PDR-0010 corrected in place, dated: the seats, C8, the standard
+      with its currency rule, its criteria ticked against what ran. `workstreams.md`: D59 and D60
+      done, D79 to M11n, M11n listed. M11i gains two lines for its Migration paragraph — a
+      running project keeps its seats and receives `INSTALL.md`; two forms disappear on update.
+- [x] **Task 10 — a real project, both ways.** From the working tree: `init`, then `plan` with
+      an accepted charter over the untouched stub (red on C8), the stub written (green),
+      `doctor`. Then a copy of each project created on v0.6.2 takes `nstack update --ref` to
+      this branch: its README byte-identical, `INSTALL.md` arrived, conflicts counted and named
+      in the pull request — measured, not predicted (D73).
+
+**Done when:** a project created from this commit opens on its own name and nothing else of
+ours; its manual is one click away; a charter cannot be accepted over an empty front page; and
+a project that already exists loses nothing it wrote.
+
+**Done (2026-10-12).** As built, against what was planned:
+
+- **A missing seat comes back** (task 0). Copier's `_skip_if_exists` recreates a file that is
+  absent — unlike a method file a team deleted, which stays deleted. Kept: a project with no
+  front page gets a form to write.
+- **Only the front page was red on "names the framework once"** (task 1): the three folder
+  files named the engine once or never. Their defect was method prose in a seat, which no
+  count catches — they were rewritten on reading, and the test now holds the line.
+- **The charter's diagram is owed, not checked** (task 6): C2 reads the front matter, never
+  the prose. C8 reads exact lines of the form, not a `<…>` pattern: a front page may hold any
+  tag.
+- **Measured on copies of the two projects created on v0.6.2** (task 10), each taking this
+  branch by `nstack update --ref`: **no conflict on either**, the four seats byte-identical,
+  `docs/os/INSTALL.md` arrived whole, two forms removed and one added, 24 files touched. Each
+  keeps its 249-line README until its team trims it; the third project's still holds the
+  unwritten sentence, which C8 will refuse the day its charter is accepted.
+- **A real project from the working tree**: the front page is 27 lines and names the framework
+  nowhere; an accepted charter over it is refused with the three lines to write; written, the
+  plan is compliant.
+
+## M11n — The framework's own identifiers stay home (D79) — PR 14
+
+Split from M11l on 2026-10-12. Engine output and skeleton comments cite this repository's
+records — `(PDR-0005)`, `(ADR-0004)`, `(D46)` — which collide with a project's own numbering;
+rule codes are defined in no document a project holds; `doctor` L4 refuses a file named
+`PRODUCT.md`, which a product may now legitimately write. Planned in detail when it starts.
+
+**Done when:** nothing a project reads or runs cites a record it cannot open, every rule code a
+message prints is defined in one page of the handbook bound by a test, and L4 is retired.
 
 ## M11m — What the pilot's cycle boundary found — PR 13
 

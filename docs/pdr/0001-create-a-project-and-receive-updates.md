@@ -246,8 +246,8 @@ checklist depend on the repository's visibility and on the GitHub plan.
 
 - A project may be private; GitHub remains the only forge.
 - The "not bypassable" promise requires a public repository, or a private one under GitHub
-  Team (organisation) or Pro (personal account). The skeleton README states it in its
-  prerequisites.
+  Team (organisation) or Pro (personal account). The foundation manual, `docs/os/INSTALL.md`
+  since PDR-0010, states it in its prerequisites.
 - `nstack doctor` follows the repository's visibility: private reporting is "not
   applicable" outside a public repository; a setting missing from a private repository
   names the plan or option required; on the Free plan those gaps stay gaps, because no

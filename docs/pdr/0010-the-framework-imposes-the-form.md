@@ -1,8 +1,8 @@
 # PDR-0010 — The framework imposes the form, the project writes the content
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); to be implemented in **M11l**, before v0.7.0, with PDR-0007 (M11j) and
-  PDR-0008 (M11k); it closes D59 and D60
+  before 2027-03-31); **built by M11l (2026-10-12)**, which also wrote into it what a third
+  project showed — see *Corrected in place, 2026-10-12*; it closes D59 and D60
 - **Date**: 2026-09-22
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's `README.md.jinja` and `.github/ISSUE_TEMPLATE/`,
@@ -147,17 +147,65 @@ reviewed.
 
 **Acceptance criteria:**
 
-- [ ] Given a project created by `nstack init`, when its `README.md` is read, then it holds the
+- [x] Given a project created by `nstack init`, when its `README.md` is read, then it holds the
       project's name, its sentence and its headings, and no installation instructions beyond one
       line pointing at `docs/os/INSTALL.md`.
-- [ ] Given the same project, when the foundation's manual is looked for, then it is at
+- [x] Given the same project, when the foundation's manual is looked for, then it is at
       `docs/os/INSTALL.md`, complete and unchanged in substance.
-- [ ] Given `06-decisions.md` §9, when its row on work to be done is read, then planned and
+- [x] Given `06-decisions.md` §9, when its row on work to be done is read, then planned and
       unplanned work name different places, and neither contradicts `K3`.
-- [ ] Given the skeleton's issue forms, when they are listed, then each names a kind of work
+- [x] Given the skeleton's issue forms, when they are listed, then each names a kind of work
       that no deliverable claims.
-- [ ] Given the handbook, when the documentation standard is looked for, then it is stated once,
+- [x] Given the handbook, when the documentation standard is looked for, then it is stated once,
       names no tool, and prescribes no content.
+
+- [x] *(added 2026-10-12)* Given a project that already exists, when it takes an update whose
+      skeleton rewrote a seat, then that file is byte-identical afterwards.
+- [x] *(added 2026-10-12)* Given an accepted charter, when the front page still holds its
+      form's words, then the plan check refuses and names them; given a proposed charter, it
+      does not.
+
+### Corrected in place, 2026-10-12
+
+The maintainer created a third project on v0.6.2 and read it: 48 Markdown files, three naming
+the product. The decision above was right and its criteria were too narrow. Four things are
+written into it by M11l, the workstream that builds it:
+
+```mermaid
+flowchart LR
+    I["nstack init"]:::cmd --> M["METHOD<br/>the framework's<br/>merged at every update"]:::method
+    I --> S["SEAT<br/>a form at creation<br/>then the project's"]:::seat
+    U["nstack update"]:::cmd --> M
+    U -. "never" .-> S
+    S --> C["Charter accepted:<br/>the front page is written<br/>(C8 refuses the form)"]:::event
+    C --> Y["Each cycle closed:<br/>the closure names what<br/>was brought current"]:::event
+
+    classDef method fill:#374151,color:#fff
+    classDef seat fill:#065f46,color:#fff
+    classDef cmd fill:#1f2937,color:#fff
+    classDef event fill:#1e3a8a,color:#fff
+```
+
+**Legend** — grey: the method · green: a seat · blue: what brings a seat current — the first a
+machine reads, the second owed to the decider.
+
+1. **The defect is the mixed file, and there were five.** A file holding the framework's words
+   and waiting for the project's belongs to nobody. Four become **seats** — `README.md`,
+   `modules/README.md`, `docs/adr/README.md`, `docs/pdr/README.md` — listed in `copier.yml`
+   under `_skip_if_exists`: written once as a form, never merged again. The fifth,
+   `contracts/README.md`, held no project content and shrank to a pointer.
+2. **The standard has four rules, not three.** A diagram with its legend before the prose, a
+   source for every outside claim, a date on every decision — and **current, or deleted**:
+   every document names the event that brings it current. Stated once, in `06-decisions.md`
+   §10; the tooling profile maps the diagram to a tool.
+3. **"Nothing new is checked" held for the manual, not for the form.** One rule is added,
+   **C8**: under an accepted charter, a front page still holding its form's words is refused.
+   Whether a page is *true* stays owed, and is named owed.
+4. **Two forms were removed, not one repositioned.** The Feature form and the Spike form each
+   described work a deliverable already claims; a **Request** form carries what arrives and is
+   not yet work. Four forms.
+
+**What a running project receives** was measured, not predicted: see M11l's pull request.
 
 ---
 

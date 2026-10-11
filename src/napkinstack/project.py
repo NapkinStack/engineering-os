@@ -159,7 +159,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
           "these settings:")
     for _, setting, _ in CHECKLIST:
         print(f"     - [ ] {setting}")
-    print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see the README)")
+    print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see docs/os/INSTALL.md)")
     return 0
 
 

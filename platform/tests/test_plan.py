@@ -6,6 +6,7 @@ The charter and the cycles (PDR-0002): every rule proves it fails (P5) and names
 from __future__ import annotations
 
 import datetime
+from pathlib import Path
 
 import pytest
 import yaml
@@ -151,4 +152,47 @@ def test_plan_accepts_a_person(tmp_path, capsys, decider):
 def test_plan_accepts_a_filled_criterion(tmp_path, capsys, criterion):
     """D51: a placeholder opens on a non-space, so a comparison is not one."""
     framed(tmp_path, {**CHARTER, "success_criteria": [criterion]})
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def skeleton_front_page() -> str:
+    return (Path(__file__).resolve().parents[2] / "skeleton/README.md.jinja").read_text(encoding="utf-8")
+
+
+def test_the_form_s_words_are_the_skeleton_s():
+    """C8 reads words, so it must read the ones the skeleton writes: a placeholder reworded in
+    the form and not in the rule is a rule that silently stopped refusing anything."""
+    written = [line for line in skeleton_front_page().splitlines() if line.startswith("<") and line.endswith(">")]
+    assert written and set(written) == set(plan.FRONT_PAGE_FORM), (written, plan.FRONT_PAGE_FORM)
+
+
+def test_an_accepted_charter_refuses_a_front_page_left_as_its_form(tmp_path, capsys):
+    """PDR-0010. Three projects were created and read: on each the front page said nothing of
+    the product once the charter had said everything. The charter's acceptance is the first
+    moment the front page can be written, and the last moment nobody has an excuse."""
+    framed(tmp_path)
+    (tmp_path / "README.md").write_text(skeleton_front_page().replace("{{ project_name }}", "Demo"), encoding="utf-8")
+    assert plan.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "[C8] README.md" in output, output
+    assert "<One sentence: what this project does.>" in output, output   # it names the words left
+    assert "docs/os/06-decisions.md §10" in output, output               # and where the form is explained
+
+
+@pytest.mark.parametrize("front_page", [
+    None,                                                                  # a project with no README breaks no rule
+    "# Demo\n\nNeighbours lend each other tools.\n\n<img src='a.png'>\n",  # an HTML tag is not a form's word
+], ids=["no front page", "written, with a tag"])
+def test_a_written_or_absent_front_page_is_not_refused(tmp_path, capsys, front_page):
+    framed(tmp_path)
+    if front_page is not None:
+        (tmp_path / "README.md").write_text(front_page, encoding="utf-8")
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_proposed_charter_leaves_the_form_alone(tmp_path, capsys):
+    """Before the charter is accepted nobody can honestly write what the product is: refusing
+    the form then would be asking for the counterfeit C4 already taught us about (D72)."""
+    framed(tmp_path, {**CHARTER, "status": "proposed"}, cycles={})
+    (tmp_path / "README.md").write_text(skeleton_front_page(), encoding="utf-8")
     assert plan.run(tmp_path) == 0, capsys.readouterr().out

@@ -14,7 +14,7 @@
 ## Context
 
 The GitHub checklist every project receives (printed by `nstack init`, checked by
-`nstack doctor`, repeated in the skeleton README) requires at least one approving review
+`nstack doctor`, repeated in the foundation manual, `docs/os/INSTALL.md`) requires at least one approving review
 (G2) and a code owner review (G3). GitHub refuses the author of a pull request the right
 to approve it.
 
