@@ -146,4 +146,6 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command in JUDGES:
         print(provenance.judged_by(args.root), flush=True)
+        if said := plan.stage_line(args.root):
+            print(said, flush=True)
     return args.func(args)

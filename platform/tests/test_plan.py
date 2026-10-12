@@ -130,7 +130,7 @@ def test_plan_framed(tmp_path, capsys):
 def test_plan_not_framed_yet(tmp_path, capsys):
     (tmp_path / "docs" / "project" / "cycles").mkdir(parents=True)
     assert plan.run(tmp_path) == 0
-    assert "not framed yet" in capsys.readouterr().out
+    assert "the project is unframed" in capsys.readouterr().out
 
 
 def test_plan_not_applicable(tmp_path, capsys):

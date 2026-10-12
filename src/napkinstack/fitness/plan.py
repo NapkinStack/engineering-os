@@ -105,6 +105,35 @@ def cycle_files(root: Path) -> list[Path]:
     return sorted(p for p in folder.glob("*.md") if not p.name.startswith("_")) if folder.is_dir() else []
 
 
+FRAMED, UNFRAMED, UNREADABLE = "framed", "unframed", "unreadable"
+
+
+def stage(root: Path) -> str | None:
+    """Where a project stands, read from its tracked files and never declared: framed once its
+    charter is accepted, unframed before — a stage, not a violation. A charter that cannot be
+    read is neither: nothing is assumed from a file nobody can parse. None outside a project."""
+    if not (root / PROJECT).is_dir():
+        return None
+    path = root / CHARTER
+    if not path.is_file():
+        return UNFRAMED
+    data = read_front_matter(path)[0]
+    if data is None:
+        return UNREADABLE
+    return FRAMED if data.get("status") == "accepted" else UNFRAMED
+
+
+def stage_line(root: Path) -> str | None:
+    """What every judging run says of the project's stage, beside the framework that judges.
+    A framed project is never told the other word."""
+    return {
+        UNFRAMED: "Project unframed — no accepted charter: the cycle rules (K1 to K3) do not apply "
+                  "here, every other rule does.",
+        FRAMED: "Project framed — the cycle rules (K1 to K3) apply.",
+        UNREADABLE: f"Project stage unknown — {CHARTER} cannot be read (C1): nothing is assumed.",
+    }.get(stage(root) or "")
+
+
 def charter_accepted(root: Path) -> bool:
     path = root / CHARTER
     data = read_front_matter(path)[0] if path.is_file() else None
@@ -278,8 +307,8 @@ def run(root: Path) -> int:
     accepted_charter = _check_charter(charter, fail) if charter.is_file() else False
     _check_seats(root, decision, accepted_charter, fail)
     if not charter.is_file() and not cycles and not discovery.is_file() and not failures:
-        print(f"Plan: no charter and no cycle in {PROJECT}/ — the project is not framed yet "
-              "(playbooks/framing.md).")
+        print(f"Plan: no charter and no cycle in {PROJECT}/ — the project is unframed, which is a "
+              "stage and not a fault (playbooks/framing.md).")
         return 0
     if accepted_charter and discovery.is_file() and decision != "go":
         fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "

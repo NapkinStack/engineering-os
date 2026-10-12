@@ -149,8 +149,9 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
     framed = plan.charter_accepted(root)
     cycle = plan.accepted_cycle(root) if framed else None
     if not framed:
-        steps.append("The project is not framed: delivery work needs an accepted charter (K1), "
-                     "or the out-of-cycle label with its justification (K4)")
+        steps.append("The project is unframed: no cycle bounds its delivery work yet, and every "
+                     "other rule applies. Framing is worth it when there is something to bound "
+                     "(playbooks/framing.md)")
     elif cycle is None:
         # The charter is accepted: only the next cycle is missing (D47).
         steps.append("No accepted cycle: delivery work needs one (K1), or the out-of-cycle label "
