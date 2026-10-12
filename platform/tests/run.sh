@@ -667,9 +667,14 @@ git -C "$CLONE" add -A && git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -
 if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack pr-check --root . --base HEAD~1 2>&1); then
   echo "FAIL: a user-facing change with the template's empty sheet went green."; echo "$OUT"; exit 1
 fi
+# PDR-0007, its first two criteria in one run: the project has no charter, so the cycle rules
+# say nothing and the run names the stage — while another rule, the test sheet, still refuses.
 echo "$OUT" | grep -qF "modules/face (criticality standard, user-facing)" \
-  && echo "$OUT" | grep -qF "FAIL [K1] the project is not framed" \
-  || { echo "FAIL: expected T1 and K1 messages missing."; echo "$OUT"; exit 1; }
+  && echo "$OUT" | grep -qF "Project unframed — no accepted charter: the cycle rules (K1 to K3) do not apply" \
+  || { echo "FAIL: T1 or the project's stage missing."; echo "$OUT"; exit 1; }
+if echo "$OUT" | grep -qE "FAIL \[K[123]\]"; then
+  echo "FAIL: a cycle rule fired in a project that has no cycle (PDR-0007)."; echo "$OUT"; exit 1
+fi
 
 echo "-> plan: a module holding code and a module map left as its form MUST fail (C8, PDR-0010)"
 if OUT=$(cd "$CLONE" && nstack plan --root . 2>&1); then
@@ -679,8 +684,8 @@ echo "$OUT" | grep -qF "FAIL [C8] modules/README.md" && echo "$OUT" | grep -qF "
   || { echo "FAIL: C8 does not name the map and the module."; echo "$OUT"; exit 1; }
 sed -i 's#^<A diagram of this project.*#One module, face: the page a visitor sees. No contract yet.#' "$CLONE/modules/README.md"
 
-echo "-> plan: a new project is not framed yet; its templates are not checked (PDR-0002)"
-(cd "$CLONE" && nstack plan --root .) | grep -qF "the project is not framed yet" \
+echo "-> plan: a new project is unframed, a stage and not a fault; its templates are not checked (PDR-0007)"
+(cd "$CLONE" && nstack plan --root .) | grep -qF "the project is unframed, which is a stage and not a fault" \
   || { echo "FAIL: nstack plan does not report an unframed project."; exit 1; }
 
 echo "-> discover: an idea starts a discovery, no model called (PDR-0002, extension)"
@@ -1055,6 +1060,12 @@ repo_c acme/bare
 if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: repository without settings accepted."; echo "$OUT"; exit 1
 fi
+# PDR-0007, criterion 6: what framing buys, and the gesture that starts it — said by the
+# diagnosis, in one place and once. The project is unframed; that is not one of its gaps.
+[ "$(echo "$OUT" | grep -cF "Framing buys an appetite, an end date, a circuit breaker and a decider")" -eq 1 ] \
+  && echo "$OUT" | grep -qF "To start: follow playbooks/framing.md" \
+  && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
+  || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
 for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }

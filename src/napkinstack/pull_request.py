@@ -13,7 +13,7 @@ Rules:
   T4  evidence at the head commit: an automated scenario is run again, one explored by hand
       is confirmed at the head instead — and at criticality critical, run again like the rest
   T5  no scenario failed; none left not verified, unless it is human only
-  K1  delivery work needs an accepted charter and an accepted cycle, and says which of
+  K1  in a framed project, delivery work needs an accepted cycle, and says which of
       the two is missing
   K2  delivery work stops once the cycle is past its end date: the circuit breaker
   K3  delivery work names a ready or in-progress deliverable of the cycle
@@ -300,12 +300,15 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
             fail("K4", f"label {LABEL} without its justification.\n      Action: add "
                        "\"Out of cycle: <reason>\" to the description — an incident, a production defect.")
         return
-    cycle = plan.accepted_cycle(root)
-    if not plan.charter_accepted(root):
-        fail("K1", "the project is not framed: no accepted charter in docs/project/.\n"
-                   "      Action: frame it with your agent (playbooks/framing.md), or add the "
-                   f"{LABEL} label with a justification.")
+    stage = plan.stage(root)
+    if stage == plan.UNREADABLE:
+        # Never a silent fall back to unframed: a broken file would then switch three rules off.
+        fail("C1", f"{plan.CHARTER} cannot be read: the project's stage is unknown, and nothing is "
+                   "assumed.\n      Action: fix its front matter — nstack plan says what is wrong.")
         return
+    if stage != plan.FRAMED:
+        return  # unframed: K1 to K3 bound work inside a cycle, and there is none (PDR-0007)
+    cycle = plan.accepted_cycle(root)
     if cycle is None:
         # The charter is accepted: sending the reader back to framing would be false (D47).
         fail("K1", "no accepted cycle: the charter is accepted, and no cycle is open.\n"

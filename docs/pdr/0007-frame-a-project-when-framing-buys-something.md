@@ -1,8 +1,7 @@
 # PDR-0007 — Frame a project when framing buys something
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); to be implemented in **M11j**, before v0.7.0, with PDR-0008 (M11k) and
-  PDR-0010 (M11l), which answer the same hour of a project's life; clarified 2026-09-24
+  before 2027-03-31); **built by M11j (2026-10-12)**, before v0.7.0; clarified 2026-09-24
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack pr-check` (rules K1 to K3), `nstack plan`, the skeleton's
@@ -168,19 +167,30 @@ the same approval as everything else.
 
 **Acceptance criteria** *(testable)*:
 
-- [ ] Given a project with no accepted charter, when a delivery pull request is checked, then
+- [x] Given a project with no accepted charter, when a delivery pull request is checked, then
       `K1`, `K2` and `K3` do not fire, and the output names the project unframed.
-- [ ] Given that same pull request, when it is checked, then the scope, boundary, contract,
+- [x] Given that same pull request, when it is checked, then the scope, boundary, contract,
       test-sheet and hygiene rules apply exactly as they do in a framed project.
-- [ ] Given a project with an accepted charter and an accepted cycle, when a delivery pull
+- [x] Given a project with an accepted charter and an accepted cycle, when a delivery pull
       request is checked, then the cycle rules apply as they do today, and the word *unframed*
       appears nowhere.
-- [ ] Given a project with an accepted charter and no cycle, when a delivery pull request is
+- [x] Given a project with an accepted charter and no cycle, when a delivery pull request is
       checked, then `K1` fires and names the cycle as the missing piece, not the charter.
-- [ ] Given a charter whose status is `proposed`, when any judging command runs, then the
+- [x] Given a charter whose status is `proposed`, when any judging command runs, then the
       project is unframed.
-- [ ] Given an unframed project, when the diagnosis runs, then it says what framing would buy
+- [x] Given an unframed project, when the diagnosis runs, then it says what framing would buy
       and the gesture that starts it, in one place and once.
+
+**As built (M11j, 2026-10-12).** The stage is `unframed`, `framed`, or unknown when the
+charter cannot be read — then `C1` fails in the pull request check too, and nothing is
+assumed. Every judging command prints the stage on its second line, beside the framework
+that judges; a framed project never reads the word *unframed*. "The diagnosis" is `nstack
+doctor`: it says once what framing buys and how to start, as a stage and not as a gap, and
+its exit code ignores it. `K4` is unchanged: a pull request that carries the `out-of-cycle`
+label still owes its justification, in either state. Observed the same day on a real
+project, created on the framework's current commit and never framed: its pull requests
+merged with no charter, no cycle and no label, while the plan check refused a front page
+left without its sentence.
 
 ---
 

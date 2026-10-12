@@ -43,6 +43,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack import __version__, provenance
+from napkinstack.fitness import plan
 from napkinstack.project import ANSWERS
 
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
@@ -362,6 +363,15 @@ def run(root: Path) -> int:
     print("Workstation")
     for result in results:
         _display(*result)
+
+    if plan.stage(root) == plan.UNFRAMED:
+        # Said here and nowhere else, once: every other run names the stage in one line and
+        # leaves it there. A stage is not a gap, and nothing below counts it as one.
+        print("\nProject\n  UNFRAMED       no accepted charter — a stage, not a gap\n"
+              "                 Framing buys an appetite, an end date, a circuit breaker and a decider.\n"
+              "                 It is worth its price when there is something to bound: several people,\n"
+              "                 a deadline, a decider who is not the one typing.\n"
+              "                 To start: follow playbooks/framing.md with your agent.")
 
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     print(f"\nGitHub: {answers.get('github_repo')}")

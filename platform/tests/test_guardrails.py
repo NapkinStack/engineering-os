@@ -146,7 +146,7 @@ def test_new_module_between_two_cycles_names_the_cycle(tmp_path, capsys):
     assert cli.main(["new-module", "face", "acme/web", "standard", "--root", str(tmp_path)]) == 0
     output = capsys.readouterr().out
     assert "No accepted cycle: delivery work needs one (K1)" in output, output
-    assert "The project is not framed" not in output, output
+    assert "unframed" not in output, output
 
 
 def test_the_criticality_argument_answers_which_one_do_i_pick(tmp_path, capsys):
@@ -187,7 +187,8 @@ def test_new_module_says_what_its_pull_requests_will_need(tmp_path, capsys):
 
     assert cli.main(["new-module", "face", "acme/web", "standard", "--user-facing", "--root", str(tmp_path)]) == 0
     output = capsys.readouterr().out
-    assert "carries a test sheet (user-facing)" in output and "The project is not framed" in output, output
+    assert "carries a test sheet (user-facing)" in output and "The project is unframed" in output, output
+    assert "(K1)" not in output, output          # no cycle rule is announced to a project that has no cycle
     for verb in ("check", "test"):
         assert cli.main([verb, "face", "--root", str(tmp_path)]) == 0
         assert f"face: holds only its description, nothing to {verb} yet." in capsys.readouterr().out

@@ -149,7 +149,7 @@ flowchart TD
     D --> H
     E --> H
     H --> G["M11g<br/>OSPS probe: not clean<br/>returns to M13"]:::done
-    H --> J["M11j<br/>unframed<br/>PDR-0007"]
+    H --> J["M11j<br/>unframed<br/>PDR-0007"]:::done
     H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77, D78"]
     H --> L["M11l<br/>the form<br/>PDR-0010"]:::done
     H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]:::done
@@ -557,6 +557,25 @@ It builds PDR-0004's first axis, the stage, read from the repository and never d
 
 **Done when:** a first delivery pull request on an unframed project merges with no charter,
 no cycle and no label, while another rule still refuses something in that project.
+
+**Done (2026-10-12).** Built against PDR-0007's six criteria, each seen red first:
+
+- [x] `plan.stage()` reads the stage from `docs/project/charter.md`: unframed, framed, or
+      unreadable. Never declared; `None` outside a project, so this repository has none.
+- [x] The pull request check skips K1 to K3 when unframed; an unreadable charter is C1
+      there too, never a silent fall back.
+- [x] Every judging command names the stage on its second line; a framed project never
+      reads "unframed".
+- [x] `nstack doctor` says once what framing buys and the gesture that starts it — a stage,
+      not a gap, outside its exit code.
+- [x] `new-module` no longer announces a cycle rule to a project that has no cycle.
+- [x] The handbook, the project folder's guide, the rule index and the framing playbook name
+      the two stages; the framing playbook says when framing is worth it, and never to frame
+      to make a check pass.
+
+**Found on the way, not fixed here**: a project with no module shows a skipped CI job named
+`matrix.module.name` — the matrix job's name is an expression that nothing resolves when the
+matrix is empty. Seen on the third project's pull requests; for the register.
 
 ## M11k — The forge's settings in one gesture (PDR-0008), D57, D77 and D78 — PR 11
 
