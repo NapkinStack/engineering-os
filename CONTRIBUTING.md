@@ -3,6 +3,41 @@
 This repository develops the framework; it is also its first user. Read
 [`PRODUCT.md`](PRODUCT.md) first, §5 in particular.
 
+## You come from a project
+
+Your project runs on NapkinStack and met a defect of the framework: that is the best
+contribution there is. Work with the two side by side.
+
+```mermaid
+flowchart LR
+    D["The defect,<br/>in your project"]:::pr --> T["Here: the test that fails,<br/>then the fix"]:::fw
+    T --> J["Your project, judged<br/>by this checkout"]:::pr
+    J --> P["A pull request,<br/>from a branch or a fork"]:::fw
+    P --> A["A maintainer<br/>approves"]:::human
+
+    classDef pr fill:#065f46,color:#fff
+    classDef fw fill:#1e3a8a,color:#fff
+    classDef human fill:#374151,color:#fff
+```
+
+**Legend** — green: in your project · blue: in this repository · grey: a maintainer.
+
+```bash
+uv sync && uv run pre-commit install          # once, in this checkout
+uv run bash platform/tests/run.sh             # the oracle, on a committed tree
+uv run --project . nstack fitness --root <your-project>   # your project, judged by your fix
+```
+
+- **One defect, one pull request**, from a fork if you cannot push here. Its description
+  follows the template; the output obtained on your project is its best evidence.
+- **A private project stays private.** This repository is public: a pull request, a commit
+  and the register describe the defect and never name the project — no name, no domain, no
+  content. *"A project with two modules and no contract"* is enough.
+- **Nothing of your project enters the framework**: no stack, no business rule, no vocabulary.
+- You never approve nor merge here; a maintainer does.
+
+The sections below are the detail.
+
 ## A workstream's journey
 
 ```mermaid
