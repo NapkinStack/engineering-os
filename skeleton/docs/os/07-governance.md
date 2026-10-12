@@ -58,6 +58,19 @@ solved by **structure** rather than by text. "Do not import the other module's c
 weak rule; putting the two modules in distinct packages with declared dependencies makes
 it unnecessary.
 
+**The tree says what kind of place; the level says whose.** Nodes `J` and `K` are the
+framework's. A rule that is the project's alone takes the same path and lands one level
+nearer (`00-overview.md` §5):
+
+| The tree ends on… | A rule every project shares | A rule of this project | A rule of one module |
+|---|---|---|---|
+| `J` — every task | The kernel | `docs/project/rules/always.md` | The module's `AGENTS.md` |
+| `K` — by trigger | `playbooks/<subject>.md` | `docs/project/rules/<subject>.md` | The module's `AGENTS.md` |
+| `D` — a check | The framework's checks | The project's own CI | The module's `check` and `test` |
+
+Node `L` holds at every level: a project rule that a check now enforces leaves
+`docs/project/rules/`. That is what the last column of that folder's form is for.
+
 ---
 
 ## 3. Fitness functions

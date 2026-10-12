@@ -102,6 +102,7 @@ Load, in this order, and nothing more:
 ```
 kernel (this file)
   → the charter and the current cycle (docs/project/)
+  → the project's own rules (docs/project/rules/): always.md, then <x>.md with playbook <x>
   → AGENTS.md of the module concerned
   → triggered playbook(s)
   → code, tests and docs LOCAL to the module
@@ -220,6 +221,7 @@ than no summary at all.
 Security and high-risk actions   ← always first
   > the five laws (§1)
   > the module's local AGENTS.md
+  > the project's rules (docs/project/rules/)
   > the triggered playbook
   > this kernel
 ```

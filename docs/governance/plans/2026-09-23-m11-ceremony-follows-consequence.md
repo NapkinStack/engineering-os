@@ -156,6 +156,8 @@ flowchart TD
     H --> N["M11n<br/>identifiers stay home<br/>D79"]:::done
     L --> O["M11o<br/>every document<br/>has its moment"]:::done
     O --> I
+    O --> Q["M11p<br/>levels of rules<br/>have a place"]:::done
+    Q --> I
     N --> I
     G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
     J --> I
@@ -807,6 +809,43 @@ module turned a project red at once, against the promise that a scaffold stays g
 The rule now reads a module's first file of code, like M7. **Not taken, and said**: the levels
 of rules — what every project shares, what one project adds — which the maintainer raised the
 same day and which is M11p's.
+
+## M11p — The levels of rules have a place (PDR-0002) — PR 16
+
+Raised by the maintainer on 2026-10-12, with security as the example: some rules are every
+project's, others are this project's alone, and the framework must tell them apart. It
+already did, in words — three levels, since PDR-0002 — and named no place for the middle one.
+
+```mermaid
+flowchart LR
+    F["FRAMEWORK<br/>playbooks/security.md"]:::fw -->|"read with"| P["PROJECT<br/>docs/project/rules/security.md"]:::pr
+    P -->|"read with"| M["MODULE<br/>its AGENTS.md"]:::mo
+
+    classDef fw fill:#374151,color:#fff
+    classDef pr fill:#1e3a8a,color:#fff
+    classDef mo fill:#065f46,color:#fff
+```
+
+**Legend** — grey: received through updates · blue: the project's, new here · green: the
+module's, unchanged. The same three boxes exist for every playbook.
+
+- [x] **Task 1 — the place.** `docs/project/rules/<subject>.md`, the subject being a playbook's
+      name; `always.md` for every task. Absent at creation; a form, `_TEMPLATE.md`, whose last
+      column asks how each rule is checked.
+- [x] **Task 2 — whoever loads a playbook is told.** One line in each of the nine trigger
+      blocks, seen red first: a playbook loaded as a skill never shows the kernel's table.
+- [x] **Task 3 — the kernel** loads the level and ranks it between the module and the
+      playbook: 230 of 250 lines.
+- [x] **Task 4 — the handbook.** `00-overview.md` §5 draws the three levels with one rule of
+      each; `07-governance.md` §2 says where its decision tree lands at each level;
+      `06-decisions.md` §10 gives the folder its moment — the charter's acceptance.
+- [x] **Task 5 — the framing** proposes the project's first rules from the charter's
+      constraints, and says why never in a playbook.
+
+**Done (2026-10-12).** Nothing reads a project's rules: they are the project's, and a check
+on their content would be the framework naming a domain. **Not done, and said**: the skills'
+descriptions still open on "The project's … rules" for what are every project's; the playbook
+they load now names the project's layer, which is what an agent acts on.
 
 ## M11m — What the pilot's cycle boundary found — PR 13
 
