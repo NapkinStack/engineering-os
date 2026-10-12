@@ -41,7 +41,8 @@ change's authors and refuses a match.
    - *explored* — drive the interface yourself, in a browser, an emulator or on a device,
      with the tools of the tooling profile; capture the screen at the step that proves the
      result;
-   - *human only* — do not run it; check that its reason is stated.
+   - *human only* — do not run it; check that its reason is stated and, when the
+     deliverable's acceptance rests on it, that an acceptance issue asks it of a person.
 4. **Record** each result in the sheet — `passed`, `failed — <what you observed>`, or
    `not verified` — with its evidence and the short hash of the commit you tested. What you
    have to add goes on the line **`Verifier's remarks:`** under the table, never in a cell: a
