@@ -74,7 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: hygiene.run(a.root))
     _add(sub, "fitness", "manifests + boundaries + skills + plan + hygiene",
          lambda a: _fitness(a.root))
-    _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only (PDR-0001)",
+    _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only",
          lambda a: doctor.run(a.root))
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
               lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
@@ -120,10 +120,10 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: landed.run(a.root, a.span, landed.from_environment(a.root)))
     ld.add_argument("--span", default="HEAD~1..HEAD",
                     help="the commits to read, BEFORE..AFTER (default: the last commit)")
-    ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent (PDR-0002)",
+    ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
-    ini = sub.add_parser("init", help="creates a project from the skeleton (PDR-0001)")
+    ini = sub.add_parser("init", help="creates a project from the skeleton")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")
     ini.add_argument("--github-repo", help="GitHub repository, organisation/name (asked when absent)")
@@ -132,7 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
     ini.add_argument("--ref", help="skeleton version, tag vX.Y.Z (default: the one of nstack)")
     ini.set_defaults(func=_init)
-    up = _add(sub, "update", "merges a NapkinStack version onto a branch to review (PDR-0001)",
+    up = _add(sub, "update", "merges a NapkinStack version onto a branch to review",
               _update)
     up.add_argument("--ref", help="target version, tag vX.Y.Z (default: the one of nstack)")
     return parser

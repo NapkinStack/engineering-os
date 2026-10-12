@@ -153,7 +153,7 @@ flowchart TD
     H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77, D78"]
     H --> L["M11l<br/>the form<br/>PDR-0010"]:::done
     H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]:::done
-    H --> N["M11n<br/>identifiers stay home<br/>D79"]
+    H --> N["M11n<br/>identifiers stay home<br/>D79"]:::done
     N --> I
     G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
     J --> I
@@ -755,6 +755,20 @@ rule codes are defined in no document a project holds; `doctor` L4 refuses a fil
 
 **Done when:** nothing a project reads or runs cites a record it cannot open, every rule code a
 message prints is defined in one page of the handbook bound by a test, and L4 is retired.
+
+**Done (2026-10-12).** Four cases, each seen red first (`test_identifiers.py`):
+
+- **15 messages and 9 skeleton lines** cited `(PDR-…)`, `(ADR-…)` or `(D46)`. Each lost the
+  reference and kept its reason; two gained a page of the handbook instead. The engine's
+  comments and docstrings keep theirs: nobody outside reads them.
+- **`docs/os/RULES.md`**: 66 codes in 12 families, one line each — what it refuses, where its
+  reason is written — opened by a diagram of where each family judges. The test binds it both
+  ways: a code printed and not defined, or defined and printed by nothing, is red.
+- **L4 retired.** It refused a file named `PRODUCT.md`; the oracle now creates one and asserts
+  `doctor` says nothing of it. The repository's own hook configuration lost the same comment:
+  the two copies are bound by the suite.
+- **Not done here, and said**: the handbook still names a forge's command line in
+  `07-governance.md` §7. That is P7's subject, not D79's.
 
 ## M11m — What the pilot's cycle boundary found — PR 13
 

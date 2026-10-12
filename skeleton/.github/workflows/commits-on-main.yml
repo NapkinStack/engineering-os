@@ -1,6 +1,6 @@
 name: Commits on main
 
-# What reached this branch outside a pull request, recorded (W1, PDR-0006).
+# What reached this branch outside a pull request, recorded (rule W1, docs/os/RULES.md).
 #
 # This workflow RECORDS; it never refuses. What refuses a merge is the ruleset, and on a
 # repository whose plan cannot enforce one, nothing refuses at all — which is exactly when

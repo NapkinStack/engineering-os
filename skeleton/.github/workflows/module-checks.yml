@@ -89,7 +89,7 @@ jobs:
 
       # Printed, not branched on: what the value requires is judged by the rules that read the
       # matrix of docs/os/05-workflow.md §7, and never twice. A run says under which value it
-      # judged, as every other verdict does (PDR-0005).
+      # judged, as every other verdict does.
       - name: Declared criticality
         run: |
           value=$(yq '.module.criticality // "undeclared"' "$FOLDER/MANIFEST.yaml")
@@ -112,7 +112,7 @@ jobs:
       # A contract version someone relies on changes only with the merged proof (V1,
       # docs/os/03-contracts.md §4). The step runs even when an earlier one failed: a pull
       # request that breaks a frozen version AND a test would otherwise meet V1 a round trip
-      # later, once the tests are green (D46).
+      # later, once the tests are green.
       - name: compat
         if: ${{ !cancelled() }}
         run: nstack compat "$MODULE" --base "$BASE"
