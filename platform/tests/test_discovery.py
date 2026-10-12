@@ -17,7 +17,8 @@ TEMPLATE = "---\ndecision: proposed\ndecider: \"@<github-handle>\"\ndecided_on:\
 def project(root):
     """A generated project's docs/project/, with the discovery template only."""
     (root / "docs" / "project").mkdir(parents=True)
-    (root / "docs" / "project" / "_DISCOVERY_TEMPLATE.md").write_text(TEMPLATE, encoding="utf-8")
+    (root / ".nstack" / "forms").mkdir(parents=True, exist_ok=True)
+    (root / ".nstack" / "forms" / "discovery.md").write_text(TEMPLATE, encoding="utf-8")
 
 
 def idea(root, name: str = "idea.md"):
@@ -40,12 +41,12 @@ def test_discover_starts_a_discovery(tmp_path, capsys):
     assert kept.read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
     document = (tmp_path / "docs" / "project" / "discovery.md").read_text(encoding="utf-8")
     assert f'idea: "docs/project/inputs/{source.name}"' in document and "decision: proposed" in document
-    assert f"Follow playbooks/discovery.md on docs/project/inputs/{source.name}" in output
+    assert f"Follow .nstack/playbooks/discovery.md on docs/project/inputs/{source.name}" in output
     assert plan.run(tmp_path) == 0, capsys.readouterr().out
 
 
 DISCOVER_REFUSALS = {
-    "not a project": (lambda r: None, "idea.md", "_DISCOVERY_TEMPLATE.md not found"),
+    "not a project": (lambda r: None, "idea.md", ".nstack/forms/discovery.md not found"),
     "not a text file": (project, "idea.pdf", "a Markdown or text file expected"),
     "discovery already started": (lambda r: (project(r), (r / "docs" / "project" / "discovery.md").write_text("x")),
                                   "idea.md", "discovery.md already exists"),

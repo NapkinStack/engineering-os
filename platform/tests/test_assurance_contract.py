@@ -22,9 +22,9 @@ import pytest
 from napkinstack.fitness.manifests import CRITICALITIES
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKFLOW = ROOT / "skeleton/docs/os/05-workflow.md"
-GOVERNANCE = ROOT / "skeleton/docs/os/07-governance.md"
-QUALITY = ROOT / "skeleton/docs/os/08-quality.md"
+WORKFLOW = ROOT / "skeleton/.nstack/handbook/05-workflow.md"
+GOVERNANCE = ROOT / "skeleton/.nstack/handbook/07-governance.md"
+QUALITY = ROOT / "skeleton/.nstack/handbook/08-quality.md"
 MANIFEST = ROOT / "src/napkinstack/templates/module/MANIFEST.yaml"
 MATRIX = "05-workflow.md` §7"
 JUDGES = {"machine", "owed"}

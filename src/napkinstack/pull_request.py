@@ -22,7 +22,7 @@ Rules:
 Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
 beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24). A NapkinStack
 update or a documentation fix is neither delivery work nor a reason for a sheet.
-The out-of-cycle label lifts K1 to K3, visibly and countably (docs/os/10-measurement.md).
+The out-of-cycle label lifts K1 to K3, visibly and countably (.nstack/handbook/10-measurement.md).
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
 In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event.
@@ -112,7 +112,7 @@ def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[d
 def sheet_reason(folder: str, manifests: list[dict]) -> str | None:
     """Why a module requires a test sheet (T1), or None: the stricter of its manifests, so
     that a pull request cannot lower its own requirement. What each criticality requires is read
-    from the matrix of docs/os/05-workflow.md §7, never from a threshold copied here."""
+    from the matrix of .nstack/handbook/05-workflow.md §7, never from a threshold copied here."""
     modules = [data["module"] for data in manifests if isinstance(data.get("module"), dict)]
     for module in modules:
         criticality = module.get("criticality")
@@ -127,7 +127,7 @@ def sheet_reason(folder: str, manifests: list[dict]) -> str | None:
 
 def rerun_at_head(found: dict[str, list[dict]]) -> bool:
     """True when a touched module is strict enough that no confirmation stands in for a re-run:
-    the `rerun_at_head` row of the matrix, `critical` alone (docs/os/05-workflow.md §7)."""
+    the `rerun_at_head` row of the matrix, `critical` alone (.nstack/handbook/05-workflow.md §7)."""
     for manifests in found.values():
         for data in manifests:
             module = data.get("module")
@@ -194,16 +194,16 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
     if not session and not handles:
         fail("T2", "Test sheet: the verifier is not named as a person or a session.\n      Action: "
                    "\"Verifier: @<handle>\" for a person, \"Verifier: session <id>\" for an agent "
-                   "session — the identifier its own commits would carry (docs/os/05-workflow.md §7).")
+                   "session — the identifier its own commits would carry (.nstack/handbook/05-workflow.md §7).")
         return
     logins, sessions, unnamed = authorship
     if named := sorted(handles & logins):
         fail("T2", f"Test sheet: the verifier @{', @'.join(named)} is an author of this change.\n      Action: "
-                   "the sheet is run by someone who did not write the change (playbooks/verification.md).")
+                   "the sheet is run by someone who did not write the change (.nstack/playbooks/verification.md).")
     elif session and session in sessions:
         fail("T2", f"Test sheet: the verifier, session {session}, wrote commits of this change "
                    f"({SESSION_TRAILER} trailer).\n      Action: run the sheet from another session, "
-                   "with a fresh context (playbooks/verification.md).")
+                   "with a fresh context (.nstack/playbooks/verification.md).")
     elif session and unnamed:
         fail("T2", f"Test sheet: an agent's commits name no session ({', '.join(unnamed)}): the verifier "
                    f"cannot be told from their author.\n      Action: the authoring session commits with "
@@ -224,7 +224,7 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                    + "".join(f"      - {reason}\n" for reason in reasons) +
                    "      Action: fill in the \"Test sheet\" section of the description — scenarios "
                    "from the acceptance criteria, run by a verifier who is not the author "
-                   "(docs/os/05-workflow.md §7).")
+                   "(.nstack/handbook/05-workflow.md §7).")
         return []
     if not rows:
         return []
@@ -282,14 +282,14 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                "declares e2e, and its Commit cell takes the head")
         fail("T4", f"scenarios verified on another commit than the head {head[:7]}: "
                    f"{', '.join(rerun)}.\n      Action: run them again on the head commit.\n"
-                   f"      {why} (docs/os/05-workflow.md §7).")
+                   f"      {why} (.nstack/handbook/05-workflow.md §7).")
     if unconfirmed:
         fail("T4", f"scenarios explored before the head {head[:7]} and not confirmed on it: "
                    f"{', '.join(unconfirmed)}.\n      Action: re-read what changed since, then "
                    f"add the head commit in a Confirmed column: `{head[:7]} — <what moved, and why "
                    "it leaves this scenario's result standing>`.\n      Running the whole sheet "
                    "again is the other way, and it is not required: a confirmation is not a round "
-                   "(docs/os/05-workflow.md §7).")
+                   "(.nstack/handbook/05-workflow.md §7).")
     return human_only
 
 
@@ -313,7 +313,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         # The charter is accepted: sending the reader back to framing would be false (D47).
         fail("K1", "no accepted cycle: the charter is accepted, and no cycle is open.\n"
                    "      Action: open the next cycle with your agent "
-                   "(docs/project/cycles/_TEMPLATE.md), or add the "
+                   "(.nstack/forms/cycle.md), or add the "
                    f"{LABEL} label with a justification.")
         return
     path, data = cycle

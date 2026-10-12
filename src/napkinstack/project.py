@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -159,7 +160,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
           "these settings:")
     for _, setting, _ in CHECKLIST:
         print(f"     - [ ] {setting}")
-    print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see docs/os/INSTALL.md)")
+    print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
     return 0
 
 
@@ -172,6 +173,66 @@ def _default_branch(root: Path) -> str | None:
     if _git(root, "rev-parse", "--verify", "--quiet", "refs/heads/main").returncode == 0:
         return "main"
     return None
+
+
+# Where the framework's files went when they were gathered under one folder (PDR-0012). A
+# rename in a template is a deletion and an addition to the tool that merges it: what a project
+# had adapted in the old place is dropped with the old file, without a conflict and without a
+# word. Found on the pilot, which had added one line to a page that moved.
+MOVED_FOLDERS = {"playbooks/": ".nstack/playbooks/", "docs/os/": ".nstack/handbook/"}
+MOVED_FILES = {
+    "docs/project/README.md": ".nstack/handbook/project.md",
+    "docs/tooling-profile.md": ".nstack/tooling-profile.md",
+    "docs/adr/_TEMPLATE.md": ".nstack/forms/adr.md",
+    "docs/pdr/_TEMPLATE.md": ".nstack/forms/pdr.md",
+    "docs/project/_CHARTER_TEMPLATE.md": ".nstack/forms/charter.md",
+    "docs/project/_DISCOVERY_TEMPLATE.md": ".nstack/forms/discovery.md",
+    "docs/project/cycles/_TEMPLATE.md": ".nstack/forms/cycle.md",
+    "docs/project/rules/_TEMPLATE.md": ".nstack/forms/rules.md",
+}
+
+
+def _moved(path: str) -> str | None:
+    if path in MOVED_FILES:
+        return MOVED_FILES[path]
+    return next((new + path[len(old):] for old, new in MOVED_FOLDERS.items() if path.startswith(old)), None)
+
+
+def _carry(root: Path, base: str, previous: str) -> tuple[list[str], list[str]]:
+    """After an update that moved files: each one the project had adapted in its old place is
+    merged — the project's change against what the framework wrote there — into its new place.
+    Returns what was carried and what conflicted, as "old -> new". Nothing is carried, and the
+    older skeleton is not even fetched, when no file of the project sat in an old place."""
+    import copier
+
+    held = [path for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base).stdout.split("\0")
+            if path and _moved(path) and (root / _moved(path)).is_file() and not (root / path).exists()]
+    if not held:
+        return [], []
+    answers = yaml.safe_load(_git(root, "show", f"{base}:{ANSWERS}").stdout) or {}
+    data = {key: value for key, value in answers.items() if not key.startswith("_")}
+    carried: list[str] = []
+    conflicted: list[str] = []
+    with tempfile.TemporaryDirectory() as scratch:
+        before = Path(scratch) / "before"  # the skeleton as the project received it last
+        copier.run_copy(str(answers.get("_src_path")), before, data=data, vcs_ref=previous,
+                        quiet=True, unsafe=False, defaults=True)
+        for path in held:
+            mine = _git(root, "show", f"{base}:{path}").stdout
+            theirs = before / path
+            if not theirs.is_file() or theirs.read_text(encoding="utf-8", errors="replace") == mine:
+                continue  # never adapted: the new file is already the right one
+            own = Path(scratch) / "mine"
+            own.write_text(mine, encoding="utf-8")
+            new = root / _moved(path)
+            merged = subprocess.run(["git", "merge-file", "-p", "-L", "the framework's new version",
+                                     "-L", "the framework's old version", "-L", "the project's adaptation",
+                                     str(new), str(theirs), str(own)], capture_output=True, text=True)
+            if merged.returncode < 0 or merged.returncode > 127:
+                continue  # the merge itself failed: the new file is left as the framework wrote it
+            new.write_text(merged.stdout, encoding="utf-8")
+            (conflicted if merged.returncode else carried).append(f"{path} -> {_moved(path)}")
+    return carried, conflicted
 
 
 def update(root: Path, ref: str) -> int:
@@ -200,9 +261,11 @@ def update(root: Path, ref: str) -> int:
         print(f"FAIL [update] {where} is checked out, not {default}: the update branch would "
               f"carry its commits.\n      Action: git switch {default}, then run again.")
         return 1
+    base = _git(root, "rev-parse", "HEAD").stdout.strip()
     try:
         copier.run_update(root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,
                           conflict="inline", quiet=True, unsafe=False)
+        carried, moved_conflicts = _carry(root, base, previous)
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(_answers(root).get("_src_path")), ref))
         return 1
@@ -218,6 +281,7 @@ def update(root: Path, ref: str) -> int:
               "by hand, then commit.")
         return 1
     conflicts = [path for path in _git(root, "diff", "--name-only", "-z", "--diff-filter=U").stdout.split("\0") if path]
+    conflicts += [pair.split(" -> ")[1] for pair in moved_conflicts]
     if conflicts:
         print(f"FAIL [update] NapkinStack {previous} -> {current}: conflicts with the project's "
               f"adaptations, marked on branch {branch} in:")
@@ -237,6 +301,10 @@ def update(root: Path, ref: str) -> int:
 
     print(f"Branch {branch}: NapkinStack {previous} -> {current}, merged with the project's "
           "adaptations.")
+    if carried:
+        print("The framework's files moved, and what the project had adapted in them moved with it:")
+        for pair in carried:
+            print(f"  - {pair}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
     print(f"\nNext step: git push -u origin {branch}, then open the PR; CI validates it.")

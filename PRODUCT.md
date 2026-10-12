@@ -54,7 +54,7 @@ Hence a disambiguation rule to keep in mind at all times:
 
 | When you read… | Understand… |
 |---|---|
-| `skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`, `skeleton/contracts/`, the skeleton's CI and hooks | The **deliverable**. What every project receives. It is edited the way a product is edited. |
+| `skeleton/AGENTS.md`, `skeleton/.nstack/playbooks/`, `skeleton/.nstack/handbook/`, `skeleton/contracts/`, the skeleton's CI and hooks | The **deliverable**. What every project receives. It is edited the way a product is edited. |
 | `src/napkinstack/`, `copier.yml`, `platform/`, `.github/` | The **tooled product**. NapkinStack's code. |
 | This file, `docs/governance/` | The **working context**. It never goes to the client. |
 
@@ -120,7 +120,7 @@ green.
 | # | Invariant | Why |
 |---|---|---|
 | P1 | **No stack imposed on the modules** — no language, no framework, no database. NapkinStack's own tooling (uv, which provides Python and pre-commit) has its own prerequisites, isolated from the project's code | The platform orchestrates, it knows no stack. Any ecosystem-specific logic in the engine is a bug; a preset delegates to the official generator. |
-| P2 | **Portability of the rules** — the skeleton's rules (`skeleton/AGENTS.md`, `skeleton/playbooks/`, `skeleton/docs/os/`) stay in generic markdown | A client must be able to use the OS with an agent other than Claude. A tool is an adapter, never a foundation. |
+| P2 | **Portability of the rules** — the skeleton's rules (`skeleton/AGENTS.md`, `skeleton/.nstack/playbooks/`, `skeleton/.nstack/handbook/`) stay in generic markdown | A client must be able to use the OS with an agent other than Claude. A tool is an adapter, never a foundation. |
 | P3 | **Enforcement stays in CI** — never in a hook, never in a plugin | A hook is bypassable. Mistaking it for a guarantee postpones the real check. |
 | P4 | **Kernel within budget** — 250 lines | Without a ceiling it grows back at every incident and turns into the unreadable document it replaces. |
 | P5 | **Every check has a test that proves it fails** | A guardrail that cannot fail guards nothing. |
@@ -176,7 +176,7 @@ Do not build, do not propose:
 - a stack preset that no real project uses yet;
 - a Claude Code plugin or marketplace — enforcement stays in CI (P3);
 - fitness functions beyond the current workstream — the next ones are prioritised in
-  `skeleton/docs/os/07-governance.md` §3, and their need is not demonstrated;
+  `skeleton/.nstack/handbook/07-governance.md` §3, and their need is not demonstrated;
 - abstraction or configuration for a single use;
 - a web interface, a dashboard, a service;
 - an AI embedded in `nstack` (an API key, a model call): the team's agent uses the

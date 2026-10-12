@@ -3,7 +3,7 @@ Read-only diagnosis of a project: the workstation and the GitHub settings (PDR-0
 
 Workflows inform; it is the GitHub settings that block, and they are not copied with the
 project. CHECKLIST is printed by nstack init, checked here, and repeated word for word in
-the foundation manual, skeleton/docs/os/INSTALL.md.jinja (a test verifies it).
+the foundation manual, skeleton/.nstack/handbook/INSTALL.md.jinja (a test verifies it).
 
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
 fine-grained, limited to the repository, Administration: read permission. Without a token,
@@ -269,7 +269,7 @@ def _default_owner(root: Path) -> tuple[str, str]:
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
         return OK, ""
     return GAP, (f"The first rule of {CODEOWNERS} is not a default owner.\nAction: make `*  @<owner>` "
-                 "its first rule: the code owner review then covers every path (docs/os/07-governance.md §7).")
+                 "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
 
 
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
@@ -381,7 +381,7 @@ def run(root: Path) -> int:
               "                 Framing buys an appetite, an end date, a circuit breaker and a decider.\n"
               "                 It is worth its price when there is something to bound: several people,\n"
               "                 a deadline, a decider who is not the one typing.\n"
-              "                 To start: follow playbooks/framing.md with your agent.")
+              "                 To start: follow .nstack/playbooks/framing.md with your agent.")
 
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     print(f"\nGitHub: {answers.get('github_repo')}")

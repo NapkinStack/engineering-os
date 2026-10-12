@@ -19,7 +19,7 @@ Target time to first response: **7 days**.
 | S4 | Deny by default in authorisation |
 | S5 | Never a homemade cryptographic or authentication mechanism |
 
-Operational detail: `skeleton/playbooks/security.md`.
+Operational detail: `skeleton/.nstack/playbooks/security.md`.
 
 ## An exposed secret
 

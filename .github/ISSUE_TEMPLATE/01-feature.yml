@@ -12,7 +12,7 @@ body:
     id: module
     attributes:
       label: Target module
-      description: EXACTLY ONE. If the task touches two, split it (skeleton/docs/os/02-modules.md §7).
+      description: EXACTLY ONE. If the task touches two, split it (skeleton/.nstack/handbook/02-modules.md §7).
       placeholder: modules/billing
     validations: { required: true }
 
@@ -41,7 +41,7 @@ body:
     id: acceptance
     attributes:
       label: Acceptance criteria
-      description: Testable — they are the task's oracle (skeleton/docs/os/05-workflow.md §3).
+      description: Testable — they are the task's oracle (skeleton/.nstack/handbook/05-workflow.md §3).
       value: |
         - [ ] Given <context>, when <action>, then <observable result>
         - [ ] Given <error>, when <action>, then <expected behaviour>

@@ -3,7 +3,7 @@
 Fitness function 2 — Boundaries between modules.
 
 Compares the DECLARED graph (manifests) with the REAL graph read from the modules' files,
-then checks for cycles (docs/os/02-modules.md §8, docs/os/07-governance.md §3). Two
+then checks for cycles (.nstack/handbook/02-modules.md §8, .nstack/handbook/07-governance.md §3). Two
 modules know each other only through a contract: the real graph is the contracts a
 module's files read, and any reference to another module's code is a violation.
 
@@ -31,7 +31,7 @@ DETECTION — textual and deliberately simple, with no stack assumed.
     and a path that names something of the module's own, or a contract it provides, is none.
 A module's files are those git would commit, beyond its description (D33). A false positive
 is fixed by rewording the line, or by `code_name`; a false negative by the stack's own import
-checker, named in docs/tooling-profile.md and run by the module's `check` verb.
+checker, named in .nstack/tooling-profile.md and run by the module's `check` verb.
 
 Usage :  nstack boundaries [--root ROOT]
 """
@@ -217,7 +217,7 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
                                  + (f" (removal {when})" if when else "")
                                  + ": a deprecated module takes no new consumer.\n      Action: "
                                  "migrate to the module that replaces it before that date "
-                                 "(docs/os/02-modules.md §6); M5 turns red once it has passed.")
+                                 "(.nstack/handbook/02-modules.md §6); M5 turns red once it has passed.")
 
     patterns = contract_patterns(modules)
     reads: dict[str, dict[str, set[str]]] = {name: {} for name in modules}
@@ -247,7 +247,7 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
                     elif version is not None and version not in versions:
                         fail("B1", where, f"'{name}' reads {contract} {version} and consumes "
                                           f"{', '.join(sorted(versions))}.\n      Action: declare the version "
-                                          "it reads (docs/os/03-contracts.md §4, the migration step).")
+                                          "it reads (.nstack/handbook/03-contracts.md §4, the migration step).")
         # B4 - declared but never read
         for c in mod["consumes"]:
             if c.get("contract") and not any(c.get("contract") in read for read in reads[name].values()):
@@ -281,7 +281,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                     fail("B2", f"{mod['path'].relative_to(root) / relative}:{lineno}",
                          f"'{name}' references the code of '{other_name}'"
                          f"{' through an import' if via_import else ' through a path into its folder'}. "
-                         f"Two modules know each other only through a contract (docs/os/03-contracts.md): "
+                         f"Two modules know each other only through a contract (.nstack/handbook/03-contracts.md): "
                          f"read the one '{other_name}' provides.")
 
     # B5 - access to someone else's data
@@ -295,7 +295,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                 if re.search(rf"\b(from|join|into|update|table)\s+[\"'`\[]?{re.escape(table.lower())}\b", text):
                     fail("B5", str(mod["path"].relative_to(root) / relative),
                          f"'{name}' accesses table '{table}' owned by '{owner}'. "
-                         f"Coupling through the database (docs/os/08-quality.md §8).")
+                         f"Coupling through the database (.nstack/handbook/08-quality.md §8).")
                     break
     return code
 
@@ -336,7 +336,7 @@ def run(root: Path) -> int:
     for cycle in find_cycles(graph):
         fail("B3", " → ".join(cycle),
              "circular dependency: these modules have become inseparable "
-             "(docs/os/02-modules.md §9).")
+             "(.nstack/handbook/02-modules.md §9).")
 
     print(f"Modules checked: {len(modules)}")
     print("Real graph detected:")

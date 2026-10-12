@@ -106,7 +106,7 @@ def test_a_deliverable_with_no_executable_criterion_is_told_where_it_belongs(tmp
 
     The framework already had the right home: a **spike**, whose criteria name what will be
     recorded and the threshold it is read against, and where **a refuted result is a delivered
-    one** (05-workflow.md §3, playbooks/framing.md). "Nobody acted" was a delivered D1. The door
+    one** (05-workflow.md §3, .nstack/playbooks/framing.md). "Nobody acted" was a delivered D1. The door
     existed and the refusal did not mention it, so the rule stays and the message opens it."""
     framed(tmp_path, cycles={"01.md": cycle(deliverables=[deliverable(
         title="The private invitation: five DMs, and we count who acts", acceptance=None)])})
@@ -176,7 +176,7 @@ def test_an_accepted_charter_refuses_a_front_page_left_as_its_form(tmp_path, cap
     output = capsys.readouterr().out
     assert "[C8] README.md" in output, output
     assert "<One sentence: what this project does.>" in output, output   # it names the words left
-    assert "docs/os/06-decisions.md §10" in output, output               # and where the form is explained
+    assert ".nstack/handbook/06-decisions.md §10" in output, output               # and where the form is explained
 
 
 @pytest.mark.parametrize("front_page", [

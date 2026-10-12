@@ -3,7 +3,7 @@
 Fitness function 1 — Manifest validation.
 
 Checks that every module declares what it must declare and that its lifecycle
-state is coherent (docs/os/02-modules.md §6, docs/os/07-governance.md §3).
+state is coherent (.nstack/handbook/02-modules.md §6, .nstack/handbook/07-governance.md §3).
 
 Rules:
   M1  every module has a MANIFEST.yaml
@@ -16,7 +16,7 @@ Rules:
       its description
   M8  runbook required when criticality >= high
   M9  complete file envelope (AGENTS.md, README.md, tests/)
-  M10 user_facing declared: true when a user sees the module (docs/os/05-workflow.md §7)
+  M10 user_facing declared: true when a user sees the module (.nstack/handbook/05-workflow.md §7)
 
 Usage :  nstack manifests [--root ROOT]
 Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
@@ -233,7 +233,7 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                 fail(rel, "M6", f"deprecated contract {name} without a removal_date")
             elif removal < today:
                 fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
-                                "Finish the contraction (docs/os/03-contracts.md §4).")
+                                "Finish the contraction (.nstack/handbook/03-contracts.md §4).")
 
     commands = data.get("commands") or {}
     content = module_content(path.parent)
@@ -244,14 +244,14 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     if content and unfilled(resp):
         fail(rel, "M2", f'module.responsibility is still the template\'s: "{resp}"\n'
                         "      Action: one sentence naming the capability this module covers, "
-                        "in MANIFEST.yaml (docs/os/02-modules.md §5).")
+                        "in MANIFEST.yaml (.nstack/handbook/02-modules.md §5).")
 
     # M7 - standard verbs, once there is something to check (D33)
     for verb in REQUIRED_COMMANDS:
         if content and not commands.get(verb):
             fail(rel, "M7", f"standard verb missing: commands.{verb}, and the module holds more "
                             f"than its description ({content[0]}).\n      Action: declare its stack's "
-                            "command in the manifest (docs/os/09-platform.md §2).")
+                            "command in the manifest (.nstack/handbook/09-platform.md §2).")
 
     # M8 - what the criticality requires, read from the matrix of 05-workflow.md §7 and
     # never from a threshold copied here (D67). Each refusal names the value that produced it and
@@ -263,7 +263,7 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                         else f"criticality {criticality!r} is not a value M3 accepts and is "
                              "read as critical, which")
             fail(rel, "M8", f"{declared} requires an existing runbook "
-                            "(docs/os/05-workflow.md §7; what it holds: playbooks/operations.md)"
+                            "(.nstack/handbook/05-workflow.md §7; what it holds: .nstack/playbooks/operations.md)"
                             f"{_relief(criticality, 'runbook')}\n      Action: declare docs.runbook "
                             "in MANIFEST.yaml and create that file — nstack new-module writes one.")
 
@@ -274,11 +274,11 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     if not (path.parent / "tests").is_dir() and criticality != "prototype":
         fail(rel, "M9", "tests/ folder missing")
 
-    # M10 - a user-visible surface declared: it decides the test sheet (docs/os/05-workflow.md §7)
+    # M10 - a user-visible surface declared: it decides the test sheet (.nstack/handbook/05-workflow.md §7)
     if not isinstance(mod.get("user_facing"), bool):
         fail(rel, "M10", "module.user_facing must be true or false: does a user see this module? "
                          "true requires a test sheet on its pull requests from standard up "
-                         "(docs/os/05-workflow.md §7)")
+                         "(.nstack/handbook/05-workflow.md §7)")
 
 
 def run(root: Path) -> int:
@@ -304,7 +304,7 @@ def run(root: Path) -> int:
         print(f"  FAIL {f}")
 
     if failures:
-        print(f"\n{len(failures)} violation(s). See docs/os/02-modules.md and docs/os/07-governance.md.")
+        print(f"\n{len(failures)} violation(s). See .nstack/handbook/02-modules.md and .nstack/handbook/07-governance.md.")
         return 1
     print("Manifests: compliant.")
     return 0

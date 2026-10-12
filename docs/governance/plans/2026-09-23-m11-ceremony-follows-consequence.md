@@ -925,6 +925,27 @@ that not creating `contracts/` at `init` was a small change. It is not: nothing 
 module afterwards, so it needs a command, and the oracle and `CODEOWNERS` assume the folder.
 It went into PDR-0012 rather than being done by half.
 
+## M11s — One folder for the framework (PDR-0012) — PR 21
+
+PDR-0012 accepted by the maintainer on 2026-10-12, the handbook kept in the project.
+
+- [x] **Task 1 — the move.** `playbooks/`, `docs/os/`, the six forms, the project folder's
+      guide and the tooling profile go under `.nstack/`; 84 files that named an old address
+      follow. The trees and tables of the handbook are redrawn by hand.
+- [x] **Task 2 — a project is one from its creation.** `docs/project/` no longer exists before
+      a discovery or a charter: the stage is read from the answers file as well.
+- [x] **Task 3 — measured before it was written: a rename loses an adaptation.** On the pilot's
+      copy, a line added to a page that moved was dropped in silence. A test reproduces it on a
+      project created in the old layout, seen red; `nstack update` then carries each adapted
+      file to its new place and names it (D84).
+- [x] **Task 4 — every page named exists.** One test over the engine's messages and the files
+      a project receives.
+- [x] **Task 5 — the three real projects**, on copies: clean; one conflict shown where a line
+      had been lost; one conflict in a file that does not move.
+
+**Not done here: the contracts module created by the first contract — M11t.** It needs a
+command, and the oracle and the code owners assume the folder.
+
 ## M11m — What the pilot's cycle boundary found — PR 13
 
 - **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch

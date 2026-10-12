@@ -1,15 +1,15 @@
 """
 Fitness function 3 — Pull request scope and size.
 
-  P1  one pull request = one module                  BLOCKING  (docs/os/02-modules.md §7)
-  P2  review budget respected                        WARNING   (docs/os/05-workflow.md §4)
+  P1  one pull request = one module                  BLOCKING  (.nstack/handbook/02-modules.md §7)
+  P2  review budget respected                        WARNING   (.nstack/handbook/05-workflow.md §4)
 
 A module is touched when the pull request changes it beyond its description — the same
 count as `nstack pr-check`'s (D34): editing a manifest, an AGENTS.md, a README or docs/
 changes no module, and contracts/ is a module like any other.
 
 The `cross-module` label lifts P1, the `over-budget` label documents P2: both are visible,
-so the exceptions are countable (docs/os/10-measurement.md §3).
+so the exceptions are countable (.nstack/handbook/10-measurement.md §3).
 
 Usage :  nstack pr-scope [--root ROOT] [--base BASE]
 In CI :  PR_LABELS comes from the pull_request event; MAX_LINES and MAX_FILES override the
@@ -64,9 +64,9 @@ def run(root: Path, base: str) -> int:
               "  Counted as an exception. A rising rate means a boundary is decaying.")
     elif len(modules) > 1:
         print(f"\nFAIL [P1] This PR changes {len(modules)} modules.\n"
-              "  One PR = one module (docs/os/02-modules.md §7).\n"
+              "  One PR = one module (.nstack/handbook/02-modules.md §7).\n"
               "  A contract change goes through an expand/contract sequence,\n"
-              "  never a single PR (docs/os/03-contracts.md §4).\n"
+              "  never a single PR (.nstack/handbook/03-contracts.md §4).\n"
               "  If the exception is justified: add the 'cross-module' label.")
         status = 1
 

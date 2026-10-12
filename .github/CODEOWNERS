@@ -1,4 +1,4 @@
-# Ties every change to an owner (skeleton/docs/os/07-governance.md §7).
+# Ties every change to an owner (skeleton/.nstack/handbook/07-governance.md §7).
 # Updated automatically by nstack new-module.
 
 # Default owner: every path the rules below do not name (ADR-0004).

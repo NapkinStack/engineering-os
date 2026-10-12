@@ -21,10 +21,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SKELETON = ROOT / "skeleton"
-OVERVIEW = SKELETON / "docs/os/00-overview.md"
-DECISIONS = SKELETON / "docs/os/06-decisions.md"
+OVERVIEW = SKELETON / ".nstack/handbook/00-overview.md"
+DECISIONS = SKELETON / ".nstack/handbook/06-decisions.md"
 FORMS = SKELETON / ".github/ISSUE_TEMPLATE"
-FRAMEWORK = re.compile(r"napkinstack|\bnstack\b", re.I)
+# The framework's name or its command — not a path into its folder: since PDR-0012 every pointer
+# to the method reads `.nstack/…`, and a pointer is what a seat is allowed.
+FRAMEWORK = re.compile(r"napkinstack|(?<![./])\bnstack\b", re.I)
 STANDARD = "a diagram with its legend before the prose"
 SEATS = [seat.lstrip("/") for seat in
          yaml.safe_load((ROOT / "copier.yml").read_text(encoding="utf-8"))["_skip_if_exists"]]
@@ -72,7 +74,7 @@ def test_the_front_page_is_a_form() -> None:
     assert readme.startswith("# {{ project_name }}\n"), "the front page opens on the project's name"
     assert "<One sentence: what this project does.>" in readme, "the sentence C8 asks for at a go is gone"
     assert len(readme.splitlines()) < 40, "the front page grew back into a manual"
-    assert sum("docs/os/INSTALL.md" in line for line in readme.splitlines()) == 1, (
+    assert sum(".nstack/handbook/INSTALL.md" in line for line in readme.splitlines()) == 1, (
         "exactly one line points at the manual")
     assert "```bash" not in readme, "a command block on the front page is an installation instruction"
 
@@ -80,7 +82,7 @@ def test_the_front_page_is_a_form() -> None:
 def test_the_manual_is_whole_and_one_click_away() -> None:
     """Criterion 2: moved, not rewritten. Its sections are counted by name so that a later
     trim of the manual is a decision somebody sees, not a side effect of moving it."""
-    manual = (SKELETON / "docs/os/INSTALL.md.jinja").read_text(encoding="utf-8")
+    manual = (SKELETON / ".nstack/handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
     for heading in ("## Prerequisites", "## Installation", "## Receiving a new version",
                     "## To do once on GitHub", "## What is in this repository", "## The commands",
                     "## Claude Code skills", "## The three rules to remember",
@@ -96,13 +98,13 @@ def test_the_documentation_standard_is_stated_once_where_agents_load_it() -> Non
     holders = [path.relative_to(SKELETON).as_posix() for path in sorted(SKELETON.rglob("*"))
                if path.is_file() and path.suffix in {".md", ".jinja", ".yml"}
                and STANDARD in path.read_text(encoding="utf-8")]
-    assert holders == ["playbooks/documentation.md"], f"the standard is stated in {holders}"
-    playbook = (SKELETON / "playbooks/documentation.md").read_text(encoding="utf-8")
+    assert holders == [".nstack/playbooks/documentation.md"], f"the standard is stated in {holders}"
+    playbook = (SKELETON / ".nstack/playbooks/documentation.md").read_text(encoding="utf-8")
     tools = set(re.findall(r"\b(Mermaid|PlantUML|Graphviz|GitHub)\b", playbook))
-    assert not tools, f"the playbook names {sorted(tools)}: a tool belongs to docs/tooling-profile.md"
-    assert "playbooks/documentation.md" in subsection(DECISIONS, "The project's documents"), (
+    assert not tools, f"the playbook names {sorted(tools)}: a tool belongs to .nstack/tooling-profile.md"
+    assert ".nstack/playbooks/documentation.md" in subsection(DECISIONS, "The project's documents"), (
         "the handbook does not say where the standard is")
-    assert "Diagrams as text" in (SKELETON / "docs/tooling-profile.md").read_text(encoding="utf-8"), (
+    assert "Diagrams as text" in (SKELETON / ".nstack/tooling-profile.md").read_text(encoding="utf-8"), (
         "no tool is mapped to the diagram the standard asks for")
 
 
