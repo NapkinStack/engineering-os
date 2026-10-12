@@ -465,3 +465,18 @@ def test_the_verifiers_remarks_have_a_line_and_are_not_the_verifier(tmp_path, ca
     playbook = (skeleton / ".nstack/playbooks/verification.md").read_text(encoding="utf-8")
     for needed in ("**`Verifier's remarks:`**", "its `test` verb when it declares no `e2e`", "has\n   nothing to start"):
         assert needed in playbook, needed
+
+
+def test_a_commit_whose_tree_is_the_heads_is_the_head_for_a_sheet(tmp_path, capsys, monkeypatch):
+    """Merging the default branch into a pull request that already carried it changes a hash
+    and no file: the sheet is not sent back for it. One file changed, and it is."""
+    base, verified = agent_change(tmp_path, "Agent-Session: author-1")
+    git(tmp_path, "commit", "-q", "--allow-empty", "-m", "Merge the default branch: nothing new")
+    head = git(tmp_path, "rev-parse", "HEAD")
+    body = sheet(("S1", "Given a user, when they sign in, then the session opens", "automated", "passed",
+                  "https://ci.example/run/1", verified[:7]), verifier="@dana")
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("page, changed again\n", encoding="utf-8")
+    git(tmp_path, "commit", "-q", "-am", "a change after the verification")
+    assert check(tmp_path, base, git(tmp_path, "rev-parse", "HEAD"), body, monkeypatch) == 1
+    assert "FAIL [T4]" in capsys.readouterr().out

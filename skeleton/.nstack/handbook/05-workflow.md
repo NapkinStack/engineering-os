@@ -128,7 +128,9 @@ things the forge and the sheet do then, to know before the first merge:
 - merging the first **and deleting its branch** closes the next one, which was opened on it:
   merge without deleting, point the next at the default branch, then delete;
 - the next one's head moves when the default branch is merged into it, and a sheet is tied to
-  the commit tested: its automated scenarios are run again at the new head (§7).
+  the commit tested. When that merge brings no file the branch did not already carry, the two
+  commits hold the same tree and the sheet stands; when it brings one, the automated scenarios
+  are run again at the new head (§7).
 
 ---
 
@@ -277,6 +279,8 @@ criticality are read before and after the change, and the stricter applies:
   checked against the history, not a proof of identity.
 - **No result without evidence**, tied to the commit tested. A new commit does not send the
   whole sheet back:
+  - a commit whose files are exactly the head's **is** the head: a hash changed by a merge
+    that brought nothing sends no scenario back;
   - an **automated** scenario is **run again** at the head — CI replays it when the module
     declares `e2e`, so it costs nothing; its Commit cell takes the head commit;
   - one **explored** by hand keeps the commit its evidence was produced on, and the verifier

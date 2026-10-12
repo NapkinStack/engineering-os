@@ -242,7 +242,7 @@ def _result(cell: str) -> str:
 
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
-                strict: bool = False) -> list[str]:
+                strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False) -> list[str]:
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
@@ -283,7 +283,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
         if result == "passed" and (row["evidence"] in EMPTY or not SHA.fullmatch(commit)):
             fail("T3", f"scenario {ident}: passed without evidence and the commit verified.\n"
                        "      Action: link the screenshot, video, trace or log, and give the commit.")
-        elif result in {"passed", "failed"} and SHA.fullmatch(commit) and not head.startswith(commit):
+        elif (result in {"passed", "failed"} and SHA.fullmatch(commit) and not head.startswith(commit)
+              and not unchanged(commit)):
             # T4 split by kind (D71). An automated scenario is cheap and CI replays it when e2e is
             # declared, so it is re-run. One that was explored by hand costs a round: its evidence keeps the commit
             # it was produced on, and the verifier confirms at the head, naming what moved since.
@@ -388,7 +389,13 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
 
     reasons = [reason for folder, found in modules.items() if (reason := sheet_reason(folder, found))]
     authorship = authors(root, base, head, os.environ.get("PR_AUTHOR", ""))
-    human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules))
+    # A commit whose tree is the head's is the head, for a sheet (D93): merging the default
+    # branch into a pull request that already carried it changes a hash and no file.
+    def tree_of(commit: str) -> str:
+        return _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{tree}}").stdout.strip()
+
+    human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
+                             lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail)
 
