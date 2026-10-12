@@ -22,6 +22,33 @@ a patch.
 
 ---
 
+## v0.7.4 — 2026-10-12
+
+**In the engine**
+
+- **`nstack doctor` names a newer published version** (D91). Nothing told a project that a
+  version had been published. The command that already reads the network, on demand, now asks
+  the registry one question, without a token, and answers in one of three words:
+
+| The registry answers | `nstack doctor` says |
+|---|---|
+| A version newer than the project's | `NEWER VERSION`, with the address of its notes and the way to take it, at a cycle's boundary |
+| The project's version, or an older one | `LATEST` |
+| Nothing | `NOT READ` |
+
+  It is information, never a gap: no exit code moves. **No other command opens a
+  connection.** `NSTACK_REGISTRY_URL` names another registry than `https://pypi.org`.
+
+**In your project** — 1 file
+
+- The manual, `.nstack/handbook/INSTALL.md`, says where a project learns of a newer version.
+
+**Migration**
+
+None. Measured on a copy of a project running the v0.7.2 skeleton, crossing v0.7.3:
+`nstack update` merged without a conflict, 1 file and the recorded version, checks green
+afterwards. A workstation behind a firewall sees `NOT READ`, and nothing else changes for it.
+
 ## v0.7.3 — 2026-10-12
 
 **In the engine**
