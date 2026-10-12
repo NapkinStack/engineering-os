@@ -671,6 +671,14 @@ echo "$OUT" | grep -qF "modules/face (criticality standard, user-facing)" \
   && echo "$OUT" | grep -qF "FAIL [K1] the project is not framed" \
   || { echo "FAIL: expected T1 and K1 messages missing."; echo "$OUT"; exit 1; }
 
+echo "-> plan: a module holding code and a module map left as its form MUST fail (C8, PDR-0010)"
+if OUT=$(cd "$CLONE" && nstack plan --root . 2>&1); then
+  echo "FAIL: a project with code in a module and no module map went green."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "FAIL [C8] modules/README.md" && echo "$OUT" | grep -qF "(face)" \
+  || { echo "FAIL: C8 does not name the map and the module."; echo "$OUT"; exit 1; }
+sed -i 's#^<A diagram of this project.*#One module, face: the page a visitor sees. No contract yet.#' "$CLONE/modules/README.md"
+
 echo "-> plan: a new project is not framed yet; its templates are not checked (PDR-0002)"
 (cd "$CLONE" && nstack plan --root .) | grep -qF "the project is not framed yet" \
   || { echo "FAIL: nstack plan does not report an unframed project."; exit 1; }
@@ -697,7 +705,7 @@ printf '\nFix v90.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
 printf '\nFix v90.2.\n' >> "$TPL/skeleton/contracts/README.md"
 # A seat is the project's from its first commit: the template may rewrite it, no project
 # that already exists receives a line of it (PDR-0010).
-for seat in README.md.jinja modules/README.md docs/adr/README.md docs/pdr/README.md; do
+for seat in README.md.jinja SECURITY.md modules/README.md docs/adr/README.md docs/pdr/README.md; do
   printf '\nSeat rewritten in v90.2.\n' >> "$TPL/skeleton/$seat"
 done
 template_version v90.2.0
@@ -717,7 +725,7 @@ nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
 printf '\nNeighbours lend each other tools.\n' >> "$A/README.md"
 rm "$A/docs/adr/README.md"
 commit_project "$A" "Adaptations and first module"
-SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
+SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
 
 echo "-> update: started from another branch, it MUST be refused and name both (D74)"
@@ -762,7 +770,7 @@ grep -qF "Fix v90.2." "$A/contracts/README.md" \
   || { echo "FAIL: contracts/README.md did not follow the version."; exit 1; }
 
 echo "-> update: a seat the template rewrote MUST stay as the project wrote it (PDR-0010)"
-[ "$(git -C "$A" rev-parse HEAD:README.md HEAD:modules/README.md HEAD:docs/pdr/README.md)" = "$SEATS_BEFORE" ] \
+[ "$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)" = "$SEATS_BEFORE" ] \
   || { echo "FAIL: an update rewrote a file that belongs to the project."
        git -C "$A" diff --stat main HEAD -- README.md modules/README.md docs/pdr/README.md; exit 1; }
 # Unlike a method file (criterion 6), a seat that is missing comes back, as its form: that is
@@ -1018,7 +1026,7 @@ if not any(step.get("with", {}).get("fetch-depth") == 0 for step in steps):
     sys.exit("FAIL: the record needs the history to know what predates it (fetch-depth: 0).")
 EOF
 
-echo "-> doctor: workstation gaps listed with their action (L1, L3, L5, L6, L7)"
+echo "-> doctor: workstation gaps listed with their action (L1, L3, L6, L7)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from
 # the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
@@ -1032,7 +1040,7 @@ if echo "$OUT" | grep -qF "PRODUCT.md"; then
   echo "FAIL: doctor still judges a file named PRODUCT.md (L4 is retired)."; echo "$OUT"; exit 1
 fi
 rm "$A/PRODUCT.md"
-for rule in L1 L3 L5 L6 L7; do
+for rule in L1 L3 L6 L7; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -1064,7 +1072,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 22 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 21 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1117,7 +1125,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 21 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 20 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant"

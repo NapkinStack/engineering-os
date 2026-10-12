@@ -154,6 +154,8 @@ flowchart TD
     H --> L["M11l<br/>the form<br/>PDR-0010"]:::done
     H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]:::done
     H --> N["M11n<br/>identifiers stay home<br/>D79"]:::done
+    L --> O["M11o<br/>every document<br/>has its moment"]:::done
+    O --> I
     N --> I
     G --> I["M11i<br/>v0.7.0 published<br/>two projects migrated"]
     J --> I
@@ -769,6 +771,42 @@ message prints is defined in one page of the handbook bound by a test, and L4 is
   the two copies are bound by the suite.
 - **Not done here, and said**: the handbook still names a forge's command line in
   `07-governance.md` §7. That is P7's subject, not D79's.
+
+## M11o — Every document has its moment (PDR-0010, extended) — PR 15
+
+Opened on 2026-10-12 by the maintainer's reading of M11l: *the README was one example* — other
+files speak of the project, and some can only be written after a phase has ended. An
+inventory of the 61 files of the skeleton and the 4 of the module scaffold found three more
+mixed files and one rule that asked too early.
+
+| File | Was | Becomes |
+|---|---|---|
+| `SECURITY.md` | The project's policy and the framework's rules | A fifth seat: the policy; the rules stay in `playbooks/security.md` |
+| A module's `README.md` (`new-module`) | Four lines of the engine's commands | The verbs, and the place of a diagram |
+| `docs/architecture/`, `docs/runbooks/` | Empty folders with no moment | A row of `06-decisions.md` §10: absent until a decision or an incident needs them |
+| `README.md`'s sentence | Reported as a gap from the first minute (L5) | Asked for at the discovery's go (C8); **L5 retired** |
+| The documentation standard | In the handbook, which no agent loads | `playbooks/documentation.md`, triggered by the kernel (228 of 250 lines) |
+| `CONTRIBUTING.md`, `docs/project/README.md`, `contracts/*`, the templates, `docs/os/`, the playbooks | Method | Method — unchanged, and said so |
+| `docs/tooling-profile.md`, `CODEOWNERS`, `contracts/MANIFEST.yaml` | Shared row by row | Unchanged: both real projects merge them without conflict |
+
+- [x] **Task 1 — C8 by moment, seen red.** The sentence at a go; the whole front page at an
+      accepted charter; the module map once a module holds code. Each refusal names its event.
+- [x] **Task 2 — L5 retired**, with its count in the oracle; `RULES.md` loses the row (the
+      binding test went red first).
+- [x] **Task 3 — the fifth seat**, bound by the same test as the four.
+- [x] **Task 4 — the module's page**, with a test that it names the framework once at most.
+- [x] **Task 5 — the standard where agents load it**: the playbook, its skill entry, the
+      kernel's trigger row; `06-decisions.md` §10 rewritten by phase and pointing at it.
+- [x] **Task 6 — the playbooks say what each moment writes**: `discovery.md` at a go,
+      `framing.md` at the charter's acceptance.
+- [x] **Task 7 — the place of a diagram** in the ADR and PDR templates, as an invitation.
+- [x] **Task 8 — the records**: PDR-0010 corrected a second time, this section.
+
+**Done (2026-10-12).** The oracle refused the first version of the module-map rule: creating a
+module turned a project red at once, against the promise that a scaffold stays green (D33).
+The rule now reads a module's first file of code, like M7. **Not taken, and said**: the levels
+of rules — what every project shares, what one project adds — which the maintainer raised the
+same day and which is M11p's.
 
 ## M11m — What the pilot's cycle boundary found — PR 13
 

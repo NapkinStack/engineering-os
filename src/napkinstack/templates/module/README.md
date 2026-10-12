@@ -6,16 +6,13 @@
 - **Criticality**: {{CRITICALITY}}
 - **Manifest**: [MANIFEST.yaml](./MANIFEST.yaml)
 
+<A diagram, with its legend: what this module provides, what it consumes, who uses it.>
+
 ## Getting started
 
-```bash
-nstack bootstrap {{MODULE_NAME}}    # from a fresh clone, when declared
-nstack check {{MODULE_NAME}}        # format, lint, types - under 2 min
-nstack test {{MODULE_NAME}}         # never starts another module
-nstack run {{MODULE_NAME}}          # locally, with doubles for the dependencies
-```
-
-Commands: the `commands` section of the MANIFEST, to declare for this module's stack.
+The standard verbs — `bootstrap`, `check`, `test`, `run` — are declared in the `commands`
+section of the [manifest](./MANIFEST.yaml), for this module's stack. What each one must do:
+`docs/os/09-platform.md` §2.
 
 ## Contracts
 

@@ -70,7 +70,7 @@ def test_the_front_page_is_a_form() -> None:
     installation instruction. Forty lines is not a style rule: the manual it replaces had 249."""
     readme = source("README.md").read_text(encoding="utf-8")
     assert readme.startswith("# {{ project_name }}\n"), "the front page opens on the project's name"
-    assert "<One sentence: what this project does.>" in readme, "the sentence doctor L5 reads is gone"
+    assert "<One sentence: what this project does.>" in readme, "the sentence C8 asks for at a go is gone"
     assert len(readme.splitlines()) < 40, "the front page grew back into a manual"
     assert sum("docs/os/INSTALL.md" in line for line in readme.splitlines()) == 1, (
         "exactly one line points at the manual")
@@ -88,19 +88,40 @@ def test_the_manual_is_whole_and_one_click_away() -> None:
         assert heading in manual, f"the manual lost '{heading}' in the move"
 
 
-def test_the_documentation_standard_is_stated_once_and_names_no_tool() -> None:
-    """Criterion 5. Stated twice, a standard has two versions within a year; naming a tool, it
-    stops being a rule and becomes a dependency (the tooling profile maps the rule to a tool)."""
+def test_the_documentation_standard_is_stated_once_where_agents_load_it() -> None:
+    """Criterion 5 — and the lesson of the day it was built: stated in the handbook, the
+    standard reached humans and no agent, since the handbook is never loaded into a context.
+    The agents write the documents. So it is stated once, in a playbook; the handbook says why
+    and points at it. Naming a tool, it would stop being a rule and become a dependency."""
     holders = [path.relative_to(SKELETON).as_posix() for path in sorted(SKELETON.rglob("*"))
                if path.is_file() and path.suffix in {".md", ".jinja", ".yml"}
                and STANDARD in path.read_text(encoding="utf-8")]
-    assert holders == ["docs/os/06-decisions.md"], f"the standard is stated in {holders}"
-    section = subsection(DECISIONS, "The project's documents")
-    assert STANDARD in section, "the standard is not in the section that owns it"
-    profile = (SKELETON / "docs/tooling-profile.md").read_text(encoding="utf-8")
-    tools = set(re.findall(r"\b(Mermaid|PlantUML|Graphviz|Markdown|GitHub)\b", section))
-    assert not tools, f"the standard names {sorted(tools)}: a tool belongs to docs/tooling-profile.md"
-    assert "Diagrams as text" in profile, "no tool is mapped to the diagram the standard asks for"
+    assert holders == ["playbooks/documentation.md"], f"the standard is stated in {holders}"
+    playbook = (SKELETON / "playbooks/documentation.md").read_text(encoding="utf-8")
+    tools = set(re.findall(r"\b(Mermaid|PlantUML|Graphviz|GitHub)\b", playbook))
+    assert not tools, f"the playbook names {sorted(tools)}: a tool belongs to docs/tooling-profile.md"
+    assert "playbooks/documentation.md" in subsection(DECISIONS, "The project's documents"), (
+        "the handbook does not say where the standard is")
+    assert "Diagrams as text" in (SKELETON / "docs/tooling-profile.md").read_text(encoding="utf-8"), (
+        "no tool is mapped to the diagram the standard asks for")
+
+
+def test_the_kernel_sends_whoever_writes_a_document_to_the_standard() -> None:
+    """A playbook nobody is told to load is a page of the handbook under another name."""
+    kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
+    rows = [line for line in kernel.splitlines() if line.startswith("|") and "`documentation.md`" in line]
+    assert len(rows) == 1, "the kernel's trigger table does not name documentation.md once"
+    assert len(kernel.splitlines()) <= 250, "the kernel is over its 250 lines"
+
+
+def test_a_module_s_page_is_the_module_s() -> None:
+    """The page `new-module` writes is a seat too: written once, never updated. Four lines of
+    the engine's commands on it were the front page's defect at a smaller scale."""
+    page = (ROOT / "src/napkinstack/templates/module/README.md").read_text(encoding="utf-8")
+    lines = [line for line in page.splitlines() if FRAMEWORK.search(line)]
+    assert len(lines) <= 1, f"a module's page names the framework on {len(lines)} lines:\n" + "\n".join(lines)
+    assert any(line.startswith("<A diagram") for line in page.splitlines()), (
+        "a module's page has no place for its diagram")
 
 
 def test_planned_and_unplanned_work_name_different_places() -> None:

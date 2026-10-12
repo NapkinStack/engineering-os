@@ -158,12 +158,12 @@ Every file the framework writes into a project is one of two things, never both.
 | **Whose** | The framework's | The project's |
 | **At creation** | Written whole | Written as a form: headings, and the place of a diagram |
 | **At an update** | Merged | Never touched again — recreated only when missing |
-| **Which** | Everything else: the kernel, the playbooks, this handbook, the templates, the checks | `README.md`, `modules/README.md`, `docs/adr/README.md`, `docs/pdr/README.md` |
+| **Which** | Everything else: the kernel, the playbooks, this handbook, the templates, the checks | `README.md`, `SECURITY.md`, `modules/README.md`, `docs/adr/README.md`, `docs/pdr/README.md` |
 
 A file holding the framework's words *and* waiting for the project's belongs to nobody: the
 project does not delete what looks official, and an update conflicts on what the project
-wrote. So a seat carries no manual, and the manual sits in no seat. What a seat must hold,
-and what keeps it current: `06-decisions.md` §10.
+wrote. So a seat carries no manual, and the manual sits in no seat. What each one holds,
+when it becomes writable and what keeps it current: `06-decisions.md` §10.
 
 ---
 

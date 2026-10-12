@@ -78,3 +78,9 @@ def test_no_rule_forbids_a_product_a_file_name(name: str) -> None:
     held = [f"{path.relative_to(ROOT)}:{line}" for path in sorted(ENGINE.rglob("*.py"))
             for line, text in spoken(path) if name in text]
     assert not held, f"the engine still speaks of {name}: {held}"
+
+
+def test_the_workstation_check_no_longer_judges_the_front_page() -> None:
+    """L5 reported an unwritten sentence as a gap from a project's first minute, when nobody
+    could honestly write it. C8 asks for it at the go, which is when it can be. Retired."""
+    assert "L5" not in engine_codes(), "L5 is retired; its number is not reused"

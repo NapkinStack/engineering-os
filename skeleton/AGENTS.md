@@ -123,6 +123,7 @@ its own copy of the repository.
 | a non-trivial test strategy, a flaky test | `tests.md` |
 | logs, metrics, alerts, retries, timeouts, rollback | `operations.md` |
 | verifying a change you did not write, filling in a test sheet | `verification.md` |
+| a document a human will read: writing or changing one | `documentation.md` |
 
 **Crossing a boundary.** If the task requires changing a second module:
 
