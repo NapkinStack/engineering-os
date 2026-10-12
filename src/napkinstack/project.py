@@ -46,7 +46,11 @@ def release_notes(source: str, previous: str, current: str) -> str:
     The CHANGELOG at the tag holds them all."""
     found = GITHUB.match(source.strip())
     if found:
-        return (f"https://github.com/{found['repo']}/blob/{current}/CHANGELOG.md"
+        # An unpublished version is recorded as git describes it, vX.Y.Z-N-g<commit>: a
+        # description, not a name the forge knows. The commit inside it is one (D86).
+        described = re.fullmatch(r".+-\d+-g([0-9a-f]{7,40})", current)
+        at = described[1] if described else current
+        return (f"https://github.com/{found['repo']}/blob/{at}/CHANGELOG.md"
                 f" — every section above {previous}")
     return f"CHANGELOG.md, every section above {previous}, in {source}"
 
