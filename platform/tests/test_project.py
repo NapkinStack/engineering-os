@@ -101,3 +101,15 @@ def test_a_single_line_error_is_unchanged():
                                Path("/w"), "gh:acme/x", "v1.0.0")
     assert "Could not resolve host: github.com" in message, message
     assert "check --source and --ref" in message, message
+
+
+def test_the_notes_of_an_unpublished_version_name_its_commit():
+    """D86. A project pinned to an unpublished commit records it the way git describes it —
+    v0.6.2-21-g3418c56 — and that is a description, not a name the forge knows: the link the
+    update printed was dead. The commit inside it is a name the forge knows."""
+    from napkinstack.project import release_notes
+
+    source = "https://github.com/acme/framework.git"
+    assert "/blob/3418c56/CHANGELOG.md" in release_notes(source, "v0.6.2", "v0.6.2-21-g3418c56")
+    assert "v0.6.2-21-g3418c56/CHANGELOG" not in release_notes(source, "v0.6.2", "v0.6.2-21-g3418c56")
+    assert "/blob/v0.7.0/CHANGELOG.md" in release_notes(source, "v0.6.2", "v0.7.0")   # a published tag stays a tag

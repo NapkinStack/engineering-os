@@ -984,6 +984,25 @@ exact, listed, and reviewed like the rest of the update.
 - [x] **Task 4 — the three real projects**, on copies: two with no contract lose the empty
       module; the one with a contract keeps it whole, and validates.
 
+## M11v — What the third project found — PR 24
+
+The defects a real discovery and a real framing left in the register, and one that was not
+there yet. As M11m did for the pilot: each in the place the next reader looks.
+
+- [x] **D86** — the release notes of an unpublished version named a description, not a
+      reference: the link names the commit. A case, seen red.
+- [x] **D82** — the discovery's intake asks in which language the project writes; the framing
+      asks it when no discovery came first. The answer is the project's first rule.
+- [x] **D83** — a legal or regulatory claim is read at its primary source, or is an assumption.
+- [x] **D81** — a project's rule has no earliest moment: the handbook no longer says "not
+      before the charter".
+- [x] **D87**, new — whoever frames reads the rule before proposing a criticality; a lower
+      value is a deviation, written with its reason and the event that ends it.
+- [ ] **D80** — left open on purpose: both ways out cost more than the defect.
+
+The four playbook lines are not checks, and say so (P1: no logic about a project's domain).
+A case per line keeps it where it is.
+
 ## M11m — What the pilot's cycle boundary found — PR 13
 
 - **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch
