@@ -302,7 +302,7 @@ Every important piece of information has one identifiable source, and only one.
 | Real behaviour | Code and tests |
 | Quality rules | Versioned CI |
 | Infrastructure | Versioned configuration |
-| Security | `SECURITY.md` + automated checks |
+| Security | `playbooks/security.md` for the rules, the project's `SECURITY.md` for its policy, automated checks |
 | Operations | Runbooks |
 
 > **Never leave an important decision only inside a conversation with an AI.** A
@@ -325,49 +325,58 @@ breaks no rule here: it has chosen where, which is all this section asks.
 
 ## 10. The project's documents
 
-The framework writes none of them. It names the documents a project holds, the event that
-brings each one current, and the standard they are written to.
+The framework writes none of them. It gives each one a form, a moment, and a standard.
 
 ```mermaid
 flowchart LR
-    CH["Charter accepted"]:::event --> FP["Front page"]:::doc
-    CY["Cycle closed"]:::event --> FP
-    CY --> MM
-    MO["Module created,<br/>merged or retired"]:::event --> MM["Module map"]:::doc
-    BE["Behaviour changed"]:::event --> MD["The module's page<br/>and its runbook"]:::doc
-    DE["Decision taken"]:::event --> IX["The record<br/>and its index"]:::doc
+    P0["Creation"]:::phase --> P1["Discovery<br/>decided: go"]:::phase --> P2["Charter<br/>accepted"]:::phase
+    P2 --> P3["A module holds<br/>its first code"]:::phase --> P4["Delivery"]:::phase --> P5["Cycle<br/>closed"]:::phase
+    P5 --> P4
 
-    classDef event fill:#1e3a8a,color:#fff
-    classDef doc fill:#065f46,color:#fff
+    P0 -.-> D0["Forms only:<br/>nothing can be<br/>written yet"]:::owed
+    P1 -.-> D1["Front page:<br/>its sentence"]:::machine
+    P2 -.-> D2["Front page: whole"]:::machine
+    P2 -.-> D2b["Security policy<br/>reviewed"]:::owed
+    P3 -.-> D3["Module map"]:::machine
+    P4 -.-> D4["The module's page<br/>and its runbook"]:::owed
+    P5 -.-> D5["The closure names<br/>what was brought<br/>current"]:::owed
+
+    classDef phase fill:#1e3a8a,color:#fff
+    classDef machine fill:#065f46,color:#fff
+    classDef owed fill:#374151,color:#fff
 ```
 
-**Legend** — blue: an event of the project's life · green: the document that event brings
-current, in the same pull request.
+**Legend** — blue: a moment of the project's life, read from the repository · green: a
+document a check refuses to see left as its form once that moment has come (rule C8) ·
+grey: owed — asked of a human, read by no check.
 
-| Document | Says | Written by | Brought current by |
+| Document | Says | Becomes writable when | Then kept current by |
 |---|---|---|---|
-| Front page — `README.md` | What the product is, how to run it, where its decisions live | The framer, from the charter | The charter's acceptance, then each cycle's closure |
-| Module map — `modules/README.md` | The modules, and the contracts between them | Whoever creates the module | The pull request that creates, merges or retires a module |
-| A module's `README.md` and runbook | What it is for, how to start it, how to operate it | Its owner | The pull request that changes its behaviour |
-| Charter and cycles — `docs/project/` | Who it is for, when it is finished, what is delivered now | The framer | The decider alone (§4) |
-| A decision and its index — `docs/adr/`, `docs/pdr/` | A trade-off, with its dated criterion | Its author | Never: a decision is superseded, and the index gains a line |
+| The idea and its discovery — `docs/project/inputs/`, `discovery.md` | The idea as given; evidence with its sources; the decision | The discovery starts | Each round, until decided |
+| Front page, its sentence — `README.md` | What the product does, for whom | The discovery is decided **go** | — |
+| Charter — `docs/project/charter.md` | Users, problem, constraints, success criteria | The framing | The decider alone (§4) |
+| Front page, whole — `README.md` | What it is, how to run it, where its decisions live | The charter is **accepted** | Each cycle's closure |
+| Security policy — `SECURITY.md` | How to report a vulnerability, who answers, how fast | Creation, as a default; reviewed when the charter is accepted — it says what data the product holds | A change of channel or of maintainers |
+| The project's tools — `docs/tooling-profile.md` | Which tool serves which capability | A tool is chosen | The decision that replaces one |
+| A cycle — `docs/project/cycles/` | One goal, its deliverables, its end date, its closure | The charter is accepted | The decider alone |
+| Module map — `modules/README.md` | The modules, and the contracts between them | A module holds its **first file of code** | The pull request that creates, merges or retires a module |
+| A module's `README.md` and runbook | What it is for, how to start it, how to operate it | The module is created | The pull request that changes its behaviour |
+| What no module owns — `docs/architecture/`, `docs/runbooks/` | How the whole is deployed; what to do when the whole fails | A decision or an incident needs it: absent until then | The next decision, the next incident |
+| A decision and its index — `docs/adr/`, `docs/pdr/` | A trade-off, with its dated criterion | It is taken | Never: a decision is superseded, and the index gains a line |
 
-**The standard — four rules, and no content:**
+**A form is not filled before its moment.** At creation nobody knows what the product is;
+a sentence written then is invented. Each form waits for the event of its row, and a check
+that asked for it earlier would be paid in counterfeit.
 
-1. **Shape first**: a diagram with its legend before the prose, wherever there is a structure,
-   a flow or a state to show — written as text in the file, so that a pull request shows what
-   changed in it. Then a few lines. A reader who stops after the diagram has understood.
-2. **A source for every claim about the outside world** — a market, a law, a tool's
-   behaviour, a number.
-3. **A date on every decision**, and on every criterion that will judge it.
-4. **Current, or deleted.** Each document has the event above that brings it current, and the
-   pull request of that event carries the change. A document nobody is due to update is
-   deleted: a stale page costs more than a missing one, because it is believed.
+**The standard** these documents are written to — shape first, a source, a date, current or
+deleted — is `playbooks/documentation.md`: a playbook, because the handbook is never loaded
+into an agent's context and agents write most of these documents.
 
-**What a machine reads, and what is owed.** One thing is decidable and is checked: a front
-page still holding its form's words under an accepted charter is refused (rule C8). Whether a
-page is *true* is not decidable: it is owed — "affected documentation up to date" in the
-Definition of Done (`05-workflow.md` §7), and the cycle's closure, which names the documents
-it brought current.
+**What a machine reads, and what is owed.** Three moments are readable from the repository
+and are checked: a front page without its sentence after a go, a front page still a form
+under an accepted charter, a module map still a form once a module holds code. Whether a page is
+*true* is not decidable: it is owed — "affected documentation up to date" in the Definition
+of Done (`05-workflow.md` §7), and the cycle's closure, which names the documents it
+brought current.
 
 This handbook is written to the same standard; that is where it comes from.

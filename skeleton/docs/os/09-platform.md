@@ -106,6 +106,7 @@ project/
 │   ├── security.md
 │   ├── tests.md
 │   ├── verification.md
+│   ├── documentation.md
 │   ├── data-migration.md
 │   ├── ux.md
 │   └── operations.md

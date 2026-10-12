@@ -8,9 +8,10 @@ _min_copier_version: "9.18"
 
 # The seats: files whose content is the project's (PDR-0010). Written once, as a form, when
 # the project is created; no update merges them again. The table of
-# skeleton/docs/os/00-overview.md §5 lists the same four, and a test binds the two.
+# skeleton/docs/os/00-overview.md §5 lists the same five, and a test binds the two.
 _skip_if_exists:
   - /README.md
+  - /SECURITY.md
   - /modules/README.md
   - /docs/adr/README.md
   - /docs/pdr/README.md

@@ -1,8 +1,8 @@
 # PDR-0010 — The framework imposes the form, the project writes the content
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); **built by M11l (2026-10-12)**, which also wrote into it what a third
-  project showed — see *Corrected in place, 2026-10-12*; it closes D59 and D60
+  before 2027-03-31); **built by M11l (2026-10-12)** and extended by M11o the same day —
+  see the two sections *Corrected in place*; it closes D59 and D60
 - **Date**: 2026-09-22
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's `README.md.jinja` and `.github/ISSUE_TEMPLATE/`,
@@ -206,6 +206,48 @@ machine reads, the second owed to the decider.
    not yet work. Four forms.
 
 **What a running project receives** was measured, not predicted: see M11l's pull request.
+
+### Corrected in place a second time, 2026-10-12 (M11o)
+
+The maintainer read the first correction and said the front page was *one example*: other
+files speak of the project, and some can only be written **after** a phase has ended. Both
+were true, and the first correction had one rule backwards.
+
+```mermaid
+flowchart LR
+    P0["Creation"]:::phase --> P1["Discovery: go"]:::phase --> P2["Charter accepted"]:::phase
+    P2 --> P3["A module holds<br/>its first code"]:::phase
+    P0 -.-> D0["Forms only"]:::owed
+    P1 -.-> D1["The sentence"]:::machine
+    P2 -.-> D2["The whole front page"]:::machine
+    P3 -.-> D3["The module map"]:::machine
+
+    classDef phase fill:#1e3a8a,color:#fff
+    classDef machine fill:#065f46,color:#fff
+    classDef owed fill:#374151,color:#fff
+```
+
+**Legend** — blue: a moment read from the repository · green: what C8 asks for once it has
+come · grey: nothing is asked.
+
+1. **A form is not filled before its moment.** `doctor` reported the unwritten sentence as a
+   gap from a project's first minute (L5), when nobody could honestly write it. **L5 is
+   retired**; C8 asks for each document at the event that makes it writable. The module map
+   follows the convention every module rule already had: from the first file of code, so
+   that what the scaffolding writes stays green — found by the oracle, which went red on
+   `new-module` when the rule read "once a module exists".
+2. **A fifth seat: `SECURITY.md`.** It mixed the project's policy — how to report, who
+   answers — with the framework's rules, which `playbooks/security.md` already held. It keeps
+   the policy, with a default that is true on a public repository.
+3. **A module's page is a seat too.** The one `new-module` writes named the engine on four
+   lines; it now names the verbs, and holds the place of a diagram.
+4. **The standard moved to where agents load it.** Stated in the handbook, it reached humans
+   and no agent — the handbook is never loaded into a context, and agents write most of these
+   documents. It is `playbooks/documentation.md`, triggered by the kernel; the handbook keeps
+   the why, and the table of documents by phase (`06-decisions.md` §10).
+5. **Decision records gain the place of a diagram**, as an invitation — "otherwise delete
+   this line" — reversing the first correction's refusal: a decision that changes a structure
+   is better drawn, and one that does not loses a line.
 
 ---
 

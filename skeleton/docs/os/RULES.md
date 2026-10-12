@@ -66,7 +66,7 @@ a family, a number a rule; a retired rule's number is never reused.
 | `C5` | Two accepted cycles, or an accepted cycle under a charter that is not | `docs/project/README.md` |
 | `C6` | A closed or stopped cycle with no outcome or no end date | `docs/project/README.md` |
 | `C7` | A discovery decided with no decider, date or challenger — or a charter with no go before it | `docs/project/README.md` |
-| `C8` | A front page still holding its form's words under an accepted charter | `06-decisions.md` §10 |
+| `C8` | A document left as its form once its moment has come: the front page's sentence at a go, the whole front page at an accepted charter, the module map once a module holds code | `06-decisions.md` §10 |
 
 ## H — hygiene
 
@@ -119,7 +119,6 @@ a family, a number a rule; a retired rule's number is never reused.
 | `L1` | An engine that is not the project's version, or is not a published one | `INSTALL.md` |
 | `L2` | git or the hook runner missing | `INSTALL.md` |
 | `L3` | Hooks not installed in this clone | `INSTALL.md` |
-| `L5` | A front page whose sentence is not written | `06-decisions.md` §10 |
 | `L6` | Code owners that do not start with a default owner | `07-governance.md` §7 |
 | `L7` | A project created from a path on one machine | `INSTALL.md` |
 

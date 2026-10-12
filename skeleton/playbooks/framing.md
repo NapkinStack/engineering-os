@@ -93,9 +93,10 @@ move in the same pull request. The modules accepted there are created with the e
 module scaffolding, declared user-facing when a user sees them.
 
 **The pull request that accepts the charter writes the project's front page from it** —
-`README.md`: the sentence, a diagram of who uses the product and what it talks to, how to run
-what exists. Until then the front page is a form and stays one; from then on the plan check
-refuses an accepted charter over a form left as it came (`docs/os/06-decisions.md` §10).
+`README.md`: a diagram of who uses the product and what it talks to, how to run what exists,
+and the sentence when no discovery wrote it. Until then that page holds its sentence at most;
+from then on the plan check refuses an accepted charter over a form left as it came
+(`docs/os/06-decisions.md` §10, `documentation.md`).
 
 ## 4. During the cycle
 

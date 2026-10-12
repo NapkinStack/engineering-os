@@ -196,3 +196,57 @@ def test_a_proposed_charter_leaves_the_form_alone(tmp_path, capsys):
     framed(tmp_path, {**CHARTER, "status": "proposed"}, cycles={})
     (tmp_path / "README.md").write_text(skeleton_front_page(), encoding="utf-8")
     assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+GO = {"decision": "go", "decider": "@alice", "decided_on": "2026-10-01", "challenger": "@bob",
+      "idea": "docs/project/inputs/idea.md", "round": 1}
+SENTENCE, DIAGRAM, RUN = plan.FRONT_PAGE_FORM
+MAP = plan.MODULE_MAP_FORM
+
+
+def test_a_go_asks_for_the_sentence_and_nothing_more(tmp_path, capsys):
+    """A document has its moment. At a go the decider has confirmed for whom and what — one
+    sentence — and nothing else: no charter says yet what the product talks to or how it runs.
+    Asking for the whole front page here is asking for counterfeit; asking for nothing leaves
+    a project that has decided to exist with a front page that says so nowhere."""
+    write(tmp_path, "discovery.md", GO)
+    (tmp_path / "README.md").write_text(skeleton_front_page(), encoding="utf-8")
+    assert plan.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "[C8] README.md" in output and SENTENCE in output, output
+    assert DIAGRAM not in output and RUN not in output, output          # not due yet
+    assert "the discovery's decision is go" in output, output            # the event is named
+    (tmp_path / "README.md").write_text(skeleton_front_page().replace(SENTENCE, "Neighbours lend tools."),
+                                        encoding="utf-8")
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_discovery_not_decided_asks_nothing_of_the_front_page(tmp_path, capsys):
+    write(tmp_path, "discovery.md", {**GO, "decision": "proposed", "decided_on": None, "challenger": ""})
+    (tmp_path / "README.md").write_text(skeleton_front_page(), encoding="utf-8")
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_the_module_map_is_due_with_the_first_module(tmp_path, capsys):
+    """The map of the modules cannot be drawn before there is one, and is the first thing a
+    newcomer needs once there are two. Read from the repository, never declared — and, like
+    every rule on a module, from its first file of code: the scaffolding's output stays green."""
+    framed(tmp_path)
+    (tmp_path / "modules").mkdir()
+    (tmp_path / "modules" / "README.md").write_text(f"# Modules\n\n{MAP}\n", encoding="utf-8")
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out             # no module: nothing to draw
+    (tmp_path / "modules" / "billing").mkdir()
+    (tmp_path / "modules" / "billing" / "MANIFEST.yaml").write_text("name: billing\n", encoding="utf-8")
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out             # a scaffold stays green
+    (tmp_path / "modules" / "billing" / "src").mkdir()
+    (tmp_path / "modules" / "billing" / "src" / "invoice.py").write_text("TOTAL = 0\n", encoding="utf-8")
+    assert plan.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "[C8] modules/README.md" in output and MAP in output, output
+    assert "billing" in output, output                                   # the event is named
+
+
+def test_the_map_s_words_are_the_skeleton_s():
+    written = [line for line in (Path(__file__).resolve().parents[2] / "skeleton/modules/README.md")
+               .read_text(encoding="utf-8").splitlines() if line.startswith("<") and line.endswith(">")]
+    assert written == [plan.MODULE_MAP_FORM], written

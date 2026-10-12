@@ -15,7 +15,9 @@ Rules:
   C6  a closed or stopped cycle records its outcome and the date it ended
   C7  discovery: a known decision, its decider and date once decided, a challenger for a go;
       a charter follows a go
-  C8  front page: under an accepted charter, README.md no longer holds its form's words
+  C8  a seat is written when its moment comes: README.md holds its sentence once the
+      discovery's decision is go, and none of its form's words once the charter is accepted;
+      modules/README.md none of its own once a module holds more than its description
 
 Templates, whose file name starts with "_", are not checked.
 
@@ -32,7 +34,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack.fitness.manifests import unfilled
+from napkinstack.fitness.manifests import module_content, unfilled
 from napkinstack.modules import HANDLE
 
 PROJECT = Path("docs") / "project"
@@ -48,6 +50,8 @@ FRONT_PAGE_FORM = (
     "Then three lines at most.>",
     "<How to start it and see it work, from a fresh clone.>",
 )
+MODULE_MAP = Path("modules") / "README.md"
+MODULE_MAP_FORM = "<A diagram of this project's modules and the contracts between them, with its legend.>"
 DECISIONS = {"proposed", "go", "clarify", "kill"}
 CHARTER_STATUSES = {"proposed", "accepted"}
 CYCLE_STATUSES = {"proposed", "accepted", "closed", "stopped"}
@@ -116,17 +120,41 @@ def accepted_cycle(root: Path) -> tuple[Path, dict] | None:
     return None
 
 
-def _check_front_page(path: Path, fail) -> None:
-    """C8: the charter's acceptance is the first moment the front page can be written — who it
-    is for is decided — and from then on a form left as it came says nothing to a visitor."""
+def _left(path: Path, form: tuple[str, ...]) -> list[str]:
+    """The words of `form` a seat still holds, as whole lines: a page may hold any tag."""
     lines = {line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()}
-    left = [words for words in FRONT_PAGE_FORM if words in lines]
-    if left:
-        quoted = "\n      ".join(f'"{words}"' for words in left)
-        fail("C8", path, "the charter is accepted and the front page still holds its form's words:\n"
-                         f"      {quoted}\n      Action: write them from the charter, in the pull "
-                         "request that accepts it (playbooks/framing.md). What a front page holds: "
-                         "docs/os/06-decisions.md §10.")
+    return [words for words in form if words in lines]
+
+
+def _check_seats(root: Path, decision: str | None, accepted_charter: bool, fail) -> None:
+    """C8: each seat has the event that makes it writable, read from the repository. Before
+    it, the form stays a form and nothing is asked; after it, a form left as it came says
+    nothing to whoever opens the project."""
+    where = "What each document holds, and when it is written: docs/os/06-decisions.md §10."
+    front = root / FRONT_PAGE
+    if front.is_file() and (accepted_charter or decision == "go"):
+        if accepted_charter:
+            due, event = FRONT_PAGE_FORM, "the charter is accepted"
+            action = "write them from the charter, in the pull request that accepts it (playbooks/framing.md)"
+        else:
+            due, event = FRONT_PAGE_FORM[:1], "the discovery's decision is go"
+            action = ("write the sentence the decider confirmed, in the pull request that records the "
+                      "decision (playbooks/discovery.md); the rest of the page waits for the charter")
+        if left := _left(front, due):
+            quoted = "\n      ".join(f'"{words}"' for words in left)
+            fail("C8", front, f"{event} and the front page still holds its form's words:\n"
+                              f"      {quoted}\n      Action: {action}. {where}")
+    module_map = root / MODULE_MAP
+    # Like every rule on a module, from its first file of code: what the scaffolding writes
+    # stays green, so creating a module never turns a project red by itself.
+    modules = sorted(path.parent.name for path in (root / "modules").glob("*/MANIFEST.yaml")
+                     if module_content(path.parent))
+    if modules and module_map.is_file() and _left(module_map, (MODULE_MAP_FORM,)):
+        named = ", ".join(modules[:3]) + (f" and {len(modules) - 3} more" if len(modules) > 3 else "")
+        fail("C8", module_map, f"the project has modules holding code ({named}) and its module map still holds its "
+                               f"form's words:\n      \"{MODULE_MAP_FORM}\"\n      Action: draw the modules "
+                               "and the contracts between them, in the pull request that brings a "
+                               f"module its first code. {where}")
 
 
 def _check_charter(path: Path, fail) -> bool:
@@ -246,17 +274,16 @@ def run(root: Path) -> int:
     charter = root / CHARTER
     discovery = root / DISCOVERY
     cycles = cycle_files(root)
-    if not charter.is_file() and not cycles and not discovery.is_file():
+    decision = _check_discovery(discovery, fail) if discovery.is_file() else None
+    accepted_charter = _check_charter(charter, fail) if charter.is_file() else False
+    _check_seats(root, decision, accepted_charter, fail)
+    if not charter.is_file() and not cycles and not discovery.is_file() and not failures:
         print(f"Plan: no charter and no cycle in {PROJECT}/ — the project is not framed yet "
               "(playbooks/framing.md).")
         return 0
-    decision = _check_discovery(discovery, fail) if discovery.is_file() else None
-    accepted_charter = _check_charter(charter, fail) if charter.is_file() else False
     if accepted_charter and discovery.is_file() and decision != "go":
         fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "
                             "a charter follows a go (docs/project/discovery.md)")
-    if accepted_charter and (root / FRONT_PAGE).is_file():
-        _check_front_page(root / FRONT_PAGE, fail)
     accepted = [path for path in cycles if _check_cycle(path, fail) == "accepted"]
     if len(accepted) > 1:
         names = ", ".join(path.name for path in accepted)

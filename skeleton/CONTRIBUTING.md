@@ -32,7 +32,7 @@ flowchart LR
 **Legend** — grey: on the workstation, bypassable · green: GitHub side · red: a stop.
 
 Only barriers 1 and 2 act **before** publication. A secret caught by CI is already
-public: that is an incident, and it is revoked immediately (`SECURITY.md`).
+public: that is an incident, and it is revoked immediately (`playbooks/security.md`).
 
 ## While you work
 

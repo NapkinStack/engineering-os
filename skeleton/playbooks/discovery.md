@@ -93,7 +93,7 @@ hypothesis. The decider chooses:
 
 | Decision | What follows |
 |---|---|
-| **go** | The framing writes the charter from this document (`framing.md`); the tests the decider keeps become spike deliverables of the first cycle |
+| **go** | The pull request that records the decision writes the front page's sentence (`README.md`) — what the product does, for whom, as the decider confirmed it — and nothing else of that page. The framing then writes the charter from this document (`framing.md`); the tests the decider keeps become spike deliverables of the first cycle |
 | **clarify** | A new round on the open questions, and on the cheap tests the decider picks before any charter; `round` goes up, section 5 is kept under its round, and the changed sections are challenged again |
 | **kill** | The document stays, with its reasons — the cheapest outcome of all |
 
