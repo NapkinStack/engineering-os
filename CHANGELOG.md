@@ -22,6 +22,74 @@ a patch.
 
 ---
 
+## v0.7.4 — 2026-10-13
+
+Four workstreams, each found by using the framework on a project: D91 to D94.
+
+```mermaid
+flowchart LR
+    V["v0.7.4"]:::v --> A["doctor names a newer<br/>published version (D91)"]:::engine
+    V --> B["The check of a test sheet says<br/>what it read (D93)"]:::engine
+    V --> C["No link into a private<br/>assistant session (D92)"]:::project
+    V --> D["A deliverable tried by a person:<br/>the acceptance issue (D94)"]:::project
+
+    classDef v fill:#374151,color:#fff
+    classDef engine fill:#1e3a8a,color:#fff
+    classDef project fill:#065f46,color:#fff
+```
+
+**Legend** — blue: in the engine · green: in your project.
+
+**In the engine**
+
+- **`nstack doctor` names a newer published version** (D91). Nothing told a project that a
+  version had been published. The command that already reads the network, on demand, asks the
+  registry one question, without a token:
+
+| The registry answers | `nstack doctor` says |
+|---|---|
+| A version newer than the project's | `NEWER VERSION`, with the address of its notes and the way to take it, at a cycle's boundary |
+| The project's version, or an older one | `LATEST` |
+| Nothing | `NOT READ` |
+
+  It is information, never a gap: no exit code moves. **No other command opens a
+  connection.** `NSTACK_REGISTRY_URL` names another registry than `https://pypi.org`.
+
+- **`nstack pr-check` says what it read of a test sheet** (D93): the scenarios by result, the
+  verifier, what it was compared with. It notes, before anyone verifies, a change whose agent
+  commits name no session — one only a person could sign — and its refusal names the two ways
+  out. **A sheet's commit stands when the head holds exactly the same files**: a merge of the
+  default branch that brings nothing no longer sends every automated scenario back.
+
+**In your project** — 9 files
+
+- **No link into a private assistant session** (D92), in a file or in a commit message: one
+  hook, `no-session-link`, and one step of the "Hooks and secrets" job that reads again the
+  commit messages of a pull request and its description, where a hook cannot be bypassed. Only
+  a session, a conversation or a share is refused; a link to an assistant's site is a link, and
+  a co-author line stays.
+- **A deliverable tried by a person has a place** (D94): an **Acceptance** issue form. It
+  tracks a deliverable, copies none of its criteria and sets none of its state — both stay in
+  the cycle. The handbook's sources of truth and the test sheet's rules name it; the framing
+  playbook says what *accepted* means when several pull requests deliver one deliverable.
+- **Verifying a library** (D93): the verification playbook names the `test` verb where a
+  module declares no `e2e`, and what a module with nothing to start does. The pull request
+  template gains a line, **`Verifier's remarks:`**, under the sheet.
+- **Pull requests that sit on one another** (D93): the handbook says what the first merge costs
+  the next one.
+
+**Migration**
+
+1. **Run `pre-commit install` once more** in each checkout: the new hook also reads the commit
+   message, and that stage is installed by the same command.
+2. **A commit message or a tracked file that holds a link into an assistant's session is
+   refused from now on.** CI reads the messages of a pull request's own commits, never the
+   history before it: nothing already merged turns red.
+3. Nothing else. Measured on a copy of a project running the v0.7.2 skeleton, crossing v0.7.3:
+   `nstack update` merged without a conflict, 9 files and the recorded version; the guardrails
+   and the new hook, run on every file, passed afterwards. A project that adapted its pull
+   request template near the test sheet, or its hooks' configuration, may conflict there.
+
 ## v0.7.3 — 2026-10-12
 
 **In the engine**
