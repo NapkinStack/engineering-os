@@ -111,3 +111,33 @@ def test_doctor_published_and_remote(tmp_path, capsys, monkeypatch):
     doctor.run(tmp_path)
     output = capsys.readouterr().out
     assert "OK             [L1]" in output and "OK             [L7]" in output, output
+
+
+# --- An engine older than its project says so, on every command (D90) ---
+# Measured on 2026-10-12: a project updated to a new version, a workstation left on the one
+# before. The manual named a command; the engine answered "invalid choice", and nothing else.
+
+def test_an_engine_behind_its_project_says_so_before_refusing_an_unknown_command(tmp_path, monkeypatch, capsys):
+    installed(monkeypatch, None)
+    project(tmp_path, commit="v0.5.0")
+    with pytest.raises(SystemExit):
+        cli.main(["a-command-of-the-next-version", "--root", str(tmp_path)])
+    said = capsys.readouterr().err
+    assert said.index("nstack 0.4.0; the project is on v0.5.0") < said.index("invalid choice"), said
+    assert 'uv tool install "napkinstack==0.5.0" --with-executables-from pre-commit' in said
+
+
+def test_an_engine_behind_its_project_says_so_on_a_command_that_runs(tmp_path, monkeypatch, capsys):
+    installed(monkeypatch, None)
+    project(tmp_path, commit="v0.4.1")
+    cli.main(["modules", f"--root={tmp_path}"])
+    out, err = capsys.readouterr()
+    assert "the project is on v0.4.1" in err and "the project is on" not in out, (out, err)
+
+
+@pytest.mark.parametrize("commit", ["v0.4.0", "v0.3.9", "v0.4.0-3-g1a2b3c4", None])
+def test_an_engine_level_with_its_project_or_ahead_says_nothing(tmp_path, monkeypatch, commit):
+    installed(monkeypatch, None)
+    if commit:
+        project(tmp_path, commit=commit)
+    assert provenance.behind(tmp_path) is None
