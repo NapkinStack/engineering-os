@@ -188,14 +188,14 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-**v0.7.0 is published on PyPI (2026-10-12)**, with a provenance attestation
+**Each version is published on PyPI**, with a provenance attestation
 (ADR-0002). Every check has a test that proves its failure. This repository's agent works
 under its own GitHub App, behind the maintainer's approval, and its session reaches none of
 the maintainer's credentials (ADR-0004).
 
 ```mermaid
 flowchart LR
-    F["NapkinStack<br/>v0.7.0"]:::fw --> T["tool-library<br/>the validation project"]:::pr
+    F["NapkinStack<br/>the published version"]:::fw --> T["tool-library<br/>the validation project"]:::pr
     F --> P["flet<br/>the pilot"]:::pr
     F --> S["summit<br/>a real product"]:::pr
     T -.->|"what it finds"| R["The register,<br/>then the next version"]:::rec

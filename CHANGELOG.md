@@ -22,6 +22,25 @@ a patch.
 
 ---
 
+## v0.7.1 — 2026-10-12
+
+**In the engine** — nothing
+
+`src/napkinstack/` is unchanged since v0.7.0. What changes is the page the registry shows:
+v0.7.0 was published with a front page still saying *"Status: v0.6.2"*, and that page is
+frozen at the tag. This version carries the right one, and a version can no longer be
+prepared with a front page naming another.
+
+**In your project** — nothing
+
+`skeleton/` is unchanged since v0.7.0. `nstack update` lays down a branch that bumps the
+recorded version and merges no file, so it cannot conflict.
+
+**Migration**
+
+None from v0.7.0. **Coming from v0.6.2 or below, read the v0.7.0 section**: it moves the
+framework's files and carries its own migration.
+
 ## v0.7.0 — 2026-10-12
 
 The framework charges what a failure costs, and nothing more (PDR-0011); a project's tree is
