@@ -65,6 +65,19 @@ done
   || { echo "FAIL: no CHANGELOG section for:$MISSING. A published version nobody can read"; \
        echo "      before taking it is what D62 is about."; exit 1; }
 
+echo "-> front page: every version it names is the one being published"
+# The front page is the registry's page, frozen at the tag. v0.7.0 went out saying
+# "Status: v0.6.2": the page was corrected in the pull request after the release.
+names_only() { ! grep -oE "(Status: |engineering-os@)v[0-9]+\.[0-9]+\.[0-9]+" "$1" | grep -vE "v$2\$" | grep -q .; }
+VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+FP=$(mktemp)
+sed "s/engineering-os@v$VERSION/engineering-os@v0.0.1/" README.md > "$FP"
+if names_only "$FP" "$VERSION"; then echo "FAIL: a front page pinning another version passed."; rm -f "$FP"; exit 1; fi
+rm -f "$FP"
+grep -qE "Status: v$VERSION" README.md && names_only README.md "$VERSION" \
+  || { echo "FAIL: README.md names another version than $VERSION, which pyproject.toml declares."; \
+       echo "      Action: in the version pull request, align its status line and its install lines."; exit 1; }
+
 echo "-> an invalid manifest MUST fail"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/modules/broken"

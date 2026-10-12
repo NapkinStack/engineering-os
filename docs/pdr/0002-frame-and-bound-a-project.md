@@ -155,7 +155,7 @@ approves it (ADR-0004).
 
 | Posture | Held by | Mission | Never | Produces |
 |---|---|---|---|---|
-| **Framer** | An agent | Interview the human; propose the charter, the cycle, the deliverables and their acceptance criteria, the modules | Decide; propose more than the need; split into modules on day one without a reason (`docs/os/02-modules.md` §3) | Proposals |
+| **Framer** | An agent | Interview the human; propose the charter, the cycle, the deliverables and their acceptance criteria, the modules | Decide; propose more than the need; split into modules on day one without a reason (`.nstack/handbook/02-modules.md` §3) | Proposals |
 | **Author** | An agent | Deliver one deliverable, in one module, within its criteria | Widen the scope; verify or approve its own work | The pull request and its oracle |
 | **Verifier** | An agent session other than the author, or a human | Run the test sheet against the change, before reading the diff | Fix the code; report preferences as gaps | Results and evidence |
 | **Approver** | A human code owner | Decide the merge on the evidence | Approve without the sheet where one is required | The approval |
@@ -230,7 +230,7 @@ per kind of content.
 **Edge cases and degraded states:**
 
 - A vague idea: the framing surfaces the open questions; a blocking unknown becomes a
-  *spike* deliverable, whose output is knowledge (`docs/os/05-workflow.md` §3); no cycle is
+  *spike* deliverable, whose output is knowledge (`.nstack/handbook/05-workflow.md` §3); no cycle is
   accepted with a blocking question left open.
 - A specification too large for one cycle: the framing proposes a first cycle and leaves
   the rest in the *later* list; it never stretches the appetite to fit.
@@ -293,7 +293,7 @@ progress* → *accepted* (test sheet with evidence, approval — PDR-0003, ADR-0
 **Interactions:** the framing proposes modules that `nstack new-module` creates once
 accepted; the deliverables' acceptance criteria are the source of the test sheets
 (PDR-0003); the approver is the posture of ADR-0004; the cycle's closure and the charter's
-success criteria feed the decision review (`docs/os/10-measurement.md` §5).
+success criteria feed the decision review (`.nstack/handbook/10-measurement.md` §5).
 
 ---
 
@@ -480,7 +480,7 @@ go, the framing (§3 and §4 above) writes the charter and the first cycle from
 
 - **Engine**: `nstack discover`; `nstack plan` reads `discovery.md` (decision, decider,
   date; a charter accepted only after a go).
-- **Skeleton**: `playbooks/discovery.md` and its skill; `docs/project/_DISCOVERY_TEMPLATE.md`;
+- **Skeleton**: `.nstack/playbooks/discovery.md` and its skill; `.nstack/forms/discovery.md`;
   the challenger in the postures; the README's journey; `framing.md` starting from the
   discovery when there is one.
 - **Plan**: workstreams M8d (engine) and M8e (rules).
@@ -503,7 +503,7 @@ go, the framing (§3 and §4 above) writes the charter and the first cycle from
   as a skill like the others), the charter, cycle and closure templates, the postures, the
   `out-of-cycle` label; the pull request template gains the deliverable it belongs to; the
   issue forms tie a feature to a deliverable; `nstack` gains the checks above; the kernel
-  and `docs/os/00-overview.md`, `05-workflow.md`, `06-decisions.md`, `09-platform.md` and
+  and `.nstack/handbook/00-overview.md`, `05-workflow.md`, `06-decisions.md`, `09-platform.md` and
   `10-measurement.md` describe the levels, postures and cycles.
 - **Decisions**: PDR-0003's test sheets start from the deliverables' acceptance criteria;
   ADR-0004's approver becomes one posture among the others; PDR-0001's `init` is

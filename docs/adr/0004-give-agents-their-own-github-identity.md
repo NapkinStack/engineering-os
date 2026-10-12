@@ -14,7 +14,7 @@
 ## Context
 
 The GitHub checklist every project receives (printed by `nstack init`, checked by
-`nstack doctor`, repeated in the foundation manual, `docs/os/INSTALL.md`) requires at least one approving review
+`nstack doctor`, repeated in the foundation manual, `.nstack/handbook/INSTALL.md`) requires at least one approving review
 (G2) and a code owner review (G3). GitHub refuses the author of a pull request the right
 to approve it.
 
@@ -29,7 +29,7 @@ belonging to the maintainer's account. Two consequences:
 - **In a team, the approval is no barrier against the agent**: holding a human's
   credentials, it can approve a colleague's pull request under that human's name, then
   merge. The handbook's test fails: "if asking an agent nicely is enough to get around it,
-  the rule does not exist" (`skeleton/docs/os/07-governance.md` §7).
+  the rule does not exist" (`skeleton/.nstack/handbook/07-governance.md` §7).
 
 The pilot project is about to start: private, in the `NapkinStack` organisation, with one
 human maintainer. The question has to be settled before its `nstack init`. *(Corrected in

@@ -2,14 +2,12 @@
 
 > **Location:** `docs/governance/plans/`, the repository's working context.
 >
-> **For the executing agent:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans to run this plan task by task. One workstream is
-> one pull request, in the order of the roadmap, and each task is TDD: the failing test first,
-> seen red for the right reason, then the code (P5). Steps use checkboxes (`- [ ]`).
-> **The code below is a design, not an extract from a prototype** — unlike the M10 plan, whose
-> blocks were run before they were written down. **M12a task 0 fixes that**: the runner is
-> prototyped in a throwaway clone and these blocks are rewritten from what actually ran, before
-> any other task starts. Until that task is done, read every block below as a proposal.
+> **How it is run:** one workstream is one pull request, in the order of the roadmap, and each
+> task starts with the failing test, seen red for the right reason, then the code (P5).
+> **The code below is a design, not an extract from a prototype.** M12a task 0 fixes that: the
+> runner is prototyped in a throwaway clone and these blocks are rewritten from what actually
+> ran, before any other task starts. Until then, read every block below as a proposal — and
+> every path as written on 2026-09-20, before the framework's files moved under `.nstack/`.
 
 **Goal:** turn the probes of M9 and M10h — run by hand, logged in issue comments, never
 replayed — into a **versioned suite of attacks that runs on every pull request and before every
@@ -108,7 +106,7 @@ have to be rewritten.
 | `platform/tests/test_conformance.py` | the runner's own tests | family tests | forge script | report |
 | `.github/workflows/governance.yml` | | | | the job |
 | `docs/governance/conformance/latest.md` | | | | generated |
-| `docs/governance/plans/2026-09-20-m12-conformance-suite.md` | this plan, ticked | | | |
+| `docs/governance/plans/m12-conformance-suite.md` | this plan, ticked | | | |
 | `PRODUCT.md`, `README.md` | | | | the suite's result |
 
 ---

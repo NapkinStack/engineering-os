@@ -9,8 +9,7 @@
 
 > **Corrected in place.** This record once carried the migration it decided: the French
 > values it replaced, the casing it unified, and a log of observations at each release. That
-> history is in the M7 plan (`docs/governance/plans/2026-09-16-english-migration.md`) and in
-> git; what follows is the rule. Records of this repository are corrected in place until
+> history is in git; what follows is the rule. Records of this repository are corrected in place until
 > v1.0 (`PRODUCT.md` §5).
 
 ---

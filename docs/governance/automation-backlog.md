@@ -4,11 +4,10 @@
 > **debt**. This file makes it visible and dated.
 >
 > Without this backlog, the kernel grows at every incident and turns back into the
-> unreadable document it replaces (`skeleton/docs/os/07-governance.md` §9).
+> unreadable document it replaces (`skeleton/.nstack/handbook/07-governance.md` §9).
 
 | Rule | Where it lives | Risk if violated | Cost to automate | Trigger | Deadline |
 |---|---|---|---|---|---|
-| *example* — a contract change must be preceded by an ADR | kernel §6 | Medium | Low | The 2nd inter-team contract | YYYY-MM-DD |
 | Mandatory ADR sections: prior art, deviation, dated criterion | The ADR index, review | Medium | Low | The first real project | Post-pilot review |
 | A contraction issue opened as soon as the expand lands | `03-contracts.md` §4, by hand | Medium | Low | The first versioned contract | Post-pilot review |
 | External dependency declared in the manifest | The security playbook, review | Medium | Medium | The first module with dependencies | Post-pilot review |
@@ -39,5 +38,5 @@
 
 ## Review
 
-Quarterly, with the decision review. For each row: **automate**, **remove the rule**, or
+Quarterly (`skeleton/.nstack/handbook/10-measurement.md` §5). For each row: **automate**, **remove the rule**, or
 **renew with a new deadline**.
