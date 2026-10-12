@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from napkinstack import assurance
-from napkinstack import (__version__, compat, discovery, doctor, landed, modules, provenance,
+from napkinstack import (__version__, compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
@@ -76,6 +76,8 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: _fitness(a.root))
     _add(sub, "doctor", "diagnoses the workstation and the GitHub settings, read-only",
          lambda a: doctor.run(a.root))
+    _add(sub, "settings", "prints the calls that would bring the GitHub settings to the checklist; changes nothing",
+         lambda a: settings.run(a.root))
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
               lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
     nm.add_argument("name", help="module name, kebab-case")
@@ -138,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-JUDGES = {"manifests", "boundaries", "plan", "skills", "hygiene", "fitness", "doctor", "pr-scope",
+JUDGES = {"manifests", "boundaries", "plan", "skills", "hygiene", "fitness", "doctor", "settings", "pr-scope",
           "pr-check", "compat", "landed"}  # the commands whose verdict depends on the framework's rules
 
 

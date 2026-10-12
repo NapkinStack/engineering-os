@@ -127,7 +127,7 @@ it has no cycle, K1 to K3 say nothing there, and every other rule applies.
 
 ## G — the forge's settings
 
-The sixteen lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
+The eighteen lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
 
 | Code | Reports as a gap | Why |
 |---|---|---|
@@ -147,3 +147,5 @@ The sixteen lines of the checklist, in its order (`INSTALL.md`, "To do once on G
 | `G14` | Auto-merge not available | `07-governance.md` §7 |
 | `G15` | A merge method other than squash | `07-governance.md` §7 |
 | `G16` | Merged branches kept | `07-governance.md` §7 |
+| `G17` | The main branch can be deleted | `07-governance.md` §7 |
+| `G18` | The main branch's history can be rewritten by a force push | `07-governance.md` §7 |

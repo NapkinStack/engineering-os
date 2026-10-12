@@ -1,10 +1,10 @@
 # PDR-0008 — Configure the repository in one gesture, without handing over the keys
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31); to be implemented in **M11k**, before v0.7.0, with PDR-0007 (M11j) and
-  PDR-0010 (M11l). It absorbs D61: the merge method and branch deletion join the checklist, both
-  readable without the Administration permission — **that half is done** (M11f: G15, G16, and
-  G14 auto-merge); the command is not
+  before 2027-03-31). **Half built**: the checklist's additions (M11f: G14 to G16) and the
+  command's print mode with five of the eight criteria (**M11k, 2026-10-12**). The apply mode
+  — criteria 2, 3 and 7 — waits for a probe against the real forge: see *As built, and what
+  is not*
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and
@@ -170,22 +170,65 @@ if it carries the power to write code.
 
 **Acceptance criteria** *(testable)*:
 
-- [ ] Given a repository and no credential, when the command runs, then it prints the calls
+- [x] Given a repository and no credential, when the command runs, then it prints the calls
       that would close the distance to the checklist, and changes nothing.
 - [ ] Given a credential that can administer and can also push, when the command is asked to
       apply, then it refuses before any call, and names what to change.
 - [ ] Given a credential that can administer and cannot push, when the command is asked to
       apply, then the repository's settings reach the checklist, and the diagnosis says so.
-- [ ] Given a repository already compliant, when the command runs, then it makes no call and
+- [x] Given a repository already compliant, when the command runs, then it makes no call and
       reports that nothing was needed.
-- [ ] Given a repository whose ruleset is stricter than the checklist, when the command runs,
+- [x] Given a repository whose ruleset is stricter than the checklist, when the command runs,
       then that setting is left as it is.
-- [ ] Given a private repository on a plan that enforces nothing, when the command runs, then
+- [x] Given a private repository on a plan that enforces nothing, when the command runs, then
       it applies what the plan allows, names the rest as out of reach with its cost, and never
       reports the repository as guarded.
 - [ ] Given a run that applied changes, when it ends, then it prints each change made and
       reminds the person to revoke the credential.
-- [ ] Given any run, then no credential appears in its output or in any file it writes.
+- [x] Given any run, then no credential appears in its output or in any file it writes.
+
+### As built, and what is not (M11k, 2026-10-12)
+
+```mermaid
+flowchart LR
+    D["nstack doctor<br/>reads, and says what is missing"]:::read --> S["nstack settings<br/>reads, and prints the calls<br/>that close the distance"]:::built
+    S --> H["The person runs them<br/>under their own credential"]:::human --> D
+    S -. "not built" .-> A["apply mode:<br/>the command runs them itself"]:::wait
+    A -. "rests on" .-> Q{"Can the forge say<br/>that a token<br/>cannot commit?"}:::ask
+
+    classDef read fill:#374151,color:#fff
+    classDef built fill:#065f46,color:#fff
+    classDef human fill:#1e3a8a,color:#fff
+    classDef wait fill:#7c2d12,color:#fff
+    classDef ask fill:#92400e,color:#fff
+```
+
+**Legend** — grey: existed · green: built here · blue: the person's own gesture · red: decided
+and not built · orange: the question that holds it.
+
+**Built — `nstack settings`**, print mode only. It reads with `doctor`'s own checks and prints
+the smallest set of calls, in the forge's own command line. It never plans to rewrite a
+ruleset: the missing rules go into one ruleset of their own, with nobody on its bypass list —
+rulesets layer and the strictest wins, so adding cannot lower. A setting stricter than the
+checklist is left and said; an existing bypass list is a step by hand; what a plan cannot
+enforce is named with its cost and the repository is said to stay unguarded.
+
+**Not built — the apply mode.** The decision rests it on one check: *the command reads the
+calling identity's own permissions and refuses when that identity can also write code*. Read
+at the forge's documentation on 2026-10-12: the repository object's `permissions` field is
+not described as the token's, the settings endpoints name no fine-grained permission, and no
+endpoint describes a fine-grained token's own permissions. A check that cannot be shown to
+hold is the removal condition of this very mode. So it is not written until a probe, with a
+real administration-only token, shows what the forge answers — M11r.
+
+**Three things the decision did not foresee:**
+
+- A ruleset cannot be created on a private repository without a paid plan, and without a
+  token the command cannot know the visibility: it says so rather than plan it silently.
+- D26 is not solved here: the plan names every required check, and says the forge may refuse
+  one it has never seen run.
+- The checklist gained two lines on the way (D78): the main branch cannot be deleted, and its
+  history cannot be rewritten.
 
 ---
 

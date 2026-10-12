@@ -150,7 +150,9 @@ flowchart TD
     E --> H
     H --> G["M11g<br/>OSPS probe: not clean<br/>returns to M13"]:::done
     H --> J["M11j<br/>unframed<br/>PDR-0007"]:::done
-    H --> K["M11k<br/>settings in one gesture<br/>PDR-0008, D77, D78"]
+    H --> K["M11k<br/>settings, printed<br/>PDR-0008, D77, D78"]:::done
+    K --> R["M11r<br/>settings, applied<br/>after a probe, D57"]
+    R --> I
     H --> L["M11l<br/>the form<br/>PDR-0010"]:::done
     H --> M["M11m<br/>the pilot's boundary<br/>D68, D74, D75"]:::done
     H --> N["M11n<br/>identifiers stay home<br/>D79"]:::done
@@ -592,6 +594,44 @@ one of the two has to say it.
 
 **Done when:** a repository reaches the checklist in one gesture, no credential ever reaches
 the output, and a script can tell a gap from what could not be read.
+
+**Done (2026-10-12), as far as it could honestly go.** Planned in detail when it started, and
+cut in two by what the forge's documentation said.
+
+- [x] **Task 0 — read the forge before writing a call.** Every endpoint the command prints was
+      read at the forge's REST documentation the same day. The read that mattered: nothing
+      documented lets a command learn that a token **cannot** commit — the one check PDR-0008's
+      apply mode rests on.
+- [x] **Task 1 — `nstack settings`, print mode.** The same checks as `doctor`; the smallest set
+      of calls, in the forge's own command line; one ruleset for the missing rules, never a
+      rewrite of an existing one; what is stricter left and said; a bypass list left to a human;
+      what a plan cannot enforce named, and the repository said unguarded. Criteria 1, 4, 5, 6
+      and 8.
+- [x] **Task 2 — D78.** G17 and G18: the main branch cannot be deleted nor rewritten. In the
+      checklist, in its second copy, in the rule index, in the plan the command prints.
+- [x] **Task 3 — D77.** `doctor` exits 1 on a gap, 2 when nothing read is missing and something
+      could not be read.
+- [x] **Task 4 — broken on purpose.** Three mutations of the command, each caught by the oracle:
+      a bypass actor in the planned ruleset, a stricter actions policy planned open, merge
+      commits kept.
+- [x] **Task 5 — on a real project.** Run on the third project, private on a free plan, with no
+      token: the plan printed a ruleset the forge would refuse and said nothing of it. It now
+      says so. Fixed here, re-run there.
+
+**Not done: the apply mode, and D57 with it — M11r.**
+
+## M11r — The settings applied, once the forge has answered (PDR-0008) — PR 20
+
+- [ ] **Task 0 — the probe, with the maintainer's own token.** A fine-grained token with
+      Administration write and no Contents access, and a second one that can also push: what
+      does the forge answer to each on the repository object, on a settings call, on a harmless
+      write to the code? **Exit**: if nothing tells the two apart without attempting a write, the
+      apply mode is not built and PDR-0008 says so; the print mode stands.
+- [ ] **Task 1.** The check, first and failing closed; then the calls; then the diagnosis.
+      Criteria 2, 3 and 7.
+- [ ] **Task 2 — D57.** The kernel's "never with a human's credentials" and the one exception,
+      in the place the probe shows it belongs.
+
 
 ## M11l — The form, not the content (PDR-0010) — PR 12
 
