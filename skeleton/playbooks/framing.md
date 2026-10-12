@@ -2,6 +2,9 @@
 
 > **Trigger.** Load this playbook when you are asked to frame a project, to plan its next
 > cycle, to re-frame the current one, or to write a cycle's closure.
+>
+> **This project's own rules** on the subject, when it has any: `docs/project/rules/framing.md`
+> — read them with this playbook. They add to it or tighten it.
 
 ---
 
@@ -45,6 +48,13 @@ A domain that moves money, handles personal data or acts on someone's behalf rai
 criticality of the modules concerned, and `security.md` applies from the first cycle — to
 the code, and to the data a spike collects: who sees it, how long it is kept. Say so to the
 decider.
+
+**A constraint that binds how the work is done becomes a rule of the project**, proposed
+with the charter: one line of `docs/project/rules/<subject>.md`, from
+`docs/project/rules/_TEMPLATE.md` — the subject is the playbook it completes, `always` when
+it applies to every task. It names its source in the charter and how it is checked. Never
+write it into a playbook or the kernel: those are every project's, and the next update
+would conflict on it.
 
 Write `docs/project/charter.md` from `docs/project/_CHARTER_TEMPLATE.md`, with
 `status: proposed` and the open questions at the end, then run the fitness functions.

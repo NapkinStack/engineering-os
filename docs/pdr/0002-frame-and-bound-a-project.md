@@ -138,6 +138,15 @@ goes down a level.
 A project rule is written in a project document, never in the kernel or a playbook: the
 framework's files keep merging cleanly at every update.
 
+> **Corrected in place, 2026-10-12 (M11p).** "A project document" named none. A project with a
+> rule of its own — *health data never leaves the EU* — had three bad places for it: a
+> playbook, where the next update conflicts on it; a module's `AGENTS.md`, where the next
+> module never reads it; or nowhere. The place is now `docs/project/rules/<subject>.md`, read
+> with the playbook of the same name, and `always.md` for every task: absent at creation,
+> born with the project's first rule, each rule naming how it is checked. A nearer level adds
+> to a farther one or tightens it. Raised by the maintainer, with security as the example and
+> every other playbook as its scope.
+
 ### 2. The postures
 
 Generic, defined by the framework. One person or one agent can hold several postures in a
