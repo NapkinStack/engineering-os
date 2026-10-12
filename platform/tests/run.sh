@@ -1090,6 +1090,8 @@ API_PID=$!
 trap 'kill "$API_PID" 2>/dev/null; rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
 for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
 export GITHUB_API_URL="http://127.0.0.1:$(cat "$API/port")"
+# No run of the oracle asks the real registry; the newer-version line has its own case (D91).
+export NSTACK_REGISTRY_URL="http://127.0.0.1:9"
 
 V=$(nstack --version | cut -d' ' -f2)
 # Tag of the engine version. The throwaway template uses v90.x so that its versions can
@@ -1195,6 +1197,19 @@ for rule in L1 L3 L6 L7; do
 done
 echo "$OUT" | grep -qF "Action: pre-commit install" && echo "$OUT" | grep -qF 'make `*  @<owner>` its first rule' \
   || { echo "FAIL: L3 or L6 action missing."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: a newer published version is named, as information; a silent registry is said (D91)"
+REG=$(mktemp -d); mkdir -p "$REG/pypi/napkinstack"
+echo '{"info": {"version": "99.0.0"}}' > "$REG/pypi/napkinstack/json"
+sed -i "s#^_commit: .*#_commit: v$V#" "$A/.copier-answers.yml"
+OUT=$(NSTACK_REGISTRY_URL="file://$REG" GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1) || true
+echo "$OUT" | grep -qF "NEWER VERSION  v99.0.0 is published; the project is on v$V — information, not a gap" \
+  && echo "$OUT" | grep -qF 'uv tool install "napkinstack==99.0.0"' \
+  || { echo "FAIL: doctor does not name a newer published version."; echo "$OUT"; exit 1; }
+OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1) || true
+echo "$OUT" | grep -qF "NOT READ       the registry did not answer" \
+  || { echo "FAIL: a registry that does not answer is not said."; echo "$OUT"; exit 1; }
+rm -rf "$REG"
 
 (cd "$C" && pre-commit install >/dev/null)
 sed -i 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
