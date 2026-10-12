@@ -22,6 +22,44 @@ a patch.
 
 ---
 
+## v0.7.3 — 2026-10-12
+
+**In the engine**
+
+- **An engine older than its project says so, on every command** (D90). Once a teammate's
+  update is merged, every other workstation is behind: a command the project's manual names
+  answered `invalid choice`, and a verdict came from rules the project had left. Every command
+  now says first, on the error stream, the two versions and the install command — a command
+  this engine does not know included. An engine ahead of its project says nothing: an update
+  starts there.
+
+```mermaid
+flowchart LR
+    C["Any nstack command"]:::cmd --> Q{"Engine older<br/>than the project?"}
+    Q -->|"yes"| S["Said first: the two versions,<br/>the install command"]:::say
+    Q -->|"level, or ahead"| P["The command runs,<br/>or is refused as unknown"]:::cmd
+    S --> P
+
+    classDef cmd fill:#1f2937,color:#fff
+    classDef say fill:#92400e,color:#fff
+```
+
+**Legend** — grey: the command, unchanged · orange: the new line.
+
+An engine already installed cannot learn this: the line appears on workstations at this
+version or later, when the project moves past them.
+
+**In your project** — 1 file
+
+- The manual, `.nstack/handbook/INSTALL.md`, says under *Receiving a new version* that everyone
+  else installs the same version once the update's pull request is merged.
+
+**Migration**
+
+None. Measured on a copy of a project running the v0.7.2 skeleton: `nstack update` merged
+without a conflict, 1 file and the recorded version, checks green afterwards. A project that
+adapted its copy of the manual near *Receiving a new version* may conflict there.
+
 ## v0.7.2 — 2026-10-12
 
 **In the engine** — nothing
