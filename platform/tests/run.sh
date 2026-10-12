@@ -855,6 +855,17 @@ printf '| `handover.md` | Where the work stands after a break | The framer | —
 printf '\nThe manual: [`docs/os/INSTALL.md`](docs/os/INSTALL.md).\n' >> "$M/README.md"
 printf '\nHow a record is written: [the handbook](../os/06-decisions.md), from [its form](./_TEMPLATE.md).\n' >> "$M/docs/adr/README.md"
 mkdir -p "$M/docs/project" && printf '# Notes\n\nFramed with `playbooks/framing.md`; the matrix is `docs/os/05-workflow.md` §7.\n' > "$M/docs/project/notes.md"
+# A module's code is its owner's. Measured on a copy of the second project before v0.7.0: an
+# old address rewritten in a comment of its code made the update's pull request a change of
+# three modules — refused on P1, and owing a test sheet for a comment (D88).
+nstack new-module demo acme/demo-team standard --root "$M" >/dev/null
+git -C "$M" checkout -q .github/CODEOWNERS   # its owner line sits beside one the update removes: another case's subject
+mkdir -p "$M/modules/demo/src" && printf '# The contract rules: docs/os/03-contracts.md
+print("demo")
+' > "$M/modules/demo/src/app.py"
+printf '
+How this module is judged: `docs/os/08-quality.md`.
+' >> "$M/modules/demo/README.md"
 commit_project "$M" "Two adaptations, in the old places"
 if ! OUT=$(nstack update --root "$M" --ref v91.2.0 2>&1); then
   echo "FAIL: the update across the move failed."; echo "$OUT"; exit 1
@@ -883,6 +894,14 @@ grep -qF 'Framed with `.nstack/playbooks/framing.md`; the matrix is `.nstack/han
   || { echo "FAIL: an old address written in the project's own notes was left."; cat "$M/docs/project/notes.md"; exit 1; }
 echo "$OUT" | grep -qF "old addresses rewritten" && echo "$OUT" | grep -qF "  - docs/project/notes.md" \
   || { echo "FAIL: the update does not say which of the project's files it rewrote."; echo "$OUT"; exit 1; }
+grep -qF '# The contract rules: docs/os/03-contracts.md' "$M/modules/demo/src/app.py" \
+  || { echo "FAIL: the update rewrote a module's code: its pull request now changes that module (D88)."; cat "$M/modules/demo/src/app.py"; exit 1; }
+grep -qF 'How this module is judged: `.nstack/handbook/08-quality.md`.' "$M/modules/demo/README.md" \
+  || { echo "FAIL: a module's description kept an old address."; tail -2 "$M/modules/demo/README.md"; exit 1; }
+echo "$OUT" | grep -qF "left as written" && echo "$OUT" | grep -qF "  - modules/demo/src/app.py" \
+  || { echo "FAIL: the update does not name the code it left with an old address."; echo "$OUT"; exit 1; }
+(cd "$M" && nstack pr-scope --base main >/dev/null) \
+  || { echo "FAIL: the update's own pull request is refused by the scope rule (D88)."; exit 1; }
 [ -z "$(git -C "$M" status --porcelain)" ] || { echo "FAIL: the update across the move is not committed."; git -C "$M" status --short; exit 1; }
 [ ! -e "$M/contracts" ] && ! grep -qF "/contracts/" "$M/.github/CODEOWNERS" \
   || { echo "FAIL: a project with no contract keeps the contracts module it was born with (PDR-0012)."; ls "$M/contracts"; exit 1; }
@@ -894,6 +913,7 @@ K="$GN/project-with-contract"
 nstack init "$K" --source "$OLD" --ref v91.1.0 "${ANSWERS[@]}" >/dev/null \
   || { echo "FAIL: nstack init from the old-layout template (contracts)."; exit 1; }
 mkdir -p "$K/contracts/billing/v1" && printf '# billing v1\n' > "$K/contracts/billing/v1/README.md"
+printf '# The rules a contract follows: docs/os/03-contracts.md\nopenapi: 3.1.0\n' > "$K/contracts/billing/v1/openapi.yaml"
 commit_project "$K" "A first contract"
 if ! OUT=$(nstack update --root "$K" --ref v91.2.0 2>&1); then
   echo "FAIL: the update of a project holding a contract failed."; echo "$OUT"; exit 1
@@ -903,6 +923,11 @@ for kept in MANIFEST.yaml AGENTS.md README.md docs/runbook.md billing/v1/README.
 done
 grep -qF "/contracts/" "$K/.github/CODEOWNERS" \
   || { echo "FAIL: the contracts module lost its owner in the update."; exit 1; }
+grep -qF 'docs/os/03-contracts.md' "$K/contracts/billing/v1/openapi.yaml" \
+  || { echo "FAIL: the update rewrote a contract's schema: its pull request now changes the contracts module (D88)."; echo "$OUT"; exit 1; }
+# The schema served its case: with it, the module owes the standard verbs (M7), which this
+# fixture's scaffold does not declare — another rule's subject.
+git -C "$K" rm -q contracts/billing/v1/openapi.yaml && commit_project "$K" "The schema has served its case"
 echo "$OUT" | grep -qF "contracts/ kept" \
   || { echo "FAIL: the update does not say it kept the contracts module."; echo "$OUT"; exit 1; }
 (cd "$K" && nstack manifests --root . >/dev/null) || { echo "FAIL: the kept contracts module is not valid."; exit 1; }

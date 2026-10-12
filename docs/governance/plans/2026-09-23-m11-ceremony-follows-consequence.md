@@ -1022,12 +1022,17 @@ skeleton's README, where an update is described; D75 at the verifier's diff-read
 
 ## M11i — v0.7.0, and the two projects that already exist — PR 9 and the release
 
-- [ ] **Task 1.** The `CHANGELOG` v0.7.0 section, **engine and project apart** (D63), with a
+- [x] **Task 1.** The `CHANGELOG` v0.7.0 section, **engine and project apart** (D63), with a
       **Migration** paragraph: what M11a to M11f and M11j to M11m change for a project — there is
       no target level in v0.7.0, M11g having returned it to M13. **Written from an update actually
       run against a copy of each real project before the tag, not predicted from the diff**
       (D73): our v0.6.1 note announced a conflict on the one project where it could not happen.
       And **both projects will turn red on G15 and G16**: each allows merge commits today.
+      *As run, 2026-10-12, on a fresh copy of each: the pilot's update has one conflict, in a
+      page it had adapted; the second project's merged clean — and its pull request was refused
+      on P1 and T1 for old addresses rewritten in comments of its code (**D88**, fixed here: a
+      module's code is left as written and named). G14 to G16 are gaps on both, read from the
+      forge. The apply mode of `nstack settings` (M11r) is not in this version.*
 - [ ] **Task 2.** The release, with explicit consent, and the release page produced by the
       workflow rather than by hand — its second live run after v0.6.2.
 - [ ] **Task 3.** `tool-library` takes the update and is observed, not coached.
