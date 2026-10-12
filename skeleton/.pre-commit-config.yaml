@@ -7,6 +7,7 @@
 # pre-commit autoupdate only sees tags on the default branch: do not use it.
 
 minimum_pre_commit_version: "3.0.0"
+default_install_hook_types: [pre-commit, commit-msg]  # the message is read too
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -72,3 +73,11 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [manual]
+
+      # A link into one person's assistant session names their account on a page anyone
+      # reads: refused in a file and in a commit message. CI reads the messages again.
+      - id: no-session-link
+        name: No link to a private assistant session
+        language: pygrep
+        entry: '(?i)\b(claude\.ai|chatgpt\.com|chat\.openai\.com|gemini\.google\.com|copilot\.microsoft\.com)/'
+        stages: [pre-commit, commit-msg, manual]

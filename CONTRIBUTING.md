@@ -30,6 +30,8 @@ uv run --project . nstack fitness --root <your-project>   # your project, judged
 
 - **One defect, one pull request**, from a fork if you cannot push here. Its description
   follows the template; the output obtained on your project is its best evidence.
+- **No link into your assistant's session**, in a file, a commit message or a description: it names
+  your account on a public page. The hook refuses it, and CI reads the messages again.
 - **A private project stays private.** This repository is public: a pull request, a commit
   and the register describe the defect and never name the project — no name, no domain, no
   content. *"A project with two modules and no contract"* is enough.
