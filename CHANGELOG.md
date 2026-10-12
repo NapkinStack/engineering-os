@@ -22,6 +22,27 @@ a patch.
 
 ---
 
+## v0.7.2 — 2026-10-12
+
+**In the engine** — nothing
+
+`src/napkinstack/` is unchanged since v0.7.0.
+
+**In your project** — 2 files
+
+- **A defect of the framework has a way back to the framework** (D89). The kernel gains one
+  stopping rule: when the framework itself is wrong — a message, a check, a page — stop, say
+  so, never a workaround.
+- The manual, `.nstack/handbook/INSTALL.md`, gains the section *When the framework is wrong*:
+  clone the framework's sources beside the project, judge the project with them, propose the
+  fix there. A private project is described, never named.
+
+**Migration**
+
+None. Measured on a copy of a project running the v0.7.0 skeleton: `nstack update` merged
+without a conflict, 2 files and the recorded version, checks green afterwards. A project that
+adapted its copy of the manual near *Receiving a new version* may conflict there.
+
 ## v0.7.1 — 2026-10-12
 
 **In the engine** — nothing
