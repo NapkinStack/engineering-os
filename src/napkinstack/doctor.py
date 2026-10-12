@@ -14,7 +14,8 @@ Rules:
       published: an unpublished framework is a gap, never compliance (PDR-0005)
   L2  git and pre-commit available
   L3  pre-commit hooks installed
-  L4  PRODUCT.md absent: that is NapkinStack's own development context (R6)
+  L4  retired (D79): it refused a file named PRODUCT.md, which a product may write. The
+      number is not reused.
   L5  README personalised: the presentation sentence is written
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
   L7  the template source reachable by anyone: a repository, not a path on one machine
@@ -257,7 +258,7 @@ def _default_owner(root: Path) -> tuple[str, str]:
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
         return OK, ""
     return GAP, (f"The first rule of {CODEOWNERS} is not a default owner.\nAction: make `*  @<owner>` "
-                 "its first rule: the code owner review then covers every path (ADR-0004).")
+                 "its first rule: the code owner review then covers every path (docs/os/07-governance.md §7).")
 
 
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
@@ -269,12 +270,13 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     _, origin = provenance.engine()
     if not PUBLISHED.fullmatch(commit):
         l1 = (GAP, f"The project is pinned to an unpublished framework ({commit or 'unknown'}): its "
-                   "verdicts come from rules nobody has published (PDR-0005).\nAction: once the change it "
+                   "verdicts come from rules nobody has published.\nAction: once the change it "
                    "waits for is released, nstack update --ref vX.Y.Z.")
     elif origin is not None:
-        l1 = (GAP, f"The nstack running is unpublished ({origin}) (PDR-0005).\nAction: {install}")
+        l1 = (GAP, f"The nstack running is unpublished ({origin}).\nAction: {install}")
     elif project != __version__:
-        l1 = (GAP, f"nstack {__version__} installed, project on {project} (PDR-0001 R3).\nAction: {install}")
+        l1 = (GAP, f"nstack {__version__} installed, project on {project}: the engine and the project "
+                   f"move together.\nAction: {install}")
     else:
         l1 = (OK, "")
     results.append(("L1", "nstack at the project version", *l1))
@@ -295,11 +297,6 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
         l3 = (OK, "") if installed else (GAP, "Action: pre-commit install")
     results.append(("L3", "pre-commit hooks installed", *l3))
 
-    product = (root / "PRODUCT.md").exists()
-    results.append(("L4", "PRODUCT.md absent", GAP if product else OK,
-                    "PRODUCT.md describes the development of NapkinStack itself (PDR-0001 R6).\n"
-                    "Action: delete it." if product else ""))
-
     readme = root / "README.md"
     untouched = readme.is_file() and PLACEHOLDER in readme.read_text(encoding="utf-8", errors="replace")
     results.append(("L5", "README personalised", GAP if untouched else OK,
@@ -312,7 +309,7 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     local = not REMOTE.match(source)
     results.append(("L7", "Template source reachable by anyone", GAP if local else OK,
                     f"The project was generated from '{source}', a path on one machine: nobody else can "
-                    "update it (PDR-0005).\nAction: nstack update, from the published source." if local else ""))
+                    "update it.\nAction: nstack update, from the published source." if local else ""))
     return results
 
 

@@ -59,6 +59,7 @@ preserving them.
 │   ├── os/                       ← this handbook
 │   │   ├── README.md             you are here
 │   │   ├── INSTALL.md            The foundation's manual: install, forge settings, updates
+│   │   ├── RULES.md              Every code a check prints, and where its reason is written
 │   │   ├── 00-overview.md        OS architecture, the 4 layers, glossary
 │   │   ├── 01-principles.md      Non-negotiable principles and anti-patterns
 │   │   ├── 02-modules.md         Boundaries, manifest, lifecycle, one PR = one module

@@ -67,4 +67,4 @@ def judged_by(root: Path) -> str:
     unpublished = project if project and not PUBLISHED.fullmatch(project) else None
     return (f"Judged by an UNPUBLISHED NapkinStack — {source}"
             + (f", project pinned to {unpublished}" if unpublished else on)
-            + ": these rules are no published version (PDR-0005).")
+            + ": these rules are no published version.")

@@ -176,7 +176,7 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
             # refusal did not mention it.
             fail("C4", path, f"deliverable {where}: state '{state}' requires acceptance criteria "
                              "filled in — the definition of ready, and the source of its test "
-                             "sheet (PDR-0003).\n      Action: write them, or make it a spike. "
+                             "sheet.\n      Action: write them, or make it a spike. "
                              "A deliverable whose product is knowledge — a probe, interviews, a "
                              "legal question — names what will be recorded and the threshold it "
                              "is read against, and a refuted result is a delivered one "
