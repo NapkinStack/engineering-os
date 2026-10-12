@@ -5,6 +5,9 @@ Workflows inform; it is the GitHub settings that block, and they are not copied 
 project. CHECKLIST is printed by nstack init, checked here, and repeated word for word in
 the foundation manual, skeleton/.nstack/handbook/INSTALL.md.jinja (a test verifies it).
 
+The registry is asked one question, without a token: which version is the latest published
+(NSTACK_REGISTRY_URL, otherwise https://pypi.org). An answer changes no exit code.
+
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
 fine-grained, limited to the repository, Administration: read permission. Without a token,
 or when the API refuses a read, the setting is "not verified", never compliant. No write.
@@ -20,6 +23,8 @@ Rules:
       first minute. The plan check asks for it at the discovery's go (C8). Not reused.
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
   L7  the template source reachable by anyone: a repository, not a path on one machine
+  N1  information, never a gap (D91): a published version newer than the project's, read from
+      the registry — the one place a project learns of it. No other command opens a connection
   G1-G18  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
           or option required
@@ -318,6 +323,45 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     return results
 
 
+def _latest() -> str | None:
+    """The latest version the registry publishes, or None when it did not answer."""
+    registry = (os.environ.get("NSTACK_REGISTRY_URL") or "https://pypi.org").rstrip("/")
+    request = urllib.request.Request(f"{registry}/pypi/napkinstack/json",
+                                     headers={"Accept": "application/json", "User-Agent": f"nstack/{__version__}"})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            version = str(json.load(response)["info"]["version"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return version if PUBLISHED.fullmatch(f"v{version}") else None
+
+
+def _number(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def _newer(answers: dict) -> None:
+    """Says whether a version newer than the project's is published (N1). Information: taking
+    a version is the team's decision, at a cycle's boundary, and nothing here counts it as a gap."""
+    commit = str(answers.get("_commit") or "")
+    if not PUBLISHED.fullmatch(commit):
+        return  # L1 already says the project is on no published version
+    print("\nNapkinStack")
+    latest = _latest()
+    if latest is None:
+        print("  NOT READ       the registry did not answer: whether a newer version is published is not known")
+        return
+    if _number(latest) <= _number(commit.removeprefix("v")):
+        print(f"  LATEST         the project is on {commit}, the latest published version")
+        return
+    from napkinstack.project import release_notes
+
+    print(f"  NEWER VERSION  v{latest} is published; the project is on {commit} — information, not a gap\n"
+          f"                 What it changes: {release_notes(str(answers.get('_src_path') or ''), commit, f'v{latest}')}\n"
+          f"                 To take it, at a cycle's boundary: uv tool install \"napkinstack=={latest}\" "
+          "--with-executables-from pre-commit, then nstack update")
+
+
 def _private(client: GitHub) -> bool:
     """Repository not public (private or internal); visibility unreadable: treated as public."""
     try:
@@ -373,6 +417,8 @@ def run(root: Path) -> int:
     print("Workstation")
     for result in results:
         _display(*result)
+
+    _newer(answers)
 
     if plan.stage(root) == plan.UNFRAMED:
         # Said here and nowhere else, once: every other run names the stage in one line and

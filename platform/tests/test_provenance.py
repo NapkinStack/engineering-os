@@ -141,3 +141,66 @@ def test_an_engine_level_with_its_project_or_ahead_says_nothing(tmp_path, monkey
     if commit:
         project(tmp_path, commit=commit)
     assert provenance.behind(tmp_path) is None
+
+
+# --- A project learns of a newer version from doctor, and from nowhere else (D91) ---
+# Measured on 2026-10-12: nothing told a project that a version had been published. The one
+# command that already reads the network says it, as information; no other opens a connection.
+
+def registry(root, monkeypatch, version) -> None:
+    page = root / "registry" / "pypi" / "napkinstack"
+    page.mkdir(parents=True)
+    (page / "json").write_text(json.dumps({"info": {"version": version}}), encoding="utf-8")
+    monkeypatch.setenv("NSTACK_REGISTRY_URL", (root / "registry").as_uri())
+
+
+def doctor_says(tmp_path, monkeypatch, capsys, version=None, commit="v0.4.0") -> tuple[int, str]:
+    installed(monkeypatch, None)
+    monkeypatch.setattr(doctor, "__version__", "0.4.0")
+    project(tmp_path, commit=commit)
+    if version:
+        registry(tmp_path, monkeypatch, version)
+    before = doctor.run(tmp_path)
+    return before, capsys.readouterr().out
+
+
+def test_doctor_names_a_newer_published_version_with_its_notes_and_the_way_to_take_it(tmp_path, monkeypatch, capsys):
+    _, output = doctor_says(tmp_path, monkeypatch, capsys, "0.5.1")
+    assert "NEWER VERSION  v0.5.1 is published; the project is on v0.4.0 — information, not a gap" in output, output
+    assert "blob/v0.5.1/CHANGELOG.md — every section above v0.4.0" in output, output
+    assert 'uv tool install "napkinstack==0.5.1" --with-executables-from pre-commit, then nstack update' in output
+
+
+def test_a_newer_version_changes_no_verdict(tmp_path, monkeypatch, capsys):
+    newer, said = doctor_says(tmp_path, monkeypatch, capsys, "0.5.1")
+    (tmp_path / "registry" / "pypi" / "napkinstack" / "json").write_text(
+        json.dumps({"info": {"version": "0.4.0"}}), encoding="utf-8")
+    level = doctor.run(tmp_path)
+    same = capsys.readouterr().out
+    assert newer == level, "a newer version changed the exit code"
+    assert "LATEST         the project is on v0.4.0" in same and "NEWER VERSION" not in same, same
+    assert not any(line.lstrip().startswith("FAIL") and "published" in line for line in said.splitlines()), said
+
+
+@pytest.mark.parametrize("version", ["0.3.9", "not-a-version"])
+def test_an_older_or_unreadable_answer_is_never_a_newer_version(tmp_path, monkeypatch, capsys, version):
+    _, output = doctor_says(tmp_path, monkeypatch, capsys, version)
+    assert "NEWER VERSION" not in output, output
+
+
+def test_a_registry_that_does_not_answer_is_said(tmp_path, monkeypatch, capsys):
+    _, output = doctor_says(tmp_path, monkeypatch, capsys)
+    assert "NOT READ       the registry did not answer" in output, output
+
+
+def test_a_project_on_no_published_version_is_not_compared(tmp_path, monkeypatch, capsys):
+    _, output = doctor_says(tmp_path, monkeypatch, capsys, "0.5.1", commit="v0.4.0-3-g1a2b3c4")
+    assert "NEWER VERSION" not in output and "\nNapkinStack\n" not in output, output
+
+
+def test_no_other_command_asks_the_registry(tmp_path, monkeypatch):
+    installed(monkeypatch, None)
+    project(tmp_path)
+    monkeypatch.setattr(doctor.urllib.request, "urlopen", lambda *a, **k: pytest.fail("a connection was opened"))
+    for command in ("fitness", "manifests", "modules", "plan"):
+        cli.main([command, "--root", str(tmp_path)])

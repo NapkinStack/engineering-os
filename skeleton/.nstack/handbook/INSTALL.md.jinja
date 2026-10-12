@@ -193,6 +193,10 @@ nstack doctor
 `nstack doctor` exits 0 when everything is read and in place, 1 when a setting is missing,
 and 2 when nothing read is missing but something could not be read.
 
+`nstack doctor` is also where a project learns that a newer version of NapkinStack is
+published: one line, with its notes and the way to take it — information, never a gap, and
+the one question any command asks the registry.
+
 `nstack doctor` reads the token from `GH_TOKEN`, otherwise `GITHUB_TOKEN`: a fine-grained
 token, limited to the repository, with the **Administration: read** permission. Without a
 token, the GitHub part stays "not verified", never compliant.

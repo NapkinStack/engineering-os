@@ -90,7 +90,7 @@ Each project then pins its version and changes it through `nstack update`.
 | Command | Role |
 |---|---|
 | `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, GitHub checklist |
-| `nstack doctor` | Checks the workstation and the GitHub settings, read-only |
+| `nstack doctor` | Checks the workstation and the GitHub settings, read-only; names a newer published version |
 | `nstack settings` | Prints the calls that would bring the GitHub settings to the checklist; changes nothing |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
