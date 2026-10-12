@@ -5,7 +5,7 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.6.2, published** ([PyPI](https://pypi.org/project/napkinstack/)): what the
+> **Status: v0.7.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): what the
 > framework announces, it refuses — and what it cannot refuse, it says. The boundaries read the
 > contracts a module uses, a contract version someone relies on changes only with a proof that
 > runs in the base's tree, the module checks and stale approvals are enforced, a verifier is not
@@ -15,8 +15,12 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 > declared consumer. The diagnosis says whether anything refuses at all; a record names what
 > reached the default branch outside a pull request, and never refuses it. Since v0.6.2, each
 > version's notes are published, engine and project apart, and an update names every version it
-> crosses. A first real project, public, has run two cycles on it; **M11**, in progress, makes
-> the framework charge what a failure costs, and nothing more ([PDR-0011](docs/pdr/0011-ceremony-follows-consequence.md)).
+> crosses. Since v0.7.0 (**M11**), the framework charges what a failure costs, and nothing more
+> ([PDR-0011](docs/pdr/0011-ceremony-follows-consequence.md)) — four criticality values, four
+> regimes, each price stated before it is paid — and a project's tree is the project's
+> ([PDR-0012](docs/pdr/0012-a-project-s-tree-is-the-project-s.md)): the framework's files live
+> in `.nstack/`, and the front page is the project's own. Three real projects have run on the
+> framework; the third was created, framed and updated on what became this version.
 > Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
 > [move to English](docs/governance/plans/2026-09-16-english-migration.md),
 > [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
@@ -87,8 +91,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.6.2" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.6.2"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.7.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.7.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
