@@ -440,6 +440,17 @@ echo "$OUT" | grep -qF "No link to a private assistant session" \
   || { echo "FAIL: refusal without the session-link hook."; echo "$OUT"; exit 1; }
 git "${GIT_ID[@]}" -C "$HK/session" commit -q -m "A change" -m "Co-Authored-By: An Assistant <noreply@example.com>" \
   || { echo "FAIL: a message naming a co-author, without a link, refused."; exit 1; }
+# Not every link to an assistant is one into a session: its site, its documentation pass.
+echo "Written with https://claude"".ai/ and https://chatgpt"".com/overview" >> "$HK/session/notes.md"
+git -C "$HK/session" add notes.md
+git "${GIT_ID[@]}" -C "$HK/session" commit -q -m "A link to the assistant's site" \
+  || { echo "FAIL: a link to an assistant's site, which is no session, refused."; exit 1; }
+for other in "https://chatgpt"".com/c/0123-4567" "https://claude"".ai/chat/0123-4567" "https://chatgpt"".com/share/0123"; do
+  echo "$other" > "$HK/session/said.txt"
+  if (cd "$HK/session" && pre-commit run no-session-link --hook-stage commit-msg --commit-msg-filename said.txt >/dev/null 2>&1); then
+    echo "FAIL: a conversation link accepted: $other"; exit 1
+  fi
+done
 echo "See $LINK" >> "$HK/session/notes.md"
 git -C "$HK/session" add notes.md
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/session" commit -m "A file" 2>&1); then
