@@ -1,0 +1,247 @@
+"""
+The forge's settings as one gesture (PDR-0008) — its first half: the plan, printed.
+
+`nstack doctor` says what is missing. This command says how to close the distance: it reads
+the repository's settings with the same checks as doctor, and prints the smallest set of calls
+that brings it to the checklist, in a form a person runs with their own credential. It writes
+nothing, and sends nothing but reads.
+
+What it never prints, because it never does it:
+  - a call that rewrites or deletes a ruleset: the missing rules go in a ruleset of their own,
+    and rulesets layer — the strictest one wins, so adding never lowers;
+  - a call that lowers a setting already stricter than the checklist;
+  - a bypass actor. Emptying an existing bypass list (G12) is named as a step by hand: it
+    edits a ruleset this command did not create.
+
+What the repository's plan cannot enforce is not planned and not reported as a fault: it is
+named, with its cost, in doctor's own words.
+
+The apply mode of PDR-0008 is not here. It rests on one check — that the credential which
+configures cannot commit — and the forge offers no documented way to read that from a token;
+it is built once that check is proven against the real forge, not before.
+
+Usage :  nstack settings [--root ROOT]
+Output:  0 with the plan printed, or nothing to change; 1 when the repository cannot be read
+         with the token given.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import yaml
+
+from napkinstack import doctor
+from napkinstack.project import ANSWERS
+
+RULESET_NAME = "nstack-checklist"
+IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18")
+PULL_REQUEST = ("G1", "G2", "G3", "G13")
+LABEL_COLOURS = {"cross-module": "d93f0b", "over-budget": "fbca04", "out-of-cycle": "5319e7"}
+LABEL_MEANING = {"cross-module": "A pull request touching several modules, with its justification",
+                 "over-budget": "A pull request beyond the review budget, with its justification",
+                 "out-of-cycle": "Work outside the current cycle, with its justification"}
+Call = tuple[str, str, str, dict | None]  # (rules closed, method, path under the repository, body)
+
+
+def ruleset(missing: set[str]) -> dict:
+    """One ruleset holding the rules that are missing, on the default branch, with nobody on
+    its bypass list. Never the ones in place: a rule is not written twice."""
+    rules: list[dict] = []
+    if "G17" in missing:
+        rules.append({"type": "deletion"})
+    if "G18" in missing:
+        rules.append({"type": "non_fast_forward"})
+    if missing & set(PULL_REQUEST):
+        rules.append({"type": "pull_request", "parameters": {
+            "required_approving_review_count": 1, "require_code_owner_review": True,
+            "dismiss_stale_reviews_on_push": True, "require_last_push_approval": False,
+            "required_review_thread_resolution": False}})
+    if "G4" in missing:
+        rules.append({"type": "required_status_checks", "parameters": {
+            "required_status_checks": [{"context": job} for job in doctor.JOBS],
+            "strict_required_status_checks_policy": False}})
+    return {"name": RULESET_NAME, "target": "branch", "enforcement": "active",
+            "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+            "bypass_actors": [], "rules": rules}
+
+
+def _actions(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], list[str]]:
+    """G7 and G8 share one setting object. A repository that allows only its own actions is
+    stricter than the checklist and is left alone; the patterns already allowed are kept."""
+    calls: list[Call] = []
+    notes: list[str] = []
+    current: dict = {}
+    selection: dict = {}
+    if client is not None:
+        try:
+            current = client.get("/actions/permissions") or {}
+            if current.get("allowed_actions") == "selected":
+                selection = client.get("/actions/permissions/selected-actions") or {}
+        except doctor.NotVerified:
+            current, selection = {}, {}
+    stricter = current.get("allowed_actions") == "local_only"
+    if stricter and "G7" in missing:
+        notes.append("G7  left as it is: this repository allows only its own actions, which is stricter than "
+                     "the checklist. The skeleton's workflows use " + ", ".join(doctor.THIRD_PARTY_ACTIONS)
+                     + ": they will not run until it is allowed.")
+    allowed = current.get("allowed_actions") if stricter else "selected"
+    if missing & {"G7", "G8"} and not (stricter and missing == {"G7"}):
+        closed = ", ".join(sorted(missing & ({"G8"} if stricter else {"G7", "G8"})))
+        calls.append((closed, "PUT", "/actions/permissions",
+                      {"enabled": True, "allowed_actions": allowed, "sha_pinning_required": True}))
+    if "G7" in missing and not stricter:
+        wanted = [f"{action}@*" for action in doctor.THIRD_PARTY_ACTIONS]
+        kept = [pattern for pattern in selection.get("patterns_allowed") or [] if pattern not in wanted]
+        calls.append(("G7", "PUT", "/actions/permissions/selected-actions",
+                      {"github_owned_allowed": True, "verified_allowed": bool(selection.get("verified_allowed")),
+                       "patterns_allowed": kept + wanted}))
+    return calls, notes
+
+
+def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], list[str]]:
+    """The calls that close `missing`, and the steps that stay by hand."""
+    calls: list[Call] = []
+    notes: list[str] = []
+    in_ruleset = missing & set(IN_RULESET)
+    if in_ruleset:
+        calls.append((", ".join(sorted(in_ruleset, key=_order)), "POST", "/rulesets", ruleset(in_ruleset)))
+        if "G4" in in_ruleset:
+            notes.append("G4  the forge may refuse a check it has never seen run. If it does, open a first "
+                         "pull request, let the checks run, then run this call again.")
+    if "G12" in missing:
+        notes.append("G12 by hand — " + doctor.RULESET + ": remove every bypass actor. This command never "
+                     "rewrites a ruleset it did not create.")
+    if "G5" in missing:
+        calls.append(("G5", "PATCH", "", {"security_and_analysis": {
+            "secret_scanning": {"status": "enabled"}, "secret_scanning_push_protection": {"status": "enabled"}}}))
+    if "G6" in missing:
+        calls.append(("G6", "PUT", "/private-vulnerability-reporting", None))
+    more, said = _actions(client, missing)
+    calls += more
+    notes += said
+    if "G9" in missing:
+        calls.append(("G9", "PUT", "/actions/permissions/fork-pr-contributor-approval",
+                      {"approval_policy": "all_external_contributors"}))
+    if "G10" in missing:
+        calls.append(("G10", "PUT", "/actions/permissions/workflow",
+                      {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": False}))
+    if "G11" in missing:
+        for label in doctor.LABELS:
+            if client is None or _absent(client, label):
+                calls.append(("G11", "POST", "/labels", {"name": label, "color": LABEL_COLOURS[label],
+                                                         "description": LABEL_MEANING[label]}))
+    merges: dict = {}
+    if "G14" in missing:
+        merges["allow_auto_merge"] = True
+    if "G15" in missing:
+        merges.update(allow_squash_merge=True, allow_merge_commit=False, allow_rebase_merge=False)
+    if "G16" in missing:
+        merges["delete_branch_on_merge"] = True
+    if merges:
+        calls.append((", ".join(rule for rule in ("G14", "G15", "G16") if rule in missing), "PATCH", "", merges))
+    return calls, notes
+
+
+def _order(rule: str) -> int:
+    return int(rule[1:])
+
+
+def _absent(client: doctor.GitHub, label: str) -> bool:
+    try:
+        return client.get(f"/labels/{label}", missing=True) is None
+    except doctor.NotVerified:
+        return True
+
+
+def render(repo: str, call: Call) -> str:
+    """One call as a command the person runs under their own credential: the forge's own
+    command line, the body on standard input so that nothing has to be quoted."""
+    closed, method, path, body = call
+    head = f"# {closed}\ngh api --method {method} repos/{repo}{path}"
+    if body is None:
+        return head
+    return f"{head} --input - <<'JSON'\n{json.dumps(body, indent=2)}\nJSON"
+
+
+def run(root: Path) -> int:
+    if not (root / ANSWERS).is_file():
+        print(f"FAIL [settings] {ANSWERS} not found in {root}: this folder is not a project "
+              "created by nstack init.\n      Action: run the command at the project root, "
+              "or pass --root.")
+        return 1
+    answers = yaml.safe_load((root / ANSWERS).read_text(encoding="utf-8")) or {}
+    repo = str(answers.get("github_repo"))
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    client = doctor.GitHub(repo, token, os.environ.get("GITHUB_API_URL") or "https://api.github.com") if token else None
+
+    missing: set[str] = set()
+    unread: list[str] = []
+    out_of_reach: list[tuple[str, str]] = []
+    if client is None:
+        # G12 is not planned blind: the ruleset planned below has nobody on its bypass list, and
+        # an older one that has is a step by hand, which only a read can find.
+        missing = {rule for rule, _, _ in doctor.CHECKLIST} - {"G12"}
+        print(f"Settings of {repo}: not read — no token (GH_TOKEN or GITHUB_TOKEN). The whole checklist is "
+              "planned below; a call for a setting already in place changes nothing, except the first one: "
+              f"skip it if a ruleset named {RULESET_NAME} exists.\n"
+              "Not read either: the repository's visibility and plan. On a private repository without a "
+              "paid plan the forge refuses the ruleset and the secret scanning — out of reach there, not a "
+              "fault; run again with a token to have them left out and named.")
+    else:
+        try:
+            client.get("")  # the repository itself: unreadable, nothing below means anything
+            private = doctor._private(client)
+        except doctor.NotVerified as reason:
+            print(f"FAIL [settings] {repo} cannot be read: {reason}.\n      Action: supply a token that can "
+                  "read the repository — fine-grained, limited to it, Administration: read — or run without "
+                  "a token to print the whole checklist.")
+            return 1
+        for rule, _, _ in doctor.CHECKLIST:
+            if private and rule in doctor.PUBLIC_ONLY:
+                continue
+            try:
+                compliant = doctor.CHECKS[rule](client)
+            except doctor.NotVerified:
+                unread.append(rule)
+                compliant = False
+            except doctor.Gap:
+                # G12 with no ruleset at all: the ruleset planned for G1 closes it, with an
+                # empty bypass list. Nothing to do by hand.
+                continue
+            if compliant:
+                continue
+            if private and rule in doctor.PRIVATE_PLAN:
+                out_of_reach.append((rule, doctor.PRIVATE_PLAN[rule]))
+            else:
+                missing.add(rule)
+
+    calls, notes = plan(client, missing)
+    if out_of_reach:
+        print("\nOut of reach on this plan — not planned, and not a fault:")
+        for reason in dict.fromkeys(reason for _, reason in out_of_reach):
+            rules = ", ".join(rule for rule, said in out_of_reach if said == reason)
+            print(f"  {rules}: {reason}")
+        if set(doctor.BLOCKING) & {rule for rule, _ in out_of_reach}:
+            print("  This repository stays UNGUARDED whatever is applied below: nothing here refuses a merge.\n"
+                  "  Two exits: make it public, or move it to a plan that enforces rulesets.")
+    if unread:
+        print("\nNot read with this token, planned as if missing: " + ", ".join(unread)
+              + ". A call for a setting already in place changes nothing.")
+    if not calls and not notes:
+        if client is not None:
+            print(f"Settings of {repo}: nothing to change"
+                  + (" within what this plan allows." if out_of_reach else ": the checklist is in place."))
+        return 0
+    if calls:
+        print(f"\n{len(calls)} call(s) would close the distance to the checklist. Nothing was changed: run "
+              "them yourself, under a credential of your own.\n")
+        print("\n\n".join(render(repo, call) for call in calls))
+    if notes:
+        print("\nLeft to do by hand:")
+        for note in notes:
+            print(f"  {note}")
+    print("\nThen: nstack doctor — the read-only check is what establishes the result, not this plan.")
+    return 0

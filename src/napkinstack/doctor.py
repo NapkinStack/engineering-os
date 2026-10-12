@@ -20,11 +20,15 @@ Rules:
       first minute. The plan check asks for it at the discovery's go (C8). Not reused.
   L6  CODEOWNERS starts with a default owner: the code owner review covers every path
   L7  the template source reachable by anyone: a repository, not a path on one machine
-  G1-G16  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
-          repository, and on a private one G1-G5, G12 and G13 name the GitHub plan or option required
+  G1-G18  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+          repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
+          or option required
 
 Usage :  nstack doctor [--root ROOT]
-Output:  0 when everything is verified and compliant, 1 otherwise.
+Output:  0 when everything is verified and compliant; 1 when a setting is missing — a gap;
+         2 when nothing read is missing and something could not be read — not verified
+         (D77). The two are different things to whoever reads the code: one asks for a
+         change, the other for a token.
 """
 
 from __future__ import annotations
@@ -98,13 +102,17 @@ CHECKLIST = [  # (rule, setting, action)
      f"{MERGES}: allow squash merging, and turn off merge commits and rebase merging"),
     ("G16", "Head branch deleted on merge: a merged branch is history, not a place to work",
      f"{MERGES}: automatically delete head branches"),
+    # G17 and G18 protect the branch itself (D78): the rules above say how a change reaches
+    # main, and said nothing of main being deleted or rewritten under them.
+    ("G17", "Main branch cannot be deleted", f"{RULESET}: restrict deletions"),
+    ("G18", "Main branch history cannot be rewritten: no force push", f"{RULESET}: block force pushes"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -246,6 +254,8 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G14": lambda c: _merges(c, "allow_auto_merge").get("allow_auto_merge") is True,
     "G15": _squash_only,
     "G16": lambda c: _merges(c, "delete_branch_on_merge").get("delete_branch_on_merge") is True,
+    "G17": lambda c: _rule(c, "deletion") is not None,
+    "G18": lambda c: _rule(c, "non_fast_forward") is not None,
 }
 
 
@@ -413,4 +423,6 @@ def run(root: Path) -> int:
         return 0
     print(f"\nnstack doctor: {gaps} gap(s), {unknown} not verified{suffix}.\nWorkflows inform; "
           "it is the GitHub settings that block, and they are not copied with the project.")
-    return 1
+    if gaps:
+        print("What would close the gaps, as calls to run yourself: nstack settings")
+    return 1 if gaps else 2

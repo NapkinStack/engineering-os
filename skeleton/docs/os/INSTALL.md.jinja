@@ -102,6 +102,8 @@ Settings → Rules → Rulesets → on the main branch (private repository: Team
 - [ ] Stale approvals dismissed when new commits are pushed
 - [ ] Required checks: `Fitness functions`, `PR scope and review budget`, `Hooks and secrets`, `Test sheet and cycle`, `Module checks`
 - [ ] Bypass list empty: nobody merges around the rules, administrators included
+- [ ] Main branch cannot be deleted
+- [ ] Main branch history cannot be rewritten: no force push
 
 GitHub offers a check to require only once it has run: open a first pull request, then
 select them.
@@ -141,11 +143,22 @@ repository — **the identity your agents work under** (`docs/os/07-governance.m
       the CI's secrets
 - [ ] The agent's session reaches no human credential
 
+Rather than click through these pages, print the calls that close the distance and run them
+yourself — the command reads the repository, writes nothing, and never plans to lower a
+setting or to rewrite a ruleset:
+
+```bash
+nstack settings
+```
+
 Then check, read-only:
 
 ```bash
 nstack doctor
 ```
+
+`nstack doctor` exits 0 when everything is read and in place, 1 when a setting is missing,
+and 2 when nothing read is missing but something could not be read.
 
 `nstack doctor` reads the token from `GH_TOKEN`, otherwise `GITHUB_TOKEN`: a fine-grained
 token, limited to the repository, with the **Administration: read** permission. Without a
@@ -182,6 +195,8 @@ nstack fitness       # manifests + boundaries + skills + plan + hygiene — befo
 nstack discover <idea-file>   # starts a discovery, for your agent
 nstack plan          # the discovery, the charter and the cycles (docs/project/)
 nstack skills        # generates the Claude Code skills from the playbooks
+nstack doctor        # the workstation and the forge's settings, read-only
+nstack settings      # the calls that would bring the forge's settings to the checklist
 nstack new-module <name> <owner> <criticality>
 nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
 nstack run <module>     # local start, when commands.run is declared

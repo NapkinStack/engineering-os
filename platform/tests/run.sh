@@ -858,6 +858,7 @@ mkdir -p "$API"
 python3 - "$API/routes.json" <<'EOF'
 import json, sys
 rules = [
+    {"type": "deletion", "ruleset_id": 1}, {"type": "non_fast_forward", "ruleset_id": 1},  # G17, G18 (D78)
     {"type": "pull_request", "ruleset_id": 1, "parameters": {"required_approving_review_count": 1, "require_code_owner_review": True,
                                                              "dismiss_stale_reviews_on_push": True}},
     {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
@@ -910,11 +911,17 @@ private_team = {path: response for path, response in compliant.items() if path !
 private_team[""] = {**compliant[""], "visibility": "private"}
 bypass = {**compliant, "/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": [
     {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]}}
-stale = {**compliant, "/rules/branches/main": [{**rules[0], "parameters": {**rules[0]["parameters"],
-          "dismiss_stale_reviews_on_push": False}}, rules[1]]}
+stale = {**compliant, "/rules/branches/main": [*rules[:2], {**rules[2], "parameters": {**rules[2]["parameters"],
+          "dismiss_stale_reviews_on_push": False}}, rules[3]]}
+# Stricter than the checklist asks: two approvals. The settings command must leave it alone (PDR-0008).
+strict = {**compliant, "/rules/branches/main": [*rules[:2], {**rules[2], "parameters": {**rules[2]["parameters"],
+          "required_approving_review_count": 2}}, rules[3]]}
+# Only its own actions allowed: stricter than "selected", and missing the SHA pinning.
+local_only = {**compliant, "/actions/permissions": {"enabled": True, "allowed_actions": "local_only",
+                                                    "sha_pinning_required": False}}
 json.dump({"acme/compliant": compliant, "acme/bare": bare, "acme/restricted": restricted,
            "acme/private": private, "acme/private-team": private_team, "acme/bypass": bypass,
-           "acme/stale": stale}, open(sys.argv[1], "w"))
+           "acme/stale": stale, "acme/strict": strict, "acme/local-only": local_only}, open(sys.argv[1], "w"))
 EOF
 cat > "$API/server.py" <<'EOF'
 import http.server, json, pathlib, sys
@@ -935,13 +942,22 @@ class API(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(body).encode())
+    def write(self):
+        # Nothing in this suite may ever write to the forge: every attempt is recorded, and
+        # the settings command is judged on this file staying empty (PDR-0008, criterion 1).
+        with open(sys.argv[3], "a") as seen:
+            seen.write(f"{self.command} {self.path}\n")
+        self.send_response(403)
+        self.end_headers()
+    do_POST = do_PUT = do_PATCH = do_DELETE = write
     def log_message(self, *args):
         pass
 server = http.server.HTTPServer(("127.0.0.1", 0), API)
 pathlib.Path(sys.argv[2]).write_text(str(server.server_port))
 server.serve_forever()
 EOF
-python3 "$API/server.py" "$API/routes.json" "$API/port" &
+: > "$API/writes"
+python3 "$API/server.py" "$API/routes.json" "$API/port" "$API/writes" &
 API_PID=$!
 trap 'kill "$API_PID" 2>/dev/null; rm -rf "$SK" "$SC" "$HK" "$GN"' EXIT
 for _ in $(seq 50); do [ -s "$API/port" ] && break; sleep 0.1; done
@@ -975,7 +991,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 16 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 18 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/docs/os/INSTALL.md.jinja \
@@ -1066,7 +1082,7 @@ fi
   && echo "$OUT" | grep -qF "To start: follow playbooks/framing.md" \
   && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -1083,7 +1099,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 21 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 23 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1120,7 +1136,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 7 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 9 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
@@ -1136,13 +1152,12 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 20 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 22 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
-echo "-> doctor: without a token, the GitHub part is not verified, never compliant"
-if OUT=$(unset GH_TOKEN GITHUB_TOKEN; published doctor --root "$C" 2>&1); then
-  echo "FAIL: compliant without a token."; echo "$OUT"; exit 1
-fi
+echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"
+RC=0; OUT=$(unset GH_TOKEN GITHUB_TOKEN; published doctor --root "$C" 2>&1) || RC=$?
+[ "$RC" -eq 2 ] || { echo "FAIL: nothing read and nothing missing must exit 2, got $RC."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
   && echo "$OUT" | grep -qF "GH_TOKEN" \
   || { echo "FAIL: missing token mishandled."; echo "$OUT"; exit 1; }
@@ -1175,6 +1190,78 @@ echo "$OUT" | head -1 | grep -qF "Judged by an UNPUBLISHED NapkinStack — a loc
   && echo "$OUT" | grep -qE "FAIL +\[L1\]" && echo "$OUT" | grep -qF "The nstack running is unpublished" \
   && echo "$OUT" | grep -qF "1 gap(s), 0 not verified" \
   || { echo "FAIL: unpublished engine badly reported."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: a gap exits 1 even when other settings were not read (D77)"
+repo_c acme/bare
+RC=0; OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1) || RC=$?
+[ "$RC" -eq 1 ] && echo "$OUT" | grep -qF "as calls to run yourself: nstack settings" \
+  || { echo "FAIL: a gap must exit 1 and name the command that plans its closing, got $RC."; echo "$OUT"; exit 1; }
+
+echo "-> settings: a bare repository gets the calls that close the distance, and nothing is written (PDR-0008, criterion 1)"
+OUT=$(GH_TOKEN=fake-secret-token-value nstack settings --root "$C" 2>&1) \
+  || { echo "FAIL: the plan of a readable repository must exit 0."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF "gh api --method POST repos/acme/bare/rulesets" \
+  && echo "$OUT" | grep -qF '"~DEFAULT_BRANCH"' && echo "$OUT" | grep -qF '"bypass_actors": []' \
+  && echo "$OUT" | grep -qF '"type": "deletion"' && echo "$OUT" | grep -qF '"type": "non_fast_forward"' \
+  && echo "$OUT" | grep -qF '"context": "Test sheet and cycle"' \
+  && echo "$OUT" | grep -qF "gh api --method PATCH repos/acme/bare " \
+  && echo "$OUT" | grep -qF '"allow_merge_commit": false' \
+  && echo "$OUT" | grep -qF "gh api --method PUT repos/acme/bare/private-vulnerability-reporting" \
+  && echo "$OUT" | grep -qF '"sha_pinning_required": true' \
+  && echo "$OUT" | grep -qF '"name": "out-of-cycle"' \
+  && echo "$OUT" | grep -qF "Nothing was changed" && echo "$OUT" | grep -qF "Then: nstack doctor" \
+  || { echo "FAIL: the plan of a bare repository is incomplete."; echo "$OUT"; exit 1; }
+[ ! -s "$API/writes" ] || { echo "FAIL: the settings command wrote to the forge:"; cat "$API/writes"; exit 1; }
+if echo "$OUT" | grep -qF "fake-secret-token-value"; then
+  echo "FAIL: the credential appears in the output (PDR-0008, criterion 8)."; exit 1
+fi
+
+echo "-> settings: a compliant repository gets no call (criterion 4)"
+repo_c acme/compliant
+OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
+echo "$OUT" | grep -qF "nothing to change: the checklist is in place" && ! echo "$OUT" | grep -qF "gh api" \
+  || { echo "FAIL: a compliant repository was given something to do."; echo "$OUT"; exit 1; }
+
+echo "-> settings: what is stricter than the checklist is left alone, and said (criterion 5)"
+repo_c acme/strict
+OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
+! echo "$OUT" | grep -qF "gh api" \
+  || { echo "FAIL: two required approvals were planned down to the checklist's one."; echo "$OUT"; exit 1; }
+repo_c acme/local-only
+OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
+echo "$OUT" | grep -qF '"allowed_actions": "local_only"' && echo "$OUT" | grep -qF "stricter than the checklist" \
+  && ! echo "$OUT" | grep -qF "selected-actions" \
+  || { echo "FAIL: a repository allowing only its own actions was planned open."; echo "$OUT"; exit 1; }
+
+echo "-> settings: an existing bypass list is never emptied by a call, only named (PDR-0008: no ruleset rewritten)"
+repo_c acme/bypass
+OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
+echo "$OUT" | grep -qF "G12 by hand" && ! echo "$OUT" | grep -qF "gh api" \
+  || { echo "FAIL: a bypass list must be left to a human."; echo "$OUT"; exit 1; }
+
+echo "-> settings: a private repository on a plan that enforces nothing is never called guarded (criterion 6)"
+repo_c acme/private
+OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
+echo "$OUT" | grep -qF "Out of reach on this plan" && echo "$OUT" | grep -qF "stays UNGUARDED" \
+  && echo "$OUT" | grep -qF "rulesets require the GitHub Team plan" && ! echo "$OUT" | grep -qF "rulesets --input" \
+  && echo "$OUT" | grep -qF "nothing to change within what this plan allows" \
+  || { echo "FAIL: a private repository on a free plan badly planned."; echo "$OUT"; exit 1; }
+
+echo "-> settings: without a token the whole checklist is planned, and said to be unread"
+repo_c acme/bare
+OUT=$(unset GH_TOKEN GITHUB_TOKEN; nstack settings --root "$C" 2>&1)
+echo "$OUT" | grep -qF "not read — no token" && echo "$OUT" | grep -qF "repos/acme/bare/rulesets" \
+  && echo "$OUT" | grep -qF "On a private repository without a paid plan the forge refuses the ruleset" \
+  && [ "$(echo "$OUT" | grep -c "^gh api ")" -ge 9 ] \
+  || { echo "FAIL: the unread plan is incomplete."; echo "$OUT"; exit 1; }
+
+echo "-> settings: a repository the token cannot read is said, never planned around"
+if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=fake-token nstack settings --root "$C" 2>&1); then
+  echo "FAIL: an unreachable repository was planned."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "FAIL [settings] acme/bare cannot be read" \
+  || { echo "FAIL: unreadable repository mishandled."; echo "$OUT"; exit 1; }
+[ ! -s "$API/writes" ] || { echo "FAIL: something wrote to the forge during this suite:"; cat "$API/writes"; exit 1; }
 
 echo "-> doctor: outside a project, the command MUST explain it"
 if OUT=$(nstack doctor --root "$GN/occupied" 2>&1); then
