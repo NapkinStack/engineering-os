@@ -22,6 +22,114 @@ a patch.
 
 ---
 
+## v0.7.0 — 2026-10-12
+
+The framework charges what a failure costs, and nothing more (PDR-0011); a project's tree is
+the project's (PDR-0010, PDR-0012).
+
+```mermaid
+flowchart LR
+    subgraph before["A project on v0.6.2"]
+        direction TB
+        B1["playbooks/ · docs/os/<br/>six _TEMPLATE.md<br/>docs/tooling-profile.md"]:::fw
+        B2["README.md, SECURITY.md,<br/>modules/README.md:<br/>the framework's words"]:::fw
+        B3["contracts/, docs/project/,<br/>four empty folders"]:::fw
+    end
+    subgraph after["The same project on v0.7.0"]
+        direction TB
+        A1[".nstack/<br/>playbooks/ · handbook/ · forms/"]:::fw
+        A2["Its own front page, policy<br/>and module map — never<br/>touched by an update again"]:::pr
+        A3["Created by what needs them:<br/>a contract, a discovery, a rule"]:::pr
+    end
+    B1 -->|"moved, adaptations carried"| A1
+    B2 -->|"become seats"| A2
+    B3 -->|"gone when empty, kept when used"| A3
+
+    classDef fw fill:#374151,color:#fff
+    classDef pr fill:#065f46,color:#fff
+```
+
+**Legend** — grey: the framework's files · green: the project's.
+
+**In the engine**
+
+- **Four criticality values, four regimes.** `prototype` joins `standard`, `high` and
+  `critical`. A test sheet is owed at `high` and `critical`, and at `standard` only for a module
+  a user sees; a runbook from `high`. Every refusal names the value that produced it and what
+  the value below would change. `nstack new-module --help` says what each value means, and the
+  command prints what the chosen one costs before it creates anything.
+- **A fix costs a confirmation, not a round** (T4). An automated scenario is green at the head;
+  an explored or human one keeps the commit its evidence was produced on, with the verifier's
+  line confirming it at the head. At `critical`, every scenario is confirmed.
+- **A deliverable nobody can meet is shown its two doors** (C4): a spike, whose refuted result
+  is a delivered one, or a dependency with a date.
+- **A project that has framed nothing is *unframed*, not in violation.** The cycle rules (K1 to
+  K3) apply from an accepted charter; `fitness`, `doctor` and `pr-check` say which state they
+  judged.
+- **A document is due at its moment** (C8): one sentence on the front page at a discovery's
+  *go*, the whole front page at an accepted charter, the module map at a module's first code.
+- **`nstack doctor`**: G14 to G18 — auto-merge, squash only, head branch deleted, default branch
+  neither deleted nor rewritten. It exits 1 on a gap and 2 when nothing could be read.
+- **`nstack settings`** prints the forge calls that would close each gap, and changes nothing.
+- **`nstack new-contract <name>`** writes a contract's first version and, the first time, the
+  module that holds them all.
+- **`nstack update`** starts from the default branch or refuses (D74); carries what a project
+  adapted in a file the framework moved (D84); rewrites the old addresses the project wrote in
+  its own pages (D85) and **leaves a module's code as written, naming it** (D88); keeps the
+  contracts module of a project that holds a contract.
+- A page at any depth of a module is description: changing it changes no module.
+
+**In your project** — 65 files, most of them moved
+
+- **One folder for the framework: `.nstack/`.** `playbooks/` → `.nstack/playbooks/`, `docs/os/`
+  → `.nstack/handbook/`, each `_TEMPLATE.md` → `.nstack/forms/`, `docs/tooling-profile.md` →
+  `.nstack/tooling-profile.md`. The installation manual leaves the front page for
+  `.nstack/handbook/INSTALL.md`.
+- **Seats.** `README.md`, `SECURITY.md`, `modules/README.md` and the two decision indexes are
+  created once as forms and belong to the project: an update never writes in them again.
+- **Nothing created empty.** `contracts/` and four placeholder folders leave the skeleton.
+- **The project's own rules have a place**: `docs/project/rules/<subject>.md`, read with the
+  playbook of the same name, and `always.md`. A new playbook, `documentation.md`: a diagram and
+  its legend before the text.
+- The handbook's matrix (`05-workflow.md` §7) gains `prototype` and says of each row who judges
+  it, a check or a human. The pull request template's sheet gains the `Confirmed` column.
+- Issue forms: `01-request.yml` replaces `01-feature.yml`; the spike form is gone;
+  `05-debt.yml` becomes `04-debt.yml`.
+- A CI step that printed a sentence and could not fail is removed from `module-checks.yml`.
+
+**Migration**
+
+Written from the update run on a fresh copy of each of the two projects created before this
+version, on 2026-10-12 — not predicted from the diff (D73).
+
+| | A project with two modules, no contract (v0.6.2) | A project with two modules and a contract (v0.6.0) |
+|---|---|---|
+| `nstack update` | **1 conflict**, in `.nstack/handbook/project.md` | merged, no conflict |
+| Size of its pull request | 74 files | 69 files |
+| Modules it changes | 0 | 0 |
+| Test sheet owed | no | no |
+| `fitness` afterwards | green | green |
+
+1. **Run it from the default branch, at a cycle's boundary.** It changes the rules a running
+   cycle is judged by.
+2. **A page you had adapted in a moved file can conflict**, as above: the project had added a
+   row to a table the framework rewrote. The conflict is marked; keep both rows.
+3. **Read the list the update prints.** The old addresses in your own pages are rewritten, in
+   the same pull request. Those in a module's code — a comment naming `docs/os/…` — are listed
+   and left: each is a one-line change for that module's next pull request.
+4. **The pull request is far over the review budget** (P2, a warning): add the `over-budget`
+   label. It is a mechanical migration, which is what the label is for.
+5. **`nstack doctor` turns red on both projects**: each allows merge commits and keeps merged
+   branches (G15, G16), and neither has auto-merge (G14). `nstack settings` prints the calls
+   that close them; the settings are yours to change.
+6. **Your front page is now yours**: the update no longer writes in it. If it still carries
+   the framework's installation manual, that copy stops following the framework; the current
+   one is `.nstack/handbook/INSTALL.md`. No check asks you to remove it — both projects stay
+   green with theirs.
+
+Not measured: the update's pull request running on either project's real CI. Both take the
+version themselves, and what they meet is recorded in this repository.
+
 ## v0.6.2 — 2026-09-23
 
 **In the engine**

@@ -274,13 +274,19 @@ OLD_ADDRESS = re.compile(r"(?<![\w./-])(?:" + "|".join(
 LINK = re.compile(r"(\]\()([^)\s#]+)")
 
 
-def _readdress(root: Path) -> list[str]:
+def _readdress(root: Path) -> tuple[list[str], list[str]]:
     """What the project wrote about the pages that moved, in files no update touches — its
     front page, its decisions, a module's manifest — is rewritten to their new addresses: a
     path named from the root, and a relative link, resolved from the file that holds it. Only
     an address that was the framework's is changed, and only when its new place exists.
-    Returns the files rewritten."""
+    A module's code is left as written and named (D88): changing it changes that module, and
+    the update's pull request would owe what a change of every such module owes.
+    Returns the files rewritten, and the files left."""
+    from napkinstack.fitness.manifests import find_manifests, is_description
+
+    modules = [manifest.parent.relative_to(root).as_posix() + "/" for manifest in find_manifests(root)]
     rewritten: list[str] = []
+    left: list[str] = []
     tracked = [path for path in _git(root, "ls-files", "-z").stdout.split("\0") if path]
     for name in tracked:
         if name.startswith((".nstack/", ".git/")) or name == ANSWERS:
@@ -309,10 +315,14 @@ def _readdress(root: Path) -> list[str]:
         # A link whose text was the old file's bare name — [`_TEMPLATE.md`](./_TEMPLATE.md) —
         # would keep a label naming a file that no longer exists.
         changed = re.sub(r"\[`_TEMPLATE\.md`\]\(([^)\s]*\.nstack/forms/(\w+)\.md)\)", r"[`.nstack/forms/\2.md`](\1)", changed)
-        if changed != text:
-            file.write_text(changed, encoding="utf-8")
-            rewritten.append(name)
-    return rewritten
+        if changed == text:
+            continue
+        if any(name.startswith(folder) and not is_description(name[len(folder):]) for folder in modules):
+            left.append(name)
+            continue
+        file.write_text(changed, encoding="utf-8")
+        rewritten.append(name)
+    return rewritten, left
 
 
 def update(root: Path, ref: str) -> int:
@@ -349,8 +359,10 @@ def update(root: Path, ref: str) -> int:
         # Only a project that crosses the move: one already in the new layout holds no file
         # in an old place, and its own files are not read.
         crossed = any(_moved(path) for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base).stdout.split("\0") if path)
-        readdressed = _readdress(root) if crossed else []
+        # Before the addresses: a contracts module the merge took away is no module, and its
+        # contracts would be rewritten as if they were nobody's.
         contracts_kept = _keep_contracts(root, base)
+        readdressed, left = _readdress(root) if crossed else ([], [])
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(_answers(root).get("_src_path")), ref))
         return 1
@@ -397,6 +409,11 @@ def update(root: Path, ref: str) -> int:
         print("The project's own files named pages that moved: old addresses rewritten, to review in the "
               "pull request, in:")
         for name in readdressed:
+            print(f"  - {name}")
+    if left:
+        print("A module's code is its owner's: an old address is left as written, for a pull request of "
+              "that module, in:")
+        for name in left:
             print(f"  - {name}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
