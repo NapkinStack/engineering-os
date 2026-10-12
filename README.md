@@ -55,7 +55,7 @@ Five files are never merged again, because their content is the product's: the f
 writes them as a form — headings and the place of a diagram — and each is asked for when its
 moment comes, never before: the sentence at the discovery's go, the page at the charter's
 acceptance, the map at a module's first code. The foundation's manual sits one click away,
-in `docs/os/INSTALL.md`
+in `.nstack/handbook/INSTALL.md`
 ([PDR-0010](docs/pdr/0010-the-framework-imposes-the-form.md)).
 
 ```mermaid

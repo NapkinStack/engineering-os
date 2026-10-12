@@ -1,6 +1,6 @@
 """
 What a change must verify (D53): the modules with a changed file, and both sides of a contract
-version it touches — the producer and the declared consumers (docs/os/03-contracts.md §5).
+version it touches — the producer and the declared consumers (.nstack/handbook/03-contracts.md §5).
 Run by platform/tests/run.sh.
 """
 

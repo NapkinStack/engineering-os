@@ -112,7 +112,7 @@ def stage(root: Path) -> str | None:
     """Where a project stands, read from its tracked files and never declared: framed once its
     charter is accepted, unframed before — a stage, not a violation. A charter that cannot be
     read is neither: nothing is assumed from a file nobody can parse. None outside a project."""
-    if not (root / PROJECT).is_dir():
+    if not (root / PROJECT).is_dir() and not (root / ".copier-answers.yml").is_file():
         return None
     path = root / CHARTER
     if not path.is_file():
@@ -159,16 +159,16 @@ def _check_seats(root: Path, decision: str | None, accepted_charter: bool, fail)
     """C8: each seat has the event that makes it writable, read from the repository. Before
     it, the form stays a form and nothing is asked; after it, a form left as it came says
     nothing to whoever opens the project."""
-    where = "What each document holds, and when it is written: docs/os/06-decisions.md §10."
+    where = "What each document holds, and when it is written: .nstack/handbook/06-decisions.md §10."
     front = root / FRONT_PAGE
     if front.is_file() and (accepted_charter or decision == "go"):
         if accepted_charter:
             due, event = FRONT_PAGE_FORM, "the charter is accepted"
-            action = "write them from the charter, in the pull request that accepts it (playbooks/framing.md)"
+            action = "write them from the charter, in the pull request that accepts it (.nstack/playbooks/framing.md)"
         else:
             due, event = FRONT_PAGE_FORM[:1], "the discovery's decision is go"
             action = ("write the sentence the decider confirmed, in the pull request that records the "
-                      "decision (playbooks/discovery.md); the rest of the page waits for the charter")
+                      "decision (.nstack/playbooks/discovery.md); the rest of the page waits for the charter")
         if left := _left(front, due):
             quoted = "\n      ".join(f'"{words}"' for words in left)
             fail("C8", front, f"{event} and the front page still holds its form's words:\n"
@@ -237,7 +237,7 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
                              "A deliverable whose product is knowledge — a probe, interviews, a "
                              "legal question — names what will be recorded and the threshold it "
                              "is read against, and a refuted result is a delivered one "
-                             "(playbooks/framing.md, docs/os/05-workflow.md §3).\n      What has "
+                             "(.nstack/playbooks/framing.md, .nstack/handbook/05-workflow.md §3).\n      What has "
                              "no criterion at all, because it waits on someone outside the "
                              "project, is a dependency with a date and not a deliverable. A "
                              "criterion nobody can meet gets met with something that looks like "
@@ -287,7 +287,7 @@ def _check_discovery(path: Path, fail) -> str | None:
             fail("C7", path, f"a decision ({decision}) records decided_on, YYYY-MM-DD")
         if decision == "go" and unfilled(data.get("challenger")):
             fail("C7", path, "a go names its challenger: another session, or a human, challenged the "
-                             "document first (playbooks/discovery.md, stage 5)")
+                             "document first (.nstack/playbooks/discovery.md, stage 5)")
     return decision if isinstance(decision, str) else None
 
 
@@ -297,7 +297,7 @@ def run(root: Path) -> int:
     def fail(rule: str, path: Path, message: str) -> None:
         failures.append(f"[{rule}] {path.relative_to(root)}\n      {message}")
 
-    if not (root / PROJECT).is_dir():
+    if not (root / PROJECT).is_dir() and not (root / ".copier-answers.yml").is_file():
         print(f"Plan: not applicable, no {PROJECT}/ in {root}.")
         return 0
     charter = root / CHARTER
@@ -308,7 +308,7 @@ def run(root: Path) -> int:
     _check_seats(root, decision, accepted_charter, fail)
     if not charter.is_file() and not cycles and not discovery.is_file() and not failures:
         print(f"Plan: no charter and no cycle in {PROJECT}/ — the project is unframed, which is a "
-              "stage and not a fault (playbooks/framing.md).")
+              "stage and not a fault (.nstack/playbooks/framing.md).")
         return 0
     if accepted_charter and discovery.is_file() and decision != "go":
         fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "
@@ -326,7 +326,7 @@ def run(root: Path) -> int:
     for failure in failures:
         print(f"  FAIL {failure}")
     if failures:
-        print(f"\n{len(failures)} violation(s). See docs/project/README.md and playbooks/framing.md.")
+        print(f"\n{len(failures)} violation(s). See .nstack/handbook/project.md and .nstack/playbooks/framing.md.")
         return 1
     print("Plan: compliant.")
     return 0

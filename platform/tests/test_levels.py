@@ -23,7 +23,7 @@ from napkinstack.fitness import plan
 ROOT = Path(__file__).resolve().parents[2]
 SKELETON = ROOT / "skeleton"
 RULES = "docs/project/rules"
-PLAYBOOKS = sorted(path.stem for path in (SKELETON / "playbooks").glob("*.md"))
+PLAYBOOKS = sorted(path.stem for path in (SKELETON / ".nstack" / "playbooks").glob("*.md"))
 
 
 @pytest.mark.parametrize("playbook", PLAYBOOKS)
@@ -31,10 +31,10 @@ def test_a_playbook_names_the_project_s_layer_on_its_subject(playbook: str) -> N
     """Said once, in the block that says when to load it: an agent that loads the playbook as a
     skill never sees the kernel's table, and would apply every project's rules to this one
     without ever reading this one's."""
-    text = (SKELETON / "playbooks" / f"{playbook}.md").read_text(encoding="utf-8")
+    text = (SKELETON / ".nstack" / "playbooks" / f"{playbook}.md").read_text(encoding="utf-8")
     head = text[: text.index("\n---\n")] if "\n---\n" in text else text[:1200]
     assert head.count(f"`{RULES}/{playbook}.md`") == 1, (
-        f"playbooks/{playbook}.md does not name {RULES}/{playbook}.md once in its trigger block")
+        f".nstack/playbooks/{playbook}.md does not name {RULES}/{playbook}.md once in its trigger block")
 
 
 def test_the_kernel_loads_the_project_s_rules_and_ranks_them() -> None:
@@ -51,16 +51,16 @@ def test_the_kernel_loads_the_project_s_rules_and_ranks_them() -> None:
 def test_the_form_of_a_project_rule_asks_how_it_is_checked() -> None:
     """A rule nobody checks is a wish. The form cannot make a project automate it; it can make
     the absence of a check a cell somebody had to fill in."""
-    form = (SKELETON / RULES / "_TEMPLATE.md").read_text(encoding="utf-8")
+    form = (SKELETON / ".nstack" / "forms" / "rules.md").read_text(encoding="utf-8")
     header = next(line for line in form.splitlines() if line.startswith("| #"))
     assert [cell.strip() for cell in header.strip("|").split("|")][-1] == "Checked by", header
     assert not re.search(r"napkinstack|\bnstack\b", form, re.I), "the form of a project's rules names the framework"
 
 
 def test_the_handbook_says_where_each_level_writes() -> None:
-    overview = (SKELETON / "docs/os/00-overview.md").read_text(encoding="utf-8")
+    overview = (SKELETON / ".nstack/handbook/00-overview.md").read_text(encoding="utf-8")
     levels = overview[overview.index("three levels of rules"): overview.index("### Method and seat")]
-    for place in ("`playbooks/`", f"`{RULES}/`", "`AGENTS.md`"):
+    for place in ("`.nstack/playbooks/`", f"`{RULES}/`", "`AGENTS.md`"):
         assert place in levels, f"the table of levels does not name {place}"
 
 

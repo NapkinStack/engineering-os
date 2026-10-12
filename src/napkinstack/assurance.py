@@ -1,5 +1,5 @@
 """
-The machine half of the assurance matrix (`docs/os/05-workflow.md` §7).
+The machine half of the assurance matrix (`.nstack/handbook/05-workflow.md` §7).
 
 `assurance` here is the word of DO-178C's *Design Assurance Level*, of ISO 26262, of the
 OpenSSF Baseline's "advanced high assurance", and of plain *quality assurance*: how much

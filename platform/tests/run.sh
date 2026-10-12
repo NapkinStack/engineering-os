@@ -43,7 +43,7 @@ git -C "$RM" add rule.md late.md
   || { echo "FAIL: dead link not detected."; dead_links "$RM"; rm -rf "$RM"; exit 1; }
 rm -rf "$RM"
 if DEAD=$(dead_links .); then
-  echo "FAIL: links to docs/NN-...; the handbook lives in docs/os/ (skeleton/docs/os/ at the root):"
+  echo "FAIL: links to docs/NN-...; the handbook lives in .nstack/handbook/ (skeleton/.nstack/handbook/ at the root):"
   echo "$DEAD"; exit 1
 fi
 
@@ -81,7 +81,7 @@ SK=$(mktemp -d)
 trap 'rm -rf "$SK"' EXIT
 mkdir -p "$SK/.nstack"
 cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
-cp -r skeleton/playbooks "$SK/"
+cp -r skeleton/.nstack/playbooks "$SK/.nstack/"
 nstack_sk() { (cd / && uv run --project "$REPO" nstack skills --root "$SK" "$@"); }
 
 echo "-> skills: the given root is analysed, whatever the current folder (D21)"
@@ -96,8 +96,8 @@ echo "$OUT" | grep -qF "Skills: not applicable" \
   || { echo "FAIL: out-of-scope root not stated as such."; echo "$OUT"; exit 1; }
 
 echo "-> skills: playbooks without .nstack/skills.yaml MUST fail (S1)"
-mkdir -p "$SK/empty/playbooks"
-printf '# orphan\n' > "$SK/empty/playbooks/orphan.md"
+mkdir -p "$SK/empty/.nstack/playbooks"
+printf '# orphan\n' > "$SK/empty/.nstack/playbooks/orphan.md"
 if OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/empty" 2>&1); then
   echo "FAIL: playbooks without a mapping went green."; exit 1
 fi
@@ -113,7 +113,7 @@ echo "$OUT" | grep -qF "S3 not applicable" \
 
 echo "-> skills: an out-of-sync skill MUST fail"
 nstack_sk >/dev/null
-echo "added" >> "$SK/playbooks/tests.md"
+echo "added" >> "$SK/.nstack/playbooks/tests.md"
 if OUT=$(nstack_sk --check 2>&1); then
   echo "FAIL: an out-of-sync skill went green."; exit 1
 fi
@@ -130,7 +130,7 @@ echo "$OUT" | grep -qF "[S3] skill 'ux' missing" \
   || { echo "FAIL: expected S3 message missing."; echo "$OUT"; exit 1; }
 
 echo "-> skills: the generated frontmatter is valid YAML and returns name and description"
-cp skeleton/playbooks/tests.md "$SK/playbooks/"
+cp skeleton/.nstack/playbooks/tests.md "$SK/.nstack/playbooks/"
 nstack_sk >/dev/null
 python3 - "$SK" <<'EOF' || exit 1
 import sys, yaml
@@ -305,9 +305,9 @@ rm -rf "$EI"
 
 echo "-> nstack fitness: fails when any of the three checks fails"
 FT=$(mktemp -d)
-mkdir -p "$FT/.nstack" "$FT/playbooks"
+mkdir -p "$FT/.nstack" "$FT/.nstack/playbooks"
 printf 'skills: {}\n' > "$FT/.nstack/skills.yaml"
-printf '# orphan\n' > "$FT/playbooks/orphan.md"
+printf '# orphan\n' > "$FT/.nstack/playbooks/orphan.md"
 if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
   echo "FAIL: a playbook without an entry went green."; rm -rf "$FT"; exit 1
 fi
@@ -549,9 +549,9 @@ for expected in ".github/CODEOWNERS|@acme/platform" \
                ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
                "contracts/MANIFEST.yaml|owner: acme/platform" \
                "README.md|# Demo project" \
-               "README.md|docs/os/INSTALL.md" \
-               "docs/os/INSTALL.md|## To do once on GitHub" \
-               "docs/os/INSTALL.md|uv tool install \"napkinstack==" \
+               "README.md|.nstack/handbook/INSTALL.md" \
+               ".nstack/handbook/INSTALL.md|## To do once on GitHub" \
+               ".nstack/handbook/INSTALL.md|uv tool install \"napkinstack==" \
                ".copier-answers.yml|owner_team: acme/platform"; do
   file=${expected%%|*}; text=${expected#*|}
   grep -qF -- "$text" "$PROJECT/$file" 2>/dev/null \
@@ -559,7 +559,7 @@ for expected in ".github/CODEOWNERS|@acme/platform" \
 done
 
 echo "-> init: the front page is the project's, the manual is one click away (PDR-0010)"
-if grep -niE 'napkinstack|\bnstack\b' "$PROJECT/README.md"; then
+if grep -niP 'napkinstack|(?<![./])\bnstack\b' "$PROJECT/README.md"; then  # its name or its command, not a path into .nstack/
   echo "FAIL: the project's front page names the framework."; exit 1
 fi
 [ "$(wc -l < "$PROJECT/README.md")" -lt 40 ] \
@@ -690,7 +690,7 @@ echo "-> plan: a new project is unframed, a stage and not a fault; its templates
 
 echo "-> discover: an idea starts a discovery, no model called (PDR-0002, extension)"
 printf 'A place where neighbours lend each other tools.\n' > "$GN/idea.md"
-(cd "$CLONE" && nstack discover "$GN/idea.md" --root .) | grep -qF "Follow playbooks/discovery.md on docs/project/inputs/idea.md" \
+(cd "$CLONE" && nstack discover "$GN/idea.md" --root .) | grep -qF "Follow .nstack/playbooks/discovery.md on docs/project/inputs/idea.md" \
   && grep -qF 'idea: "docs/project/inputs/idea.md"' "$CLONE/docs/project/discovery.md" \
   && (cd "$CLONE" && nstack plan --root .) >/dev/null \
   || { echo "FAIL: nstack discover did not start the discovery."; exit 1; }
@@ -705,8 +705,8 @@ template_version() {  # $1 = tag, the template changes having been made
   git -C "$TPL" tag "$1"
 }
 template_version v90.1.0
-printf '\nFix v90.2, at the end of the file.\n' >> "$TPL/skeleton/playbooks/tests.md"
-printf '\nFix v90.2.\n' >> "$TPL/skeleton/docs/pdr/_TEMPLATE.md"
+printf '\nFix v90.2, at the end of the file.\n' >> "$TPL/skeleton/.nstack/playbooks/tests.md"
+printf '\nFix v90.2.\n' >> "$TPL/skeleton/.nstack/forms/pdr.md"
 printf '\nFix v90.2.\n' >> "$TPL/skeleton/contracts/README.md"
 # A seat is the project's from its first commit: the template may rewrite it, no project
 # that already exists receives a line of it (PDR-0010).
@@ -714,7 +714,7 @@ for seat in README.md.jinja SECURITY.md modules/README.md docs/adr/README.md doc
   printf '\nSeat rewritten in v90.2.\n' >> "$TPL/skeleton/$seat"
 done
 template_version v90.2.0
-sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/playbooks/security.md"
+sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/.nstack/playbooks/security.md"
 template_version v90.3.0
 project_v01() {
   nstack init "$1" --source "$TPL" --ref v90.1.0 "${ANSWERS[@]}" >/dev/null \
@@ -724,8 +724,8 @@ commit_project() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --
 
 A="$GN/project-a"
 project_v01 "$A"
-sed -i '1s/.*/# Tests — local adaptation/' "$A/playbooks/tests.md"
-rm "$A/docs/pdr/_TEMPLATE.md"
+sed -i '1s/.*/# Tests — local adaptation/' "$A/.nstack/playbooks/tests.md"
+rm "$A/.nstack/forms/pdr.md"
 nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
 printf '\nNeighbours lend each other tools.\n' >> "$A/README.md"
 rm "$A/docs/adr/README.md"
@@ -752,9 +752,9 @@ if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
 fi
 [ "$(git -C "$A" branch --show-current)" = nstack/update-v90.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
   || { echo "FAIL: update not committed on nstack/update-v90.2.0."; git -C "$A" status; exit 1; }
-[ "$(head -1 "$A/playbooks/tests.md")" = "# Tests — local adaptation" ] \
-  && grep -qF "Fix v90.2, at the end of the file." "$A/playbooks/tests.md" \
-  || { echo "FAIL: adaptation or fix lost in playbooks/tests.md."; exit 1; }
+[ "$(head -1 "$A/.nstack/playbooks/tests.md")" = "# Tests — local adaptation" ] \
+  && grep -qF "Fix v90.2, at the end of the file." "$A/.nstack/playbooks/tests.md" \
+  || { echo "FAIL: adaptation or fix lost in .nstack/playbooks/tests.md."; exit 1; }
 grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
   || { echo "FAIL: project version not bumped."; exit 1; }
 echo "$OUT" | grep -qF "git push -u origin nstack/update-v90.2.0" \
@@ -766,7 +766,7 @@ echo "$OUT" | grep -qF "What v90.1.0 -> v90.2.0 changes, engine and project apar
   || { echo "FAIL: the notes do not name every version crossed (D66)."; echo "$OUT"; exit 1; }
 
 echo "-> update: a file the team deleted is not recreated (criterion 6)"
-[ ! -e "$A/docs/pdr/_TEMPLATE.md" ] || { echo "FAIL: deleted file recreated."; exit 1; }
+[ ! -e "$A/.nstack/forms/pdr.md" ] || { echo "FAIL: deleted file recreated."; exit 1; }
 
 echo "-> update: no module file changed, a method file beside them follows (criterion 7)"
 [ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_BEFORE" ] \
@@ -818,6 +818,46 @@ echo "$OUT" | grep -qF "FAIL [update] Working tree modified" \
   || { echo "FAIL: modified tree badly refused."; echo "$OUT"; exit 1; }
 git -C "$A" checkout -q -- README.md
 
+echo "-> update: a project created before the framework had one folder keeps what it adapted (PDR-0012, criterion 3)"
+# Measured on the pilot before this test existed: it had added one line to docs/project/README.md,
+# the update moved that page to .nstack/handbook/ and the line was gone, with no conflict and no word.
+OLD="$GN/template-old-layout"
+mkdir -p "$OLD" && cp -r copier.yml skeleton "$OLD/"
+( cd "$OLD/skeleton" && mv .nstack/playbooks playbooks && mkdir -p docs/project/cycles docs/project/rules \
+    && mv .nstack/handbook/project.md docs/project/README.md && mv .nstack/handbook docs/os \
+    && mv .nstack/tooling-profile.md docs/tooling-profile.md \
+    && mv .nstack/forms/adr.md docs/adr/_TEMPLATE.md && mv .nstack/forms/pdr.md docs/pdr/_TEMPLATE.md \
+    && mv .nstack/forms/charter.md docs/project/_CHARTER_TEMPLATE.md \
+    && mv .nstack/forms/discovery.md docs/project/_DISCOVERY_TEMPLATE.md \
+    && mv .nstack/forms/cycle.md docs/project/cycles/_TEMPLATE.md \
+    && mv .nstack/forms/rules.md docs/project/rules/_TEMPLATE.md && rmdir .nstack/forms )
+git "${GIT_ID[@]}" init -q "$OLD"
+git -C "$OLD" add -A && git "${GIT_ID[@]}" -C "$OLD" commit -q --no-verify -m v91.1.0 && git -C "$OLD" tag v91.1.0
+rm -rf "$OLD/skeleton" && cp -r skeleton "$OLD/"
+git -C "$OLD" add -A && git "${GIT_ID[@]}" -C "$OLD" commit -q --no-verify -m v91.2.0 && git -C "$OLD" tag v91.2.0
+M="$GN/project-moved"
+nstack init "$M" --source "$OLD" --ref v91.1.0 "${ANSWERS[@]}" >/dev/null \
+  || { echo "FAIL: nstack init from the old-layout template."; exit 1; }
+[ -f "$M/playbooks/tests.md" ] && [ -f "$M/docs/os/05-workflow.md" ] && [ ! -e "$M/.nstack/playbooks" ] \
+  || { echo "FAIL: the old-layout fixture is not in the old layout."; exit 1; }
+sed -i '1s/.*/# Tests — the way this team does them/' "$M/playbooks/tests.md"
+printf '| `handover.md` | Where the work stands after a break | The framer | — |\n' >> "$M/docs/project/README.md"
+commit_project "$M" "Two adaptations, in the old places"
+if ! OUT=$(nstack update --root "$M" --ref v91.2.0 2>&1); then
+  echo "FAIL: the update across the move failed."; echo "$OUT"; exit 1
+fi
+[ "$(head -1 "$M/.nstack/playbooks/tests.md")" = "# Tests — the way this team does them" ] \
+  || { echo "FAIL: an adapted playbook lost its adaptation in the move."; head -2 "$M/.nstack/playbooks/tests.md"; exit 1; }
+grep -qF "Where the work stands after a break" "$M/.nstack/handbook/project.md" \
+  || { echo "FAIL: a line the project had added to a moved page is gone."; exit 1; }
+for gone in playbooks docs/os docs/project/README.md docs/tooling-profile.md docs/adr/_TEMPLATE.md; do
+  [ ! -e "$M/$gone" ] || { echo "FAIL: $gone is left in both places."; exit 1; }
+done
+echo "$OUT" | grep -qF "docs/project/README.md -> .nstack/handbook/project.md" \
+  && echo "$OUT" | grep -qF "playbooks/tests.md -> .nstack/playbooks/tests.md" \
+  || { echo "FAIL: the update does not name what it carried."; echo "$OUT"; exit 1; }
+[ -z "$(git -C "$M" status --porcelain)" ] || { echo "FAIL: the update across the move is not committed."; git -C "$M" status --short; exit 1; }
+
 echo "-> update: outside a project, the command MUST explain it"
 if OUT=$(nstack update --root "$GN/occupied" 2>&1); then
   echo "FAIL: update accepted outside a project."; exit 1
@@ -827,7 +867,7 @@ echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
 
 B="$GN/project-b"
 project_v01 "$B"
-sed -i '1s/.*/# Security - local adaptation/' "$B/playbooks/security.md"
+sed -i '1s/.*/# Security - local adaptation/' "$B/.nstack/playbooks/security.md"
 commit_project "$B" "Adaptation"
 
 echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
@@ -835,11 +875,11 @@ if OUT=$(nstack update --root "$B" --ref v90.3.0 2>&1); then
   echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "FAIL [update] NapkinStack v90.1.0 -> v90.3.0: conflicts" \
-  && echo "$OUT" | grep -qF "  - playbooks/security.md" \
+  && echo "$OUT" | grep -qF "  - .nstack/playbooks/security.md" \
   || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v90.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
-  && grep -qF "Fix v90.2, at the end of the file." "$B/playbooks/tests.md" \
+  && grep -qF "Fix v90.2, at the end of the file." "$B/.nstack/playbooks/tests.md" \
   || { echo "FAIL: branch, commit or skipped version incorrect."; exit 1; }
 
 echo "-> update: the commit stays refused while a marker remains (criterion 5)"
@@ -994,8 +1034,8 @@ echo "-> init: GitHub checklist printed, identical to the foundation manual and 
 [ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 18 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
-  grep -qF -- "$line" skeleton/docs/os/INSTALL.md.jinja \
-    || { echo "FAIL: '$line' missing from the foundation manual (docs/os/INSTALL.md)."; exit 1; }
+  grep -qF -- "$line" skeleton/.nstack/handbook/INSTALL.md.jinja \
+    || { echo "FAIL: '$line' missing from the foundation manual (.nstack/handbook/INSTALL.md)."; exit 1; }
 done
 python3 - "$(echo "$INIT_OUT" | grep -F 'Required checks')" <<'EOF' || exit 1
 import re, sys, yaml
@@ -1079,7 +1119,7 @@ fi
 # PDR-0007, criterion 6: what framing buys, and the gesture that starts it — said by the
 # diagnosis, in one place and once. The project is unframed; that is not one of its gaps.
 [ "$(echo "$OUT" | grep -cF "Framing buys an appetite, an end date, a circuit breaker and a decider")" -eq 1 ] \
-  && echo "$OUT" | grep -qF "To start: follow playbooks/framing.md" \
+  && echo "$OUT" | grep -qF "To start: follow .nstack/playbooks/framing.md" \
   && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
 for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18; do

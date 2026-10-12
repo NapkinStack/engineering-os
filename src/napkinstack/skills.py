@@ -1,13 +1,13 @@
 """
 Generates Claude Code skills from the playbooks.
 
-The playbooks are the SOURCE OF TRUTH (docs/os/06-decisions.md §9). Skills are derived
+The playbooks are the SOURCE OF TRUTH (.nstack/handbook/06-decisions.md §9). Skills are derived
 from them: generated files, never edited by hand, never committed.
 
 Why generate rather than write skills directly:
   - portability — the OS must stay usable by an agent that knows nothing about
     skills. A tool is an adapter, never a foundation
-    (docs/tooling-profile.md).
+    (.nstack/tooling-profile.md).
   - single source — two copies of the same rule always diverge.
 
 Rules (--check mode, run in CI):
@@ -19,7 +19,7 @@ Rules (--check mode, run in CI):
 S3 only applies when .claude/skills/ exists. Skills are gitignored: a fresh clone, and
 therefore CI, has none, and none can be out of sync there.
 
-A root with neither playbooks/ nor .nstack/skills.yaml, such as the NapkinStack
+A root with neither .nstack/playbooks/ nor .nstack/skills.yaml, such as the NapkinStack
 repository itself, is out of scope.
 
 Usage:
@@ -65,12 +65,12 @@ def digest(text: str) -> str:
 
 def run(root: Path, check_only: bool = False) -> int:
     map_file = root / MAPPING
-    playbook_dir = root / "playbooks"
+    playbook_dir = root / ".nstack" / "playbooks"
     skill_dir = root / ".claude" / "skills"
 
     if not map_file.is_file():
         if not playbook_dir.is_dir():
-            print(f"Skills: not applicable, neither playbooks/ nor {MAPPING} in {root}.")
+            print(f"Skills: not applicable, neither .nstack/playbooks/ nor {MAPPING} in {root}.")
             return 0
         print(f"  FAIL [S1] {MAPPING} not found in {root}: no playbook has an entry.\n"
               f"      Create {MAPPING}, one entry per playbook (source, description).")
@@ -97,7 +97,7 @@ def run(root: Path, check_only: bool = False) -> int:
             failures.append(
                 f"[S1] {playbook.relative_to(root)} has no entry in "
                 f"{MAPPING}.\n      Add a description, or remove the "
-                f"playbook if it is no longer used (docs/os/10-measurement.md §6)."
+                f"playbook if it is no longer used (.nstack/handbook/10-measurement.md §6)."
             )
 
     # S2 - every entry must point at an existing playbook

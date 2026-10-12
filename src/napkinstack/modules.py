@@ -30,11 +30,11 @@ LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a ha
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
-# What a criticality requires is the matrix of docs/os/05-workflow.md §7, read once (assurance).
+# What a criticality requires is the matrix of .nstack/handbook/05-workflow.md §7, read once (assurance).
 
 RUNBOOK = """# Runbook - {name}
 
-> Required for criticality={criticality} (docs/os/05-workflow.md §7).
+> Required for criticality={criticality} (.nstack/handbook/05-workflow.md §7).
 > CI checks that it exists, not what it says: fill it in before going to production.
 
 ## Alerts and responses
@@ -60,7 +60,7 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     if not OWNER.fullmatch(owner):
         print(f"FAIL [new-module] invalid owner '{owner}': a GitHub team, organisation/team, "
               "or a user when the project has no organisation, for example acme/billing "
-              "(CODEOWNERS, docs/os/07-governance.md §7).")
+              "(CODEOWNERS, .nstack/handbook/07-governance.md §7).")
         return 1
     folder = root / "modules" / name
     if folder.exists():
@@ -145,13 +145,13 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
     if assurance.requires(criticality, "sheet", user_facing):
         why = "user-facing" if user_facing else f"criticality {criticality}"
         steps.append(f"Every pull request that changes its behaviour carries a test sheet ({why}), "
-                     "run by a verifier who is not its author (T1–T5, docs/os/05-workflow.md §7)")
+                     "run by a verifier who is not its author (T1–T5, .nstack/handbook/05-workflow.md §7)")
     framed = plan.charter_accepted(root)
     cycle = plan.accepted_cycle(root) if framed else None
     if not framed:
         steps.append("The project is unframed: no cycle bounds its delivery work yet, and every "
                      "other rule applies. Framing is worth it when there is something to bound "
-                     "(playbooks/framing.md)")
+                     "(.nstack/playbooks/framing.md)")
     elif cycle is None:
         # The charter is accepted: only the next cycle is missing (D47).
         steps.append("No accepted cycle: delivery work needs one (K1), or the out-of-cycle label "
@@ -174,7 +174,7 @@ def _load(manifest: Path) -> dict:
 def _contract_sides(root: Path, changed: list[str]) -> set[str]:
     """The folders of the modules on either side of a contract version the change touches: the
     module that provides it, and those that declare it in consumes. The handbook asks for the
-    checks of both sides (docs/os/03-contracts.md §5); the declared graph says who they are, so
+    checks of both sides (.nstack/handbook/03-contracts.md §5); the declared graph says who they are, so
     one repository needs no broker to know (D53)."""
     provided: dict[tuple[str, str], tuple[str, str]] = {}
     declared: list[tuple[str, list[dict]]] = []
@@ -243,7 +243,7 @@ def run_verb(root: Path, verb: str, name: str | None) -> int:
                 print(f"-> {target}: {verb} not declared, {OPTIONAL[verb]}.")
                 continue
             print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
-                  "      Action: declare the module stack's command there (docs/os/09-platform.md §2).")
+                  "      Action: declare the module stack's command there (.nstack/handbook/09-platform.md §2).")
             return 1
         print(f"-> {target}: {command}", flush=True)
         code = subprocess.run(command, shell=True, cwd=known[target]).returncode

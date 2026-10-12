@@ -21,7 +21,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE = ROOT / "src/napkinstack"
 RECEIVED = [ROOT / "skeleton", ENGINE / "templates"]
-RULES = ROOT / "skeleton/docs/os/RULES.md"
+RULES = ROOT / "skeleton/.nstack/handbook/RULES.md"
 RECORD = re.compile(r"\b(?:PDR|ADR)-\d{4}\b|\(D\d+\)")
 CODE = r"[A-Z]{1,2}\d{1,2}"
 
@@ -84,3 +84,26 @@ def test_the_workstation_check_no_longer_judges_the_front_page() -> None:
     """L5 reported an unwritten sentence as a gap from a project's first minute, when nobody
     could honestly write it. C8 asks for it at the go, which is when it can be. Retired."""
     assert "L5" not in engine_codes(), "L5 is retired; its number is not reused"
+
+
+def test_every_page_a_message_or_a_file_names_exists() -> None:
+    """PDR-0012, criterion 5: the framework's files moved under one folder, and a refusal that
+    sends its reader to a page at its old address sends them nowhere. Every path into that
+    folder — printed by the engine, or written in a file a project receives — is a file of the
+    skeleton."""
+    named = re.compile(r"\.nstack/(?:handbook|playbooks|forms)/[A-Za-z0-9_.-]+\.md|\.nstack/tooling-profile\.md")
+    skeleton = ROOT / "skeleton"
+    missing = set()
+    texts = [(path, text) for path in sorted(ENGINE.rglob("*.py")) for _, text in spoken(path)]
+    texts += [(path, path.read_text(encoding="utf-8", errors="replace"))
+              for folder in RECEIVED for path in sorted(folder.rglob("*")) if path.is_file()]
+    for path, text in texts:
+        for found in named.findall(text):
+            if not ((skeleton / found).is_file() or (skeleton / f"{found}.jinja").is_file()):
+                missing.add(f"{path.relative_to(ROOT)}: {found}")
+    assert not missing, "pages named and not found:\n" + "\n".join(sorted(missing))
+    # project.py is the one place that must still know the old addresses: it maps them to
+    # the new ones, so that an update carries what a project had adapted there.
+    stale = [f"{path.relative_to(ROOT)}" for path, text in texts if path.name != "project.py"
+             and re.search(r"(?<![\w./-])docs/os/|(?<![\w./-])playbooks/[a-z-]+\.md|_TEMPLATE\.md", text)]
+    assert not stale, f"old addresses still written in: {sorted(set(stale))}"

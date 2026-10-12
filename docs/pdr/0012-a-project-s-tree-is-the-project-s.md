@@ -1,6 +1,8 @@
 # PDR-0012 — A project's tree is the project's
 
-- **Status**: Proposed (2026-10-12)
+- **Status**: Accepted (2026-10-12, by the maintainer: "ok pour ta recommandation"), with the handbook
+  **kept in the project**, under `.nstack/handbook/`. Its first half is built by **M11s** the same day; the
+  contracts module created by the first contract is **M11t**; see *As built*
 - **Date**: 2026-10-12
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's layout, `copier.yml`, every message and page that
@@ -93,7 +95,8 @@ named as the framework's, and no larger than what something in the project reads
 
 ## Decision
 
-**Proposed, for the maintainer to accept, amend or refuse.**
+**Accepted on 2026-10-12**: points 1, 2 and 4 as written, and for point 3 the handbook
+**stays**, under `.nstack/handbook/` — "leave" is kept for later, when a published site exists.
 
 1. **The framework's files move under `.nstack/`**: `.nstack/playbooks/`, `.nstack/forms/`
    (today's six `_TEMPLATE.md`), and the handbook if it stays. A project's `docs/`,
@@ -124,14 +127,56 @@ message that names a page names its new path. A project with no contract has no
 
 - [ ] Given a project created by `nstack init`, when its tree is listed outside `.nstack/`,
       `.github/` and the root files, then every file is one the project wrote or a seat.
-- [ ] Given the same project, when an agent is triggered on a subject, then it finds the
+- [x] Given the same project, when an agent is triggered on a subject, then it finds the
       playbook at the path the kernel names.
-- [ ] Given a project created before this decision, when it takes the update, then its
+- [x] Given a project created before this decision, when it takes the update, then its
       adapted playbooks are moved with their adaptations, and no file is left in both places.
 - [ ] Given a project with no contract, when it is created, then it holds no contracts
       module; given its first contract, when the command runs, then the module exists with
       its owner and its checks.
-- [ ] Given any refusal that names a page, when the page is looked for, then it is found.
+- [x] Given any refusal that names a page, when the page is looked for, then it is found.
+
+### As built (M11s, 2026-10-12)
+
+```mermaid
+flowchart LR
+    subgraph Before["Before"]
+        B1["playbooks/"]:::fw
+        B2["docs/os/"]:::fw
+        B3["six _TEMPLATE files<br/>in the project's folders"]:::fw
+        B4["docs/project/README.md<br/>docs/tooling-profile.md"]:::fw
+    end
+    subgraph After["After: .nstack/"]
+        A1["playbooks/"]:::fw
+        A2["handbook/"]:::fw
+        A3["forms/"]:::fw
+        A4["handbook/project.md<br/>tooling-profile.md"]:::fw
+    end
+    B1 --> A1
+    B2 --> A2
+    B3 --> A3
+    B4 --> A4
+    P["docs/ and modules/<br/>hold the project's files only"]:::pr
+
+    classDef fw fill:#374151,color:#fff
+    classDef pr fill:#065f46,color:#fff
+```
+
+**Legend** — grey: the framework's files, before and after · green: what is left to the project.
+
+- **Built**: the move, in the skeleton and in the 84 files that named an old address; a test
+  that every page a message or a delivered file names exists where it says.
+- **Built, and not foreseen by this record**: *a rename loses what a project had adapted.* To
+  the tool that merges an update, a moved file is a deletion and an addition; the project's
+  change to the old file goes with it, without a conflict. Measured on the pilot's copy before
+  any code was written: one line it had added to `docs/project/README.md` was gone. `nstack
+  update` now merges each adapted file into its new place, names what it carried, and marks a
+  conflict where the framework changed the same lines.
+- **Measured on copies of the three real projects**: the third project, clean; the pilot, one
+  conflict, in the page it had adapted — shown, where it had been silently dropped;
+  `tool-library`, one conflict in a file this decision does not move.
+- **Not built — criterion 1 in full and criterion 4**: the contracts module still exists from
+  creation, six files of the framework outside its folder. It needs a command. M11t.
 
 ---
 

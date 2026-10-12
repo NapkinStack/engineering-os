@@ -459,19 +459,18 @@ def test_boundaries_unreadable_manifest_without_traceback(tmp_path, capsys):
 
 
 def write_skills(root: Path, mapping) -> None:
-    (root / "playbooks").mkdir()
-    (root / "playbooks" / "tests.md").write_text("# Tests\n", encoding="utf-8")
-    (root / ".nstack").mkdir()
+    (root / ".nstack" / "playbooks").mkdir(parents=True)
+    (root / ".nstack" / "playbooks" / "tests.md").write_text("# Tests\n", encoding="utf-8")
     text = mapping if isinstance(mapping, str) else yaml.safe_dump(mapping, allow_unicode=True)
     (root / ".nstack" / "skills.yaml").write_text(text, encoding="utf-8")
 
 
-TESTS = {"source": "playbooks/tests.md", "description": "Test strategy."}
+TESTS = {"source": ".nstack/playbooks/tests.md", "description": "Test strategy."}
 SKILL_CASES = {
-    "S2 source not found": {"skills": {"tests": TESTS, "missing": {**TESTS, "source": "playbooks/absent.md"}}},
+    "S2 source not found": {"skills": {"tests": TESTS, "missing": {**TESTS, "source": ".nstack/playbooks/absent.md"}}},
     "S2 empty description": {"skills": {"tests": {**TESTS, "description": ""}}},
     "S2 mapping as a list (D8)": "- tests\n",
-    "S2 entry as text (D8)": {"skills": {"tests": "playbooks/tests.md"}},
+    "S2 entry as text (D8)": {"skills": {"tests": ".nstack/playbooks/tests.md"}},
 }
 
 
