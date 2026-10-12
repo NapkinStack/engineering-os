@@ -946,6 +946,27 @@ PDR-0012 accepted by the maintainer on 2026-10-12, the handbook kept in the proj
 **Not done here: the contracts module created by the first contract — M11t.** It needs a
 command, and the oracle and the code owners assume the folder.
 
+## M11u — The addresses a project wrote follow the move (D85) — PR 22
+
+Found the hour M11s was merged, by taking its update on the third project: the framework's
+files had moved, and 100 mentions of their old addresses stayed in files the project owns —
+seats no update touches, module files the scaffolding wrote, the charter, the cycle. Two were
+dead links, on the front page and in the security policy.
+
+- [x] **Task 1 — seen red** in the oracle's old-layout project: a link on the front page, a
+      relative link in a decision index, two paths in the project's own notes.
+- [x] **Task 2 — `nstack update` rewrites them**: an address named from the root, and a
+      relative link resolved from the file that holds it; only an address that was the
+      framework's, only when its new place exists; only for a project that crosses the move.
+      The files rewritten are listed, and the change is in the update's pull request.
+- [x] **Task 3 — the real projects again**, on copies: the third project, 100 old addresses
+      to none, no dead link; the pilot, none left and no dead link, its one conflict unchanged.
+
+**Why the update edits files it otherwise never touches.** A seat is the project's; so is a
+module's manifest. But the line being changed is an address of the framework's, which the
+framework moved: leaving it is leaving a dead link on a product's front page. The rewrite is
+exact, listed, and reviewed like the rest of the update.
+
 ## M11m — What the pilot's cycle boundary found — PR 13
 
 - **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch

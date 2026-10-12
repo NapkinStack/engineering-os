@@ -842,6 +842,13 @@ nstack init "$M" --source "$OLD" --ref v91.1.0 "${ANSWERS[@]}" >/dev/null \
   || { echo "FAIL: the old-layout fixture is not in the old layout."; exit 1; }
 sed -i '1s/.*/# Tests — the way this team does them/' "$M/playbooks/tests.md"
 printf '| `handover.md` | Where the work stands after a break | The framer | — |\n' >> "$M/docs/project/README.md"
+# And what the project wrote about the framework's pages, in files no update ever touches: its
+# front page is a seat, its decision index another, a module's manifest is its owner's. Measured
+# on the third project the day the move shipped: 41 old addresses left, two of them dead links
+# on the front page and in the security policy.
+printf '\nThe manual: [`docs/os/INSTALL.md`](docs/os/INSTALL.md).\n' >> "$M/README.md"
+printf '\nHow a record is written: [the handbook](../os/06-decisions.md), from [its form](./_TEMPLATE.md).\n' >> "$M/docs/adr/README.md"
+mkdir -p "$M/docs/project" && printf '# Notes\n\nFramed with `playbooks/framing.md`; the matrix is `docs/os/05-workflow.md` §7.\n' > "$M/docs/project/notes.md"
 commit_project "$M" "Two adaptations, in the old places"
 if ! OUT=$(nstack update --root "$M" --ref v91.2.0 2>&1); then
   echo "FAIL: the update across the move failed."; echo "$OUT"; exit 1
@@ -856,6 +863,20 @@ done
 echo "$OUT" | grep -qF "docs/project/README.md -> .nstack/handbook/project.md" \
   && echo "$OUT" | grep -qF "playbooks/tests.md -> .nstack/playbooks/tests.md" \
   || { echo "FAIL: the update does not name what it carried."; echo "$OUT"; exit 1; }
+# The fixture's own pages already speak the new addresses: what is asserted is that the old
+# ones the project wrote are gone, and that each became the right new one.
+if grep -nF -e "docs/os/" -e "../os/" -e "_TEMPLATE.md" "$M/README.md" "$M/docs/adr/README.md"; then
+  echo "FAIL: an old address is left in a file the project owns."; exit 1
+fi
+grep -qF 'The manual: [`.nstack/handbook/INSTALL.md`](.nstack/handbook/INSTALL.md).' "$M/README.md" \
+  || { echo "FAIL: the front page still sends its reader to the manual's old address."; tail -2 "$M/README.md"; exit 1; }
+grep -qF '(../../.nstack/handbook/06-decisions.md)' "$M/docs/adr/README.md" \
+  && grep -qF '[its form](../../.nstack/forms/adr.md)' "$M/docs/adr/README.md" \
+  || { echo "FAIL: a relative link of the project to a moved page is dead."; tail -2 "$M/docs/adr/README.md"; exit 1; }
+grep -qF 'Framed with `.nstack/playbooks/framing.md`; the matrix is `.nstack/handbook/05-workflow.md` §7.' "$M/docs/project/notes.md" \
+  || { echo "FAIL: an old address written in the project's own notes was left."; cat "$M/docs/project/notes.md"; exit 1; }
+echo "$OUT" | grep -qF "old addresses rewritten" && echo "$OUT" | grep -qF "  - docs/project/notes.md" \
+  || { echo "FAIL: the update does not say which of the project's files it rewrote."; echo "$OUT"; exit 1; }
 [ -z "$(git -C "$M" status --porcelain)" ] || { echo "FAIL: the update across the move is not committed."; git -C "$M" status --short; exit 1; }
 
 echo "-> update: outside a project, the command MUST explain it"
