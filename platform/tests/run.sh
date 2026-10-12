@@ -427,6 +427,34 @@ if echo "$OUT" | grep -qF "$TOKEN"; then
   echo "FAIL: the secret appears in clear text in the output (CI logs are public)."; exit 1
 fi
 
+echo "-> hooks: a link into a private assistant session MUST be refused, in a message and in a file (D92)"
+# The address is assembled here so that this file does not hold one.
+LINK="https://claude"".ai/code/session_0123456789"
+repo_with_hooks session
+echo "a line" > "$HK/session/notes.md"
+git -C "$HK/session" add notes.md
+if OUT=$(git "${GIT_ID[@]}" -C "$HK/session" commit -m "A change" -m "Session: $LINK" 2>&1); then
+  echo "FAIL: a commit message holding a session link accepted."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "No link to a private assistant session" \
+  || { echo "FAIL: refusal without the session-link hook."; echo "$OUT"; exit 1; }
+git "${GIT_ID[@]}" -C "$HK/session" commit -q -m "A change" -m "Co-Authored-By: An Assistant <noreply@example.com>" \
+  || { echo "FAIL: a message naming a co-author, without a link, refused."; exit 1; }
+echo "See $LINK" >> "$HK/session/notes.md"
+git -C "$HK/session" add notes.md
+if OUT=$(git "${GIT_ID[@]}" -C "$HK/session" commit -m "A file" 2>&1); then
+  echo "FAIL: a file holding a session link accepted."; echo "$OUT"; exit 1
+fi
+echo "$LINK" > "$HK/session/said.txt"
+if OUT=$(cd "$HK/session" && pre-commit run no-session-link --hook-stage commit-msg --commit-msg-filename said.txt 2>&1); then
+  echo "FAIL: CI's reading of the messages found nothing."; echo "$OUT"; exit 1
+fi
+for f in .github/workflows/governance.yml skeleton/.github/workflows/governance.yml; do
+  grep -qF 'no-session-link --hook-stage commit-msg --commit-msg-filename "$said"' "$f" \
+    && grep -qF 'git log --format=%B "$BASE..HEAD"' "$f" && grep -qF 'DESCRIPTION: ${{ github.event.pull_request.body }}' "$f" \
+    || { echo "FAIL: $f does not read the commit messages and the description."; exit 1; }
+done
+
 echo "-> hooks: same gitleaks version at commit time and in the history scan"
 V_HOOK=$(grep -A1 'repo: https://github.com/gitleaks/gitleaks' .pre-commit-config.yaml | grep -oE 'frozen: v[0-9.]+' | cut -d' ' -f2 || true)
 V_HISTORY=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 || true)
