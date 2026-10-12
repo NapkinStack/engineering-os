@@ -967,6 +967,23 @@ module's manifest. But the line being changed is an address of the framework's, 
 framework moved: leaving it is leaving a dead link on a product's front page. The rewrite is
 exact, listed, and reviewed like the rest of the update.
 
+## M11t — The contracts module is created by the first contract (PDR-0012) — PR 23
+
+- [x] **Task 1 — `nstack new-contract <name>`**, seen red: the contract's first version as a
+      page to write, and the first time the module that holds every contract — manifest,
+      owner, runbook, its line among the code owners. The scaffold moves from the skeleton to
+      the engine's templates. A project is born without `contracts/`.
+- [x] **Task 2 — green as created.** The first run turned the module red: a contract's page
+      counted as content, and the rule on standard verbs asked for `check` and `test` before
+      anything could be checked. A page at any depth is now description; the rule fires at the
+      first schema or test, and a case holds that line too.
+- [x] **Task 3 — an update must not take the module from under a contract.** The scaffold
+      left the skeleton, so the merge deletes it. Seen red on a project holding a contract;
+      the update restores the module and its owner for such a project, says so, and lets the
+      empty one go for a project that holds none.
+- [x] **Task 4 — the three real projects**, on copies: two with no contract lose the empty
+      module; the one with a contract keeps it whole, and validates.
+
 ## M11m — What the pilot's cycle boundary found — PR 13
 
 - **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch

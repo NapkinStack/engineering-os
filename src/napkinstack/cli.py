@@ -114,6 +114,10 @@ def build_parser() -> argparse.ArgumentParser:
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: pr_scope.run(a.root, a.base))
     ps.add_argument("--base", default="origin/main")
+    nc = _add(sub, "new-contract", "creates a contract — and, the first time, the module that holds them all",
+              lambda a: modules.create_contract(a.root, a.name, a.owner))
+    nc.add_argument("name", help="the contract's name, kebab-case")
+    nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
     pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5, K1-K4)",
               lambda a: pull_request.run(a.root, a.base, a.body_file))
     pc.add_argument("--base", default="origin/main")

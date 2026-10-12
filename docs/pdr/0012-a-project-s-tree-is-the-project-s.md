@@ -1,8 +1,8 @@
 # PDR-0012 — A project's tree is the project's
 
 - **Status**: Accepted (2026-10-12, by the maintainer: "ok pour ta recommandation"), with the handbook
-  **kept in the project**, under `.nstack/handbook/`. Its first half is built by **M11s** the same day; the
-  contracts module created by the first contract is **M11t**; see *As built*
+  **kept in the project**, under `.nstack/handbook/`. Built the same day by **M11s** (the one folder) and **M11t** (the contracts module created by
+  the first contract); see *As built*
 - **Date**: 2026-10-12
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's layout, `copier.yml`, every message and page that
@@ -125,13 +125,13 @@ message that names a page names its new path. A project with no contract has no
 
 **Acceptance criteria:**
 
-- [ ] Given a project created by `nstack init`, when its tree is listed outside `.nstack/`,
+- [x] Given a project created by `nstack init`, when its tree is listed outside `.nstack/`,
       `.github/` and the root files, then every file is one the project wrote or a seat.
 - [x] Given the same project, when an agent is triggered on a subject, then it finds the
       playbook at the path the kernel names.
 - [x] Given a project created before this decision, when it takes the update, then its
       adapted playbooks are moved with their adaptations, and no file is left in both places.
-- [ ] Given a project with no contract, when it is created, then it holds no contracts
+- [x] Given a project with no contract, when it is created, then it holds no contracts
       module; given its first contract, when the command runs, then the module exists with
       its owner and its checks.
 - [x] Given any refusal that names a page, when the page is looked for, then it is found.
@@ -175,8 +175,15 @@ flowchart LR
 - **Measured on copies of the three real projects**: the third project, clean; the pilot, one
   conflict, in the page it had adapted — shown, where it had been silently dropped;
   `tool-library`, one conflict in a file this decision does not move.
-- **Not built — criterion 1 in full and criterion 4**: the contracts module still exists from
-  creation, six files of the framework outside its folder. It needs a command. M11t.
+- **Built next, by M11t the same day — criterion 1 in full and criterion 4**: `nstack
+  new-contract <name>` creates the contract's first version and, the first time, the module
+  that holds every contract. A project is born without `contracts/`. Two things the record
+  had not seen: the module must stay green on a contract's page alone, so a page at any depth
+  now counts as description — the rule on standard verbs fires at the first schema or test;
+  and **an update would have taken the module from under a project's contracts**, since the
+  scaffold left the skeleton — it is restored, with its owner, for a project that holds one.
+  On copies of the three real projects: the two with no contract lose the empty module, the
+  one with a contract keeps it whole.
 
 ---
 

@@ -111,7 +111,11 @@ def is_description(path: str) -> bool:
     """A module's description — its manifest, AGENTS.md, README.md, docs/ — or an empty
     placeholder, `path` relative to the module's folder. Changing it changes no behaviour
     (D24); a module holding nothing else has nothing to check yet (D33)."""
-    return path in DESCRIPTION or path.startswith("docs/") or path.rsplit("/", 1)[-1] == ".gitkeep"
+    # A page at any depth describes; it runs nothing. A contract's own page —
+    # contracts/<name>/v1/README.md — is the case that asked: the module that holds it must
+    # stay green until the contract gains a schema or a test (PDR-0012).
+    return (path in DESCRIPTION or path.startswith("docs/")
+            or path.rsplit("/", 1)[-1] in {".gitkeep", "README.md"})
 
 
 def _relief(criticality: str | None, row: str, user_facing: bool = False) -> str:
