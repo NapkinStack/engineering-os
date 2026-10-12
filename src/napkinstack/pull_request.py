@@ -185,6 +185,33 @@ def authors(root: Path, base: str, head: str, opener: str) -> tuple[set[str], se
     return logins, sessions, unnamed
 
 
+# A later commit does not name the earlier ones: the trailer is read on every commit an agent
+# made (D93). Said as two ways out, because rewriting a reviewed branch is not always allowed.
+UNNAMED_ACTION = (f"every commit an agent made carries \"{SESSION_TRAILER}: <id>\" (AGENTS.md §0) — "
+                  "a commit added now does not name the earlier ones: recommit them, on a new branch "
+                  "where the history is not rewritten; or have a person run the sheet.")
+
+
+def summary(body: str, authorship: tuple[set[str], set[str], list[str]]) -> list[str]:
+    """What the check read of a sheet, in a line, and what stands in a session's way before one
+    has done the work (D93): a verdict of one word told a verifier nothing of either."""
+    verifier, _, rows = read_sheet(body)
+    if not rows:
+        return []
+    counts: dict[str, int] = {}
+    for row in rows:
+        result = _result(row.get("result", ""))
+        result = result if result in RESULTS else "unreadable"
+        counts[result] = counts.get(result, 0) + 1
+    said = ", ".join(f"{number} {result}" for result, number in counts.items())
+    lines = [f"  Read: {len(rows)} scenario(s) — {said}; verifier: {verifier or 'not named'}, "
+             f"compared with {len(authorship[0])} account(s) and {len(authorship[1])} session(s) of the change"]
+    if authorship[2] and not SESSION.match(verifier):
+        lines.append(f"  NOTE: an agent's commits name no session ({', '.join(authorship[2])}): as it stands, "
+                     f"only a person can verify this change.\n        To let a session verify it: {UNNAMED_ACTION}")
+    return lines
+
+
 def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail) -> None:
     """T2: the verifier is named — people as @handle anywhere on the line, an agent session as
     `session <id>` opening it — and none of the names is an author of the change."""
@@ -206,8 +233,7 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
                    "with a fresh context (.nstack/playbooks/verification.md).")
     elif session and unnamed:
         fail("T2", f"Test sheet: an agent's commits name no session ({', '.join(unnamed)}): the verifier "
-                   f"cannot be told from their author.\n      Action: the authoring session commits with "
-                   f"the trailer \"{SESSION_TRAILER}: <id>\" (AGENTS.md §0), then the sheet is run again.")
+                   f"cannot be told from their author.\n      Action: {UNNAMED_ACTION}")
 
 
 def _result(cell: str) -> str:
@@ -368,6 +394,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}")
+    for line in summary(body, authorship) if reasons else []:
+        print(line)
     for scenario in human_only:
         print(f"  For the approver, human only: {scenario}")
     for failure in failures:

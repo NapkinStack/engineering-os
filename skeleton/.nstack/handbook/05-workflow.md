@@ -121,6 +121,15 @@ indicator (`10-measurement.md`).
 Never produce a huge pull request simply because the agent can generate a lot of code
 quickly.
 
+**Splitting a change into pull requests that sit on one another.** Each is opened on the
+branch of the one before, and each carries its own sheet when the module asks for one. Two
+things the forge and the sheet do then, to know before the first merge:
+
+- merging the first **and deleting its branch** closes the next one, which was opened on it:
+  merge without deleting, point the next at the default branch, then delete;
+- the next one's head moves when the default branch is merged into it, and a sheet is tied to
+  the commit tested: its automated scenarios are run again at the new head (§7).
+
 ---
 
 ## 5. The 3-failure circuit breaker
@@ -278,7 +287,8 @@ criticality are read before and after the change, and the stricter applies:
 
   A confirmation is not a round. A project that wants another adversarial round decides so
   itself; the sheet never demands one because a fix landed.
-- **Kinds**: *automated* — replayable, run by CI through the module's `e2e` command;
+- **Kinds**: *automated* — replayable, run by CI through the module's `e2e` command, or
+  through `test` for a module that declares no `e2e`;
   *explored* — judged by driving the interface; *human only* — what no agent can run, with
   the reason, listed apart for the approver.
 
