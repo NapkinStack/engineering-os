@@ -147,3 +147,12 @@ def test_no_issue_form_claims_what_a_deliverable_claims() -> None:
     for name, form in forms.items():
         ids = {field.get("id") for field in form["body"]}
         assert "deliverable" not in ids, f"{name} asks for a deliverable: that work is already in a cycle"
+
+
+def test_the_skeleton_creates_no_folder_before_its_moment() -> None:
+    """An empty folder held by a placeholder says "something goes here" to a project that has
+    nothing to put there yet — and reads, to whoever opens the repository, as the framework's
+    furniture. A folder is created by the first file that needs it. The one exception is a
+    module's own envelope: `contracts/` is a module, and a module holds `tests/`."""
+    kept = sorted(path.relative_to(SKELETON).as_posix() for path in SKELETON.rglob(".gitkeep"))
+    assert kept == ["contracts/tests/.gitkeep"], f"folders created empty: {kept}"

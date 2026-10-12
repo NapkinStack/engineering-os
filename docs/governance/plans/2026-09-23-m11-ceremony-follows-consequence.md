@@ -866,6 +866,25 @@ on their content would be the framework naming a domain. **Not done, and said**:
 descriptions still open on "The project's … rules" for what are every project's; the playbook
 they load now names the project's layer, which is what an agent acts on.
 
+## M11q — Nothing created before its moment, and a decision to take — PR 18
+
+Opened on 2026-10-12 by the maintainer reading the third project after its discovery: 68
+files, about 6,570 lines of the framework's against 680 of the project's — *"il faut
+distinguer ce qui est réellement utile … et les fichiers qui polluent"*.
+
+- [x] **Task 1 — no folder created empty.** `docs/architecture/`, `docs/runbooks/` and two
+      redundant placeholders leave the skeleton; a test, seen red, keeps the one a module's
+      envelope needs. The handbook's trees say when each folder appears.
+- [x] **Task 2 — the rest is a decision, not a cleanup.** **PDR-0012**, *proposed*: one folder
+      for the framework's files, the contracts module created by the first contract, and the
+      handbook's place left to the maintainer.
+- [x] **Task 3 — what the third project taught, for the register**: D80 to D83.
+
+**Done (2026-10-12), and corrected against what was announced.** The maintainer had been told
+that not creating `contracts/` at `init` was a small change. It is not: nothing creates that
+module afterwards, so it needs a command, and the oracle and `CODEOWNERS` assume the folder.
+It went into PDR-0012 rather than being done by half.
+
 ## M11m — What the pilot's cycle boundary found — PR 13
 
 - **D74**: `nstack update` no longer carries a foreign commit silently — it builds its branch
