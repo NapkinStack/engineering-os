@@ -12,6 +12,7 @@ hook and CI reject any remaining marker.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import tempfile
@@ -235,6 +236,52 @@ def _carry(root: Path, base: str, previous: str) -> tuple[list[str], list[str]]:
     return carried, conflicted
 
 
+OLD_ADDRESS = re.compile(r"(?<![\w./-])(?:" + "|".join(
+    [re.escape(path) for path in MOVED_FILES] + [re.escape(folder) + r"[\w./-]*" for folder in MOVED_FOLDERS]) + ")")
+LINK = re.compile(r"(\]\()([^)\s#]+)")
+
+
+def _readdress(root: Path) -> list[str]:
+    """What the project wrote about the pages that moved, in files no update touches — its
+    front page, its decisions, a module's manifest — is rewritten to their new addresses: a
+    path named from the root, and a relative link, resolved from the file that holds it. Only
+    an address that was the framework's is changed, and only when its new place exists.
+    Returns the files rewritten."""
+    rewritten: list[str] = []
+    tracked = [path for path in _git(root, "ls-files", "-z").stdout.split("\0") if path]
+    for name in tracked:
+        if name.startswith((".nstack/", ".git/")) or name == ANSWERS:
+            continue
+        file = root / name
+        try:
+            text = file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        def link(match: re.Match) -> str:
+            target = match[2]
+            if "://" in target or target.startswith(("/", "mailto:")):
+                return match[0]
+            old = os.path.normpath(os.path.join(os.path.dirname(name), target)).replace(os.sep, "/")
+            new = _moved(old) or (_moved(old + "/") if target.endswith("/") else None)
+            if not new or not (root / new).exists():
+                return match[0]
+            return match[1] + os.path.relpath(new, os.path.dirname(name) or ".").replace(os.sep, "/")
+
+        def address(match: re.Match) -> str:
+            new = _moved(match[0])
+            return new if new and (root / new).exists() else match[0]
+
+        changed = OLD_ADDRESS.sub(address, LINK.sub(link, text))
+        # A link whose text was the old file's bare name — [`_TEMPLATE.md`](./_TEMPLATE.md) —
+        # would keep a label naming a file that no longer exists.
+        changed = re.sub(r"\[`_TEMPLATE\.md`\]\(([^)\s]*\.nstack/forms/(\w+)\.md)\)", r"[`.nstack/forms/\2.md`](\1)", changed)
+        if changed != text:
+            file.write_text(changed, encoding="utf-8")
+            rewritten.append(name)
+    return rewritten
+
+
 def update(root: Path, ref: str) -> int:
     import copier
     from copier.errors import CopierError
@@ -266,6 +313,10 @@ def update(root: Path, ref: str) -> int:
         copier.run_update(root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,
                           conflict="inline", quiet=True, unsafe=False)
         carried, moved_conflicts = _carry(root, base, previous)
+        # Only a project that crosses the move: one already in the new layout holds no file
+        # in an old place, and its own files are not read.
+        crossed = any(_moved(path) for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base).stdout.split("\0") if path)
+        readdressed = _readdress(root) if crossed else []
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(_answers(root).get("_src_path")), ref))
         return 1
@@ -305,6 +356,11 @@ def update(root: Path, ref: str) -> int:
         print("The framework's files moved, and what the project had adapted in them moved with it:")
         for pair in carried:
             print(f"  - {pair}")
+    if readdressed:
+        print("The project's own files named pages that moved: old addresses rewritten, to review in the "
+              "pull request, in:")
+        for name in readdressed:
+            print(f"  - {name}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
     print(f"\nNext step: git push -u origin {branch}, then open the PR; CI validates it.")
