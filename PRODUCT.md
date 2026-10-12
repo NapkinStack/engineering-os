@@ -184,7 +184,7 @@ Do not build, do not propose:
 
 ## 7. Current state
 
-NapkinStack v0.6.2 is published on PyPI (2026-09-23), with a provenance attestation, and
+NapkinStack v0.7.0 is published on PyPI (2026-10-12), with a provenance attestation, and
 written in English throughout (ADR-0003): `nstack init`, `update`, `doctor`, `new-module`,
 the module verbs and the fitness functions; since v0.3.0, the test sheet (`pr-check`,
 PDR-0003) and the framing — discovery, charter, bounded cycles (`discover`, `plan`,
@@ -253,17 +253,20 @@ the first figures on what an independent verifier finds (PDR-0003). **v0.6.1** a
 first of it in messages and hygiene (D56, D58), and **v0.6.2** the next: release notes that
 exist, engine and project apart, and an update that names every version it crosses.
 
-**M11 is the rest, and is in progress**
+**M11 is the rest, published as v0.7.0 (2026-10-12)**
 ([plan](docs/governance/plans/2026-09-23-m11-ceremony-follows-consequence.md)): the framework
-charges what a failure costs, and nothing more (PDR-0011). On `main`, not yet published: one
+charges what a failure costs, and nothing more (PDR-0011). It holds one
 assurance matrix, executed by the engine and marked row by row *machine* or *owed*; a fix that
 costs a confirmation rather than a round; a criterion nobody can meet sent to the spike it
 should have been; the criticality returned to the decider with its price shown; and an
 approval that is one gesture. The exposure level did not survive its probe — the OSPS
 Baseline's identifiers are stable, but six of our sixteen forge rules have no control to map to
-— and returned to M13. Before v0.7.0: the three decisions accepted for M11 that its first plan
-did not carry — the unframed state (PDR-0007), the settings in one gesture (PDR-0008), and the
-form without the content (PDR-0010) — and what the pilot's cycle boundary found (M11m).
+— and returned to M13. With it: the unframed state (PDR-0007); the forge's settings printed
+as the calls that close each gap (PDR-0008 — applying them waits for a probe on the real forge,
+M11r); the form without the content (PDR-0010); and a project's tree that is the project's
+(PDR-0012), found by creating a third project, `summit`, and reading it as its owner. Its
+Migration was written from the update run on a copy of each existing project, which found one
+more defect before the tag (D88).
 
 Roadmaps: `docs/governance/plans/2026-09-15-engine-v0.1.0.md`,
 `docs/governance/plans/2026-09-16-english-migration.md`,

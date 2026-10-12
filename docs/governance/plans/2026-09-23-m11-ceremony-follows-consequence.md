@@ -1033,8 +1033,11 @@ skeleton's README, where an update is described; D75 at the verifier's diff-read
       on P1 and T1 for old addresses rewritten in comments of its code (**D88**, fixed here: a
       module's code is left as written and named). G14 to G16 are gaps on both, read from the
       forge. The apply mode of `nstack settings` (M11r) is not in this version.*
-- [ ] **Task 2.** The release, with explicit consent, and the release page produced by the
+- [x] **Task 2.** The release, with explicit consent, and the release page produced by the
       workflow rather than by hand — its second live run after v0.6.2.
+      *Done 2026-10-12: tag `v0.7.0` on `581dea6`, published to PyPI by the workflow after the
+      maintainer's approval, the release page taken from the changelog. Checked from the
+      registry: `nstack 0.7.0`, and a project created by it is pinned to `v0.7.0` and green.*
 - [ ] **Task 3.** `tool-library` takes the update and is observed, not coached.
 - [ ] **Task 4.** The pilot takes it at its own cycle boundary. **Its `screening` module is
       declared `high`; the matrix now says what that buys and what `standard` would have bought.**
