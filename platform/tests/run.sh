@@ -547,7 +547,6 @@ for tracked in .claude/settings.json .claude/hooks/check.sh; do
 done
 for expected in ".github/CODEOWNERS|@acme/platform" \
                ".github/ISSUE_TEMPLATE/config.yml|https://github.com/acme/demo/discussions" \
-               "contracts/MANIFEST.yaml|owner: acme/platform" \
                "README.md|# Demo project" \
                "README.md|.nstack/handbook/INSTALL.md" \
                ".nstack/handbook/INSTALL.md|## To do once on GitHub" \
@@ -564,6 +563,9 @@ if grep -niP 'napkinstack|(?<![./])\bnstack\b' "$PROJECT/README.md"; then  # its
 fi
 [ "$(wc -l < "$PROJECT/README.md")" -lt 40 ] \
   || { echo "FAIL: the project's front page is $(wc -l < "$PROJECT/README.md") lines of form."; exit 1; }
+
+[ ! -e "$PROJECT/contracts" ] && ! grep -qF "/contracts/" "$PROJECT/.github/CODEOWNERS" \
+  || { echo "FAIL: a project is born with a contracts module before it has a contract (PDR-0012)."; exit 1; }
 
 echo "-> init: NapkinStack's own development context is never copied (R6)"
 for absent in PRODUCT.md docs/governance platform src pyproject.toml uv.lock copier.yml skeleton; do
@@ -707,7 +709,7 @@ template_version() {  # $1 = tag, the template changes having been made
 template_version v90.1.0
 printf '\nFix v90.2, at the end of the file.\n' >> "$TPL/skeleton/.nstack/playbooks/tests.md"
 printf '\nFix v90.2.\n' >> "$TPL/skeleton/.nstack/forms/pdr.md"
-printf '\nFix v90.2.\n' >> "$TPL/skeleton/contracts/README.md"
+printf '\nFix v90.2.\n' >> "$TPL/skeleton/.nstack/tooling-profile.md"
 # A seat is the project's from its first commit: the template may rewrite it, no project
 # that already exists receives a line of it (PDR-0010).
 for seat in README.md.jinja SECURITY.md modules/README.md docs/adr/README.md docs/pdr/README.md; do
@@ -771,8 +773,8 @@ echo "-> update: a file the team deleted is not recreated (criterion 6)"
 echo "-> update: no module file changed, a method file beside them follows (criterion 7)"
 [ "$(git -C "$A" rev-parse HEAD:modules/demo)" = "$MODULE_BEFORE" ] \
   || { echo "FAIL: modules/demo changed by the update (PDR-0001 R4)."; exit 1; }
-grep -qF "Fix v90.2." "$A/contracts/README.md" \
-  || { echo "FAIL: contracts/README.md did not follow the version."; exit 1; }
+grep -qF "Fix v90.2." "$A/.nstack/tooling-profile.md" \
+  || { echo "FAIL: .nstack/tooling-profile.md did not follow the version."; exit 1; }
 
 echo "-> update: a seat the template rewrote MUST stay as the project wrote it (PDR-0010)"
 [ "$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)" = "$SEATS_BEFORE" ] \
@@ -830,7 +832,11 @@ mkdir -p "$OLD" && cp -r copier.yml skeleton "$OLD/"
     && mv .nstack/forms/charter.md docs/project/_CHARTER_TEMPLATE.md \
     && mv .nstack/forms/discovery.md docs/project/_DISCOVERY_TEMPLATE.md \
     && mv .nstack/forms/cycle.md docs/project/cycles/_TEMPLATE.md \
-    && mv .nstack/forms/rules.md docs/project/rules/_TEMPLATE.md && rmdir .nstack/forms )
+    && mv .nstack/forms/rules.md docs/project/rules/_TEMPLATE.md && rmdir .nstack/forms \
+    && cp -r "$REPO/src/napkinstack/templates/contracts" contracts \
+    && sed 's/"{{OWNER}}"/{{ owner_team }}/; s/{{GITHUB_REPO}}/{{ github_repo }}/' contracts/MANIFEST.yaml > contracts/MANIFEST.yaml.jinja \
+    && rm contracts/MANIFEST.yaml \
+    && printf '\n# Contracts: the most critical boundary in the system, never orphaned.\n/contracts/                    @{{ owner_team }}\n' >> .github/CODEOWNERS.jinja )
 git "${GIT_ID[@]}" init -q "$OLD"
 git -C "$OLD" add -A && git "${GIT_ID[@]}" -C "$OLD" commit -q --no-verify -m v91.1.0 && git -C "$OLD" tag v91.1.0
 rm -rf "$OLD/skeleton" && cp -r skeleton "$OLD/"
@@ -878,6 +884,29 @@ grep -qF 'Framed with `.nstack/playbooks/framing.md`; the matrix is `.nstack/han
 echo "$OUT" | grep -qF "old addresses rewritten" && echo "$OUT" | grep -qF "  - docs/project/notes.md" \
   || { echo "FAIL: the update does not say which of the project's files it rewrote."; echo "$OUT"; exit 1; }
 [ -z "$(git -C "$M" status --porcelain)" ] || { echo "FAIL: the update across the move is not committed."; git -C "$M" status --short; exit 1; }
+[ ! -e "$M/contracts" ] && ! grep -qF "/contracts/" "$M/.github/CODEOWNERS" \
+  || { echo "FAIL: a project with no contract keeps the contracts module it was born with (PDR-0012)."; ls "$M/contracts"; exit 1; }
+
+echo "-> update: a project that HAS a contract keeps the module that holds it (PDR-0012)"
+# The other half, and the dangerous one: the scaffold left the skeleton, so the merge deletes
+# it — manifest, owner and all — from under the contracts a project wrote.
+K="$GN/project-with-contract"
+nstack init "$K" --source "$OLD" --ref v91.1.0 "${ANSWERS[@]}" >/dev/null \
+  || { echo "FAIL: nstack init from the old-layout template (contracts)."; exit 1; }
+mkdir -p "$K/contracts/billing/v1" && printf '# billing v1\n' > "$K/contracts/billing/v1/README.md"
+commit_project "$K" "A first contract"
+if ! OUT=$(nstack update --root "$K" --ref v91.2.0 2>&1); then
+  echo "FAIL: the update of a project holding a contract failed."; echo "$OUT"; exit 1
+fi
+for kept in MANIFEST.yaml AGENTS.md README.md docs/runbook.md billing/v1/README.md; do
+  [ -f "$K/contracts/$kept" ] || { echo "FAIL: contracts/$kept was taken from under a project's contract."; echo "$OUT"; exit 1; }
+done
+grep -qF "/contracts/" "$K/.github/CODEOWNERS" \
+  || { echo "FAIL: the contracts module lost its owner in the update."; exit 1; }
+echo "$OUT" | grep -qF "contracts/ kept" \
+  || { echo "FAIL: the update does not say it kept the contracts module."; echo "$OUT"; exit 1; }
+(cd "$K" && nstack manifests --root . >/dev/null) || { echo "FAIL: the kept contracts module is not valid."; exit 1; }
+[ -z "$(git -C "$K" status --porcelain)" ] || { echo "FAIL: the update of a project holding a contract is not committed."; exit 1; }
 
 echo "-> update: outside a project, the command MUST explain it"
 if OUT=$(nstack update --root "$GN/occupied" 2>&1); then

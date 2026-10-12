@@ -236,6 +236,35 @@ def _carry(root: Path, base: str, previous: str) -> tuple[list[str], list[str]]:
     return carried, conflicted
 
 
+# The contracts module left the skeleton: it is created by the first contract (PDR-0012). A
+# project that already holds a contract must keep the module the skeleton gave it — the merge
+# would otherwise take its manifest and its owner from under the contracts the project wrote.
+CONTRACTS_SCAFFOLD = {"contracts/AGENTS.md", "contracts/MANIFEST.yaml", "contracts/README.md",
+                      "contracts/docs/runbook.md", "contracts/tests/.gitkeep", "contracts/.gitkeep"}
+
+
+def _keep_contracts(root: Path, base: str) -> bool:
+    """Restores the contracts module's own files, and its line among the code owners, when the
+    project held anything in `contracts/` beyond what the skeleton had put there. True when
+    something was restored."""
+    held = [path for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base, "--", "contracts").stdout.split("\0") if path]
+    if not any(path not in CONTRACTS_SCAFFOLD for path in held):
+        return False
+    lost = [path for path in held if path in CONTRACTS_SCAFFOLD and not (root / path).exists()]
+    for path in lost:
+        _git(root, "checkout", base, "--", path)
+    owners = root / ".github" / "CODEOWNERS"
+    before = [line for line in _git(root, "show", f"{base}:.github/CODEOWNERS").stdout.splitlines()
+              if line.split()[:1] == ["/contracts/"]]
+    if before and owners.is_file():
+        content = owners.read_text(encoding="utf-8")
+        if not any(line.split()[:1] == ["/contracts/"] for line in content.splitlines()):
+            owners.write_text(content.rstrip("\n") + "\n\n# Contracts: the most critical boundary in the "
+                              f"system, never orphaned.\n{before[0]}\n", encoding="utf-8")
+            return True
+    return bool(lost)
+
+
 OLD_ADDRESS = re.compile(r"(?<![\w./-])(?:" + "|".join(
     [re.escape(path) for path in MOVED_FILES] + [re.escape(folder) + r"[\w./-]*" for folder in MOVED_FOLDERS]) + ")")
 LINK = re.compile(r"(\]\()([^)\s#]+)")
@@ -317,6 +346,7 @@ def update(root: Path, ref: str) -> int:
         # in an old place, and its own files are not read.
         crossed = any(_moved(path) for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base).stdout.split("\0") if path)
         readdressed = _readdress(root) if crossed else []
+        contracts_kept = _keep_contracts(root, base)
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(_answers(root).get("_src_path")), ref))
         return 1
@@ -356,6 +386,9 @@ def update(root: Path, ref: str) -> int:
         print("The framework's files moved, and what the project had adapted in them moved with it:")
         for pair in carried:
             print(f"  - {pair}")
+    if contracts_kept:
+        print("contracts/ kept: the skeleton no longer creates that module, and this project holds a "
+              "contract in it — its manifest, its owner and its pages stay.")
     if readdressed:
         print("The project's own files named pages that moved: old addresses rewritten, to review in the "
               "pull request, in:")

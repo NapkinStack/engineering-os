@@ -108,6 +108,88 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     return 0
 
 
+CONTRACTS = Path(__file__).resolve().parent / "templates" / "contracts"
+RESERVED = {"docs", "tests"}  # folders of the contracts module itself
+CONTRACT = """# {name} — version 1
+
+<One sentence: what this contract promises to whoever consumes it.>
+
+<A diagram, with its legend, when the contract carries a flow or a state. Otherwise delete this line.>
+
+## What it carries
+
+<The fields, the files or the messages, each with its meaning and its unit. A reader who has
+never seen the producer's code must be able to consume it from this page.>
+
+## What it never does
+
+<What a consumer must not rely on, although it may look true today.>
+
+## Examples
+
+<One valid example, and one a consumer must refuse.>
+"""
+
+
+def create_contract(root: Path, name: str, owner: str | None = None) -> int:
+    """A contract, and — the first time — the module that holds every contract (PDR-0012): a
+    project has no `contracts/` before it has a boundary between two modules to write down."""
+    if not NAME.fullmatch(name):
+        print(f"FAIL [new-contract] invalid name '{name}': kebab-case expected, for example session-audio.")
+        return 1
+    if name in RESERVED:
+        print(f"FAIL [new-contract] '{name}' is reserved: it is a folder of the contracts module itself.")
+        return 1
+    try:
+        answers = yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        answers = {}
+    owner = owner or str(answers.get("owner_team") or "")
+    if not OWNER.fullmatch(owner):
+        print(f"FAIL [new-contract] no valid owner for the contracts module ('{owner}').\n"
+              "      Action: pass --owner organisation/team — a boundary is never orphaned "
+              "(.nstack/handbook/03-contracts.md §2).")
+        return 1
+    module, folder = root / "contracts", root / "contracts" / name
+    if folder.exists():
+        print(f"FAIL [new-contract] contracts/{name} already exists.\n      Action: a change to it is a new "
+              "version beside the first, never an edit of it (.nstack/handbook/03-contracts.md §4).")
+        return 1
+
+    created = not (module / "MANIFEST.yaml").is_file()
+    if created:
+        shutil.copytree(CONTRACTS, module, dirs_exist_ok=True)
+        values = {"{{OWNER}}": owner, "{{GITHUB_REPO}}": str(answers.get("github_repo") or "")}
+        manifest = module / "MANIFEST.yaml"
+        text = manifest.read_text(encoding="utf-8")
+        for marker, value in values.items():
+            text = text.replace(marker, value)
+        manifest.write_text(text, encoding="utf-8")
+        codeowners = root / ".github" / "CODEOWNERS"
+        line = "/contracts/"
+        if codeowners.is_file():
+            content = codeowners.read_text(encoding="utf-8")
+            if not any(existing.split()[:1] == [line] for existing in content.splitlines()):
+                codeowners.write_text(content.rstrip("\n") + "\n\n# Contracts: the most critical boundary "
+                                      f"in the system, never orphaned.\n{line:<31}@{owner}\n", encoding="utf-8")
+        else:
+            print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
+        print(f"contracts/ created: the module that holds every contract (owner {owner}, criticality high).")
+    (folder / "v1").mkdir(parents=True)
+    (folder / "v1" / "README.md").write_text(CONTRACT.format(name=name), encoding="utf-8")
+    print(f"Contract created: contracts/{name}/v1.")
+    steps = [f"contracts/{name}/v1/README.md: what it promises, what it carries, an example",
+             f"The producer's MANIFEST.yaml: a `provides` entry for contracts/{name}/v1",
+             "Each consumer's MANIFEST.yaml: a `consumes` entry, with the version it reads",
+             "contracts/tests/: the contract's tests, run on both sides (.nstack/handbook/03-contracts.md §5)",
+             "Before the contract's first schema or test: commands.check and commands.test in "
+             "contracts/MANIFEST.yaml — fitness (M7) asks for them once the module holds more than pages",
+             "nstack fitness"]
+    for number, step in enumerate(steps, 1):
+        print(("\nNext steps:\n" if number == 1 else "") + f"  {number}. {step}")
+    return 0
+
+
 def price(criticality: str, user_facing: bool) -> list[str]:
     """What the chosen value requires, and what the value below would change — printed where the
     choice is made rather than discovered later (P6, D70). A reader who cannot see the neighbour

@@ -154,7 +154,7 @@ def test_no_issue_form_claims_what_a_deliverable_claims() -> None:
 def test_the_skeleton_creates_no_folder_before_its_moment() -> None:
     """An empty folder held by a placeholder says "something goes here" to a project that has
     nothing to put there yet — and reads, to whoever opens the repository, as the framework's
-    furniture. A folder is created by the first file that needs it. The one exception is a
-    module's own envelope: `contracts/` is a module, and a module holds `tests/`."""
+    furniture. A folder is created by the first file that needs it — the contracts module
+    included, since the first contract creates it."""
     kept = sorted(path.relative_to(SKELETON).as_posix() for path in SKELETON.rglob(".gitkeep"))
-    assert kept == ["contracts/tests/.gitkeep"], f"folders created empty: {kept}"
+    assert kept == [], f"folders created empty: {kept}"
