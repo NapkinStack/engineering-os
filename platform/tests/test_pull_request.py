@@ -8,11 +8,12 @@ from __future__ import annotations
 import datetime
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 import yaml
 
-from napkinstack import cli
+from napkinstack import cli, pull_request
 from test_guardrails import VALID, degrade, write_module
 from test_plan import CHARTER, cycle, deliverable, framed, write
 
@@ -413,3 +414,69 @@ def test_every_judging_run_names_the_stage(tmp_path, capsys, monkeypatch, prepar
     assert ("unframed" in output) == unframed, output
     if prepare is None:
         assert "Project " not in output, output      # a repository that is no project has no stage
+
+
+# --- What two verifier sessions found (D93) ---
+# Measured on 2026-10-12, on the third project: the check answered "compliant" and nothing of
+# what it had read; a change whose agent commits named no session was refused only once a
+# session had run the whole sheet; and the playbook sent a library's verifier to a verb the
+# module did not declare.
+
+def agent_change(tmp_path, trailer: str | None) -> tuple[str, str]:
+    base, _ = change(tmp_path, USER_FACING)
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("page, fixed\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    subprocess.run(["git", "commit", "-q", "-m", "fix", *(["-m", trailer] if trailer else [])], cwd=tmp_path,
+                   env={**os.environ, **IDENTITY, "GIT_AUTHOR_EMAIL": AGENT}, check=True)
+    return base, git(tmp_path, "rev-parse", "HEAD")
+
+
+def test_the_check_says_what_it_read_of_the_sheet(tmp_path, capsys, monkeypatch):
+    base, head = agent_change(tmp_path, "Agent-Session: author-1")
+    monkeypatch.setenv("PR_AUTHOR", "napkinstack-agent[bot]")
+    assert check(tmp_path, base, head, sheet(PASSED, HUMAN, verifier="session verifier-7"), monkeypatch) == 0
+    output = capsys.readouterr().out
+    assert "Read: 2 scenario(s) — 1 passed, 1 not verified; verifier: session verifier-7" in output, output
+    assert "session(s) of the change" in output and "NOTE" not in output, output
+
+
+def test_a_change_no_session_could_verify_is_said_before_one_tries(tmp_path, capsys, monkeypatch):
+    """With a person as verifier nothing is refused — and the author learns now, not after a
+    session has run the sheet, that none could sign it."""
+    base, head = agent_change(tmp_path, None)
+    monkeypatch.setenv("PR_AUTHOR", "napkinstack-agent[bot]")
+    assert check(tmp_path, base, head, sheet(PASSED, verifier="@dana"), monkeypatch) == 0
+    output = capsys.readouterr().out
+    assert "NOTE: an agent's commits name no session" in output and "only a person can verify" in output, output
+    assert "a commit added now does not name the earlier ones" in output, output
+    assert check(tmp_path, base, head, sheet(PASSED, verifier="session verifier-7"), monkeypatch) == 1
+    refused = capsys.readouterr().out
+    assert "FAIL [T2]" in refused and "or have a person run the sheet" in refused, refused
+
+
+def test_the_verifiers_remarks_have_a_line_and_are_not_the_verifier(tmp_path, capsys, monkeypatch):
+    base, head = agent_change(tmp_path, "Agent-Session: author-1")
+    body = sheet(PASSED, verifier="@dana").replace(
+        "\n## Summary", "\nVerifier's remarks: S1 passed by a probe of mine, not by the test cited\n\n## Summary")
+    assert pull_request.read_sheet(body)[0] == "@dana"
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+    skeleton = Path(__file__).resolve().parents[2] / "skeleton"
+    assert "\nVerifier's remarks: <" in (skeleton / ".github/pull_request_template.md").read_text(encoding="utf-8")
+    playbook = (skeleton / ".nstack/playbooks/verification.md").read_text(encoding="utf-8")
+    for needed in ("**`Verifier's remarks:`**", "its `test` verb when it declares no `e2e`", "has\n   nothing to start"):
+        assert needed in playbook, needed
+
+
+def test_a_commit_whose_tree_is_the_heads_is_the_head_for_a_sheet(tmp_path, capsys, monkeypatch):
+    """Merging the default branch into a pull request that already carried it changes a hash
+    and no file: the sheet is not sent back for it. One file changed, and it is."""
+    base, verified = agent_change(tmp_path, "Agent-Session: author-1")
+    git(tmp_path, "commit", "-q", "--allow-empty", "-m", "Merge the default branch: nothing new")
+    head = git(tmp_path, "rev-parse", "HEAD")
+    body = sheet(("S1", "Given a user, when they sign in, then the session opens", "automated", "passed",
+                  "https://ci.example/run/1", verified[:7]), verifier="@dana")
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("page, changed again\n", encoding="utf-8")
+    git(tmp_path, "commit", "-q", "-am", "a change after the verification")
+    assert check(tmp_path, base, git(tmp_path, "rev-parse", "HEAD"), body, monkeypatch) == 1
+    assert "FAIL [T4]" in capsys.readouterr().out
