@@ -67,7 +67,7 @@ the flow that happens in silence.
 ## Prior art
 
 > **Mandatory section.** Minimum two named references.
-> (`skeleton/docs/os/06-decisions.md` §2)
+> (`skeleton/.nstack/handbook/06-decisions.md` §2)
 
 **How is this problem solved elsewhere?**
 

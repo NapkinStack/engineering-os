@@ -5,31 +5,9 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.7.0, published** ([PyPI](https://pypi.org/project/napkinstack/)): what the
-> framework announces, it refuses — and what it cannot refuse, it says. The boundaries read the
-> contracts a module uses, a contract version someone relies on changes only with a proof that
-> runs in the base's tree, the module checks and stale approvals are enforced, a verifier is not
-> an author, and every verdict names the framework that gave it. Since v0.6.0, a document still
-> holding its template's words is refused, a deprecated module's consumers are named with their
-> removal date, and a contract change runs the checks of both sides — the producer and every
-> declared consumer. The diagnosis says whether anything refuses at all; a record names what
-> reached the default branch outside a pull request, and never refuses it. Since v0.6.2, each
-> version's notes are published, engine and project apart, and an update names every version it
-> crosses. Since v0.7.0 (**M11**), the framework charges what a failure costs, and nothing more
-> ([PDR-0011](docs/pdr/0011-ceremony-follows-consequence.md)) — four criticality values, four
-> regimes, each price stated before it is paid — and a project's tree is the project's
-> ([PDR-0012](docs/pdr/0012-a-project-s-tree-is-the-project-s.md)): the framework's files live
-> in `.nstack/`, and the front page is the project's own. Three real projects have run on the
-> framework; the third was created, framed and updated on what became this version.
-> Tracking: [engine roadmap](docs/governance/plans/2026-09-15-engine-v0.1.0.md),
-> [move to English](docs/governance/plans/2026-09-16-english-migration.md),
-> [frame, verify, approve](docs/governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
-> [every barrier refuses](docs/governance/plans/2026-09-19-v0.4.0-every-barrier-refuses.md),
-> [a proof that cannot be rewritten](docs/governance/plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md),
-> [the conformance suite](docs/governance/plans/2026-09-20-m12-conformance-suite.md),
-> [what is announced refuses](docs/governance/plans/2026-09-20-v0.6.0-what-is-announced-refuses.md),
-> [ceremony follows consequence](docs/governance/plans/2026-09-23-m11-ceremony-follows-consequence.md),
-> [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
+> **Status: v0.7.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
+> What each version changes, engine and project apart: [`CHANGELOG.md`](CHANGELOG.md).
+> What is open: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
 ## A project's journey
 
@@ -113,11 +91,13 @@ Each project then pins its version and changes it through `nstack update`.
 |---|---|
 | `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, GitHub checklist |
 | `nstack doctor` | Checks the workstation and the GitHub settings, read-only |
+| `nstack settings` | Prints the calls that would bring the GitHub settings to the checklist; changes nothing |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
+| `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
 | `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures |
-| `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene |
+| `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene — each also runs alone: `manifests`, `boundaries`, `skills`, `plan`, `hygiene` |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |

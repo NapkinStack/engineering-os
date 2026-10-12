@@ -78,7 +78,7 @@ generated project; among those, the three-way merge is the reference.
 - Description: generate the versions and call `git merge-file` ourselves.
 - Advantages: no dependency.
 - Drawbacks: reimplements Copier, edge cases included (deleted files, renames, skipped
-  versions). Fails the proportionality filter (`skeleton/docs/os/06-decisions.md` §3).
+  versions). Fails the proportionality filter (`skeleton/.nstack/handbook/06-decisions.md` §3).
 
 ### Option 4 — Do nothing
 - Copy by hand: contrary to PDR-0001, which exists to get out of frozen copies.
@@ -148,7 +148,7 @@ Copier; the skeleton is extracted into a subfolder; `new-module.sh` is kept.
 
 **Rule to automate:** no new check. The refusal of "unsafe" features is native (Copier
 exits with code 4) and will be exercised by the project generation test in NapkinStack's
-CI, planned in the implementation plan. `skeleton/docs/os/07-governance.md` §2
+CI, planned in the implementation plan. `skeleton/.nstack/handbook/07-governance.md` §2
 
 ---
 

@@ -13,11 +13,14 @@ runbook, tests and configuration.
 | Path | Role |
 |---|---|
 | `src/napkinstack/fitness/` | The architecture checks, not bypassable |
-| `src/napkinstack/modules.py` | Module creation and the standard verbs read from its MANIFEST |
-| `src/napkinstack/templates/module/` | A module's template, with no imposed stack |
+| `src/napkinstack/modules.py` | Module and contract creation, and the standard verbs read from a MANIFEST |
+| `src/napkinstack/templates/` | A module's template, with no imposed stack, and the contracts module's |
 | `src/napkinstack/skills.py` | Generates the Claude Code skills from the playbooks |
 | `src/napkinstack/project.py` | Project creation and update, through Copier |
 | `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
+| `src/napkinstack/settings.py` | `nstack settings`: the calls that would close each gap, printed |
+| `src/napkinstack/assurance.py` | What each criticality requires: the matrix, as data |
+| `src/napkinstack/landed.py` | `nstack landed`: what reached a branch outside a pull request |
 | `src/napkinstack/provenance.py` | Which framework judges: published, or not — said on every judging run (PDR-0005) |
 | `src/napkinstack/pull_request.py` | The rules read from the pull request description: test sheet, cycle |
 | `src/napkinstack/fitness/plan.py` | The discovery, the charter and the cycles |
@@ -31,6 +34,8 @@ runbook, tests and configuration.
 | `tests/test_compat.py` | Rule V1: one failing case per way to break it |
 | `tests/test_provenance.py` | The line naming the framework; `doctor` L1 and L7 on an unpublished one |
 | `tests/test_plan.py`, `tests/test_discovery.py` | Rules C: one failing case per rule; `nstack discover` |
+| `tests/test_seats.py`, `test_levels.py`, `test_playbooks.py`, `test_identifiers.py` | What the skeleton promises a project: its seats, its levels of rules, its playbooks, no identifier of this repository |
+| `tests/test_contracts.py`, `test_modules.py`, `test_project.py`, `test_landed.py`, `test_assurance_contract.py` | One file per command of the same name; the last binds the matrix's three descriptions |
 
 ## Fitness functions
 
@@ -39,11 +44,11 @@ runbook, tests and configuration.
 | `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
 | `nstack boundaries` | B1-B8: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
-| `nstack plan` | C1-C7: charter, cycles, deliverables, closures, discovery |
+| `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
-| `nstack doctor` | L1-L7, G1-G16: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
+| `nstack doctor` | L1-L3, L6, L7 and G1-G18: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene
@@ -53,6 +58,8 @@ uv run nstack init <folder>                # creates a project (PDR-0001)
 uv run nstack update                       # updates a project, on a branch to review
 uv run nstack doctor --root <project>      # workstation and GitHub settings, read-only
 uv run nstack new-module <name> <owner> <criticality> --root <project>
+uv run nstack new-contract <name> --root <project>
+uv run nstack settings --root <project>     # the calls that would close the gaps, printed
 uv run nstack check [module] --root <project>   # also test, bootstrap, e2e; run <module>
 ```
 

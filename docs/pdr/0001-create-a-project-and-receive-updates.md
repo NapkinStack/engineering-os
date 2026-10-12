@@ -155,7 +155,7 @@ right. `doctor` reads the settings with a read-only token supplied by the human;
 token, the GitHub part is reported as not verified.
 
 **Acceptance criteria** *(the implementation's oracle,
-`skeleton/docs/os/05-workflow.md` §3; the 2026-09-15 prototype validated the mechanism, see
+`skeleton/.nstack/handbook/05-workflow.md` §3; the 2026-09-15 prototype validated the mechanism, see
 "Validation")*:
 
 - [ ] Given a workstation with only uv and git, when the tech lead runs `init`, then the
@@ -213,8 +213,7 @@ Copier's errors translated into explanatory messages (P6).
 **On published versions (2026-09-16).** `nstack update` carried a project from v0.1.0 to
 v0.2.0: criteria 5 and 7 confirmed; 6 confirmed for a file that keeps its name, while a
 file renamed between the two versions comes back under its new name; 4 not exercised,
-since v0.2.0 translated the whole skeleton. Details:
-[the M7 plan](../governance/plans/2026-09-16-english-migration.md) §7.
+since v0.2.0 translated the whole skeleton.
 
 **From v0.2.0 to v0.3.0 (2026-09-17).** Criterion 4 exercised on published versions: the
 team's README sentence and `AGENTS.md` section kept, merged with the new version without a
@@ -222,8 +221,7 @@ conflict; `CODEOWNERS` gains its default owner above the team's module line; cri
 confirmed. The update pull request then fails `pr-check` T1 — the new version changes
 `contracts/`, of criticality high — a defect (D24) to settle before the pilot's first
 update. Settled in v0.3.1: a v0.2.0 project updated to v0.3.1, both published, opens an
-update pull request that passes `pr-check` with no label and no sheet. Details: [the M8 plan](../governance/plans/2026-09-16-v0.3.0-frame-verify-approve.md),
-§Release.
+update pull request that passes `pr-check` with no label and no sheet.
 
 ---
 
@@ -246,7 +244,7 @@ checklist depend on the repository's visibility and on the GitHub plan.
 
 - A project may be private; GitHub remains the only forge.
 - The "not bypassable" promise requires a public repository, or a private one under GitHub
-  Team (organisation) or Pro (personal account). The foundation manual, `docs/os/INSTALL.md`
+  Team (organisation) or Pro (personal account). The foundation manual, `.nstack/handbook/INSTALL.md`
   since PDR-0010, states it in its prerequisites.
 - `nstack doctor` follows the repository's visibility: private reporting is "not
   applicable" outside a public repository; a setting missing from a private repository
@@ -270,7 +268,7 @@ personal GitHub account has no team: one person working alone could not answer.
   project has no organisation; its name stays, so that no update has a question to migrate.
   `CODEOWNERS` names either; `nstack new-module` accepts either.
 - Several teams remain the framework's target: a module's owner stays a team whenever an
-  organisation exists (`docs/os/02-modules.md` §5).
+  organisation exists (`.nstack/handbook/02-modules.md` §5).
 
 ---
 

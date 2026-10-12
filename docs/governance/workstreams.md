@@ -1,56 +1,31 @@
 # Workstreams
 
-> The foundation's identified defects, in the order they are dealt with.
+> What is open, then the record every defect number resolves to.
 > **One workstream = one pull request.** Never merge two together.
 >
-> Product context: [`PRODUCT.md`](../../PRODUCT.md). Invariants: `PRODUCT.md` §4.
+> Product context: [`PRODUCT.md`](../../PRODUCT.md). Invariants: `PRODUCT.md` §4. What each
+> version changed: [`CHANGELOG.md`](../../CHANGELOG.md).
 
-## Sequence
+## Open
 
-```mermaid
-flowchart LR
-    S0["Step 0<br/>GitHub settings"]:::done --> C0["C0<br/>CI green on<br/>a fresh clone"]:::done
-    C0 --> C01["C0.1<br/>hooks and secrets"]:::done
-    C01 --> C02["C0.2<br/>workflow<br/>security"]:::done
-    C02 --> C03["C0.3<br/>strict formats"]:::done
-    C03 --> PDR["PDR-0001<br/>accepted"]:::done
-    PDR --> A1["ADR-0001<br/>Copier, accepted"]:::done
-    A1 --> A2["ADR-0002<br/>PyPI, accepted"]:::done
-    A2 --> PT["Prototype<br/>validated"]:::done
-    PT --> RP["Engine v0.1.0<br/>published on PyPI"]:::done
-    RP --> M7["M7<br/>move to English<br/>ADR-0003"]:::done
-    M7 --> V2["Engine v0.2.0<br/>published on PyPI"]:::done
-    PT --> A4["ADR-0004<br/>agent identity<br/>accepted"]:::done
-    PT --> P3["PDR-0003<br/>test sheet<br/>accepted"]:::done
-    PT --> P2["PDR-0002<br/>frame and bound<br/>accepted"]:::done
-    A4 --> M8["M8<br/>frame, verify, approve"]:::done
-    P3 --> M8
-    P2 --> M8
-    V2 --> M8
-    M8 --> V3["Engine v0.3.0<br/>published on PyPI"]:::done
-    V3 --> D24["D24<br/>what changes a module<br/>v0.3.1 published"]:::done
-    D24 --> M9["M9<br/>team-mode validation<br/>public, one cycle"]:::done
-    M9 --> M10["M10<br/>every barrier refuses<br/>v0.4.0"]:::done
-    M10 --> V50["v0.5.0<br/>V1 proved from the base<br/>a repository nothing guards"]:::done
-    V50 --> V60["v0.6.0<br/>what is announced refuses<br/>the documents say the truth"]:::done
-    V60 --> PP["Pilot project<br/>public, running"]:::wip
-    V60 --> V62["v0.6.1 · v0.6.2<br/>release notes<br/>engine and project apart"]:::done
-    V62 --> M11["M11<br/>ceremony follows<br/>consequence · v0.7.0"]:::wip
-    M11 --> M12["M12<br/>conformance suite<br/>every barrier attacked"]:::todo
-    M12 --> M13["M13<br/>the merge record<br/>PDR-0009"]:::todo
-    PP -.->|"evidence"| M13
+| # | What | Waits for |
+|---|---|---|
+| M11r | The forge's settings **applied** by `nstack settings` (PDR-0008, criteria 2, 3 and 7), and D57 — [what is left of the plan](plans/m11r-the-settings-applied.md) | A probe on the real forge, with two tokens only the maintainer can create |
+| v0.7.0 | `tool-library` and the pilot take the version themselves; what they meet is recorded here | The pilot's cycle boundary, 2026-10-15 |
+| M12 | The conformance suite: every barrier attacked at each release — [plan](plans/m12-conformance-suite.md) | Scheduling |
+| M13 | The merge record (PDR-0009), and the checklist mapped to an external baseline (D69) | Twenty of the pilot's pull requests — satisfiable since 2026-09-23 |
+| D80 | A CI job named by an unresolved expression | Left open on purpose: both ways out cost more than the defect |
+| D76 | An owed row gets forgotten | Measured before judged: PDR-0011's criterion is where a pattern would show |
+| D49 | The verifier's verdict as a check the ruleset requires | The verifier's own App (ADR-0004) |
+| D34 | What is left of the ten findings of M9 | See its row |
+| D9, D23, D43, D48, C2, C4 | Checks nobody has needed yet | A project that hits them |
 
-    classDef done fill:#065f46,color:#fff
-    classDef wip fill:#1e3a8a,color:#fff
-    classDef partial fill:#92400e,color:#fff
-    classDef todo fill:#374151,color:#fff
-    classDef blocked fill:#7c2d12,color:#fff
-```
+## The record
 
-**Legend** — green: done · blue: in progress · orange: partial · grey: to do · red:
-waiting on a decision.
+Every row a commit, a decision or the changelog cites by its number. A closed row is kept so
+that its number resolves; it is not a plan.
 
-| # | Workstream | Status |
+| # | Workstream or defect | Status |
 |---|---|---|
 | 0 | GitHub settings (outside the repository) | Done |
 | C0 | CI green on a fresh clone | Done |
@@ -62,17 +37,17 @@ waiting on a decision.
 | ADR-0002 | [Distribute NapkinStack on PyPI](../adr/0002-distribute-napkinstack-on-pypi.md) | Accepted (2026-09-15), verified at the v0.1.0 release |
 | Prototype | Throwaway, validates PDR-0001's acceptance criteria | Done (2026-09-15), never merged |
 | ADR-0003 | [Adopt English as the repository language](../adr/0003-adopt-english-as-the-repository-language.md) | Accepted (2026-09-16), criterion observed at the v0.2.0 to v0.4.0 releases; **shrunk to the rule in force on 2026-09-24** (M11h) — the migration it decided lives in the M7 plan and in git |
-| M7 | Moving the repository to English, through to v0.2.0 — [plan](plans/2026-09-16-english-migration.md) | Done (2026-09-16): M7a to M7d, v0.2.0 published |
-| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot — [plan](plans/2026-09-16-v0.3.0-frame-verify-approve.md) | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 done with M9's Task 0 |
+| M7 | Moving the repository to English, through to v0.2.0 | Done (2026-09-16): M7a to M7d, v0.2.0 published |
+| M8 | Frame, verify, approve: ADR-0004, PDR-0003, PDR-0002, through to v0.3.0 and the pilot | Done (2026-09-17): M8.0 to M8f, v0.3.0 published; M8f task 3 done with M9's Task 0 |
 | ADR-0004 | [Give agents their own GitHub identity, behind a human approval](../adr/0004-give-agents-their-own-github-identity.md) | Accepted (2026-09-16); applied to this repository (M8f, 2026-09-17), criterion observed in the pilot project; clarified 2026-09-19: who verified (D32), an approval covers what it read (D31); clarified 2026-09-20: two powers, never in the same hand (PDR-0008); who approves a module corrected 2026-09-24 |
 | PDR-0002 | [Frame and bound a project](../pdr/0002-frame-and-bound-a-project.md) | Accepted (2026-09-16), clarified: delivery work, extended: discovery; applied by M8, prototyped on the pilot's framing |
 | PDR-0003 | [Approve a change on evidence of its behaviour](../pdr/0003-approve-a-change-on-evidence-of-its-behaviour.md) | Accepted (2026-09-16), clarified: what changes a module; applied by M8, measured in the pilot project; **measured on the pilot, recorded 2026-09-24** — the rule unchanged |
-| D24 | What changes a module: an update is neither delivery work nor a reason for a sheet, through to v0.3.1 — [plan](plans/2026-09-17-v0.3.1-what-changes-a-module.md) | Done (2026-09-17): v0.3.1 published, an update pull request passes |
+| D24 | What changes a module: an update is neither delivery work nor a reason for a sheet, through to v0.3.1 | Done (2026-09-17): v0.3.1 published, an update pull request passes |
 | D25 | `doctor` G12 fails with "remove every bypass actor" when **no ruleset** applies to `main`: there is no actor to remove, and the action that fits is G1's, creating the ruleset (P6). Found in M9's Task 2 | v0.4.0: **M10f** — G12 names the ruleset to create |
 | D26 | The checklist asks for four required checks, but GitHub only offers a check it has already seen: `Test sheet and cycle` and `PR scope and review budget` run on pull requests only, so a fresh repository cannot select them. Unblocked by opening a first pull request. Found in M9's Task 2 | v0.4.0: **M10f** — said in G4's action and in the skeleton README |
 | D27 | A plan carried the author's home directory four times, once in a block meant to be copy-pasted: it names a folder no other machine has, and publishes the locale and the layout of the workstation it was written on. The leak review was a human `grep`, and `gitleaks` looks for secrets, not for a home directory. Found by the maintainer reviewing pull request #50 (M9's Task 3) | v0.4.0 (merged before M10, unreleased until then): rule **H1** in `nstack hygiene`, inside `nstack fitness`, which the skeleton's own workflow already runs — every generated project inherits it |
 | D28 | `decider` is checked for being non-empty only, while the charter template writes `"@<github-handle>"` and C2's own message promises a GitHub handle (P6): a charter copied from the template and never filled in goes green, and so does a team where a decision needs one owner. Found reviewing how PDR-0004 lands, whose third rule reads the recipient rather than guessing it | v0.4.0 (merged before M10, unreleased until then): C2 and C7 require one person's handle, the rule defined once beside `OWNER` |
-| M9 | Team-mode validation: the pilot rehearsed on a public subject, two teams, one cycle, drift probes, before paying for GitHub Team — [plan](plans/2026-09-17-team-mode-validation.md) | **Done (2026-09-19)**: one cycle end to end in a day, 0 sync events during the work, review median 10 min, 9 of 11 probes refused. Exit decision **fix first**: the pilot waits for the version that closes D29 to D33 |
+| M9 | Team-mode validation: the pilot rehearsed on a public subject, two teams, one cycle, drift probes, before paying for GitHub Team | **Done (2026-09-19)**: one cycle end to end in a day, 0 sync events during the work, review median 10 min, 9 of 11 probes refused. Exit decision **fix first**: the pilot waits for the version that closes D29 to D33 |
 | D29 | **The boundary rules are blind to a contract dependency — the only one the framework allows between modules.** `boundaries` builds the real graph from import lines, so a contract consumer imports nothing: `B1` accepts an undeclared dependency (probe P3, every check green), `B2` is walked around by a path manipulation (probe P2, `fitness` exits 0), `B4` warns on a real one. `docs/os/02-modules.md` promises the declared graph is compared with the real one; for this boundary it is not. Found in M9 | v0.4.0: **M10c** — the real graph is the contracts a module's files read, and any reference to another module's code is B2; B6 and B7 confront `consumes` and `provides` |
 | D30 | **No check refuses a breaking change to a published contract version.** Renaming a required field of `v1` in place, producer edited to match, passes every fitness rule (probe P4). Caught only by the producer's own `e2e`, and only because those scenarios read the contract's examples. Found in M9 | v0.4.0: **M10d** — `nstack compat`, V1: a version consumed or stable changes only with the project's merged comparator |
 | D31 | **Nothing requires GitHub's *Dismiss stale pull request approvals*.** An approval survives a force-push; only the agent's own `--match-head-commit` stood between an approval and content its approver never read. Enabled on both repositories on 2026-09-18; a generated project still ships with the hole open and `doctor` reports it compliant. Found in M9 | v0.4.0: **M10f** — checklist rule **G13** and its `doctor` check |
@@ -94,8 +69,8 @@ waiting on a decision.
 | D47 | **Two wordings that misdirect.** K1 says "the project is not framed: no accepted charter and cycle" when the charter is accepted and only the next cycle is missing, and sends the reader to the framing playbook; `new-module`'s next steps repeat it. The `Module checks` step still says "Every touched module passed" where v0.4.0 says "changed" (D42's wording). Found in M10h (#31, P14) | **Done in v0.5.0**: K1 names which of the two is missing; the workflow says "changed" |
 | D48 | **`setup-uv` pins no `uv` version in the skeleton's workflows.** It installs the latest, so a project whose modules run `uv run --locked` depends on a release nobody chose: a `uv` that writes locks differently turns the modules red with no change in the project. Found in M10h (#33), where the locks were written by 0.12.14 and CI ran 0.12.17 | After the pilot, if its modules lock with `uv` — a lock file is the project's stack (P1), and the workflow is the framework's |
 | D49 | **T2 cannot see a verifier launched by the author's session.** It compares declared names with the change's authors and the sessions their trailers name; a verifier subagent with a fresh context, its own identifier and the brief alone passes — which is what ran on #31 and #33, disclosed in each pull request's risks. Found in M10h | With the verifier's own App, which ADR-0004 already schedules: from then the verdict is a check the ruleset requires from that App. Until then, declared in the pull request. **Measured on the pilot (2026-09-22)**: it refused a sheet at every module change, and the project answered by ADR — a delegated verifier signs under its own agent identifier, never the parent's — which is consistent with what T2 claims to be, a declaration checked against the history. Its five rounds on one deliverable are the first real figures on the question `05-workflow.md` §7 leaves open: **8 real defects found, 2 of which the author would have shipped**, 3 refusals to merge, 5 of the author's fixtures shown to prove nothing, 4 of the author's measurements disproved |
-| M10 | **Every barrier the framework announces refuses**: D29 to D33, D35, D25 and D26, and PDR-0005, through to v0.4.0, proved on `tool-library` before the pilot — [plan](plans/2026-09-19-v0.4.0-every-barrier-refuses.md) | **Done (2026-09-19)**: M10a to M10g merged; the review before the tag found D36 to D43, fixed by #67 and #68; v0.4.0 published, tag on `486be72`, verified on published artefacts; M10h paid the update on `tool-library` (#31 to #33) and replayed the probes — **8 of 8 did what v0.4.0 promises**, `doctor` compliant. Exit decision **fix first**: D44 to D47 before the pilot, shipped in v0.5.0 with PDR-0006 |
-| v0.5.0 | **V1 cannot be walked around, and a repository nothing guards is served honestly**: D44 to D47, PDR-0006 and ADR-0002's clarification — [plan](plans/2026-09-20-v0.5.0-a-proof-that-cannot-be-rewritten.md) | **Done (2026-09-20)**: five workstreams merged (#74 to #78), **v0.5.0 published**, tag on `309fd21`, verified on published artefacts — including the forge channel and an update of `tool-library` that asked for no adaptation at all. Next: the pilot, and M11 beside it |
+| M10 | **Every barrier the framework announces refuses**: D29 to D33, D35, D25 and D26, and PDR-0005, through to v0.4.0, proved on `tool-library` before the pilot | **Done (2026-09-19)**: M10a to M10g merged; the review before the tag found D36 to D43, fixed by #67 and #68; v0.4.0 published, tag on `486be72`, verified on published artefacts; M10h paid the update on `tool-library` (#31 to #33) and replayed the probes — **8 of 8 did what v0.4.0 promises**, `doctor` compliant. Exit decision **fix first**: D44 to D47 before the pilot, shipped in v0.5.0 with PDR-0006 |
+| v0.5.0 | **V1 cannot be walked around, and a repository nothing guards is served honestly**: D44 to D47, PDR-0006 and ADR-0002's clarification | **Done (2026-09-20)**: five workstreams merged (#74 to #78), **v0.5.0 published**, tag on `309fd21`, verified on published artefacts — including the forge channel and an update of `tool-library` that asked for no adaptation at all. Next: the pilot, and M11 beside it |
 | PDR-0004 | [Ask the right question, to the right person, at the right moment](../pdr/0004-ask-the-right-question-to-the-right-person.md) | Accepted (2026-09-18): the direction only — stage derived from the checks, hats in playbooks, recipient read from the project. Its criterion is met on M9's log. **Built in part by M11**: M11c routes the criticality to the decider; **M11j** builds the first axis, the stage (PDR-0007) |
 | Audit 2026-09-20 | An external expert audited the public repository against the 2026 field; its claims were re-read against the code and the market re-verified from the products' own documentation — [note](audits/2026-09-20-external-audit.md) | Read and placed (2026-09-20): what was already true, what was wrong against the code, what is taken (M11, M12, M13, PDR-0007 to PDR-0009) and what is dated or refused with its reason |
 | D50 | **A refusal named an action rather than a command.** `nstack update` run by an engine older than the project refused with *"use nstack X.Y.Z or newer"*; the maintainer then tried `uv tool upgrade napkinstack`, which does nothing on an install pinned to an exact version — uv says so in a hint, the framework said nothing. Invariant P6 asks for the action, and an action a reader cannot copy is a description. Found in real use on 2026-09-20, moving `tool-library` to v0.5.0 | **Done (2026-09-20)**: the refusal carries the command that moves a workstation forward; it ships with the next version |
@@ -137,16 +112,16 @@ waiting on a decision.
 | D86 | **For a project pinned to an unpublished commit, the update's release notes are a dead link.** `nstack update` prints `…/blob/v0.6.2-21-g3418c56/CHANGELOG.md`: the name is how the version is described, not a reference the forge knows. Seen on the third project, 2026-10-12 | **Done (M11v, 2026-10-12)**: the link names the commit inside the description; a published tag stays a tag |
 | D87 | **The framer proposed a criticality below the one the handbook's own rule gives.** Framing the third project, the agent proposed `high` for the module that holds other people's voices; the handbook says a module that touches someone's personal data is `critical`. It corrected itself only because the price table was open for another question. Nothing sends whoever frames to that sentence before proposing a value | **Done (M11v, 2026-10-12)**: the framing playbook says to read the rule first, to propose what it says, and to write a lower value as a deviation with its reason and the event that ends it — which is what the decider then did |
 | D88 | **The update's own pull request was refused, for a comment.** Rehearsing v0.7.0 on a copy of the second project on 2026-10-12: the update rewrote an old address in comments of two modules' code and in a contract's schema, so its pull request changed three modules — refused on P1, and owing a test sheet with an independent verifier for each (T1). On the pilot's copy, whose modules name the handbook in their descriptions only, nothing fired | M11i: **done** — the update leaves a module's code as written and names each file, for that module's next pull request; a contracts module the merge took away is restored before the addresses are read. Both seen red in the oracle; on fresh copies, the second project's update changes no module |
-| v0.6.0 | **What is announced refuses, and the documents say what is true**: D51 to D54, and the documentary lot of the internal audit — [plan](plans/2026-09-20-v0.6.0-what-is-announced-refuses.md) | **Done (2026-09-20)**: five workstreams merged (#83, #84, #85, #86, #87), **v0.6.0 published**, tag on `8ae544c`, verified on published artefacts — including an update of `tool-library` from v0.5.0, 9 files and no conflict, still compliant. Found doing it: D55. Next: the pilot, and M11 beside it |
+| v0.6.0 | **What is announced refuses, and the documents say what is true**: D51 to D54, and the documentary lot of the internal audit | **Done (2026-09-20)**: five workstreams merged (#83, #84, #85, #86, #87), **v0.6.0 published**, tag on `8ae544c`, verified on published artefacts — including an update of `tool-library` from v0.5.0, 9 files and no conflict, still compliant. Found doing it: D55. Next: the pilot, and M11 beside it |
 | PDR-0007 | [Frame a project when framing buys something](../pdr/0007-frame-a-project-when-framing-buys-something.md) | **Accepted (2026-09-22)**: a project with no accepted charter is **unframed**, the cycle rules K1 to K3 do not apply there, everything else does, and every judging run names the state. Measured: today a first delivery pull request hits `K1` with no way out but a justified label on each one. Planned for **M11**; criterion 2027-03-31. **Not carried by M11's first plan**, although all three records said M11: found by M11h, and scheduled on 2026-09-24 as **M11j**, before v0.7.0. |
 | PDR-0008 | [Configure the repository in one gesture, without handing over the keys](../pdr/0008-configure-the-repository-in-one-gesture.md) | **Accepted (2026-09-22)**, and it absorbs D61: the thirteen forge settings become one plan-aware gesture that only ever strengthens; printed by default, applied by an agent only with a credential that **cannot commit**, which the command verifies before acting (ADR-0004, clarified). Planned for **M11**; criterion 2027-03-31. **Not carried by M11's first plan**, although all three records said M11: found by M11h, and scheduled on 2026-09-24 as **M11k**, before v0.7.0. Its D61 half is done (M11f: G14, G15, G16); the command is not |
 | Pilot | **`NapkinStack/flet`, the first real project**, run by a session that knew nothing of this repository, with the maintainer as decider and this repository's agent as observer — public on the Free plan, where the whole checklist is available, rather than private on Team where G5 is paid and G6 does not exist | **Running since 2026-09-20**: discovery decided *go* after three rounds and two independent challenges, charter accepted; cycle 01 closed `stopped/reframed`, **cycle 02 closed** with two deliverables accepted and one deferred (its #27), **cycle 03 framed and approved** (#28, #30), which starts its first `critical` module; the framework taken to v0.6.1 by itself at the boundary (#29), v0.6.2 proposed (#31). It has produced D56 to D63, D68, D70 to D77, replicated D26 and D55, and measured D49 — the first figures on what an independent verifier finds (PDR-0003) |
 | PDR-0010 | [The framework imposes the form, the project writes the content](../pdr/0010-the-framework-imposes-the-form.md) | **Accepted (2026-09-22)**, proposed by the findings above. `00-overview.md` §5 already says the framework never names a stack, a tool or a business domain; D59, D60 and D61 are three places where it breaks its own rule. One decision covers what a README holds, what an issue carries against what a reviewed file carries, and what the framework may require of a product's documentation without writing it. **Not carried by M11's first plan**, although all three records said M11: found by M11h, and scheduled on 2026-09-24 as **M11l**, before v0.7.0. **Built on 2026-10-12**, and corrected in place the same day: four seats no update touches, a fourth rule in the standard — current, or deleted — and C8. |
 | PDR-0011 | [Ceremony follows consequence](../pdr/0011-ceremony-follows-consequence.md) | **Accepted (2026-09-24)**, proposed in M11h, recording what M11's plan decided and what its first six workstreams built: two axes, two owners — assurance per module, exposure per project — one matrix saying when, one round, the price shown before it is paid. Criterion 2027-03-31 |
 | PDR-0009 | [Say why a change may merge, and what that does not prove](../pdr/0009-say-why-a-change-may-merge.md) | Proposed (2026-09-20): one record per head commit, built from the verdicts the rules already produce, naming the three states and ending with what it does not prove. Verified on 2026-09-20 that nothing in the field produces such a record. Planned for **M13**; criterion 2027-06-30 |
-| M11 | **Ceremony follows consequence** (PDR-0011): the framework charges what a failure costs, per module and per project, and states each price before it is paid; with PDR-0004's routing, and PDR-0007, PDR-0008 and PDR-0010 — through to v0.7.0 — [plan](plans/2026-09-23-m11-ceremony-follows-consequence.md) | **In progress.** Planned 2026-09-23 (#98). Merged: **M11f** (#101), **M11a** (#102), **M11b** (#103), **M11d** (#104), **M11e** (#105), **M11c** (#106), **M11h** (#107), **M11g** (#108) closed by its probe — not clean, returned to M13; **M11m** (D68, D74, D75); **M11l** (PDR-0010, D59, D60); **M11n** (D79); **M11o** (PDR-0010 extended: every document has its moment); **M11p** (PDR-0002's three levels given a place: `docs/project/rules/`); **M11j** (PDR-0007: the unframed stage); **M11q** (no folder created empty; PDR-0012 proposed: a project's tree is the project's). **M11k** (PDR-0008's print mode: `nstack settings`; D77, D78). **M11s** (PDR-0012 accepted; the framework's files under `.nstack/`; an update carries what a project adapted); **M11u** (an update rewrites the old addresses a project wrote in its own files, D85). **M11t** (`nstack new-contract`: the contracts module is created by the first contract; PDR-0012 built in full); **M11v** (what the third project found: D81, D82, D83, D86, D87). **M11i**: v0.7.0 published 2026-10-12 (#125, D88). To do: **M11r** PDR-0008's apply mode and D57, after a probe on the real forge; the two earlier projects take v0.7.0 themselves, observed |
+| M11 | **Ceremony follows consequence** (PDR-0011): the framework charges what a failure costs, per module and per project, and states each price before it is paid; with PDR-0004's routing, and PDR-0007, PDR-0008 and PDR-0010 — through to v0.7.0 | **Published as v0.7.0 (2026-10-12).** Planned 2026-09-23 (#98). Merged: **M11f** (#101), **M11a** (#102), **M11b** (#103), **M11d** (#104), **M11e** (#105), **M11c** (#106), **M11h** (#107), **M11g** (#108) closed by its probe — not clean, returned to M13; **M11m** (D68, D74, D75); **M11l** (PDR-0010, D59, D60); **M11n** (D79); **M11o** (PDR-0010 extended: every document has its moment); **M11p** (PDR-0002's three levels given a place: `docs/project/rules/`); **M11j** (PDR-0007: the unframed stage); **M11q** (no folder created empty; PDR-0012 proposed: a project's tree is the project's). **M11k** (PDR-0008's print mode: `nstack settings`; D77, D78). **M11s** (PDR-0012 accepted; the framework's files under `.nstack/`; an update carries what a project adapted); **M11u** (an update rewrites the old addresses a project wrote in its own files, D85). **M11t** (`nstack new-contract`: the contracts module is created by the first contract; PDR-0012 built in full); **M11v** (what the third project found: D81, D82, D83, D86, D87). **M11i**: v0.7.0 published 2026-10-12 (#125, D88). To do: **M11r** PDR-0008's apply mode and D57, after a probe on the real forge; the two earlier projects take v0.7.0 themselves, observed |
 | Review 2026-09-24 | **A coherence pass after M11a to M11h**: four independent reads — the skeleton against the engine, this repository's records, the engine against itself, and a project generated and driven end to end | **Done (2026-09-24)**, in one pull request: the matrix's `critical` paragraph matched to its table, a test binding the table's machine rows to `assurance.MATRIX`, an unknown criticality named as read as critical in CI and in M8, the sheet's trigger stated alike everywhere, auto-merge said to be armed per pull request, a partial read of G14–G16 reported as not verified, and the records' stale states. D79 found and scheduled |
-| M12 | **The conformance suite**: every barrier attacked on purpose, replayed at each release, its result published with the version — [plan](plans/2026-09-20-m12-conformance-suite.md) | Planned (2026-09-20): the probes of M9 and M10h become a versioned suite |
+| M12 | **The conformance suite**: every barrier attacked on purpose, replayed at each release, its result published with the version — [plan](plans/m12-conformance-suite.md) | Planned (2026-09-20): the probes of M9 and M10h become a versioned suite |
 | M13 | **The merge record** (PDR-0009), and the checklist mapped to the OpenSSF OSPS Baseline's control identifiers | After the pilot's first cycle, which supplies the twenty pull requests its criterion measures — **satisfiable since 2026-09-23**: the pilot's cycle 02 closed with its measurements (its #27). The OSPS mapping **is back here**: M11g's probe found it not clean on 2026-09-24, and its table is M13's starting point — [record](audits/2026-09-24-osps-baseline-probe.md) |
 | PDR-0006 | [Work on a repository the forge cannot guard](../pdr/0006-work-where-the-forge-cannot-guard.md) | Accepted (2026-09-20): on a private repository under a free plan nothing can refuse — verified, and no permission, fork or key invents a barrier. The tool names the state, separates what is out of reach from what is not yet done, and records on every repository a commit that reached `main` outside a pull request. Implemented in v0.5.0; criterion 2027-03-31 |
 | PDR-0005 | [Work on the framework while using it, and never be judged in silence](../pdr/0005-work-on-the-framework-while-using-it.md) | Accepted (2026-09-18): the contributor's loop named in `CONTRIBUTING.md`; a project may pin an unpublished framework and can never be silent about being judged by one. ADR-0002 unchanged. Implemented in v0.4.0 (**M10g**); criterion 2027-03-31 |
@@ -156,286 +131,7 @@ waiting on a decision.
 | C4 | An oracle proxy | After the pilot project, if the need is observed |
 | C5 | Bootstrapping, `doctor` and branding | Handled by M2b and M3: `nstack init`, `nstack doctor` |
 
----
-
-## Step 0 — GitHub settings
-
-They are not versioned: every repository has to do them again. Since the move to an
-organisation, the Actions policies, 2FA and base permissions are set once for the whole
-`NapkinStack` organisation.
-
-| Setting | State |
-|---|---|
-| Secret Protection and push protection | Verified through the API (disabled by the transfer, re-enabled) |
-| Dependency graph and Dependabot alerts | Verified through the API |
-| Discussions enabled (the question channel of the issue forms) | Verified through the API |
-| Organisation: GitHub actions only, SHA pinning required, read-only token, approval for outside contributors | Verified through the API on the repository |
-| Organisation: 2FA required, no base permission, the `maintainers` team with write | Confirmed; team verified through the API |
-| Private vulnerability reporting | Verified through the API |
-| Workflow approval for every outside contributor | Confirmed |
-| Actions token read-only; Actions neither creates nor approves pull requests | Confirmed |
-| Allowed actions: GitHub's only | Confirmed |
-| Wiki disabled | Verified through the API |
-| Ruleset `main`: pull request required, force-push and deletion forbidden, squash only | Verified through the API |
-| Ruleset `main`: 1 approval, code owner review, empty bypass list (ADR-0004) | Verified through the API |
-| Ruleset `main`: stale approvals dismissed when new commits are pushed (G13) | Verified through the API (2026-09-18) |
-| GitHub App `napkinstack-agent`: installed on this repository only; Contents, Pull requests, Issues, Workflows write, Actions and Checks read, no Administration | Verified through the API |
-| Required checks `Fitness functions` and `PR scope and review budget` | Verified through the API |
-| Required check `Hooks and secrets` | Verified through the API |
-| SHA-pinned actions required | Verified through the API |
-
-## C0 — CI green on a fresh clone
-
-**Defect.** `main` red from the first push: S3 requires gitignored skills, which are
-therefore absent in CI. `pr_scope.sh` committed without its executable bit (exit 126). The
-guardrail tests do not run in CI.
-
-**Target.** S3 not applicable without `.claude/skills/`, and still blocking as soon as a
-skill is generated. Shebang scripts at `100755`. `platform/tests/run.sh` inside the
-`Fitness functions` job.
-
-## C0.1 — Hooks and secrets
-
-**Defect.** No local barrier before publication; the `secrets` job is a sham.
-
-**Target.** The [pre-commit](https://pre-commit.com) framework: gitleaks,
-`detect-private-key`, `check-added-large-files`, `check-merge-conflict`, shebang checks.
-The same configuration runs in CI (P3), plus gitleaks over the pushed commits.
-
-The failure test generates the fake secret at run time: written literally, it would
-trigger push protection. Replaces C3, because pre-commit refuses to install when
-`core.hooksPath` is set.
-
-**Traps handled.** The official gitleaks hook only scans staged changes, empty in CI: CI
-skips it and runs a local hook that scans the whole history. Output redacted
-(`--redact`), because CI logs are public. Dependabot updates the gitleaks hook but not the
-history scan: a test blocks the pull request while the two versions diverge (proven on
-PR #5, v8.30.0 → v8.30.1).
-
-## C0.2 — Workflow security
-
-**Defect.** Injection possible: `${{ matrix.module }}`, coming from the pull request's
-paths, is inserted into `run:`. No `permissions:`. Actions referenced by a mutable tag. A
-token left in `.git/config`. `SECURITY.md` with no reporting channel. Local agent files
-not ignored.
-
-**Target.** zizmor and actionlint; `permissions: contents: read`; actions pinned by SHA
-and kept up to date by Dependabot; `persist-credentials: false`; expressions passed
-through `env:`; `SECURITY.md` pointing at private reporting; `.gitignore` completed.
-
-**Measured.** zizmor: 32 findings before, 0 after. Points retained: the scope job's
-`git fetch` is removed (redundant with `fetch-depth: 0`, and it would fail on a private
-repository with no token); zizmor runs offline and actionlint without shellcheck, so local
-and CI results are identical; Dependabot bypasses the Actions policy, so mandatory SHA
-pinning does not block it.
-
-## C0.3 — Strict formats
-
-**Defect.** The YAML frontmatter of the 5 generated skills is invalid (French-style
-` : `). The `MANIFEST.yaml` template is invalid (`{{MODULE_NAME}}` reads as a mapping).
-PyYAML accepts duplicate keys silently.
-
-**Target.** `check-yaml`, yamllint, check-jsonschema (GitHub schemas). Frontmatter
-serialised by `yaml.safe_dump`, conforming to the Agent Skills specification.
-
-**Traps handled.** yamllint only parses syntax: it lets `{{MODULE_NAME}}` through, and
-only `check-yaml`'s real load refuses it. By default the `truthy` rule is only a warning:
-`--strict` makes it blocking. The workflows' `on:` key stays allowed, the `yes`/`on`
-values do not. The workflows do not go through check-jsonschema, actionlint already covers
-them. No maintained tool validates skills (`skills-ref` is only a demonstration): hence
-the S4 check in `sync_skills.py`.
-
-**Measured.** `check-yaml`: a single failing file, the template. yamllint: 127 style
-findings with the default configuration, 0 with 5 relaxations (`.yamllint.yaml`), none on
-substance. The 3 GitHub schemas already passed. Mutations: 12 defects reintroduced, 12
-caught by `platform/tests/run.sh`.
-
-## PDR-0001 — Create a project and receive updates
-
-```mermaid
-flowchart LR
-    subgraph NS["NapkinStack repository"]
-        A["A · OS development<br/>PRODUCT.md · workstreams · the OS's CI"]
-        B["B · Versioned engine<br/>CLI · fitness functions<br/>scaffolding · presets"]
-    end
-    B -->|"nstack init"| C["C · Generated project<br/>governance · ADR/PDR · CI · hooks<br/>modules/ · contracts/"]
-    B -.->|"pinned version"| C
-    C -->|"nstack new-module"| M["Module<br/>official generator<br/>+ NapkinStack envelope"]
-```
-
-**Legend** — solid line: generation, once · dotted: a versioned dependency, the project
-chooses when to move up.
-
-**Accepted (2026-09-15, after the prototype)**: [`docs/pdr/0001-create-a-project-and-receive-updates.md`](../pdr/0001-create-a-project-and-receive-updates.md).
-The project owns its skeleton and adapts it; every version reaches it on demand, as a pull
-request merged with its adaptations (a three-way merge); GitHub settings as a checklist
-verified read-only; uv the only prerequisite. It replaces the "copied or generated",
-"GitHub settings" points and the revision of P1 and §6, applied on 2026-09-15.
-
-**Decided before the PDR.**
-
-- 2026-09-13: the Django model, an independent project with no shared CI; a stack chosen
-  per module; a preset is data delegating to the official generator, created for a real
-  project; GitHub only to start with.
-- 2026-09-14: the `NapkinStack` GitHub organisation, by renaming the account, creating the
-  organisation and transferring the repository; the `maintainers` team owns the
-  foundation.
-
-**To settle, in order.**
-
-- ~~ADR-0001 — template tool~~: Copier, accepted after the prototype (2026-09-15). A
-  single template in this repository, the skeleton; versions = tags; no "unsafe" feature.
-- ~~ADR-0002 — distribution and name~~: PyPI, the `napkinstack` package, the `nstack`
-  command, `uv_build`, publication on tag through Trusted Publishing, accepted at the
-  v0.1.0 release (2026-09-15).
-- ~~ADR-0003 — repository language~~: English everywhere, machine values included; no
-  localisation mechanism; accepted on 2026-09-16, executed by workstream M7, published in
-  v0.2.0.
-- ADR-0004 — agent identity: proposed on 2026-09-16, a GitHub App per organisation, no
-  human credential in the agent's session, a human code owner's approval and an empty
-  bypass list; applied with the pilot project, which checks its criterion. An agent's
-  approval is deferred, decided on PDR-0003's measurement.
-- PDR-0003 — approve on evidence: proposed on 2026-09-16, a test sheet written before the
-  code, run by a verifier other than the author, no result without evidence; the
-  framework decides the rule, the project its tools, the module its scenarios.
-- PDR-0002 — frame and bound a project: proposed on 2026-09-16, compared with Shape Up,
-  Spec Kit, Scrum and BMad. Three levels of rules (framework, project, module), the
-  postures, a charter, and cycles with a finite list of deliverables, an appetite, an end
-  date and a circuit breaker; the framing is an interview led by the team's agent, `init`
-  keeps its three questions.
-
-**Prototype (2026-09-15).** The mechanism validated in a uv + git container: criteria 1,
-2, 4, 6 and 7 validated, 5 after a fix (D20), 3 partial (a module template that imposes
-`make`). Gaps carried into the implementation plan, together with the rewrite of the
-product README and the replanning of C1, C2, C4 and C5.
-
----
-
-## C1 — A single entry point, `nstack`
-
-> **Handled by M1 and M4** ([plan](plans/2026-09-15-engine-v0.1.0.md)): the `nstack`
-> command published as a package, the root Makefile deleted (M1); the `check`, `test`,
-> `bootstrap` and `run` verbs read from the MANIFEST, a module template with no Makefile
-> (M4). The choice follows Nx and moon conventions, recorded in the plan: no dedicated
-> ADR.
-
-**Defect.** Four invocation styles coexist (`make`, `python3 platform/…`,
-`bash platform/…`, `./platform/…`). Worse: the root `Makefile` assumes every module has a
-Makefile, which violates invariant P1 — a Node module should not have to write a Makefile
-to satisfy the platform.
-
-**Target.**
-
-```
-./nstack help
-./nstack doctor                    # installation diagnosis
-./nstack fitness                   # manifests + boundaries + skills-check
-./nstack check [module]            # delegates to the MANIFEST commands
-./nstack test [module]
-./nstack bootstrap [module]
-./nstack run <module>
-./nstack skills [--check]
-./nstack new-module <name> <owner> <criticality>
-./nstack pr-scope [base]
-```
-
-**Constraints.**
-
-- `check`, `test`, `bootstrap` and `run` read `commands:` from the module's
-  `MANIFEST.yaml` and run what is declared there. They **never** assume a Makefile, a
-  `package.json` or anything else exists. That is the heart of the workstream: the
-  platform orchestrates, it knows no stack.
-- With no module argument, the command applies to all of them and exits in failure on the
-  first one that fails, naming which.
-- An `nstack` file, with no extension, shebang `#!/usr/bin/env python3`, executable.
-  **Not `os.py`** (shadows Python's standard module), **not `manage.py`** (a collision if
-  a Django module arrives), **not `napkin`** (a binary already taken by the npm package
-  `napkin-ai`, which also uses a `.napkin/` folder). Possible configuration folder:
-  `.nstack/`.
-- No new dependency. The standard library plus PyYAML, already present.
-- The scripts in `platform/fitness/` stay directly executable: CI calls them that way and
-  must not depend on the CLI.
-- Delete the root `Makefile` and the module template's. The template's `commands` become
-  explicit `TODO`s rather than `make` calls.
-- Update every reference to `make …` — `README.md`, `CONTRIBUTING.md`,
-  `platform/README.md`, workflows, scaffolding. No dead reference.
-- Write `docs/adr/0001-point-d-entree-unique-nstack.md`. The *prior art* covers two
-  conventions: the single entry point (Django's `manage.py`) and CLI naming (a
-  pronounceable word rather than an initialism). The *consequences* name the newly
-  checkable rule: the commands are declared in the manifest, so the platform no longer
-  imposes any stack.
-
-## C2 — Anti-placeholder check
-
-> **After the pilot project, if the need is observed** ([plan](plans/2026-09-15-engine-v0.1.0.md)):
-> a new check, therefore built only after it has served (`PRODUCT.md` §6).
-
-**Defect.** `manifests.py` checks that `responsibility` is non-empty, not that it has been
-written. A module left entirely unfilled goes green. The template guarantees the shape,
-not the content.
-
-**Target.** Check `M10`: any `TODO`, `FIXME` or `<…>` marker left in a `MANIFEST.yaml`, a
-local `AGENTS.md` or a `runbook.md` fails CI **as soon as the module leaves the `proposed`
-status**. A `proposed` module is allowed to be incomplete; an `active` one is not.
-
-## C3 — A versioned git hook
-
-> **Absorbed by C0.1.** pre-commit is the convention, and it refuses to install when
-> `core.hooksPath` is set. Text kept for the record.
-
-**Defect.** `.git/hooks/` is not versioned: a hook created by hand exists only on its
-author's machine.
-
-**Target.** `core.hooksPath` pointing at a folder in the repository, set by
-`./nstack bootstrap`. The pre-commit hook runs `./nstack fitness`.
-
-It stays bypassable with `--no-verify`, and **that is deliberate** (invariant P3). Write
-it as a comment in the hook, otherwise somebody will harden it one day meaning well, and
-we will stop treating CI as the real barrier.
-
-## C4 — An oracle proxy
-
-> **After the pilot project, if the need is observed** ([plan](plans/2026-09-15-engine-v0.1.0.md)):
-> a new check, therefore built only after it has served (`PRODUCT.md` §6).
-
-**Defect.** The OS requires the success criterion to be written and seen failing before
-generation. That cannot be checked mechanically.
-
-**Target.** The best available proxy: on a pull request labelled `feature` or `bug`, check
-that at least one file under a test folder is touched.
-
-**A warning, not a block** — the proxy catches the blatant case, not the subtle one, and a
-gate that blocks wrongly will be worked around. Document that limit in
-`docs/os/07-governance.md`.
-
-## C5 — Bootstrapping, `doctor` and branding
-
-> **Handled by `nstack init` (M2b) and `nstack doctor` (M3)** ([plan](plans/2026-09-15-engine-v0.1.0.md)):
-> no more unzipping, no more creation from a repository template. Branding CODEOWNERS and
-> the manifests is done (organisation, 2026-09-14).
-
-**Defect.** The foundation currently assumes an `unzip`, and still carries generic
-markers.
-
-**Target.**
-
-- Document creating the repository from a template in the README, in place of unzipping.
-- `./nstack doctor` diagnoses: Python and PyYAML, the forge CLI available, hooks
-  installed, remaining personalisation markers, the presence of `PRODUCT.md` in a client
-  project (an installation error). Its output reminds the reader that the GitHub required
-  checks are the only real barrier and that they **are not copied** with the template.
-- ~~Replace `@equipe-plateforme` in `.github/CODEOWNERS` and in the manifests of
-  `platform/` and `contracts/`~~: done, `@NapkinStack/maintainers`. What remains is
-  adapting the scaffolding to an owner of the form `org/team` (D19).
-- **Brand nothing in `docs/os/`, `playbooks/` or `AGENTS.md`** (invariant P7). When in
-  doubt about a file: leave it generic.
-
----
-
-## Defect register
-
-Observed during the audit of 2026-09-13. A defect with no workstream is waiting to be
-scheduled.
+### Defects of the first audit (2026-09-13)
 
 | # | Observation | Handled by |
 |---|---|---|
@@ -464,8 +160,6 @@ scheduled.
 | D23 | Engine installed: `SOURCE_SUFFIXES` and `IMPORT_HINTS` of `boundaries.py` can no longer be calibrated from a project (found by M2a) | After the pilot project |
 | D24 | An `nstack update` pull request fails `pr-check` T1 whenever the new version changes a file under `contracts/` (criticality high) or a module's manifest has to migrate (M10): no label lifts T1, and an update is not delivery work (found at the v0.3.0 release) | v0.3.1: a module changes beyond its description only; the stricter of base and head (PDR-0003 clarification, 2026-09-17) |
 
----
-
 ## Definition of Done, per workstream
 
 - [ ] The behaviour is covered by a test that failed before
@@ -473,5 +167,5 @@ scheduled.
 - [ ] `uv run bash platform/tests/run.sh` green
 - [ ] Affected documentation updated
 - [ ] No dead reference
-- [ ] The workstream's status updated in the table above
+- [ ] The workstream's row updated above, and its plan deleted once the work is merged
 - [ ] A summary in the `DONE / VERIFIED / ASSUMED / NOT VERIFIED / RISKS` format

@@ -3,7 +3,7 @@
 A structuring **technical or architectural** decision — costly to reverse, or one that
 will constrain the decisions after it.
 
-- Template: [`_TEMPLATE.md`](./_TEMPLATE.md)
+- Form: [the one every project receives](../../skeleton/.nstack/forms/adr.md)
 - Naming: `NNNN-verb-phrase-title.md`, e.g. `0001-adopt-postgres.md`
 - A replaced decision is **superseded**, never rewritten quietly.
 
@@ -16,7 +16,7 @@ will constrain the decisions after it.
 | **Dated success criterion** — when building something bespoke | Review; to automate |
 | **Rule to automate** — which fitness function follows from it | Review |
 
-See `skeleton/docs/os/06-decisions.md`.
+See `skeleton/.nstack/handbook/06-decisions.md`.
 
 ## Index
 

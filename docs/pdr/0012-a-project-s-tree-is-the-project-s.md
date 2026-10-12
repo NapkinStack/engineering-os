@@ -1,6 +1,6 @@
 # PDR-0012 — A project's tree is the project's
 
-- **Status**: Accepted (2026-10-12, by the maintainer: "ok pour ta recommandation"), with the handbook
+- **Status**: Accepted (2026-10-12, by the maintainer), with the handbook
   **kept in the project**, under `.nstack/handbook/`. Built the same day by **M11s** (the one folder) and **M11t** (the contracts module created by
   the first contract); see *As built*
 - **Date**: 2026-10-12
@@ -33,9 +33,9 @@ flowchart LR
 consequence. Measured on the third project on 2026-10-12, after its discovery was decided.
 
 PDR-0010 made five files the project's and gave each document its moment. The maintainer
-then opened the same project and said the rest still reads as pollution: *"nstack est le
-framework, il faut distinguer ce qui est réellement utile et doit vivre dans les projets
-créés par nstack et les fichiers qui polluent."* Three things are behind that sentence:
+then opened the same project and said the rest still reads as pollution: what is really
+useful, and must live in the projects the framework creates, has to be told apart from the
+files that pollute them. Three things are behind that sentence:
 
 - **A handbook of fourteen pages, 3,541 lines, sits in `docs/os/`**, beside the project's own
   decisions. It is the framework's documentation. Nothing the project runs reads it, and no

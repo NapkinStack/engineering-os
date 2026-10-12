@@ -62,7 +62,7 @@ ephemeral OpenID Connect token, no stored secret).
 ### Option 2 — The same distribution, published by `uv publish` and `astral-sh/attest-action`
 - Advantages: a single tool for build and publication.
 - Drawbacks: the attestation action is young (v0.0.6, 10 stars); it fails the niche filter
-  (`skeleton/docs/os/06-decisions.md` §3).
+  (`skeleton/.nstack/handbook/06-decisions.md` §3).
 
 ### Option 3 — The same distribution, uv installed by `pip`, no third-party action
 - Advantages: the organisation's action policy stays unchanged.
@@ -144,7 +144,7 @@ package; D18 (`make` and `pip` absent) is solved by uv.
 **Rule to automate:** publication fails when the tag differs from the project's version.
 The publication workflow is covered by the existing hooks: zizmor (permissions, pinning,
 the `use-trusted-publishing` audit) and actionlint.
-`skeleton/docs/os/07-governance.md` §2
+`skeleton/.nstack/handbook/07-governance.md` §2
 
 ---
 

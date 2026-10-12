@@ -68,7 +68,7 @@ answer grounded in facts the repository already holds.
 ## Prior art
 
 > **Mandatory section.** Minimum two named references.
-> (`skeleton/docs/os/06-decisions.md` §2)
+> (`skeleton/.nstack/handbook/06-decisions.md` §2)
 
 **How is this problem solved elsewhere?**
 
@@ -219,7 +219,7 @@ of removing one.
   routing advises, it does not block, and every command still runs when called directly.
 - **Modules and contracts**: none. The facts come from checks that already exist.
 - **Support and documentation**: the stage map joins the postures, in
-  `skeleton/docs/os/05-workflow.md` §10, which is today the only place in the deliverable
+  `skeleton/.nstack/handbook/05-workflow.md` §10, which is today the only place in the deliverable
   where the model of who speaks is described; the kernel does not grow (P4, 250 lines). A
   hat is a playbook, subject to the same review as any other.
 - **Data**: nothing is collected. Every fact used is already in the repository, and no

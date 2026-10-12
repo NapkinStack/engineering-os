@@ -42,7 +42,7 @@ author, and can decide in minutes.
 - **Letting an agent's approval count toward merging**: deferred, and decided on this
   PDR's measurement (ADR-0004, "Deferred, decided on evidence").
 - **Replacing unit, integration or contract tests**: the sheet verifies behaviour, it
-  does not stand in for the test pyramid (`docs/os/08-quality.md` §5).
+  does not stand in for the test pyramid (`.nstack/handbook/08-quality.md` §5).
 - **Preview environments and visual regression services**: a project's hosting and tool
   choices.
 - **Framing and bounding a project** — where the needs and their acceptance criteria come
@@ -175,7 +175,7 @@ project.
   reading the diff.
 - The verifier reports gaps against the need or correctness; preferences are marked
   optional and do not block.
-- For a `critical` module, a human acceptance test is added on top (`docs/os/05-workflow.md`
+- For a `critical` module, a human acceptance test is added on top (`.nstack/handbook/05-workflow.md`
   §7).
 
 **Permissions:** the author agent writes the sheet and the code; the verifier fills in
@@ -265,7 +265,7 @@ as the verifier's merit — PDR-0011 is the answer to that half.
   the pilot starts with it.
 - **Modules and contracts**: the module manifest gains the declaration of a user-visible
   surface; the pull request template gains the sheet; the kernel's working loop, the
-  `tests` and `ux` playbooks and `docs/os/05-workflow.md`, `08-quality.md` and
+  `tests` and `ux` playbooks and `.nstack/handbook/05-workflow.md`, `08-quality.md` and
   `09-platform.md` describe it; the tooling profile's "UI inspection and screenshots" and
   "Specialised agents" capabilities become the project's choice of tools; CI gains the
   checks above. The kernel stays within its 250-line budget (P4).

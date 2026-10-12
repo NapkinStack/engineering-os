@@ -7,7 +7,7 @@ This repository develops the framework; it is also its first user. Read
 
 ```mermaid
 flowchart LR
-    C["Workstream<br/>workstreams.md"]:::tracking --> P["Detailed plan<br/>plans/"]:::tracking
+    C["Workstream<br/>workstreams.md"]:::tracking --> P["A plan, when the work<br/>needs one — deleted at the merge"]:::tracking
     P --> T["A failing test<br/>platform/tests/run.sh"]:::code
     T --> I["Implementation<br/>test green"]:::code
     I --> V["Verifications<br/>hooks · fitness · fresh clone"]:::code
@@ -82,7 +82,10 @@ blue: PyPI. Decision: [ADR-0002](docs/adr/0002-distribute-napkinstack-on-pypi.md
 1. Bump the version in a pull request: `uv version --bump patch` (or `minor`), and write its
    `## vX.Y.Z` section in `CHANGELOG.md` — engine and project apart, with a **Migration**
    paragraph when taking it costs more than reading it; `release.yml` refuses to publish a
-   version whose section is missing. A maintainer approves it, then it merges.
+   version whose section is missing. In the same pull request, the front page's status line
+   and its two install lines name the new version: `README.md` is the registry's page, frozen
+   at the tag, and the oracle refuses another version there. A maintainer approves it, then
+   it merges.
 2. With a maintainer's explicit consent, the agent tags the merged commit —
    `git tag -a vX.Y.Z -m "NapkinStack vX.Y.Z" <commit>` — and pushes it under its App.
 3. Approve the deployment in GitHub Actions ("Review deployments").
