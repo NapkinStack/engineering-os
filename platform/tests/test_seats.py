@@ -144,11 +144,34 @@ def test_no_issue_form_claims_what_a_deliverable_claims() -> None:
     """Criterion 4: a form that asks for a deliverable describes planned work twice, in two
     places that will disagree. A feature and a spike are deliverables of a cycle."""
     forms = {path.name: yaml.safe_load(path.read_text(encoding="utf-8")) for path in sorted(FORMS.glob("*.yml"))}
-    assert {form["name"] for form in forms.values()} == {"Request", "Bug", "Architecture", "Technical debt"}, (
+    assert {form["name"] for form in forms.values()} == {"Request", "Bug", "Architecture", "Technical debt",
+                                                         "Acceptance"}, (
         f"the forms are {sorted(form['name'] for form in forms.values())}")
     for name, form in forms.items():
         ids = {field.get("id") for field in form["body"]}
         assert "deliverable" not in ids, f"{name} asks for a deliverable: that work is already in a cycle"
+
+
+def test_the_acceptance_tracks_a_deliverable_and_describes_none() -> None:
+    """D94: a deliverable tried by a person had no place but a conversation. Its form is a
+    tracking issue — it points at the deliverable, and holds neither its criteria nor its
+    state, which stay in the cycle; a form that held either would be the one PDR-0010 removed."""
+    form = yaml.safe_load((FORMS / "05-acceptance.yml").read_text(encoding="utf-8"))
+    fields = {field.get("id"): field for field in form["body"] if field.get("id")}
+    assert set(fields) == {"tracks", "who", "run", "elsewhere"}, sorted(fields)
+    assert not set(fields) & {"criteria", "acceptance", "state", "status", "need", "expected"}
+    said = next(field["attributes"]["value"] for field in form["body"] if field["type"] == "markdown")
+    for needed in ("**tracks**", "not copied here", "state is set there", "06-decisions.md §9"):
+        assert needed in " ".join(said.split()), f"the form does not say: {needed}"
+    rows = dict(re.findall(r"^\| ([^|]+?) \| ([^|]+?) \|$", subsection(DECISIONS, "Sources of truth"), re.M))
+    row = rows.get("A deliverable tried by a person", "")
+    assert "acceptance issue" in row and "stay in the cycle" in row, f"the handbook gives it no place: '{row}'"
+    workflow = (SKELETON / ".nstack/handbook/05-workflow.md").read_text(encoding="utf-8")
+    assert "**A scenario that waits on a person**" in workflow and "It copies no criterion and sets no state" in workflow
+    for page, needed in ((".nstack/playbooks/framing.md", "each of its criteria"),
+                         (".nstack/playbooks/verification.md", "an acceptance issue asks it of a person"),
+                         (".github/pull_request_template.md", "asked in an acceptance issue")):
+        assert needed in (SKELETON / page).read_text(encoding="utf-8"), f"{page} does not say: {needed}"
 
 
 def test_the_skeleton_creates_no_folder_before_its_moment() -> None:

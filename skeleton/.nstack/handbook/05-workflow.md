@@ -295,6 +295,13 @@ criticality are read before and after the change, and the stricter applies:
   through `test` for a module that declares no `e2e`;
   *explored* — judged by driving the interface; *human only* — what no agent can run, with
   the reason, listed apart for the approver.
+- **A scenario that waits on a person** — a device, a real call, a colleague's machine — is
+  not asked in a conversation, which nobody finds again, nor left in a pull request held open
+  for days. It is asked in an **acceptance issue** (`.github/ISSUE_TEMPLATE/`), assigned to
+  whoever runs it; their answer is a comment, and the sheet's Evidence cell links it. The same
+  issue serves a deliverable several pull requests deliver: it says which criterion each
+  sheet holds, and which nobody holds yet. It copies no criterion and sets no state — both
+  stay in the cycle (`06-decisions.md` §9).
 
 **`Confirmed` is optional**: a sheet no fix has disturbed never carries it. The engine's pull
 request check reads the sheet in CI: missing, unfilled, without evidence, verified before the

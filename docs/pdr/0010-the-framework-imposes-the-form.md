@@ -109,13 +109,20 @@ just run it is looking.
 | | Where | Why |
 |---|---|---|
 | A plan, a decision, a charter, a cycle | **A file, reviewed in a pull request** | An issue is edited in silence: no diff, no code owner, no review. A plan that can change without review is not a plan of record |
-| The state of a plan: which workstream is done, its pull requests, the discussion | **An issue**, optional | A file needs a commit to tick a box; this is what a tracker does better |
+| The state of a plan: which workstream is done, its pull requests, the discussion — and **a deliverable tried by a person**: what to run, who runs it, what they saw | **An issue**, optional | A file needs a commit to tick a box; this is what a tracker does better |
 | A bug, an incident, debt, an architecture question | **An issue, typed — one type, one form** | Unplanned by nature: no plan file exists for it, and four of the five forms already shipped are exactly these |
 | What a project must remember: what was tried, what it cost, what was refused | **One named issue per project** — the log | Not "memory in the issues": one place, or `06-decisions.md` §9 is broken again |
 
 `06-decisions.md` §9's row is corrected accordingly: **planned** work is the cycle's
 deliverables, **unplanned** work is an issue. The form that competes with a deliverable is
 repositioned so that two things never claim the same work.
+
+*Clarified 2026-10-13 (D94).* The second row had no form, and its first real case went to a
+conversation: on the third project, a deliverable delivered by three pull requests waited on
+a person and a real call, and nothing on the forge said so. The **Acceptance** form gives that
+row a shape. It is the tracking issue of the Rust and Python model above: it points at a
+deliverable, copies none of its criteria and sets none of its state — a form that asked for
+either would be the one this decision removed.
 
 **3 — The framework requires the shape of documentation, never its content.** It names the
 documents a project is expected to hold and the standard they are written to — a diagram with
@@ -155,7 +162,8 @@ reviewed.
 - [x] Given `06-decisions.md` §9, when its row on work to be done is read, then planned and
       unplanned work name different places, and neither contradicts `K3`.
 - [x] Given the skeleton's issue forms, when they are listed, then each names a kind of work
-      that no deliverable claims.
+      that no deliverable claims — or, for the acceptance, tracks a deliverable without
+      describing it.
 - [x] Given the handbook, when the documentation standard is looked for, then it is stated once,
       names no tool, and prescribes no content.
 
