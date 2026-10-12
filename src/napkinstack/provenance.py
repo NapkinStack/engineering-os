@@ -68,3 +68,26 @@ def judged_by(root: Path) -> str:
     return (f"Judged by an UNPUBLISHED NapkinStack — {source}"
             + (f", project pinned to {unpublished}" if unpublished else on)
             + ": these rules are no published version.")
+
+
+def behind(root: Path) -> str | None:
+    """What a workstation is told when its engine is older than the project it runs in (D90).
+
+    A teammate's update, once merged, leaves every other workstation there: a command the
+    project's manual names answers "invalid choice", and a verdict comes from rules the project
+    has left. Said before anything else, on every command — the one that does not exist included.
+    An engine ahead of the project is not said: it is the state an update starts from."""
+    project = recorded(root)
+    if not project or not PUBLISHED.fullmatch(project):
+        return None
+    version, _ = engine()
+    try:
+        here = tuple(int(part) for part in version.split(".")[:3])
+    except ValueError:
+        return None
+    wanted = project.removeprefix("v")
+    if here >= tuple(int(part) for part in wanted.split(".")):
+        return None
+    return (f"This workstation runs nstack {version}; the project is on {project}. A command it names "
+            "may not exist here, and a verdict given here is not CI's.\n"
+            f'      Action: uv tool install "napkinstack=={wanted}" --with-executables-from pre-commit')

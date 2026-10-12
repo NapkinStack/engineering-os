@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from napkinstack import assurance
@@ -148,7 +149,21 @@ JUDGES = {"manifests", "boundaries", "plan", "skills", "hygiene", "fitness", "do
           "pr-check", "compat", "landed"}  # the commands whose verdict depends on the framework's rules
 
 
+def _named_root(argv: list[str]) -> Path:
+    """The root a command line names, read before the line is parsed: a command this engine
+    does not know is refused by the parser, and the reason may be the engine's age (D90)."""
+    for index, word in enumerate(argv):
+        if word == "--root" and index + 1 < len(argv):
+            return Path(argv[index + 1])
+        if word.startswith("--root="):
+            return Path(word.removeprefix("--root="))
+    return Path(".")
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if late := provenance.behind(_named_root(argv)):
+        print(late, file=sys.stderr, flush=True)
     args = build_parser().parse_args(argv)
     if args.command in JUDGES:
         print(provenance.judged_by(args.root), flush=True)
