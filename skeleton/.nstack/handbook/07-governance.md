@@ -140,6 +140,7 @@ and schemas.
 Beside them, the engine checks what a shared repository must not carry: a path rooted in one
 person's home directory, in any tracked file (H1). It exists on no other machine and
 publishes the layout of the one it was written on; an image's or a runner's home, a
+folder software keeps its own files in — `~/.config`, or `~/Library` on a Mac — a
 placeholder or a variable is the same everywhere.
 
 ### Writing a fitness function

@@ -613,6 +613,7 @@ ACCEPTED = {
     "placeholder": "~/<workspace>/project",
     "tilde alone": "the home directory, ~/, is where it lands",
     "a variable": "$HOME/workspace/project",
+    "macOS per-user Library": "~/Library/Application Support/Example/Sessions/",
 }
 
 
@@ -654,8 +655,8 @@ def test_hygiene_accepts_an_image_or_a_runner(tmp_path, capsys, name, text):
 
 
 def test_hygiene_accepts_what_is_true_on_every_machine(tmp_path, capsys):
-    tracked(tmp_path, {f"docs/{name}.md": f"{text}\n" for name, text in
-                       zip(("a", "b", "c", "d"), ACCEPTED.values())})
+    tracked(tmp_path, {f"docs/{number}.md": f"{text}\n" for number, text in
+                       enumerate(ACCEPTED.values())})
     assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
 
 
