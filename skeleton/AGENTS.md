@@ -67,7 +67,7 @@ directly, run the local checks, summarise. No ceremony.
 7.  Validate     actually run the local checks
 8.  Self-review  re-read the diff: scope, side effects, regressions
 9.  Document     update the sources of truth affected
-10. Bring current  merge the default branch in before the pull request: a conflict is
+10. Sync         merge the default branch in before the pull request: a conflict is
                  its author's to settle, here; a number taken in sequence is taken now
 11. Summarise    done / assumed / not verified / remaining risks
 ```
