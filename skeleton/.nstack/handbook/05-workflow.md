@@ -121,6 +121,15 @@ indicator (`10-measurement.md`).
 Never produce a huge pull request simply because the agent can generate a lot of code
 quickly.
 
+**Bringing a branch current before its pull request.** Fetch the default branch and merge it
+into yours as the last thing before opening the pull request — and again when the forge
+shows a conflict while it waits. Whoever wrote the change settles its conflict in minutes;
+whoever approves it finds it too late and has to guess. What is numbered in sequence — a
+decision record, a row in a register — takes its number at that moment, not when the work
+started: two branches that each took "the next one" on the same morning meet on the same
+line. It narrows the window and does not close it: a pull request merged while yours waits
+can still conflict with it, and the branch is brought current again by its author.
+
 **Splitting a change into pull requests that sit on one another.** Each is opened on the
 branch of the one before, and each carries its own sheet when the module asks for one. Two
 things the forge and the sheet do then, to know before the first merge:
