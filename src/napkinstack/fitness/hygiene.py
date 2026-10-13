@@ -12,9 +12,10 @@ Rules:
 
 Refused: the home of a named user, on any of the three systems, and a tilde followed by a
 real folder. Accepted, because they are true on every machine: a tilde followed by a
-dot-directory (`~/.config`, `~/.cache`, `~/.ssh` — tooling is documented legitimately), a
-tilde inside an address, the repository's placeholders (`<workspace>`), environment
-variables, and the home of an image's own user — `node`, `vscode`, `runner`, `codespace`,
+dot-directory (`~/.config`, `~/.cache`, `~/.ssh` — tooling is documented legitimately) and
+its macOS counterpart, `~/Library`, where every Mac keeps software's own files and a macOS
+app documents its storage (D97); a tilde inside an address, the repository's placeholders
+(`<workspace>`), environment variables, and the home of an image's own user — `node`, `vscode`, `runner`, `codespace`,
 `gitpod`, `jovyan` — which is the same wherever the image runs (D41).
 
 The patterns are written so that this file, the rule's tests and any document describing
@@ -45,7 +46,7 @@ IMAGE_USERS = r"(?:node|vscode|runner|codespace|gitpod|jovyan)(?![A-Za-z0-9_.-])
 SEGMENT = r"[A-Za-z0-9_.-]+"
 HOME_PATH = re.compile(
     rf"(?:/home/(?!{IMAGE_USERS}){SEGMENT}|/Users/{SEGMENT}|[A-Za-z]:\\Users\\{SEGMENT}"
-    r"|(?<![\w/:])~(?=/[A-Za-z0-9]))"
+    r"|(?<![\w/:])~(?=/[A-Za-z0-9])(?!/Library(?![\w.-])))"
     r"[^\s'\"`,;)\]]*"
 )
 ACTION = ("write what the step needs: a path relative to the repository, a placeholder such "
