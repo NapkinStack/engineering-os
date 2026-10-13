@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 REPO=$(pwd)
+# sed that edits a file where it is, on GNU and on BSD alike: `sed -i` alone is GNU's, and a
+# Mac's sed takes the next word for a backup's suffix (D99).
+in_place() { local file=${!#}; sed -i.bak "$@" && rm -f "$file.bak"; }
 
 # Every repository this suite creates is thrown away within seconds, and git's automatic
 # maintenance has no business running inside one: it writes into .git/objects/pack while a
@@ -736,7 +739,7 @@ if OUT=$(cd "$CLONE" && nstack plan --root . 2>&1); then
 fi
 echo "$OUT" | grep -qF "FAIL [C8] modules/README.md" && echo "$OUT" | grep -qF "(face)" \
   || { echo "FAIL: C8 does not name the map and the module."; echo "$OUT"; exit 1; }
-sed -i 's#^<A diagram of this project.*#One module, face: the page a visitor sees. No contract yet.#' "$CLONE/modules/README.md"
+in_place 's#^<A diagram of this project.*#One module, face: the page a visitor sees. No contract yet.#' "$CLONE/modules/README.md"
 
 echo "-> plan: a new project is unframed, a stage and not a fault; its templates are not checked (PDR-0007)"
 (cd "$CLONE" && nstack plan --root .) | grep -qF "the project is unframed, which is a stage and not a fault" \
@@ -768,7 +771,7 @@ for seat in README.md.jinja SECURITY.md modules/README.md docs/adr/README.md doc
   printf '\nSeat rewritten in v90.2.\n' >> "$TPL/skeleton/$seat"
 done
 template_version v90.2.0
-sed -i '1s/.*/# Security - title v0.3/' "$TPL/skeleton/.nstack/playbooks/security.md"
+in_place '1s/.*/# Security - title v0.3/' "$TPL/skeleton/.nstack/playbooks/security.md"
 template_version v90.3.0
 project_v01() {
   nstack init "$1" --source "$TPL" --ref v90.1.0 "${ANSWERS[@]}" >/dev/null \
@@ -778,7 +781,7 @@ commit_project() { git -C "$1" add -A && git "${GIT_ID[@]}" -C "$1" commit -q --
 
 A="$GN/project-a"
 project_v01 "$A"
-sed -i '1s/.*/# Tests — local adaptation/' "$A/.nstack/playbooks/tests.md"
+in_place '1s/.*/# Tests — local adaptation/' "$A/.nstack/playbooks/tests.md"
 rm "$A/.nstack/forms/pdr.md"
 nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
 printf '\nNeighbours lend each other tools.\n' >> "$A/README.md"
@@ -898,7 +901,7 @@ nstack init "$M" --source "$OLD" --ref v91.1.0 "${ANSWERS[@]}" >/dev/null \
   || { echo "FAIL: nstack init from the old-layout template."; exit 1; }
 [ -f "$M/playbooks/tests.md" ] && [ -f "$M/docs/os/05-workflow.md" ] && [ ! -e "$M/.nstack/playbooks" ] \
   || { echo "FAIL: the old-layout fixture is not in the old layout."; exit 1; }
-sed -i '1s/.*/# Tests — the way this team does them/' "$M/playbooks/tests.md"
+in_place '1s/.*/# Tests — the way this team does them/' "$M/playbooks/tests.md"
 printf '| `handover.md` | Where the work stands after a break | The framer | — |\n' >> "$M/docs/project/README.md"
 # And what the project wrote about the framework's pages, in files no update ever touches: its
 # front page is a seat, its decision index another, a module's manifest is its owner's. Measured
@@ -994,7 +997,7 @@ echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
 
 B="$GN/project-b"
 project_v01 "$B"
-sed -i '1s/.*/# Security - local adaptation/' "$B/.nstack/playbooks/security.md"
+in_place '1s/.*/# Security - local adaptation/' "$B/.nstack/playbooks/security.md"
 commit_project "$B" "Adaptation"
 
 echo "-> update: versions skipped in one go, conflict marked and left to the team (criterion 5)"
@@ -1145,9 +1148,9 @@ C="$GN/project-c"
 INIT_OUT=$(nstack init "$C" --source "$TPL" --ref "v$V" --project-name "Project C" \
   --github-repo acme/compliant --owner-team acme/platform 2>&1) \
   || { echo "FAIL: nstack init of project C."; echo "$INIT_OUT"; exit 1; }
-repo_c() { sed -i "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
+repo_c() { in_place "s#^github_repo: .*#github_repo: $1#" "$C/.copier-answers.yml"; }
 # Project C as the published template would have made it: its source a repository (L7).
-sed -i "s#^_src_path: .*#_src_path: https://github.com/NapkinStack/engineering-os.git#" "$C/.copier-answers.yml"
+in_place "s#^_src_path: .*#_src_path: https://github.com/NapkinStack/engineering-os.git#" "$C/.copier-answers.yml"
 # The engine under test as the registry installs it: no direct_url.json, so published. The
 # engine this suite runs is a checkout, unpublished, and has its own test below (PDR-0005).
 published() {
@@ -1220,8 +1223,8 @@ echo "-> doctor: workstation gaps listed with their action (L1, L3, L6, L7)"
 # L1 compares the installed engine with the project version. The condition is built here
 # rather than inherited from project A, whose version would otherwise have to differ from
 # the engine's by luck: it did not, at v0.2.0, and the rule silently stopped being tested.
-sed -i 's#^_commit: .*#_commit: v0.0.1#' "$A/.copier-answers.yml"
-sed -i '/^\*/d' "$A/.github/CODEOWNERS"
+in_place 's#^_commit: .*#_commit: v0.0.1#' "$A/.copier-answers.yml"
+in_place '/^\*/d' "$A/.github/CODEOWNERS"
 echo "# What the product is" > "$A/PRODUCT.md"  # a product may write about itself under any name (D79)
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
@@ -1240,7 +1243,7 @@ echo "$OUT" | grep -qF "Action: pre-commit install" && echo "$OUT" | grep -qF 'm
 echo "-> doctor: a newer published version is named, as information; a silent registry is said (D91)"
 REG=$(mktemp -d); mkdir -p "$REG/pypi/napkinstack"
 echo '{"info": {"version": "99.0.0"}}' > "$REG/pypi/napkinstack/json"
-sed -i "s#^_commit: .*#_commit: v$V#" "$A/.copier-answers.yml"
+in_place "s#^_commit: .*#_commit: v$V#" "$A/.copier-answers.yml"
 OUT=$(NSTACK_REGISTRY_URL="file://$REG" GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1) || true
 echo "$OUT" | grep -qF "NEWER VERSION  v99.0.0 is published; the project is on v$V — information, not a gap" \
   && echo "$OUT" | grep -qF 'uv tool install "napkinstack==99.0.0"' \
@@ -1251,7 +1254,7 @@ echo "$OUT" | grep -qF "NOT READ       the registry did not answer" \
 rm -rf "$REG"
 
 (cd "$C" && pre-commit install >/dev/null)
-sed -i 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
+in_place 's#<One sentence: what this project does.>#Demo project.#' "$C/README.md"
 
 echo "-> doctor: GitHub repository without settings, every gap listed with its action (criterion 2)"
 repo_c acme/bare
