@@ -47,7 +47,7 @@ shipped to nobody.
 - **H1 accepts `~/Library`** (D97). The hygiene check refused the folder every Mac keeps
   software's own files in — where a macOS app documents its storage — while it accepted the
   dot-directories, its Linux counterpart. A project building a macOS app went red on its
-  design document. A real folder of the home directory — `~/Downloads`, `~/Desktop` — is
+  design document. A real folder of the home directory — downloads, the desktop — is
   still refused, and so is a name that only begins with `Library`. Nothing a green project
   had turns red.
 
