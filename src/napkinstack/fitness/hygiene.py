@@ -14,7 +14,7 @@ Refused: the home of a named user, on any of the three systems, and a tilde foll
 real folder. Accepted, because they are true on every machine: a tilde followed by a
 dot-directory (`~/.config`, `~/.cache`, `~/.ssh` — tooling is documented legitimately) and
 its macOS counterpart, `~/Library`, where every Mac keeps software's own files and a macOS
-app documents its storage (D96); a tilde inside an address, the repository's placeholders
+app documents its storage (D97); a tilde inside an address, the repository's placeholders
 (`<workspace>`), environment variables, and the home of an image's own user — `node`, `vscode`, `runner`, `codespace`,
 `gitpod`, `jovyan` — which is the same wherever the image runs (D41).
 
