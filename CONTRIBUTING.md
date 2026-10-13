@@ -87,6 +87,10 @@ fix: `nstack update --ref vX.Y.Z`.
 
 - **One workstream = one pull request**, never two together. In the issue and pull
   request templates, "the module" reads "the workstream".
+- **Current before the pull request**: merge `main` into the branch as the last thing before
+  opening it, and take the workstream's number in the register then — two branches that
+  each took the next number on the same morning conflict on that row (D98). A conflict that
+  appears while the pull request waits is its author's to settle.
 - **The test first**: every check has a test that proves it fails (P5), seen red before
   the implementation; every failure names the rule, the place and the action (P6).
 - **Review budget**: 400 lines and 15 files; beyond that, the `over-budget` label,
