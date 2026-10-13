@@ -11,7 +11,7 @@
 
 ## Context
 
-PDR-0001 (Proposed) makes uv the only prerequisite and requires a project's workstation and
+PDR-0001 makes uv the only prerequisite and requires a project's workstation and
 CI to run the NapkinStack version it pins (R3). ADR-0001 (Proposed) makes the repository's
 tags, in PEP 440 format, the skeleton's versions; the engine and the skeleton therefore
 share the same version (R2).

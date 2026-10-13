@@ -11,7 +11,7 @@
 
 ## Context
 
-PDR-0001 (Proposed) fixes the behaviour: `nstack init` generates a project that owns its
+PDR-0001 fixes the behaviour: `nstack init` generates a project that owns its
 skeleton; `nstack update` brings it, on demand, a new version merged with its adaptations;
 the conflicts are left to the team; one NapkinStack version covers the engine and the
 skeleton (R2); the workstation and CI run the version the project pins (R3). The tooling
