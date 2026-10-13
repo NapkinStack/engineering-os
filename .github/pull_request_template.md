@@ -65,12 +65,12 @@ other: <specify>
 - [ ] Build
 - [ ] Contract tests *(when there is a contract)*
 - [ ] Fitness functions
-- [ ] Integration tests *(per risk)*
+- [ ] Integration tests
 - [ ] Security analysis
-- [ ] Accessibility *(when there is UI)*
-- [ ] E2E on critical journeys *(criticality high and above)*
-- [ ] Observability added *(criticality high and above)*
-- [ ] Rollback verified *(criticality critical)*
+- [ ] Accessibility
+- [ ] E2E on critical journeys
+- [ ] Observability added
+- [ ] Rollback verified
 - [ ] Affected documentation updated
 - [ ] Diff self-reviewed line by line
 

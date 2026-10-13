@@ -28,7 +28,7 @@ uv run nstack boundaries --root .
 echo "-> repository free of paths from one person's machine (H1)"
 uv run nstack hygiene --root .
 
-echo "-> rules M, B, S, P: every rule proves it fails and names itself (pytest, D4)"
+echo "-> rules M, B, S, P, H: every rule proves it fails and names itself (pytest, D4)"
 pytest -q platform/tests
 
 GIT_ID_RM=(-c user.name=test -c user.email=test@example.invalid)

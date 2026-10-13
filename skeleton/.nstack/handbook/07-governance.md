@@ -264,7 +264,7 @@ to use (GitHub wording, transposable elsewhere):
 | Required checks | A red CI blocks the merge, without exception |
 | CODEOWNERS | The right owner is asked automatically |
 | Rulesets / branch protection | The rules do not depend on goodwill |
-| Issue forms | The DoR is structurally filled in |
+| Issue forms | What nobody planned arrives with what is needed to judge it |
 | PR template | The DoD is visible at review time |
 | Labels | Exceptions are visible and counted |
 | Protected environments | Deployment goes through an approval |

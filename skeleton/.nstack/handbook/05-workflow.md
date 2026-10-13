@@ -26,7 +26,8 @@ flowchart TD
 
     B -->|No| C["FRAME: intent, scope,<br/>out of scope, risks"]
     C --> C2["SCOPE: identify THE module,<br/>load the bounded context"]
-    C2 --> D["ORACLE: write the executable<br/>success criterion"]
+    C2 --> C3["INVENTORY: what exists already,<br/>here and in established tools"]
+    C3 --> D["ORACLE: write the executable<br/>success criterion"]
     D --> E{"Oracle<br/>executable?"}
     E -->|No| E1["Do not generate.<br/>Make the criterion verifiable<br/>or send the framing back"] --> D
     E -->|Yes| F["Oracle RED — commit"]
@@ -45,8 +46,10 @@ flowchart TD
 
     K --> L["DOCUMENT the<br/>sources of truth affected"]
     L --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
-    M --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — when §7 requires one"]
+    M --> S["SYNC: bring the branch current<br/>before its pull request"]
+    S --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — when §7 requires one"]
     V --> N["Human review + CI"]
+    N --> Z["CLOSE: once merged, the branch is gone —<br/>forge, workstation, worktree"]
 
     style D fill:#1f2937,color:#fff
     style F fill:#1f2937,color:#fff
@@ -194,7 +197,7 @@ quietest way to accumulate debt.
 Do not start a significant task without:
 
 - [ ] a **deliverable of the current cycle**, ready (`docs/project/`) — in a framed project;
-      an unframed one has no cycle, and the four lines below are its whole definition of ready
+      an unframed one has no cycle, and the seven lines below are its whole definition of ready
 - [ ] a goal understandable without a spoken conversation
 - [ ] scope **and out of scope**
 - [ ] the target module identified

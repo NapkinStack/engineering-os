@@ -1,7 +1,7 @@
 # PRODUCT — NapkinStack
 
 > **This file has no place in a client project.** If it is present in a project created by
-> `nstack init`, that is an installation error: delete it. `nstack doctor` reports it.
+> `nstack init`, that is an installation error: delete it.
 >
 > It describes what the product is and how to work **on** NapkinStack, not **with** it.
 > To be read first by any human or agent contributing here.
@@ -59,7 +59,7 @@ Hence a disambiguation rule to keep in mind at all times:
 | This file, `docs/governance/` | The **working context**. It never goes to the client. |
 
 An agent working here is therefore **not** in the nominal case the kernel describes ("you
-work in a single module"). There are no modules yet. The rules that actually apply to you
+work in a single module"). There is no `modules/` here — one module, `platform/`, the engine's envelope. The rules that actually apply to you
 are in §5.
 
 ---
@@ -132,10 +132,10 @@ green.
 ## 5. How to work on this repository
 
 The kernel `skeleton/AGENTS.md` stays your reference for **method** — oracle first,
-minimal change, five-block summary, stop on a high-risk action. Four adaptations, and
+minimal change, five-block summary, stop on a high-risk action. Five adaptations, and
 what does not judge here:
 
-**"A module" reads "a workstream".** There are no modules here. The unit of batch is the
+**"A module" reads "a workstream".** There is no `modules/` here. The unit of batch is the
 workstream listed in `docs/governance/workstreams.md`. One workstream, one pull request, one
 commit. Never two workstreams together.
 
@@ -154,7 +154,7 @@ a block of `run.sh`.
 budget` and `Hooks and secrets` judge this repository. `Test sheet and cycle` does not: there is
 no `docs/project/` here, and `platform/` is of criticality `high`, so T1 would ask for a test
 sheet on almost every pull request of a repository whose deliverable is the framework itself.
-`Module checks` does not either: there are no modules here. Nor does the record of `Commits on
+`Module checks` does not either: there is no `modules/` here. Nor does the record of `Commits on
 main`, which is not a required check: the ruleset refuses a direct push, which is the barrier
 that record exists to compensate for. These are exemptions, not oversights; PDR-0007 makes the
 cycle half of the first one a state read from the repository.
