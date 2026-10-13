@@ -80,7 +80,10 @@ shipped to nobody.
 
 **Migration**
 
-MIGRATION
+None. Measured on a copy of a project running the v0.7.5 skeleton: `nstack update` merged
+without a conflict, 7 files — the five above, the manual's version line and the recorded
+version; fitness green afterwards. A project whose `AGENTS.md` was adapted around the working
+loop may have that one step to place by hand.
 
 ## v0.7.5 — 2026-10-13
 
