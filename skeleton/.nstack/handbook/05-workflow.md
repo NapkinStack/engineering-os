@@ -141,6 +141,18 @@ things the forge and the sheet do then, to know before the first merge:
   commits hold the same tree and the sheet stands; when it brings one, the automated scenarios
   are run again at the new head (§7).
 
+**Once merged, a branch is gone.** A merged branch is history, not a place to work: left
+there, it is one more name to read past, and one day somebody builds on it. The forge
+deletes it at the merge when it is set to (`G16`, `07-governance.md` §7) — a guardrail worth
+turning on, and not the whole of it. Whoever merges looks: a merge made from a tool, or from
+a worktree, may report the merge and leave the branch; a setting nobody could read may be
+off. And the forge knows nothing of a workstation: the local branch and the worktree it was
+written in go too, and `git fetch --prune` drops the names of branches that no longer exist.
+After a squash the local branch is not an ancestor of the default one, and git refuses to
+delete it as unmerged: it is deleted once its pull request is seen merged, not before. A
+branch whose pull request was closed without a merge, or that never had one, is not
+cleaned up in passing: its author says whether anything on it is still wanted.
+
 ---
 
 ## 5. The 3-failure circuit breaker
