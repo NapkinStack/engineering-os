@@ -22,6 +22,32 @@ a patch.
 
 ---
 
+## v0.7.5 — 2026-10-13
+
+**In the engine** — nothing
+
+`src/napkinstack/` is unchanged since v0.7.4.
+
+**In your project** — 2 files
+
+- **An acceptance issue is one trial, closed when it is answered** (D95). The form shipped in
+  v0.7.4 said what an acceptance issue holds, and nothing of when it is closed: the first one
+  stayed open with every step answered, waiting for a deliverable that needed a second module
+  and two other systems. The form and the handbook now say it:
+
+| | |
+|---|---|
+| One issue | One trial: a person, a system, a set of steps |
+| Closed | When each step has its answer — met or not — by whoever ran it, or by the pull request that records the last one |
+| The deliverable's state | In the cycle, never read from an issue being open or closed |
+
+**Migration**
+
+None. Measured on a copy of a project running the v0.7.4 skeleton: `nstack update` merged
+without a conflict, 2 files, the manual's version line and the recorded version; checks green
+afterwards. An acceptance issue left open "until the deliverable is accepted" can be closed
+once its steps are answered.
+
 ## v0.7.4 — 2026-10-13
 
 Four workstreams, each found by using the framework on a project: D91 to D94.
