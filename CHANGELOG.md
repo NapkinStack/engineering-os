@@ -22,6 +22,66 @@ a patch.
 
 ---
 
+## v0.7.6 — 2026-10-13
+
+Four workstreams, three of them found by a second contributor's first days: D96 to D99.
+
+```mermaid
+flowchart LR
+    V["v0.7.6"]:::v --> A["H1 accepts ~/Library,<br/>a Mac's folder for software's files (D97)"]:::engine
+    V --> B["A branch is brought current<br/>before its pull request (D98)"]:::project
+    V --> C["After a fix, an automated scenario's<br/>Commit cell takes the head (D96)"]:::project
+    V --> D["The framework's own tests<br/>run past a Mac's sed (D99)"]:::repo
+
+    classDef v fill:#374151,color:#fff
+    classDef engine fill:#065f46,color:#fff
+    classDef project fill:#1e3a8a,color:#fff
+    classDef repo fill:#92400e,color:#fff
+```
+
+**Legend** — green: in the engine · blue: in your project · orange: in this repository only,
+shipped to nobody.
+
+**In the engine** — 1 file
+
+- **H1 accepts `~/Library`** (D97). The hygiene check refused the folder every Mac keeps
+  software's own files in — where a macOS app documents its storage — while it accepted the
+  dot-directories, its Linux counterpart. A project building a macOS app went red on its
+  design document. A real folder of the home directory — `~/Downloads`, `~/Desktop` — is
+  still refused, and so is a name that only begins with `Library`. Nothing a green project
+  had turns red.
+
+**In your project** — 5 files
+
+- **A branch is brought current before its pull request** (D98). Two pull requests each took
+  the next number of a register on the same morning; the second conflicted after it had been
+  approved, and was settled by someone who had not written it. The kernel's working loop has
+  a step for it, and the handbook says why:
+
+| | |
+|---|---|
+| Before the pull request | Merge the default branch into yours; a conflict is settled there, by its author |
+| What is numbered in sequence | A decision record, a register's row: takes its number then, not when the work started |
+| While it waits | A conflict the forge shows is its author's to settle again. No check asks for a branch to be current |
+
+- **After a fix, an automated scenario's Commit cell takes the head** (D96). The handbook said
+  so; the pull request template and the verification playbook — what a verifier reads — did
+  not, and a verifier wrote the head in `Confirmed` for an automated scenario, which
+  `pr-check` refused. The three texts now say the same: an automated scenario is run again
+  and its Commit cell takes the head, never confirmed; an explored one keeps its commit and
+  is confirmed.
+- The handbook's paragraph on H1 names `~/Library` (D97).
+
+**In this repository only**
+
+- `platform/tests/run.sh` edits files in place through one function that both GNU's sed and
+  a Mac's take (D99): the oracle stopped on a Mac at its first `sed -i`. Not verified on a
+  Mac.
+
+**Migration**
+
+MIGRATION
+
 ## v0.7.5 — 2026-10-13
 
 **In the engine** — nothing
