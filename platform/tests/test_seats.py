@@ -161,13 +161,15 @@ def test_the_acceptance_tracks_a_deliverable_and_describes_none() -> None:
     assert set(fields) == {"tracks", "who", "run", "elsewhere"}, sorted(fields)
     assert not set(fields) & {"criteria", "acceptance", "state", "status", "need", "expected"}
     said = next(field["attributes"]["value"] for field in form["body"] if field["type"] == "markdown")
-    for needed in ("**tracks**", "not copied here", "state is set there", "06-decisions.md §9"):
+    for needed in ("**tracks**", "not copied here", "state is set there", "06-decisions.md §9", "**one trial**",
+                   "closed when each step has its answer"):
         assert needed in " ".join(said.split()), f"the form does not say: {needed}"
     rows = dict(re.findall(r"^\| ([^|]+?) \| ([^|]+?) \|$", subsection(DECISIONS, "Sources of truth"), re.M))
     row = rows.get("A deliverable tried by a person", "")
     assert "acceptance issue" in row and "stay in the cycle" in row, f"the handbook gives it no place: '{row}'"
     workflow = (SKELETON / ".nstack/handbook/05-workflow.md").read_text(encoding="utf-8")
     assert "**A scenario that waits on a person**" in workflow and "It copies no criterion and sets no state" in workflow
+    assert "**One issue is one trial, and it is closed when answered.**" in workflow, "nothing says when a trial is closed"
     for page, needed in ((".nstack/playbooks/framing.md", "each of its criteria"),
                          (".nstack/playbooks/verification.md", "an acceptance issue asks it of a person"),
                          (".github/pull_request_template.md", "asked in an acceptance issue")):
