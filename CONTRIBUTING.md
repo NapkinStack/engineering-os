@@ -91,6 +91,8 @@ fix: `nstack update --ref vX.Y.Z`.
   opening it, and take the workstream's number in the register then — two branches that
   each took the next number on the same morning conflict on that row (D98). A conflict that
   appears while the pull request waits is its author's to settle.
+- **Gone once merged**: the branch is deleted at the merge — the forge does it here (G16) —
+  and so are the local branch and its worktree (D100).
 - **The test first**: every check has a test that proves it fails (P5), seen red before
   the implementation; every failure names the rule, the place and the action (P6).
 - **Review budget**: 400 lines and 15 files; beyond that, the `over-budget` label,

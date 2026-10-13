@@ -70,6 +70,7 @@ directly, run the local checks, summarise. No ceremony.
 10. Sync         merge the default branch in before the pull request: a conflict is
                  its author's to settle, here; a number taken in sequence is taken now
 11. Summarise    done / assumed / not verified / remaining risks
+12. Close        once merged, its branch is gone: on the forge, here, and its worktree
 ```
 
 For a non-trivial task, **present steps 1 to 5 before changing anything** and wait for
