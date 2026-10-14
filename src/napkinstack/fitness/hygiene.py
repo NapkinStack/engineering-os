@@ -64,6 +64,16 @@ def tracked_files(root: Path) -> list[Path] | None:
     return [root / name for name in names if name]
 
 
+def untracked(root: Path) -> int:
+    """How many files git does not track yet and does not ignore."""
+    try:
+        listed = subprocess.run(["git", "ls-files", "-z", "--others", "--exclude-standard"], cwd=root,
+                                check=True, capture_output=True)
+    except (OSError, subprocess.CalledProcessError):
+        return 0
+    return len([name for name in listed.stdout.split(b"\0") if name])
+
+
 def run(root: Path) -> int:
     files = tracked_files(root)
     if files is None:
@@ -88,6 +98,11 @@ def run(root: Path) -> int:
                                 f"directory — {ACTION}")
 
     print(f"Hygiene: {read} tracked text file(s) read.")
+    # A file not yet added is read by nobody here and by everyone once committed: said, so
+    # that a check passed before `git add` is not taken for one passed on the commit.
+    waiting = untracked(root)
+    if waiting:
+        print(f"Hygiene: {waiting} file(s) not yet added to git, not read — add them and run it again.")
     for failure in failures:
         print(f"  FAIL {failure}")
     if failures:

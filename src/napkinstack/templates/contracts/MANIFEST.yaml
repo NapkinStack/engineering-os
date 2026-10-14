@@ -15,9 +15,11 @@ data:
   shared: []
 dependencies: []
 
-# Declared with the first contract: check and test are required once this folder holds one
-# (fitness M7), and compat once a version is consumed or stable (nstack compat, V1). The
-# tools are the project's, named in .nstack/tooling-profile.md.
+# compat before any version is consumed: from then on a change to a consumed version — a
+# corrected example as much as a renamed field — passes only with this command as merged
+# (nstack compat, V1), and `nstack manifests` warns while it is missing. check and test are
+# required once this module holds code (fitness M7). The tools are the project's, named in
+# .nstack/tooling-profile.md.
 commands:
 #  check:     # validates every contract document against its format
 #  test:      # the contract tests, run on both sides (.nstack/handbook/03-contracts.md §5)

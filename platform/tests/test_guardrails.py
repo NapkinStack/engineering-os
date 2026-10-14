@@ -663,7 +663,9 @@ def test_hygiene_accepts_what_is_true_on_every_machine(tmp_path, capsys):
 def test_hygiene_reads_only_tracked_files(tmp_path, capsys):
     tracked(tmp_path, {"docs/runbook.md": "nothing here\n"})
     (tmp_path / "scratch.md").write_text(f"{REFUSED['macOS home']}\n", encoding="utf-8")
-    assert hygiene.run(tmp_path) == 0, capsys.readouterr().out
+    assert hygiene.run(tmp_path) == 0
+    # D102: what is not read is said — a check passed before `git add` is not one passed on the commit.
+    assert "1 file(s) not yet added to git, not read" in capsys.readouterr().out
 
 
 def test_hygiene_outside_a_git_repository(tmp_path, capsys):
