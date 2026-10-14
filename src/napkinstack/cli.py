@@ -103,9 +103,10 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: compat.run(a.root, a.module, a.base))
     cp.add_argument("module", nargs="?", help="module holding the contracts (default: all)")
     cp.add_argument("--base", default="origin/main")
-    rn = _add(sub, "run", "starts a module locally (commands.run)",
-              lambda a: modules.run_verb(a.root, "run", a.module))
+    rn = _add(sub, "run", "starts a module locally (commands.run), with what follows passed to it",
+              lambda a: _run(a))
     rn.add_argument("module")
+    rn.add_argument("arguments", nargs=argparse.REMAINDER, help="passed to the module's command")
     md = _add(sub, "modules", "the project's modules, or those with a file changed since a base", _modules)
     md.add_argument("--changed-since", metavar="BASE", help="only the modules with a file changed since BASE")
     md.add_argument("--with-contract-sides", action="store_true",
@@ -158,6 +159,16 @@ def _named_root(argv: list[str]) -> Path:
         if word.startswith("--root="):
             return Path(word.removeprefix("--root="))
     return Path(".")
+
+
+def _run(a) -> int:
+    """`run` passes what follows the module to its command; `--root`, written there as the
+    other verbs take it, is still the root."""
+    root, arguments = a.root, list(a.arguments)
+    if "--root" in arguments[:-1]:
+        at = arguments.index("--root")
+        root, arguments = _root(arguments[at + 1]), arguments[:at] + arguments[at + 2:]
+    return modules.run_verb(root, "run", a.module, arguments)
 
 
 def main(argv: list[str] | None = None) -> int:

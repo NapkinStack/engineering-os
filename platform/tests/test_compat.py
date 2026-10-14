@@ -211,3 +211,18 @@ def test_a_module_without_a_folder_at_the_base(tmp_path, capfd):
     code = cli.main(["compat", "--root", str(tmp_path), "--base", base])
     output = capfd.readouterr().out
     assert code == 1 and "Traceback" not in output, output
+
+
+def test_a_consumed_contract_without_a_comparator_is_said_before_its_first_change(tmp_path, capsys):
+    """D102: rule V1 refuses every change to a consumed version — a corrected example too —
+    when no comparator is merged; the manifests check says so while it can still be met."""
+    project(tmp_path, consumer=True, compat=None)
+    cli.main(["manifests", "--root", str(tmp_path)])
+    said = capsys.readouterr().out
+    assert "WARNING [V1] contracts" in said and "declares no commands.compat" in said, said
+    for root, kwargs in ((tmp_path / "with", {"consumer": True, "compat": "true"}),
+                         (tmp_path / "unread", {"consumer": False, "compat": None})):
+        root.mkdir()
+        project(root, **kwargs)
+        cli.main(["manifests", "--root", str(root)])
+        assert "[V1]" not in capsys.readouterr().out

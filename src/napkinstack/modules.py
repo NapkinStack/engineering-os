@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -299,7 +300,7 @@ def _modules(root: Path) -> dict[str, Path]:
     return {manifest.parent.name: manifest.parent for manifest in find_manifests(root)}
 
 
-def run_verb(root: Path, verb: str, name: str | None) -> int:
+def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | None = None) -> int:
     known = _modules(root)
     if name is not None and name not in known:
         print(f"FAIL [{verb}] module '{name}' not found in {root}: no MANIFEST.yaml under that name.\n"
@@ -327,6 +328,8 @@ def run_verb(root: Path, verb: str, name: str | None) -> int:
             print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
                   "      Action: declare the module stack's command there (.nstack/handbook/09-platform.md §2).")
             return 1
+        if arguments:
+            command = " ".join([command, *map(shlex.quote, arguments)])
         print(f"-> {target}: {command}", flush=True)
         code = subprocess.run(command, shell=True, cwd=known[target]).returncode
         if code:

@@ -285,6 +285,35 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                          "(.nstack/handbook/05-workflow.md §7)")
 
 
+def comparator_owed(root: Path, manifests: list[Path]) -> None:
+    """V1, said when it can still be met: once a contract is consumed, a change to it is
+    refused unless the contracts module's merged comparator proves it compatible — a
+    corrected example as much as a renamed field."""
+    folder = root / "contracts" / "MANIFEST.yaml"
+    if not folder.is_file():
+        return
+    try:
+        commands = (yaml.safe_load(folder.read_text(encoding="utf-8")) or {}).get("commands") or {}
+    except yaml.YAMLError:
+        return
+    if not isinstance(commands, dict) or commands.get("compat"):
+        return
+    consumers = []
+    for manifest in manifests:
+        try:
+            data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if contract_entries(data, "consumes"):
+            consumers.append(manifest.parent.relative_to(root).as_posix())
+    if consumers:
+        warn("contracts", "V1", f"contracts are consumed ({', '.join(sorted(consumers))}) and "
+                                "contracts/MANIFEST.yaml declares no commands.compat: from now on a change "
+                                "to a consumed version — a corrected example as much as a renamed field — "
+                                "is refused. Declare the comparator first, in a pull request of its own "
+                                "(.nstack/handbook/03-contracts.md §3).")
+
+
 def run(root: Path) -> int:
     failures.clear()
     warnings.clear()
@@ -300,6 +329,7 @@ def run(root: Path) -> int:
 
     for manifest in manifests:
         check_manifest(manifest, today)
+    comparator_owed(root, manifests)
 
     print(f"Manifests checked: {len(manifests)}")
     for w in warnings:

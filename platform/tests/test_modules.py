@@ -28,3 +28,22 @@ def test_a_module_change_lists_that_module_alone(tmp_path):
     base = project(tmp_path)
     change(tmp_path, "modules/customers/src/app.py", "x\n")
     assert folders(tmp_path, base, sides=True) == ["modules/customers"]
+
+
+def test_run_passes_what_follows_the_module_to_its_command(tmp_path, capfd):
+    """D102: a module's `run` that takes an input — a folder to render into — is given it."""
+    import yaml
+
+    from napkinstack import cli
+
+    folder = tmp_path / "modules" / "bench"
+    folder.mkdir(parents=True)
+    (folder / "bench.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    manifest = {"module": {"name": "bench"}, "commands": {"check": "true", "test": "true",
+                                                         "run": "printf '[%s]' "}}
+    (folder / "MANIFEST.yaml").write_text(yaml.safe_dump(manifest), encoding="utf-8")
+    assert cli.main(["run", "--root", str(tmp_path), "bench", "a folder", "6", "v2"]) == 0
+    assert "[a folder][6][v2]" in capfd.readouterr().out
+    # `--root` written after the module, as the other verbs take it, is still the root.
+    assert cli.main(["run", "bench", "a folder", "--root", str(tmp_path)]) == 0
+    assert "[a folder]" in capfd.readouterr().out
