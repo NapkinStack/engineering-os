@@ -22,6 +22,77 @@ a patch.
 
 ---
 
+## v0.9.0 — 2026-10-15
+
+Four workstreams, D115 to D118: what an agent reads before its first line of work, when it asks
+for approval, and the words the method uses — one list each.
+
+```mermaid
+flowchart LR
+    V["v0.9.0"]:::v --> A["A session reads its own deliverable,<br/>not the whole cycle (D116)"]:::project
+    V --> B["The plan approved before any file<br/>is written (D116)"]:::project
+    V --> C["One list of triggers, the kernel's (D115)"]:::project
+    V --> D["A fact has one home (D117);<br/>one vocabulary (D118)"]:::project
+    V --> E["K3 warns a ready deliverable;<br/>skills say when from their playbook"]:::engine
+
+    classDef v fill:#374151,color:#fff
+    classDef engine fill:#065f46,color:#fff
+    classDef project fill:#1e3a8a,color:#fff
+```
+
+**Legend** — green: in the engine · blue: in your project.
+
+**In the engine** — 2 files, and the module templates
+
+- **`pr-check` K3 warns** a delivery pull request whose deliverable is still `ready`: set it
+  `in-progress` in the cycle, in that pull request (D116). A warning: the state is the decider's.
+- **`nstack skills` takes a skill's "when" from its playbook's trigger** — the kernel's words —
+  and appends it to the description `skills.yaml` gives, which now says only what the playbook
+  holds (D115).
+- `nstack new-module` writes a page and local instructions that point at the manifest for the
+  responsibility, the owner and the criticality, and one line per known trap (D116, D117).
+
+**In your project** — 20 files
+
+- **The kernel** (234 lines, as before):
+  - a session reads the charter, and of the current cycle **its front matter and its own
+    deliverable's section** — not the whole cycle;
+  - **before writing any file**, the plan — steps 1 to 3, the oracle to write, the size — goes to
+    whoever gave the task, who may waive it for that task; no project rule waives it; *trivial*
+    has a criterion;
+  - a defect of the framework is reported to the decider, who assigns its fix; a flaky test is
+    quarantined, never disabled;
+  - **the trigger table is the only list** of when a playbook loads — a new dependency now loads
+    security; a deployment and a call to another system, operations; a pull request's description,
+    documentation (D115, D116).
+- **Each playbook's header** says its trigger in the kernel's words (D115).
+- **The cycle's form** gives each deliverable its own section, and sends what was tried, what it
+  cost and what was refuted to the project's log issue (D116).
+- **The documentation standard has a fifth rule: a fact has one home** — the file a check or a
+  command reads; every other document links to it (D117).
+- **One vocabulary** (D118): one list of standard verbs; who provides and consumes a contract is
+  `nstack modules --with-contract-sides` and B6, where a "generated matrix" was promised; the
+  manual's commands say what each runs and name `--user-facing`; layering and budgets are the
+  project's to build.
+- `05-workflow.md` §2's diagram, `04-ai-context.md`, `09-platform.md`, `framing.md`,
+  `skills.yaml`, `RULES.md` follow.
+
+**Migration**
+
+1. **Move your cycle's prose.** What each deliverable tried, cost and refuted goes to the project's
+   log issue; give each deliverable a `### D<n>` section holding what binds it. Until then a
+   session reads only its own deliverable's section, and the rest of the prose is not read.
+2. **Set the deliverables in progress** that are: K3 now says so on their next pull request.
+3. **A playbook header or a skill description you adapted** meets a conflict on that line: keep
+   your words in the kernel's table too, or the header and the table say two things again.
+4. Copies of a module's owner, criticality or responsibility already written in your module pages
+   or your module map are yours: the fifth rule says to link instead.
+5. **An update that crosses several versions** — a project still on v0.7.x taking this one —
+   changes about thirty framework files and passes the review budget: label its pull request
+   `over-budget`, a mechanical migration.
+
+---
+
 ## v0.8.0 — 2026-10-15
 
 Four workstreams, D111 to D114: the CI bills less without judging less, the record of commits
