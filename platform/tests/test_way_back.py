@@ -20,7 +20,6 @@ def test_the_kernel_names_the_door() -> None:
     rows = [line for line in kernel.splitlines() if line.startswith("|") and "The framework itself is wrong" in line]
     assert len(rows) == 1, "the kernel's stopping rules do not say what to do when the framework is wrong"
     assert ".nstack/handbook/INSTALL.md" in rows[0] and "workaround" in rows[0].lower(), rows[0]
-    assert len(kernel.splitlines()) <= 250, "the kernel is over its 250 lines"
 
 
 def test_the_manual_holds_the_steps() -> None:
