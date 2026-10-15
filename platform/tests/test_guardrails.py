@@ -13,6 +13,7 @@ import copy
 import datetime
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -114,7 +115,13 @@ MANIFEST_CASES = {
 def test_manifests(tmp_path, capsys, prepare, rule, fails):
     prepare(tmp_path)
     code = manifests.run(tmp_path)
-    expect(code, capsys.readouterr().out, rule, fails)
+    output = capsys.readouterr().out
+    expect(code, output, rule, fails)
+    if fails:
+        said = output[output.index(f"FAIL [{rule}]"):].split("\n  FAIL [", 1)[0]
+        assert "Action:" in said, f"P6: the refusal names no action.\n{said}"
+        place = r"modules/billing/(MANIFEST\.yaml:\d+|AGENTS\.md|tests/)" if rule != "M1" else r"modules/orphan/"
+        assert re.search(place, said), f"P6: the refusal names no file and line.\n{said}"
 
 
 def test_a_module_holding_only_its_description_declares_no_verb(tmp_path, capsys):

@@ -256,3 +256,15 @@ def test_the_version_says_an_unpublished_engine(capsys, monkeypatch):
         cli.main(["--version"])
     said = capsys.readouterr().out
     assert said.startswith("nstack 0.4.0") and "UNPUBLISHED" in said and "1a2b3c4d5e6f" in said, said
+
+
+def test_l2_fails_without_git_or_pre_commit(tmp_path, capsys, monkeypatch):
+    """P5: L2 had no case proving it fails."""
+    installed(monkeypatch, None)
+    monkeypatch.setattr(doctor, "__version__", "0.4.0")
+    project(tmp_path)
+    monkeypatch.setattr(doctor.shutil, "which", lambda tool: None if tool == "pre-commit" else "/usr/bin/" + tool)
+    assert doctor.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert any(line.split()[:2] == ["FAIL", "[L2]"] for line in output.splitlines()), output
+    assert "Missing: pre-commit." in output and 'uv tool install "napkinstack==0.4.0"' in output, output

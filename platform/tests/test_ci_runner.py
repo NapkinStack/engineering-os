@@ -27,6 +27,6 @@ def test_the_skeleton_has_workflows():
     assert WORKFLOWS, "no workflow found in the skeleton"
 
 
-@pytest.mark.parametrize("runs_on", jobs())
+@pytest.mark.parametrize("runs_on", list(jobs()))
 def test_every_job_runs_where_the_project_says(runs_on):
     assert runs_on == RUNS_ON, f"runs-on is {runs_on!r}: a project could not choose its runner"
