@@ -51,7 +51,8 @@ so the work stops when its criteria are met or its appetite is spent.
   a charter's content.
 - **Choosing the project's stacks and tools**: per module and per project (P1, tooling
   profile).
-- **Adopting the model in an existing project**: no project has been generated yet.
+- **Adopting the model in an existing project**: no project has asked for it yet
+  (`PRODUCT.md` §7: nothing is built before it has served once).
 - **Implementation**: file names, the procedure's format, the check's mechanics — the
   implementation plan.
 
