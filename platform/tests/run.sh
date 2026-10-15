@@ -159,7 +159,10 @@ for name, entry in skills.items():
         meta = yaml.safe_load(front)
     except yaml.YAMLError as exc:
         sys.exit(f"FAIL: frontmatter of '{name}' invalid: {exc}")
-    if meta != {"name": name, "description": " ".join(entry["description"].split())}:
+    # The description says what the playbook holds (the mapping), then when it loads (its trigger).
+    what = " ".join(entry["description"].split())
+    if (set(meta) != {"name", "description"} or meta["name"] != name or not meta["description"].startswith(what)
+            or "Load this playbook when you are touching:" not in meta["description"]):
         sys.exit(f"FAIL: the frontmatter of '{name}' does not return name and description: {meta!r}")
 EOF
 

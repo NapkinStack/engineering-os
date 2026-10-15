@@ -1,8 +1,7 @@
 # Playbook — Documentation
 
-> **Trigger.** Load this playbook when the task writes or changes a document a human will
-> read: a front page, a decision, a charter, a cycle, a module's page, a runbook — and the
-> description of a pull request.
+> **Trigger.** Load this playbook when you are touching: a document a human will read, a
+> pull request's description included: writing or changing one.
 >
 > **This project's own rules** on the subject, when it has any: `docs/project/rules/documentation.md`
 > — read them with this playbook. They add to it or tighten it.

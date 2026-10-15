@@ -48,11 +48,24 @@ def normalise(text: str) -> str:
     return " ".join(text.split())
 
 
+def trigger(playbook: str) -> str:
+    """A playbook's trigger, as its header says it — the kernel's words (§4), on one line."""
+    match = re.search(r"^> \*\*Trigger\.\*\* (.+?)(?=\n>\s*\n|\n\n|\Z)", playbook, re.S | re.M)
+    return normalise(match.group(1).replace("\n> ", " ")) if match else ""
+
+
+def described(entry: dict, playbook: str) -> str:
+    """What the skill holds, from the mapping, and when it loads, from its playbook: one list of
+    triggers, the kernel's, which the playbook's header says again word for word."""
+    when = trigger(playbook)
+    return normalise(entry["description"]) + (f" {when}" if when else "")
+
+
 def build(root: Path, name: str, entry: dict) -> tuple[Path, str]:
     body = (root / entry["source"]).read_text(encoding="utf-8")
     # Serialised, never concatenated: a ":" or "#" in a description would break the YAML.
     frontmatter = yaml.safe_dump(
-        {"name": name, "description": normalise(entry["description"])},
+        {"name": name, "description": described(entry, body)},
         allow_unicode=True, sort_keys=False, width=float("inf"),
     )
     content = "---\n" + frontmatter + "---\n\n" + BANNER.format(source=entry["source"]) + "\n\n" + body

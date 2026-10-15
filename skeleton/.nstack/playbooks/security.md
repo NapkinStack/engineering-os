@@ -1,8 +1,7 @@
 # Playbook — Security
 
-> **Trigger.** Load this playbook when the task touches: authentication, authorisation,
-> secrets, personal or sensitive data, external input, file upload, network exposure,
-> dependencies.
+> **Trigger.** Load this playbook when you are touching: authentication, authorisation,
+> secrets, personal data, external input, a new dependency.
 >
 > Format: `situation → action → verification`. Anything not verifiable here must go to
 > human review.
