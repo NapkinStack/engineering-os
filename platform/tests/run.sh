@@ -1202,21 +1202,37 @@ if unknown:
     sys.exit(f"FAIL: required checks no skeleton job produces (G4): {unknown}")
 EOF
 
-echo "-> module checks: the contract proof runs even when an earlier step failed (D46)"
-python3 - <<'EOF' || exit 1
-import sys, yaml
-steps = {step.get("name"): step for job in yaml.safe_load(
-             open("skeleton/.github/workflows/module-checks.yml", encoding="utf-8"))["jobs"].values()
-         for step in job.get("steps", [])}
-condition = str(steps.get("compat", {}).get("if", ""))
-if "cancelled()" not in condition:
-    sys.exit("FAIL: the compat step must run after a failed step (D46), or V1's verdict is "
-             f"hidden for a round trip. Condition read: {condition!r}")
-EOF
+echo "-> module checks: one job runs every changed module; a failure stops neither the next module nor V1 (D46, ADR-0005)"
+MC=$(mktemp -d)
+mkdir -p "$MC/bin" "$MC/project/.nstack" "$MC/project/modules/a" "$MC/project/modules/b"
+cp skeleton/.nstack/check-modules.sh "$MC/project/.nstack/"
+printf 'module:\n  name: a\n  criticality: high\n' > "$MC/project/modules/a/MANIFEST.yaml"
+printf 'module:\n  name: b\n  criticality: "standard"\n' > "$MC/project/modules/b/MANIFEST.yaml"
+# A fake engine: it lists two modules, logs every verb, and fails the tests of module a.
+printf '%s\n' '#!/usr/bin/env bash' \
+  'if [ "$1" = modules ]; then printf "a\tmodules/a\nb\tmodules/b\n"; exit 0; fi' \
+  'echo "$1 $2" >> "$CALLS"' \
+  '[ "$1 $2" != "test a" ]' > "$MC/bin/nstack"
+chmod +x "$MC/bin/nstack"
+checks() {  # $1 = RUNNER_ENVIRONMENT; prints the script's output, its verbs logged in $MC/calls
+  : > "$MC/calls"
+  (cd "$MC/project" && CALLS="$MC/calls" RUNNER_ENVIRONMENT="$1" BASE=HEAD PATH="$MC/bin:$PATH" \
+     bash .nstack/check-modules.sh 2>&1)
+}
+if OUT=$(checks github-hosted); then echo "FAIL: a module whose tests failed passed the job."; echo "$OUT"; exit 1; fi
+CALLS=$(tr '\n' ',' < "$MC/calls")
+[ "$CALLS" = "bootstrap a,check a,test a,compat a,bootstrap b,check b,test b,compat b,e2e b," ] \
+  && echo "$OUT" | grep -qF "Criticality: high" && echo "$OUT" | grep -qF "Criticality: standard" \
+  && echo "$OUT" | grep -qF "Module checks failed: a" \
+  || { echo "FAIL: every module, V1 after a failure, e2e only when green — not what ran."; echo "$CALLS"; echo "$OUT"; exit 1; }
+checks self-hosted >/dev/null || true
+[ "$(grep -c '^clean ' "$MC/calls")" -eq 2 ] \
+  || { echo "FAIL: a self-hosted runner kept what a module's job left (D106)."; cat "$MC/calls"; exit 1; }
+rm -rf "$MC"
 
 echo "-> module checks: a contract change verifies both sides (D53)"
-grep -qF -- "--with-contract-sides" skeleton/.github/workflows/module-checks.yml \
-  || { echo "FAIL: module-checks.yml no longer asks for the contract's sides (D53)."; exit 1; }
+grep -qF -- "--with-contract-sides" skeleton/.nstack/check-modules.sh \
+  || { echo "FAIL: the module checks no longer ask for the contract's sides (D53)."; exit 1; }
 
 echo "-> the record: the project receives it, read-only, and the engine knows its name (W1)"
 python3 - "$C" <<'EOF' || exit 1
