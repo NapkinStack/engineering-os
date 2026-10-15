@@ -52,6 +52,8 @@ from napkinstack import assurance
 from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests, is_description
 from napkinstack.modules import LOGIN
 
+CHARTER = plan.CHARTER.as_posix()  # docs/project/charter.md, as the diff names it
+
 LABEL = "out-of-cycle"
 DELIVERABLE = re.compile(r"^Deliverable:[ \t]*(D[1-9][0-9]*)\b", re.I | re.M)
 JUSTIFICATION = re.compile(r"^Out of cycle:[ \t]*(\S.*)$", re.I | re.M)
@@ -364,6 +366,23 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
                    "deliverable (definition of ready).")
 
 
+def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
+    """C9: an accepted charter changes only through a PDR (it is the project's founding
+    decision). Said as a warning where the change is — a typo in it is not a decision — and
+    never while the charter is still proposed, which is when the framing writes it."""
+    if CHARTER not in files:
+        return []
+    before = _git(root, "show", f"{base}:{CHARTER}")
+    status = re.search(r"^status:\s*['\"]?(\w+)", before.stdout.split("\n---", 1)[0], re.M) if before.returncode == 0 else None
+    if not status or status.group(1) != "accepted":
+        return []
+    if any(path.startswith("docs/pdr/") and not path.endswith("README.md") for path in files):
+        return []
+    return [f"[C9] {CHARTER}: the accepted charter changes, and no decision record comes with it.\n"
+            "      Action: write the PDR that decides the change, and cite it in the charter; a "
+            "correction that decides nothing needs none (.nstack/playbooks/framing.md, Decisions)."]
+
+
 def run(root: Path, base: str, body_file: Path | None = None) -> int:
     if body_file is not None:
         body = body_file.read_text(encoding="utf-8")
@@ -383,6 +402,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     labels = {label.strip() for label in os.environ.get("PR_LABELS", "").split(",") if label.strip()}
 
     failures: list[str] = []
+    warnings = charter_without_pdr(root, base, files)
 
     def fail(rule: str, message: str) -> None:
         failures.append(f"[{rule}] {message}")
@@ -405,6 +425,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
         print(line)
     for scenario in human_only:
         print(f"  For the approver, human only: {scenario}")
+    for warning in warnings:
+        print(f"WARNING {warning}")
     for failure in failures:
         print(f"FAIL {failure}")
     if failures:

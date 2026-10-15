@@ -110,7 +110,6 @@ project/
 │   │   ├── MANIFEST.yaml
 │   │   ├── AGENTS.md
 │   │   ├── README.md
-│   │   ├── docs/adr/
 │   │   ├── src/
 │   │   └── tests/
 │   └── <module-b>/

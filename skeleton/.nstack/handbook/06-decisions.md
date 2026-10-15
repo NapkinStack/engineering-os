@@ -136,7 +136,9 @@ history of abandoned decisions is often worth more than the current one: it expl
 the apparently obvious does not work.
 
 A record is a file of `docs/adr/`, named `NNNN-verb-phrase-title.md` — `0001-adopt-postgres.md`
-— and listed in that folder's index, which the project keeps.
+— and listed in that folder's index, which the project keeps. There is one such folder, at the
+project's root: a decision about one module says so in its `Scope` field, and no module keeps a
+register of its own.
 
 ### PDR — Product Decision Record
 

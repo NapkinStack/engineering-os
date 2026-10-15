@@ -2,7 +2,7 @@
 
 - **Status**: Accepted (2026-10-12, by the maintainer), with the handbook
   **kept in the project**, under `.nstack/handbook/`. Built the same day by **M11s** (the one folder) and **M11t** (the contracts module created by
-  the first contract); see *As built*
+  the first contract); see *As built*; clarified on 2026-10-15 (one register of decisions)
 - **Date**: 2026-10-12
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's layout, `copier.yml`, every message and page that
@@ -213,3 +213,32 @@ If the criterion is not met: the folder's name is wrong, or too much stayed outs
 - **Support and documentation**: every path under `docs/os/` and `playbooks/` in the engine's
   messages, the kernel, the playbooks and the rule index.
 - **Data**: none.
+
+---
+
+## Clarification of 2026-10-15 — one register of decisions
+
+Added when two projects were found keeping their decisions in two different shapes, both
+following the framework, without changing the decision.
+
+**Observation.** The same address, `docs/adr/`, named two places. The handbook made it the
+project's register, at the root, with its index. The module scaffold made it a folder of the
+module: created empty with a placeholder, named in the module's manifest, and pointed at by the
+module's page, *"See `docs/adr/`"*. The third project kept one register at the root; the pilot
+opened one per module, where *ADR-0001* named three records its authors told apart by hand, and
+where no index listed them, so no review at a criterion's date ever saw them. The empty folder
+was also the one thing the scaffold still created empty.
+
+**Clarification.**
+
+- **A project has one register of each kind, at its root**: `docs/adr/` and `docs/pdr/`, each
+  with its index. A decision about one module says so in its `Scope` field, which the form
+  already has; its number is the project's.
+- **The module scaffold writes no `docs/adr/`**, its manifest names no register, and its page
+  points at the project's. A module's creation decision is a record of the project's register.
+- **A project that already keeps registers per module keeps them**: an update never touches a
+  module's files (PDR-0001, R4). The release notes say how to bring them into the root register,
+  when the project wants to.
+
+What this does not change: the forms, the indexes, the rule that a replaced decision is
+superseded, never rewritten.

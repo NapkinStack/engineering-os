@@ -21,4 +21,4 @@ section of the [manifest](./MANIFEST.yaml), for this module's stack. What each o
 
 ## Decisions
 
-See `docs/adr/`.
+In the project's `docs/adr/` and `docs/pdr/`, marked `Scope: module {{MODULE_NAME}}`.

@@ -159,3 +159,17 @@ three choices, with the state of every deliverable:
 
 The closure is where the next framing starts. When the charter's success criteria are met,
 the project is finished: say so to the decider.
+
+## Decisions
+
+A decision lives in a record, never in the charter, the cycle or a conversation
+(`.nstack/handbook/06-decisions.md`): one register of each kind at the project's root —
+`docs/pdr/` for the product, `docs/adr/` for the technique — and `Scope: module <name>` when it
+concerns one module.
+
+| When | Then |
+|---|---|
+| An accepted charter has to change — a constraint, a user, what the project is not | A **PDR** first, which the change cites; the charter is never rewritten in place (CI warns, C9) |
+| The framing chooses a module, a stack, a contract | An **ADR**: the module's creation decision is one |
+| A spike's result binds the project | A PDR or an ADR; otherwise a line in the project's log issue |
+| A cycle's **closure** | Read again every decision anchored to this cycle, and every one whose criterion's date has passed: met, missed, or superseded — say which in the record |
