@@ -1,7 +1,7 @@
 # Playbook — Framing
 
-> **Trigger.** Load this playbook when you are asked to frame a project, to plan its next
-> cycle, to re-frame the current one, or to write a cycle's closure.
+> **Trigger.** Load this playbook when you are touching: framing a project, planning or
+> closing a cycle.
 >
 > **This project's own rules** on the subject, when it has any: `docs/project/rules/framing.md`
 > — read them with this playbook. They add to it or tighten it.

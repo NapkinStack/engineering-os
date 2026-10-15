@@ -27,19 +27,8 @@ flowchart TD
     S -->|No| S2["Clarify, or state<br/>an explicit assumption"] --> S
     S -->|Yes| U["Load: the kernel<br/>+ the module's AGENTS.md and MANIFEST"]
 
-    U --> N{"Playbooks<br/>triggered?"}
-    N -->|"authn · secrets · personal data"| N1["+ security.md"]
-    N -->|"schema · migration"| N2["+ data-migration.md"]
-    N -->|"user-facing surface"| N3["+ ux.md"]
-    N -->|"test strategy · flaky"| N4["+ tests.md"]
-    N -->|"logs · retries · rollback"| N5["+ operations.md"]
-    N -->|None| V
-
-    N1 --> V["LOCAL inventory:<br/>code, tests, contracts, decisions"]
-    N2 --> V
-    N3 --> V
-    N4 --> V
-    N5 --> V
+    U --> N["+ the playbooks the task triggers:<br/>the kernel's table, §4 — the only list"]
+    N --> V["LOCAL inventory:<br/>code, tests, contracts, decisions"]
 
     V --> W{"Does the change cross<br/>a boundary?"}
     W -->|No| X["Context frozen<br/>→ oracle, then implementation"]

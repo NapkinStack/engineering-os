@@ -122,13 +122,13 @@ its own copy of the repository.
 |---|---|
 | an idea to test, a discovery to challenge or decide | `discovery.md` |
 | framing a project, planning or closing a cycle | `framing.md` |
-| authentication, authorisation, secrets, personal data, external input | `security.md` |
+| authentication, authorisation, secrets, personal data, external input, a new dependency | `security.md` |
 | a data schema, a migration, existing data | `data-migration.md` |
 | a surface visible to the user | `ux.md` |
 | a non-trivial test strategy, a flaky test | `tests.md` |
-| logs, metrics, alerts, retries, timeouts, rollback | `operations.md` |
+| logs, metrics, alerts, retries, timeouts, rollback, a deployment, a call to another system | `operations.md` |
 | verifying a change you did not write, filling in a test sheet | `verification.md` |
-| a document a human will read: writing or changing one | `documentation.md` |
+| a document a human will read, a pull request's description included: writing or changing one | `documentation.md` |
 
 **Crossing a boundary.** If the task requires changing a second module:
 
