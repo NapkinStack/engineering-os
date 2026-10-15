@@ -113,7 +113,7 @@ it has no cycle, K1 to K3 say nothing there, and every other rule applies.
 
 | Code | Records, never refuses | Why |
 |---|---|---|
-| `W1` | A commit that arrived outside a pull request | `07-governance.md` §7 |
+| `W1` | A commit that arrived outside a pull request — read from the last commit the record recorded, so that a run that never started is caught up | `07-governance.md` §7 |
 
 ## L — the workstation
 
@@ -127,7 +127,7 @@ it has no cycle, K1 to K3 say nothing there, and every other rule applies.
 
 ## G — the forge's settings
 
-The eighteen lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
+The nineteen lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
 
 | Code | Reports as a gap | Why |
 |---|---|---|
@@ -149,3 +149,4 @@ The eighteen lines of the checklist, in its order (`INSTALL.md`, "To do once on 
 | `G16` | Merged branches kept | `07-governance.md` §7 |
 | `G17` | The main branch can be deleted | `07-governance.md` §7 |
 | `G18` | The main branch's history can be rewritten by a force push | `07-governance.md` §7 |
+| `G19` | A default branch other than `main`, which no workflow watches | `07-governance.md` §7 |

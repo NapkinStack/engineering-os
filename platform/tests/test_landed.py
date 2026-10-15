@@ -21,12 +21,15 @@ def git(root, *args: str) -> str:
 
 
 class Forge:
-    """The pull requests the forge reports for a commit, by sha."""
+    """The pull requests the forge reports for a commit, by sha, and the record's last run that
+    succeeded, when there is one."""
 
-    def __init__(self, pulls: dict[str, list]) -> None:
-        self.pulls = pulls
+    def __init__(self, pulls: dict[str, list], recorded: str | None = None) -> None:
+        self.pulls, self.recorded = pulls, recorded
 
     def get(self, path: str, missing: bool = False):
+        if path.startswith("/actions/workflows/"):
+            return {"workflow_runs": [{"head_sha": self.recorded}] if self.recorded else []}
         return self.pulls.get(path.removeprefix("/commits/").removesuffix("/pulls"), [])
 
 
@@ -92,3 +95,24 @@ def test_a_span_whose_commits_cannot_be_read(tmp_path, capsys):
     repository(tmp_path)
     assert landed.run(tmp_path, "nope..nothing", Forge({})) == 0
     assert "not verified" in capsys.readouterr().out
+
+
+def test_a_push_whose_run_never_started_is_read_by_the_next_one(tmp_path, capsys):
+    """Measured on 2026-10-14: an organisation's minutes ran out, no job started, and the ranges
+    of those pushes were never read again. The record reads from the last commit it recorded."""
+    _, record = repository(tmp_path)
+    missed = commit(tmp_path, "pushed while no run could start")
+    head = commit(tmp_path, "through a pull request, once runs start again")
+    assert landed.run(tmp_path, f"{missed}..{head}", Forge({head: [{"number": 8}]}, recorded=record)) == 1
+    output = capsys.readouterr().out
+    assert "FAIL [W1]" in output and missed[:7] in output, output
+    assert "since the last commit it recorded" in output, output
+
+
+def test_a_record_that_never_succeeded_reads_the_push_alone(tmp_path, capsys):
+    """What predates the record's first success stays unread, as PDR-0006 decides."""
+    _, record = repository(tmp_path)
+    older = commit(tmp_path, "before any record succeeded")
+    head = commit(tmp_path, "through a pull request")
+    assert landed.run(tmp_path, f"{older}..{head}", Forge({head: [{"number": 9}]})) == 0
+    assert older[:7] not in capsys.readouterr().out

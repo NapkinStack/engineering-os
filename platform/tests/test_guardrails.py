@@ -709,7 +709,7 @@ class _Repository:
         return self.fields
 
 
-@pytest.mark.parametrize("rule", ["G14", "G15", "G16"])
+@pytest.mark.parametrize("rule", ["G14", "G15", "G16", "G19"])
 def test_a_merge_setting_absent_from_the_answer_is_not_verified_never_a_gap(rule):
     """`_merges` says absent means a degraded read, never a setting that is off. It held only
     when every field was absent: one field present was enough to turn the others into gaps."""
@@ -718,3 +718,12 @@ def test_a_merge_setting_absent_from_the_answer_is_not_verified_never_a_gap(rule
     with pytest.raises(doctor.NotVerified):
         doctor.CHECKS[rule](_Repository({"visibility": "public", "allow_update_branch": True,
                                          **({} if rule == "G14" else {"allow_auto_merge": True})}))
+
+
+def test_g19_a_default_branch_the_workflows_do_not_watch_is_a_gap():
+    """Measured on 2026-10-15 on a contributor's project: its default branch was `master`, the
+    workflows watch `main`, and seven direct pushes triggered no record at all (PDR-0006)."""
+    from napkinstack import doctor
+
+    assert doctor.CHECKS["G19"](_Repository({"default_branch": "main"})) is True
+    assert doctor.CHECKS["G19"](_Repository({"default_branch": "master"})) is False

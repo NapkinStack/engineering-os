@@ -14,6 +14,10 @@ It says nothing about what predates it: the commit that created the repository, 
 everything the repository already held when the record arrived, are not reported. A record
 that greets a project by failing on its own arrival teaches people to ignore it.
 
+It reads from the last commit it recorded, not from the push alone: a push whose run never
+started — CI out of minutes, a runner down — is read by the next run that does. Its last
+success is read from the forge (actions: read); a record that never succeeded reads the push.
+
 The forge is read with a token supplied by the run (GH_TOKEN, otherwise GITHUB_TOKEN), which
 needs no write access of any kind: the project's automation token stays read-only (G10).
 Without a token, or when the span cannot be read, nothing is claimed.
@@ -73,8 +77,28 @@ def _described(root: Path, commit: str) -> str:
     return _git(root, "show", "-s", "--format=%h (%an, %ad)", "--date=short", commit).stdout.strip()
 
 
+def _since_last_record(root: Path, span: str, forge: GitHub) -> tuple[str, str | None]:
+    """The span widened to start at the last commit the record recorded, and that commit; the
+    span as given, and None, when the push already starts there or the forge cannot say."""
+    try:
+        runs = forge.get(f"/actions/workflows/{Path(RECORD).name}/runs?branch=main&status=success&per_page=1")
+    except NotVerified:
+        return span, None
+    found = (runs or {}).get("workflow_runs") or []
+    last = str(found[0].get("head_sha") or "") if found else ""
+    before, _, after = span.partition("..")
+    if not last or not after or last == before or _git(root, "cat-file", "-e", f"{last}^{{commit}}").returncode:
+        return span, None
+    if _git(root, "merge-base", "--is-ancestor", last, after).returncode:
+        return span, None                     # history rewritten: the push is all that is known
+    if before not in ("", EMPTY) and _git(root, "merge-base", "--is-ancestor", before, last).returncode == 0:
+        return span, None                     # the push starts after the last record already
+    return f"{last}..{after}", last
+
+
 def run(root: Path, span: str, forge: GitHub | None) -> int:
-    commits = _commits(root, span)
+    pushed = _commits(root, span)
+    commits = pushed
     if commits is None:
         print(f"[W1] the commits of '{span}' cannot be read: not verified.\n"
               "      Action: fetch the history (fetch-depth: 0), or pass an existing range.")
@@ -83,6 +107,11 @@ def run(root: Path, span: str, forge: GitHub | None) -> int:
         print("[W1] no token (GH_TOKEN or GITHUB_TOKEN): how each commit arrived is not verified.\n"
               "      Action: supply a token with read access to the repository's pull requests.")
         return 0
+    span, last = _since_last_record(root, span, forge)
+    if last:
+        commits = _commits(root, span) or pushed
+        print(f"Read since the last commit it recorded, {last[:12]}: {len(commits) - len(pushed)} commit(s) "
+              "no run had read.")
     beginning = _beginning(root)
     outside, checked = [], 0
     for commit in commits:
