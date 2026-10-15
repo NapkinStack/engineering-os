@@ -5,7 +5,7 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.7.7, published** on [PyPI](https://pypi.org/project/napkinstack/).
+> **Status: v0.8.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
 > What each version changes, engine and project apart: [`CHANGELOG.md`](CHANGELOG.md).
 > What is open: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
@@ -69,8 +69,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.7.7" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.7.7"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.8.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.8.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a

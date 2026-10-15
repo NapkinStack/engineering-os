@@ -22,6 +22,76 @@ a patch.
 
 ---
 
+## v0.8.0 — 2026-10-15
+
+Four workstreams, D111 to D114: the CI bills less without judging less, the record of commits
+on main has no gap, and decisions have one register the agent knows how to fill.
+
+```mermaid
+flowchart LR
+    V["v0.8.0"]:::v --> A["Module checks in one job:<br/>five billed jobs per pull request, not seven (D113)"]:::project
+    V --> B["The record reads what no run read;<br/>G19, the default branch (D112)"]:::engine
+    V --> C["One register of decisions;<br/>C9, a charter changed without its PDR (D114)"]:::project
+    V --> D["This repository's own template (D111)"]:::repo
+
+    classDef v fill:#374151,color:#fff
+    classDef engine fill:#065f46,color:#fff
+    classDef project fill:#1e3a8a,color:#fff
+    classDef repo fill:#92400e,color:#fff
+```
+
+**Legend** — green: in the engine · blue: in your project · orange: in this repository only.
+
+**In the engine** — 5 files, and the module template
+
+- **`nstack landed` reads from the last commit it recorded** (D112): a push whose run never
+  started — CI out of minutes, a runner down — is read by the next run that does, which says how
+  many commits no run had read. A record that never succeeded reads the push alone.
+- **`doctor` G19**: a default branch other than `main`, which no workflow watches, is a gap; read
+  on the repository's own object, any plan, no Administration permission. `nstack settings` plans
+  the rename (D112).
+- **`pr-check` C9, a warning**: a pull request that changes an accepted charter and carries no
+  decision record is told so (D114).
+- **`nstack new-module` writes no register of decisions in the module**: its page points at the
+  project's `docs/adr/` and `docs/pdr/`, with `Scope: module <name>` (D114).
+
+**In your project** — 9 files
+
+- **`Module checks` is one job** (D113, ADR-0005), running the new `.nstack/check-modules.sh`: each
+  changed module in turn — bootstrap, check, test; compat even after a failure; e2e on a green
+  module; clean on a self-hosted runner. A failure does not stop the next module; the job fails at
+  the end, naming them. The required name is unchanged, so no ruleset moves; the run on `main` and
+  every verdict are kept. A pull request changing one module bills five jobs instead of seven, and
+  a self-hosted runner needs `git` alone. The pull request's page shows one line for the modules;
+  read a failure in the job's log groups. The evidence is one archive, a folder per module.
+- **`Commits on main` reads its own past runs** (`actions: read`, still read only) (D112).
+- **INSTALL**: the checklist's nineteenth line, the default branch; a runner needs `git`; what a
+  pull request costs (D112, D113).
+- **`framing.md` says when a decision is due** — an accepted charter changes through a PDR, a
+  framing choice is an ADR, a cycle's closure reads again the decisions anchored to it or past their
+  date — and the charter's form sends open questions to the cycle (D114).
+- `RULES.md` (G19, C9, W1), `06-decisions.md` (one register), `09-platform.md` (the module tree, the
+  module checks' cleaning).
+
+**Migration**
+
+1. **The first run of *Commits on main* after the update may be red**: it reads back to the last
+   commit it recorded, and names any commit that reached `main` outside a pull request while no run
+   could start. Read each one; it is the record keeping its promise late.
+2. **A default branch other than `main`** is now a gap (G19): rename it — `nstack settings` prints
+   the call.
+3. **A module that keeps a `docs/adr/` of its own** keeps it: an update never touches a module. To
+   have one register, move its records into the project's `docs/adr/`, numbered there, with
+   `Scope: module <name>`.
+4. A script that read a job of the matrix by its module's name (`evidence-<module>`, a job per
+   module) reads `Module checks` and the `evidence` archive now.
+
+**In this repository only**
+
+- The pull request template is a workstream's, and holds the only definition of done (D111).
+
+---
+
 ## v0.7.7 — 2026-10-15
 
 Ten workstreams, D100 to D110 (D103 and D104 stay open); most of them found by a third project
