@@ -10,6 +10,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+import yaml
+
 SKELETON = Path(__file__).resolve().parents[2] / "skeleton" / ".nstack"
 DISCOVERY = (SKELETON / "playbooks/discovery.md").read_text(encoding="utf-8")
 FRAMING = (SKELETON / "playbooks/framing.md").read_text(encoding="utf-8")
@@ -60,3 +63,56 @@ def test_framing_says_when_a_decision_is_due():
     assert "## Decisions" in FRAMING, "framing.md says nothing of when a decision record is due"
     section = FRAMING[FRAMING.index("## Decisions"):]
     assert "PDR" in section and "ADR" in section and "closure" in section.lower(), section[:400]
+
+
+# --- One list of triggers (2026-10-15) ---
+# The kernel's table, each playbook's header, the skills' descriptions and a diagram of the
+# handbook each said when a playbook loads, in four versions: "dependencies" triggered the
+# security playbook by its header and by no other copy, so an agent without skills and one
+# with them did not load the same rules for the same task. The kernel's table is the list —
+# it is what every agent reads first (P2); a header says it again word for word, and a skill's
+# "when" is generated from it.
+
+import re as _re
+
+KERNEL = (SKELETON.parent / "AGENTS.md").read_text(encoding="utf-8")
+ROWS = dict((playbook, phrase) for phrase, playbook in _re.findall(r"^\| ([^|]+?) \| `(\w[\w-]*\.md)` \|$", KERNEL, _re.M))
+
+
+def test_the_kernel_lists_every_playbook_once():
+    playbooks = sorted(path.name for path in (SKELETON / "playbooks").glob("*.md"))
+    assert sorted(ROWS) == playbooks, f"kernel §4 lists {sorted(ROWS)}, the skeleton holds {playbooks}"
+
+
+@pytest.mark.parametrize("playbook", sorted(ROWS))
+def test_a_playbook_s_trigger_is_the_kernel_s_word_for_word(playbook):
+    from napkinstack import skills
+
+    said = skills.trigger((SKELETON / "playbooks" / playbook).read_text(encoding="utf-8"))
+    expected = f"Load this playbook when you are touching: {ROWS[playbook]}."
+    assert said == expected, (
+        f".nstack/playbooks/{playbook}: its trigger is not the kernel's.\n      Kernel §4: {ROWS[playbook]}\n"
+        f"      Action: write its header as `> **Trigger.** {expected}`.")
+
+
+@pytest.mark.parametrize("playbook", sorted(ROWS))
+def test_a_skill_says_when_from_its_playbook(tmp_path, playbook):
+    from napkinstack import skills
+
+    root = SKELETON.parent
+    entries = yaml.safe_load((SKELETON / "skills.yaml").read_text(encoding="utf-8"))["skills"]
+    name = playbook.removesuffix(".md")
+    _, text = skills.build(root, name, entries[name])
+    described = yaml.safe_load(text.split("---")[1])["description"]
+    assert ROWS[playbook] in described, described
+    assert "should be used when" not in normalised(entries[name]["description"]), (
+        f".nstack/skills.yaml: {name} still says when itself; the playbook's trigger says it")
+
+
+def normalised(text: str) -> str:
+    return " ".join(text.split())
+
+
+def test_the_handbook_draws_no_list_of_triggers():
+    ai = (SKELETON / "handbook/04-ai-context.md").read_text(encoding="utf-8")
+    assert "+ security.md" not in ai and "+ ux.md" not in ai, "04-ai-context.md keeps its own list of triggers"
