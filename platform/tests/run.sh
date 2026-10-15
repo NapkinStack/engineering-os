@@ -1207,6 +1207,8 @@ mkdir -p "$MC/bin" "$MC/project/.nstack" "$MC/project/modules/a" "$MC/project/mo
 cp skeleton/.nstack/check-modules.sh "$MC/project/.nstack/"
 printf 'module:\n  name: a\n  criticality: high\n' > "$MC/project/modules/a/MANIFEST.yaml"
 printf 'module:\n  name: b\n  criticality: "standard"\n' > "$MC/project/modules/b/MANIFEST.yaml"
+git -C "$MC/project" init -q && git -C "$MC/project" add -A \
+  && git "${GIT_ID[@]}" -C "$MC/project" commit -q --no-verify -m "two modules"  # BASE=HEAD resolves, as in CI
 # A fake engine: it lists two modules, logs every verb, and fails the tests of module a.
 printf '%s\n' '#!/usr/bin/env bash' \
   'if [ "$1" = modules ]; then printf "a\tmodules/a\nb\tmodules/b\n"; exit 0; fi' \
