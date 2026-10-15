@@ -78,7 +78,7 @@ jobs:
       BASE: ${{ needs.discover.outputs.base }}
     steps:
       # A job starts clean: what an earlier job left in the checkout — a build that failed
-      # half-way on a self-hosted runner — is removed before this one runs (D106).
+      # half-way on a self-hosted runner — is removed before this one runs.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -136,7 +136,7 @@ jobs:
           retention-days: 30
 
       # A job ends clean where the machine outlives it: GitHub's hosted runners are thrown away, a
-      # self-hosted one keeps the build until the same repository's next job (D106). Even after a
+      # self-hosted one keeps the build until the same repository's next job. Even after a
       # failure; skipped when the engine never installed. The module declares what it leaves
       # (commands.clean, .nstack/handbook/09-platform.md §2).
       - name: clean
