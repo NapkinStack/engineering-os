@@ -22,5 +22,6 @@ contract tests do.
 
 ## Before changing anything
 
-Check the consumer matrix, generated from the manifests. A version is only removed once
+Check who consumes it, read from the manifests: `nstack modules --with-contract-sides`, and
+B6 for a version consumed and provided by nobody. A version is only removed once
 `consumers = 0`.

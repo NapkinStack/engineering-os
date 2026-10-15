@@ -7,8 +7,8 @@ What this module is for, who owns it and how critical it is: its
 
 ## Getting started
 
-The standard verbs — `bootstrap`, `check`, `test`, `run` — are declared in the `commands`
-section of the [manifest](./MANIFEST.yaml), for this module's stack. What each one must do:
+The standard verbs are declared in the `commands` section of the [manifest](./MANIFEST.yaml),
+for this module's stack. Which they are, and what each one must do:
 `.nstack/handbook/09-platform.md` §2.
 
 ## Contracts
