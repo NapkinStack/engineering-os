@@ -24,7 +24,7 @@ a patch.
 
 ## v0.7.7 — 2026-10-15
 
-Nine workstreams, D100 to D109 (D103 and D104 stay open); most of them found by a third project
+Ten workstreams, D100 to D110 (D103 and D104 stay open); most of them found by a third project
 and a contributor's private one, in their first week.
 
 ```mermaid
@@ -46,8 +46,11 @@ flowchart LR
 
 - **`doctor` L1 says where an unpublished pin stands** (D108). A fix may be pinned while it is
   reviewed; its squash then gives the framework's default branch another commit and leaves the
-  pinned one on no branch. L1 now says so, with the gesture that moves the pin, asking the forge
-  without a token; when the forge is silent, it says what it said before. L1 stays a gap.
+  pinned one on no branch. L1 now says when the framework's default branch does not hold the
+  pinned commit, with the gesture that moves the pin once it is merged, asking the forge without
+  a token; when the forge is silent, it says what it said before. L1 stays a gap. Its first
+  wording called a commit still in review "left behind by its squash"; corrected before the tag
+  (D110).
 - **An action never names a version no installer accepts** (D108): for a project pinned to a
   commit, `doctor` says `bash .nstack/install-engine.sh`, not `napkinstack==<version>-<n>-g<commit>`.
 - **`nstack --version` says where the engine came from**; `--ref` is documented as a tag or a

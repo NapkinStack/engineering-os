@@ -18,8 +18,8 @@ or when the API refuses a read, the setting is "not verified", never compliant. 
 Rules:
   L1  nstack installed at the project version (_commit in .copier-answers.yml), both
       published: an unpublished framework is a gap, never compliance (PDR-0005) — and a pinned
-      commit the framework's default branch does not hold, a pull request's head after its
-      squash, is said with the gesture that moves the pin
+      commit the framework's default branch does not hold, a pull request's head, is said with
+      the gesture that moves the pin once it is merged
   L2  git and pre-commit available
   L3  pre-commit hooks installed
   L4  retired (D79): it refused a file named PRODUCT.md, which a product may write. The
@@ -323,10 +323,10 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     if not PUBLISHED.fullmatch(commit):
         branch = _left_behind(answers)
         if branch:
-            l1 = (GAP, f"The project is pinned to an unpublished framework ({commit}), on no commit of "
-                       f"the framework's {branch}: the head of a pull request, left behind by its "
-                       f"squash.\nAction: nstack update --ref <the commit {branch} received for that "
-                       "change>, or --ref vX.Y.Z, a release that carries it.")
+            l1 = (GAP, f"The project is pinned to an unpublished framework ({commit}), a commit the "
+                       f"framework's {branch} does not hold: a pull request's head, which its squash leaves "
+                       f"on no branch.\nAction: once it is merged, nstack update --ref <the commit {branch} "
+                       "received for that change>, or --ref vX.Y.Z, a release that carries it.")
         else:
             l1 = (GAP, f"The project is pinned to an unpublished framework ({commit or 'unknown'}): its "
                        "verdicts come from rules nobody has published.\nAction: once the change it "

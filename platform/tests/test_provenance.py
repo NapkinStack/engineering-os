@@ -220,8 +220,8 @@ def forge(monkeypatch, status: str | None) -> None:
 
 
 PINS = {
-    "a commit the default branch no longer leads to": ("diverged", "on no commit of the framework's main"),
-    "a commit only a pull request holds": ("ahead", "on no commit of the framework's main"),
+    "a commit the default branch no longer leads to": ("diverged", "a commit the framework's main does not hold"),
+    "a commit only a pull request holds": ("ahead", "a commit the framework's main does not hold"),
     "a commit of the default branch": ("behind", "once the change it waits for is released"),
     "the forge did not answer": (None, "once the change it waits for is released"),
 }
@@ -238,6 +238,9 @@ def test_l1_says_where_an_unpublished_pin_stands(tmp_path, capsys, monkeypatch, 
     assert expected in output, output
     if status in ("diverged", "ahead"):
         assert "nstack update --ref" in output and "a release that carries it" in output, output
+        # Measured on 2026-10-15 rehearsing v0.7.7: a commit still in review was said "left behind
+        # by its squash" before any squash. What the forge answers is where the commit stands.
+        assert "left behind" not in output and "once it is merged" in output, output
 
 
 def test_no_action_names_a_version_no_installer_accepts(tmp_path, capsys, monkeypatch):
