@@ -8,7 +8,7 @@
 # A ref that cannot be fetched fails here; no published version is ever used in its place.
 set -euo pipefail
 
-# Two lines of the answers file, read without yq: a runner may hold another one, or none.
+# Two lines of the answers file, read with sed alone: a runner may hold any YAML tool, or none.
 answer() { sed -n "s/^$1: *['\"]\{0,1\}\([^'\"]*\)['\"]\{0,1\} *$/\1/p" .copier-answers.yml; }
 VERSION=$(answer _commit)
 if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
