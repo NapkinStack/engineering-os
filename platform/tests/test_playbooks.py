@@ -147,3 +147,48 @@ def test_the_plan_is_approved_before_any_file_is_written():
 def test_the_kernel_names_who_hears_of_a_framework_defect():
     row = next(line for line in KERNEL.splitlines() if line.startswith("| The framework itself is wrong"))
     assert "Report it to the decider" in row and "the decider assigns" in row, row
+
+
+# --- One vocabulary (2026-10-15) ---
+# The standard verbs were four in one page, six in a diagram and ten in the platform's table;
+# three pages promised a producer/consumer matrix "generated from the manifests" that no command
+# produces; the manual's command table had lost a verb's meaning; this repository's own module
+# page said G1-G18 after a nineteenth rule.
+
+ROOT = SKELETON.parent.parent
+
+
+def test_no_page_promises_a_generated_matrix():
+    pages = [SKELETON / "handbook/02-modules.md", SKELETON / "handbook/03-contracts.md",
+             ROOT / "src/napkinstack/templates/contracts/AGENTS.md"]
+    said = [page.name for page in pages if _re.search(r"matrix[^.]*\bgenerated\b|\bgenerated\b[^.]*matrix|is \*\*generated\*\*",
+                                                     " ".join(page.read_text(encoding="utf-8").split()))]
+    assert not said, f"a generated producer/consumer matrix promised in {said}; no command produces it"
+
+
+def test_the_standard_verbs_are_listed_once():
+    diagram = (SKELETON / "handbook/02-modules.md").read_text(encoding="utf-8")
+    page = (ROOT / "src/napkinstack/templates/module/README.md").read_text(encoding="utf-8")
+    assert "migrate · release" not in diagram, "02-modules.md draws its own list of verbs"
+    assert "`bootstrap`, `check`, `test`, `run`" not in page and "09-platform.md` §2" in page, page
+
+
+def test_the_manual_names_every_verb_the_engine_runs():
+    manual = (SKELETON / "handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
+    commands = manual[manual.index("## The commands"):]
+    for verb in ("bootstrap", "check", "test", "run", "e2e", "clean", "compat"):
+        assert f"nstack {verb}" in commands, f"INSTALL's commands do not name `nstack {verb}`"
+    assert "--user-facing" in commands, "the flag that decides a test sheet is documented nowhere"
+
+
+def test_the_platform_page_names_every_rule_doctor_holds():
+    from napkinstack import doctor
+
+    highest = max(int(rule[1:]) for rule, _, _ in doctor.CHECKLIST)
+    page = (ROOT / "platform/README.md").read_text(encoding="utf-8")
+    assert f"G1-G{highest}" in page, f"platform/README.md does not say G1-G{highest}"
+
+
+def test_a_fitness_function_nothing_ships_says_whose_it_is():
+    governance = " ".join((SKELETON / "handbook/07-governance.md").read_text(encoding="utf-8").split())
+    assert "the project's to build" in governance, "07-governance.md announces budgets and layering as if checked"
