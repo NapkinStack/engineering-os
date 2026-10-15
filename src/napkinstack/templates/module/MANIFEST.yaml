@@ -79,5 +79,4 @@ commands:
 docs:
   readme: README.md
   agents: AGENTS.md
-  adr: docs/adr/
   # runbook: docs/runbook.md     # required when criticality >= high

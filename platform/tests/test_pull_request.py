@@ -480,3 +480,42 @@ def test_a_commit_whose_tree_is_the_heads_is_the_head_for_a_sheet(tmp_path, caps
     git(tmp_path, "commit", "-q", "-am", "a change after the verification")
     assert check(tmp_path, base, git(tmp_path, "rev-parse", "HEAD"), body, monkeypatch) == 1
     assert "FAIL [T4]" in capsys.readouterr().out
+
+
+# --- C9: an accepted charter changes only through a PDR (PDR-0002 §3) ---
+# Found on 2026-10-15: a third project rewrote its accepted charter in place three times, one of
+# them a product choice with a legal reach, and no decision record was written. The rule lived in
+# a page no agent loads; the check says it where the change is, as a warning.
+
+def charter_change(root, with_pdr: bool, status: str = "accepted") -> tuple[str, str]:
+    git(root, "init", "-q", "--initial-branch=main")
+    write(root, "charter.md", {**CHARTER, "status": status})
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "base")
+    base = git(root, "rev-parse", "HEAD")
+    write(root, "charter.md", {**CHARTER, "status": status}, body="\n# Document\n\nA new constraint.\n")
+    if with_pdr:
+        (root / "docs" / "pdr").mkdir(parents=True, exist_ok=True)
+        (root / "docs" / "pdr" / "0001-a-new-constraint.md").write_text("# PDR-0001\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "change")
+    return base, git(root, "rev-parse", "HEAD")
+
+
+CHARTER_CHANGES = {
+    "an accepted charter changed alone": (True, False, "accepted", True),
+    "an accepted charter changed with its PDR": (False, True, "accepted", False),
+    "a proposed charter, still being framed": (False, False, "proposed", False),
+}
+
+
+@pytest.mark.parametrize(("_", "with_pdr", "status", "warned"), [(k, *v[1:]) for k, v in CHARTER_CHANGES.items()],
+                         ids=CHARTER_CHANGES.keys())
+def test_c9_an_accepted_charter_changed_without_a_pdr_is_said(tmp_path, capsys, monkeypatch, _, with_pdr, status,
+                                                                warned):
+    base, head = charter_change(tmp_path, with_pdr, status)
+    assert check(tmp_path, base, head, "A change.", monkeypatch, deliverable_line=None) == 0
+    output = capsys.readouterr().out
+    assert ("WARNING [C9]" in output) is warned, output
+    if warned:
+        assert "docs/project/charter.md" in output and "Action:" in output and "PDR" in output, output

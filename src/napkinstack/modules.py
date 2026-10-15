@@ -218,7 +218,8 @@ def next_steps(root: Path, name: str, criticality: str, user_facing: bool) -> li
     """What the module's first pull requests will be asked, from facts nstack holds (D33)."""
     from napkinstack.fitness import plan  # here: plan reads HANDLE from this module
 
-    steps = ["Creation ADR in docs/adr/: capability, boundary, alternatives — and the criticality "
+    steps = [f"Creation ADR in the project's docs/adr/, Scope: module {name}: capability, boundary, "
+             "alternatives — and the criticality "
              f"with one sentence saying why {criticality} and not the value below or above; it is "
              "the decider who settles it",
              "MANIFEST.yaml: the responsibility in ONE sentence",
