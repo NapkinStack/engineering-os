@@ -24,8 +24,8 @@
 
 ## Known traps
 
-<What has already broken here. Every entry should become a test - see
-.nstack/handbook/10-measurement.md §4.>
+<One line per trap — the situation, then what to do. Every entry becomes a test
+(.nstack/handbook/10-measurement.md §4); a story of what happened goes to the log issue.>
 
 ## Areas not to change without approval
 

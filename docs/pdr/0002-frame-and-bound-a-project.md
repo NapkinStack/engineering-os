@@ -1,6 +1,6 @@
 # PDR-0002 — Frame and bound a project
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery); clarified on 2026-09-19 (the criterion is effective work)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery); clarified on 2026-09-19 (the criterion is effective work); clarified on 2026-10-15 (what a session reads of the cycle; a deliverable's state)
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, templates,
@@ -222,7 +222,8 @@ per kind of content.
 3. **Decide.** The tech lead amends and validates: the charter and the cycle are accepted,
    with an appetite and an end date. Modules accepted by the framing are created with
    `nstack new-module`.
-4. **Run.** Each session reads the charter and the current cycle. Each pull request is
+4. **Run.** Each session reads the charter, and of the current cycle its front matter and the
+   section of the deliverable it works on. Each pull request is
    tied to one deliverable. A new idea goes to the *later* list.
 5. **End.** Every deliverable is accepted: the agent writes the closure, the decider
    frames the next cycle or ends the project. Or the end date comes first: the circuit
@@ -485,6 +486,44 @@ go, the framing (§3 and §4 above) writes the charter and the first cycle from
   the challenger in the postures; the README's journey; `framing.md` starting from the
   discovery when there is one.
 - **Plan**: workstreams M8d (engine) and M8e (rules).
+
+---
+
+## Clarification of 2026-10-15 — what a session reads of the cycle, and a deliverable's state
+
+Added from what the third project's second cycle showed, without changing the decision: the
+cycle still bounds the work, and its states are the ones of the *Detailed functional design*.
+
+**Observation.** "Each session reads the charter and the current cycle" was read as the whole
+file, and the cycle became the largest text a session loads: on the third project, 7,168 words
+— 57 % of everything read before the first line of a task — of which 4,874 were a journal of
+what each deliverable had tried, measured and refuted. Its first cycle, stopped, reached
+12,316. Nothing in this record put a journal there, and PDR-0010 gives it a place, the
+project's log issue; but the cycle's form asked for free notes under its deliverables, and the
+framing playbook wrote a spike's result into the cycle. The cost of every task then grew with
+the length of the cycle, which is the dilution the method warns about.
+
+The same cycle showed the state nothing kept: one deliverable stayed `ready` after seven pull
+requests had been merged in its name, and two refuted ones stayed `ready` too. The check that
+names a deliverable accepts `ready` as it accepts `in-progress`, and nothing asks for the move.
+
+**Clarification.**
+
+- **A session reads the charter, and of the current cycle its front matter and the section of
+  its own deliverable** — the goal, the appetite, the end date, every deliverable's state, and
+  the acceptance criteria and notes of the one it works on. The framer, who plans or closes the
+  cycle, reads it whole.
+- **Each deliverable has its own section in the cycle**, under its identifier, so that the
+  section a session reads is one an agent can find without reading the others.
+- **What was tried, what it cost and what was refuted goes to the project's log issue**
+  (PDR-0010), and the deliverable's section keeps what binds: its criteria, its decisions, its
+  links. A spike's result is a decision when it binds, and a line in the log when it does not.
+- **A deliverable's first delivery pull request is told to set it `in-progress`** when it is
+  still `ready`. It is a warning, not a refusal: the state is the decider's record, and the
+  pull request that sets it is the one that knows.
+
+What this does not change: the charter is read whole; the states of a cycle and of a
+deliverable; who decides them; the circuit breaker.
 
 ---
 

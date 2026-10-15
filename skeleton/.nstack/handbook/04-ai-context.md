@@ -58,7 +58,8 @@ during implementation is the symptom of a failed framing, not of a useful discov
 
 ```
 1. kernel AGENTS.md                     always        ~250 lines
-2. the charter and the current cycle    always        docs/project/
+2. the charter; of the current cycle,  always        docs/project/ — the cycle's front matter
+   its front matter and your section                  and your deliverable's section, not the rest
 3. the project's own rules              always        always.md, then <x>.md with playbook <x>
 4. the target module's MANIFEST         always        short
 5. the module's local AGENTS.md         always        ~50-100 lines
