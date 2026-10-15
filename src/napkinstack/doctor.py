@@ -30,7 +30,7 @@ Rules:
   L7  the template source reachable by anyone: a repository, not a path on one machine
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. No other command opens a connection
-  G1-G18  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+  G1-G19  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
           or option required
 
@@ -117,6 +117,10 @@ CHECKLIST = [  # (rule, setting, action)
     # main, and said nothing of main being deleted or rewritten under them.
     ("G17", "Main branch cannot be deleted", f"{RULESET}: restrict deletions"),
     ("G18", "Main branch history cannot be rewritten: no force push", f"{RULESET}: block force pushes"),
+    # G19: every workflow and ruleset here watches `main`. A repository whose default branch is
+    # another one triggers none of them, and its record of commits on main never runs.
+    ("G19", "Default branch `main`: the branch every workflow and ruleset here watches",
+     "Settings → General → Default branch: rename it main"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
@@ -267,6 +271,7 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G16": lambda c: _merges(c, "delete_branch_on_merge").get("delete_branch_on_merge") is True,
     "G17": lambda c: _rule(c, "deletion") is not None,
     "G18": lambda c: _rule(c, "non_fast_forward") is not None,
+    "G19": lambda c: _merges(c, "default_branch").get("default_branch") == "main",
 }
 
 

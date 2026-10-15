@@ -142,6 +142,14 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
         merges["delete_branch_on_merge"] = True
     if merges:
         calls.append((", ".join(rule for rule in ("G14", "G15", "G16") if rule in missing), "PATCH", "", merges))
+    if "G19" in missing:
+        current = "<the default branch>"
+        if client is not None:
+            try:
+                current = str(client.get("").get("default_branch") or current)
+            except doctor.NotVerified:
+                pass
+        calls.append(("G19", "POST", f"/branches/{current}/rename", {"new_name": "main"}))
     return calls, notes
 
 

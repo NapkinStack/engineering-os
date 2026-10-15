@@ -2,7 +2,7 @@
 
 - **Status**: Accepted (2026-09-20, by the maintainer; the success criterion is observed
   before 2027-03-31); implemented in v0.5.0, with ADR-0002's clarification of the same
-  day
+  day; clarified on 2026-10-15 (a record with no gap, and the branch it watches)
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (its workflows, README and checklist), `nstack
@@ -246,3 +246,38 @@ framework that has to explain its own vocabulary before being useful has already
   words where it describes the checks.
 - **Data**: nothing is collected. The state is read from the forge at diagnosis time and kept
   nowhere.
+
+---
+
+## Clarification of 2026-10-15 — a record with no gap, and the branch it watches
+
+Added when two private projects showed the record silent where it promised to speak, without
+changing the decision.
+
+**Observation.** The record read each push's own range, from the commit before it to the commit
+after. On the third project the organisation's hosted minutes ran out on 2026-10-14: no job
+started, twenty-seven pull requests were merged meanwhile, and the ranges of the runs that never
+started will never be read — while the project's manual says the record is *"the only thing
+that will ever mention such a commit"*. On a contributor's project the default branch was
+`master` and the workflows watch `main`: seven direct pushes triggered nothing; once the branch
+was renamed, the first run had no previous commit and read the tip alone. Six commits reached the
+default branch outside a pull request and are recorded nowhere.
+
+**Clarification.**
+
+- **The record reads from the last commit it recorded successfully**, not from the push's own
+  range: a run that did not start is caught up by the next one that does. When it has never
+  recorded anything, it reads what it read before — the pushed range, or the tip alone — so what
+  predates the record is still not reported, as this decision requires.
+- **The diagnosis reads the repository's default branch** and names a gap when it is not the
+  branch the workflows watch, with the gesture that settles it. It needs no administration
+  right: the repository's own object says it.
+- **A repository whose CI cannot start is judged by nothing.** Guarded, its required checks
+  never report and nothing merges; unguarded, nothing refuses, and from this clarification the
+  next run that starts records what came in meanwhile. Checks a person runs on a workstation are
+  not a judge: they leave no record anyone else can read, and the framework never counts them as
+  one.
+
+What this does not change: the record records, it never refuses; it reads with a read-only token
+— reading the record's own past runs is a read, so the project's automation stays read-only
+(G10); the two words, *guarded* and *unguarded*.
