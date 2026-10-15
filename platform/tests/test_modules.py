@@ -66,3 +66,20 @@ def test_clean_runs_the_declared_command_and_is_optional(tmp_path, capfd):
     assert not (tmp_path / "modules/engine/target").exists()
     assert (tmp_path / "modules/pages/target").exists()
     assert "pages: clean not declared, nothing to clean" in capfd.readouterr().out
+
+
+def test_a_module_holds_no_register_of_its_own(tmp_path, capsys):
+    """One register of decisions per project, at its root (PDR-0012, clarified 2026-10-15): the
+    scaffold wrote an empty docs/adr/ in every module, named in its manifest and its page."""
+    import yaml
+
+    from napkinstack import cli
+
+    assert cli.main(["new-module", "billing", "acme/billing", "standard", "--root", str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    folder = tmp_path / "modules" / "billing"
+    assert not (folder / "docs" / "adr").exists(), "the scaffold creates a folder of decisions in the module"
+    assert "adr" not in (yaml.safe_load((folder / "MANIFEST.yaml").read_text(encoding="utf-8"))["docs"] or {})
+    page = (folder / "README.md").read_text(encoding="utf-8")
+    assert "`Scope: module billing`" in page, page
+    assert "Scope: module billing" in output and "the project's docs/adr/" in output, output

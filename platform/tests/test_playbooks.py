@@ -53,3 +53,10 @@ def test_a_project_s_rule_has_no_earliest_moment() -> None:
     row = next(line for line in decisions.splitlines() if line.startswith("| The project's own rules"))
     assert "The charter is accepted: its constraints are the first ones" not in row, row
     assert "first decision that binds" in row, row
+
+
+def test_framing_says_when_a_decision_is_due():
+    """06-decisions.md holds the moments of decisions, and no agent loads the handbook."""
+    assert "## Decisions" in FRAMING, "framing.md says nothing of when a decision record is due"
+    section = FRAMING[FRAMING.index("## Decisions"):]
+    assert "PDR" in section and "ADR" in section and "closure" in section.lower(), section[:400]
