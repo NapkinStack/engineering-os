@@ -16,11 +16,11 @@
 
 | # | Rule |
 |---|---|
-| S1 | **No secret in the repository.** Not in clear text, not encoded, not "temporarily", not in a test, not in a comment. |
-| S2 | **All external input is hostile** until explicitly validated. |
-| S3 | **Least privilege by default** — including for CI and for agents. |
-| S4 | **Deny by default** in authorisation: whatever is not explicitly allowed is forbidden. |
-| S5 | **Never design your own** cryptographic, password-hashing or authentication mechanism. The established convention, always (Prior Art Gate). |
+| SEC1 | **No secret in the repository.** Not in clear text, not encoded, not "temporarily", not in a test, not in a comment. |
+| SEC2 | **All external input is hostile** until explicitly validated. |
+| SEC3 | **Least privilege by default** — including for CI and for agents. |
+| SEC4 | **Deny by default** in authorisation: whatever is not explicitly allowed is forbidden. |
+| SEC5 | **Never design your own** cryptographic, password-hashing or authentication mechanism. The established convention, always (Prior Art Gate). |
 
 If one of these rules has to be broken, this is no longer a development task: it is a
 decision, and it goes through an ADR and human approval.

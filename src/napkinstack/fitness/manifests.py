@@ -50,8 +50,21 @@ failures: list[str] = []
 warnings: list[str] = []
 
 
-def fail(module: str, rule: str, message: str) -> None:
-    failures.append(f"[{rule}] {module}\n      {message}")
+def fail(module: str, rule: str, message: str, at: str = "") -> None:
+    """A refusal: the rule, the module, the place — `file:line` — and, in the message, the action (P6)."""
+    failures.append(f"[{rule}] {module}" + (f" — {at}" if at else "") + f"\n      {message}")
+
+
+def line_of(text: str, *keys: str) -> int:
+    """The line of `keys`, each one searched below the one before; the deepest found, or 1."""
+    lines, found, start = text.splitlines(), 1, 0
+    for key in keys:
+        pattern = re.compile(rf"^\s*(?:-\s*)?{re.escape(key)}\s*:")
+        hit = next((index for index in range(start, len(lines)) if pattern.match(lines[index])), None)
+        if hit is None:
+            break
+        found, start = hit + 1, hit + 1
+    return found
 
 
 def warn(module: str, rule: str, message: str) -> None:
@@ -156,42 +169,59 @@ def parse_date(value) -> datetime.date | None:
         return None
 
 
-def check_manifest(path: Path, today: datetime.date) -> None:
+def check_manifest(path: Path, today: datetime.date, root: Path | None = None) -> None:
     rel = path.parent.name
+    folder = path.parent.relative_to(root).as_posix() if root else rel
+    text = path.read_text(encoding="utf-8")
+
+    def at(*keys: str) -> str:
+        return f"{folder}/MANIFEST.yaml:{line_of(text, *keys)}"
+
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load(text) or {}
     except yaml.YAMLError as exc:
-        fail(rel, "M2", f"MANIFEST.yaml unreadable: {exc}")
+        mark = getattr(exc, "problem_mark", None)
+        fail(rel, "M2", f"MANIFEST.yaml unreadable: {exc}\n      Action: correct the YAML at that line.",
+             f"{folder}/MANIFEST.yaml:{mark.line + 1 if mark else 1}")
         return
     if not isinstance(data, dict):
-        fail(rel, "M2", "MANIFEST.yaml must be a YAML mapping (sections module, commands, docs...).")
+        fail(rel, "M2", "MANIFEST.yaml must be a YAML mapping (sections module, commands, docs...).\n"
+                        "      Action: rewrite it as a mapping — nstack new-module writes one to copy.",
+             f"{folder}/MANIFEST.yaml:1")
         return
     for section, expected_type in SECTIONS.items():
         if data.get(section) is not None and not isinstance(data[section], expected_type):
             fail(rel, "M2", f"section {section}: expected a {TYPES[expected_type]}, "
-                            f"found {type(data[section]).__name__}.")
+                            f"found {type(data[section]).__name__}.\n"
+                            f"      Action: write {section} as a {TYPES[expected_type]}.", at(section))
             data[section] = expected_type()
 
     mod = data.get("module") or {}
     for field in ("name", "code_name"):
         if field in mod and not isinstance(mod[field], str):
-            fail(rel, "M2", f"module.{field} {mod[field]!r} must be text.")
+            fail(rel, "M2", f"module.{field} {mod[field]!r} must be text.\n      Action: write it quoted.",
+                 at("module", field))
     owns = (data.get("data") or {}).get("owns")
     if isinstance(owns, list) and not all(isinstance(table, str) for table in owns):
-        fail(rel, "M2", "data.owns: every entry names a table, as text.")
+        fail(rel, "M2", "data.owns: every entry names a table, as text.\n"
+                        "      Action: write each table's name, quoted.", at("data", "owns"))
 
     # M2 - required fields
     for field in REQUIRED_FIELDS:
         if not mod.get(field):
-            fail(rel, "M2", f"required field missing: module.{field}")
+            fail(rel, "M2", f"required field missing: module.{field}\n"
+                            f"      Action: add {field}: under module:.", at("module", field))
 
     # M3 - valid values
     lifecycle = mod.get("lifecycle")
     if lifecycle and lifecycle not in LIFECYCLES:
-        fail(rel, "M3", f"invalid lifecycle: '{lifecycle}'. Expected one of: {sorted(LIFECYCLES)}")
+        fail(rel, "M3", f"invalid lifecycle: '{lifecycle}'. Expected one of: {sorted(LIFECYCLES)}\n"
+                        "      Action: write one of them.", at("module", "lifecycle"))
     criticality = mod.get("criticality")
     if criticality and criticality not in CRITICALITIES:
-        fail(rel, "M3", f"invalid criticality: '{criticality}'. Expected one of: {sorted(CRITICALITIES)}")
+        fail(rel, "M3", f"invalid criticality: '{criticality}'. Expected one of: {sorted(CRITICALITIES)}\n"
+                        "      Action: write one of them — what each one costs: .nstack/handbook/05-workflow.md §7.",
+             at("module", "criticality"))
 
     # M4 - responsibility in one sentence
     resp = (mod.get("responsibility") or "").strip()
@@ -207,10 +237,13 @@ def check_manifest(path: Path, today: datetime.date) -> None:
         dep = dep if isinstance(dep, dict) else {}
         removal = parse_date(dep.get("removal_date"))
         if not removal:
-            fail(rel, "M5", "module deprecated without a valid module.deprecation.removal_date (YYYY-MM-DD)")
+            fail(rel, "M5", "module deprecated without a valid module.deprecation.removal_date (YYYY-MM-DD)\n"
+                            "      Action: add deprecation: with removal_date: YYYY-MM-DD under module:.",
+                 at("module", "deprecation", "removal_date"))
         elif removal < today:
-            fail(rel, "M5", f"removal date passed ({removal}). Permanent intermediate state - "
-                            "remove the module or supersede the decision.")
+            fail(rel, "M5", f"removal date passed ({removal}). Permanent intermediate state.\n"
+                            "      Action: remove the module, or supersede the decision that deprecated it.",
+                 at("module", "deprecation", "removal_date"))
 
     # M2 - the contract entries the boundaries and the versions are judged on (D36)
     for section, fields in CONTRACT_FIELDS.items():
@@ -219,25 +252,30 @@ def check_manifest(path: Path, today: datetime.date) -> None:
                 continue  # reported below for provides; ignored by the checks that read them
             for field in fields:
                 if field in entry and not isinstance(entry[field], str):
-                    fail(rel, "M2", f"{section}: {field} {entry[field]!r} must be text — "
-                                    f"write it quoted, for example \"v1\".")
+                    fail(rel, "M2", f"{section}: {field} {entry[field]!r} must be text.\n"
+                                    f"      Action: write it quoted, for example \"v1\".", at(section, field))
             if section == "provides" and entry.get("stability", "experimental") not in STABILITIES:
                 fail(rel, "M2", f"provides: stability {entry.get('stability')!r}, expected one of "
-                                f"{sorted(STABILITIES)}: a stable or deprecated version is frozen (V1).")
+                                f"{sorted(STABILITIES)}: a stable or deprecated version is frozen (V1).\n"
+                                "      Action: write one of them.", at("provides", "stability"))
 
     # M6 - deprecation of provided contracts
     for provided in data.get("provides") or []:
         if not isinstance(provided, dict):
-            fail(rel, "M2", "entry of provides: expected a mapping (contract, version, stability).")
+            fail(rel, "M2", "entry of provides: expected a mapping (contract, version, stability).\n"
+                            "      Action: write the entry as contract:, version: and stability:.", at("provides"))
             continue
         if provided.get("stability") == "deprecated":
             name = f"{provided.get('contract')}@{provided.get('version')}"
             removal = parse_date(provided.get("removal_date"))
             if not removal:
-                fail(rel, "M6", f"deprecated contract {name} without a removal_date")
+                fail(rel, "M6", f"deprecated contract {name} without a removal_date\n"
+                                "      Action: add removal_date: YYYY-MM-DD to that entry of provides.",
+                     at("provides", "stability"))
             elif removal < today:
-                fail(rel, "M6", f"contract {name}: removal date passed ({removal}). "
-                                "Finish the contraction (.nstack/handbook/03-contracts.md §4).")
+                fail(rel, "M6", f"contract {name}: removal date passed ({removal}).\n"
+                                "      Action: finish the contraction (.nstack/handbook/03-contracts.md §4).",
+                     at("provides", "removal_date"))
 
     commands = data.get("commands") or {}
     content = module_content(path.parent)
@@ -248,14 +286,14 @@ def check_manifest(path: Path, today: datetime.date) -> None:
     if content and unfilled(resp):
         fail(rel, "M2", f'module.responsibility is still the template\'s: "{resp}"\n'
                         "      Action: one sentence naming the capability this module covers, "
-                        "in MANIFEST.yaml (.nstack/handbook/02-modules.md §5).")
+                        "in MANIFEST.yaml (.nstack/handbook/02-modules.md §5).", at("module", "responsibility"))
 
     # M7 - standard verbs, once there is something to check (D33)
     for verb in REQUIRED_COMMANDS:
         if content and not commands.get(verb):
             fail(rel, "M7", f"standard verb missing: commands.{verb}, and the module holds more "
                             f"than its description ({content[0]}).\n      Action: declare its stack's "
-                            "command in the manifest (.nstack/handbook/09-platform.md §2).")
+                            "command in the manifest (.nstack/handbook/09-platform.md §2).", at("commands"))
 
     # M8 - what the criticality requires, read from the matrix of 05-workflow.md §7 and
     # never from a threshold copied here (D67). Each refusal names the value that produced it and
@@ -269,20 +307,25 @@ def check_manifest(path: Path, today: datetime.date) -> None:
             fail(rel, "M8", f"{declared} requires an existing runbook "
                             "(.nstack/handbook/05-workflow.md §7; what it holds: .nstack/playbooks/operations.md)"
                             f"{_relief(criticality, 'runbook')}\n      Action: declare docs.runbook "
-                            "in MANIFEST.yaml and create that file — nstack new-module writes one.")
+                            "in MANIFEST.yaml and create that file — nstack new-module writes one.",
+                 at("docs", "runbook") if "runbook" in (data.get("docs") or {}) else at("docs"))
 
     # M9 - file envelope
     for expected in ["AGENTS.md", "README.md"]:
         if not (path.parent / expected).is_file():
-            fail(rel, "M9", f"envelope file missing: {expected}")
+            fail(rel, "M9", f"envelope file missing: {expected}\n      Action: create it — "
+                            "what it holds: .nstack/handbook/02-modules.md.", f"{folder}/{expected}")
     if not (path.parent / "tests").is_dir() and criticality != "prototype":
-        fail(rel, "M9", "tests/ folder missing")
+        fail(rel, "M9", "tests/ folder missing\n      Action: create it, with the module's first test.",
+             f"{folder}/tests/")
 
     # M10 - a user-visible surface declared: it decides the test sheet (.nstack/handbook/05-workflow.md §7)
     if not isinstance(mod.get("user_facing"), bool):
         fail(rel, "M10", "module.user_facing must be true or false: does a user see this module? "
                          "true requires a test sheet on its pull requests from standard up "
-                         "(.nstack/handbook/05-workflow.md §7)")
+                         "(.nstack/handbook/05-workflow.md §7)\n"
+                         "      Action: write user_facing: true or false under module:.",
+             at("module", "user_facing"))
 
 
 def comparator_owed(root: Path, manifests: list[Path]) -> None:
@@ -328,7 +371,7 @@ def run(root: Path) -> int:
                                 "Action: create it, or create the module with nstack new-module.")
 
     for manifest in manifests:
-        check_manifest(manifest, today)
+        check_manifest(manifest, today, root)
     comparator_owed(root, manifests)
 
     print(f"Manifests checked: {len(manifests)}")
