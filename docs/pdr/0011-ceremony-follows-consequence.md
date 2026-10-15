@@ -111,7 +111,7 @@ neighbour would have cost before anyone pays for it.
 depend on a project, not the code of one module; it leaves the criticality matrix. The four
 settings of `07-governance.md` §7 keep holding together where they are required, so ADR-0004
 needs no amendment. Which exposure scale, and from which level approval blocks, was M11g's to
-settle in ADR-0005 after a probe; **the probe found the OSPS mapping not clean (2026-09-24)**,
+settle in an ADR after a probe — never written, its number since given to another record; **the probe found the OSPS mapping not clean (2026-09-24)**,
 and the question returned to M13. Until it is answered, the forge's checklist applies as today.
 
 **The approval is one gesture.** Auto-merge removes the human from the merge, never from the
@@ -200,8 +200,8 @@ than a statement.
 - **Modules and contracts**: `criticality` keeps its four values; no field is added.
 - **Decisions**: **PDR-0003** keeps its rule — a sheet and an independent verifier — and gains
   the matrix as the place its trigger is read. **PDR-0007** is clarified: criticality has always
-  moved checks, framing never does. **ADR-0004** is unchanged. **ADR-0005** is not written: the
-  probe sent the exposure scale to M13.
+  moved checks, framing never does. **ADR-0004** is unchanged. The ADR on the exposure scale is not
+  written: the probe sent it to M13, which will take the next free number.
 - **Support and documentation**: `05-workflow.md` §7 is the matrix; `07-governance.md` §6 and
   `08-quality.md` §7 point at it; `PRODUCT.md` §2 says what the framework does not buy on day
   one, and §3 names the user it now serves.

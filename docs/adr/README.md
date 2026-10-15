@@ -26,3 +26,4 @@ See `skeleton/.nstack/handbook/06-decisions.md`.
 | [0002](./0002-distribute-napkinstack-on-pypi.md) | Distribute NapkinStack on PyPI | Accepted, clarified (two channels) | Validated at the v0.1.0 release (2026-09-15) |
 | [0003](./0003-adopt-english-as-the-repository-language.md) | Adopt English as the repository language | Accepted; shrunk to the rule in force (2026-09-24) | Observed at the v0.2.0 to v0.4.0 releases, where the record holds the observation; the pilot's `init` to confirm |
 | [0004](./0004-give-agents-their-own-github-identity.md) | Give agents their own GitHub identity, behind a human approval | Accepted, clarified (who verified; an approval covers what it read; two powers) | The pilot project, before 2026-12-31 |
+| [0005](./0005-run-a-project-s-module-checks-in-one-job.md) | Run a project's module checks in one job | Accepted (2026-10-15) | Twenty pull requests of the third project, before 2026-12-31 |

@@ -1191,8 +1191,7 @@ import re, sys, yaml
 jobs = {workflow: [job["name"] for job in yaml.safe_load(
             open(f"skeleton/.github/workflows/{workflow}", encoding="utf-8"))["jobs"].values()]
         for workflow in ("governance.yml", "pull-request.yml", "module-checks.yml")}
-# Every job of the two rule workflows is required; of the module workflow, only the job that
-# fails when any module failed: the matrix jobs carry names no ruleset knows in advance.
+# Every job of the two rule workflows is required, and the module workflow's one job.
 names = jobs["governance.yml"] + jobs["pull-request.yml"] + ["Module checks"]
 absents = [name for name in names if f"`{name}`" not in sys.argv[1]]
 if absents:

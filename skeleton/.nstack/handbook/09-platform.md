@@ -57,7 +57,7 @@ section, with its own stack's commands.
 | `test` | The module's test suite | With no dependency on another module |
 | `run` | Start the module locally | With doubles for the dependencies |
 | `e2e` | The module's end-to-end scenarios; evidence written to `.evidence/` | Against the running module, in CI |
-| `clean` | Remove what the module's commands left in its folder — build outputs | After every CI job on a self-hosted runner, even a failed one |
+| `clean` | Remove what the module's commands left in its folder — build outputs | After its checks in CI on a self-hosted runner, even failed ones |
 | `compat` | Tell whether a change to a contract version is compatible: exit 0 when `$NSTACK_HEAD_PATH` accepts what `$NSTACK_BASE_PATH` did | On the module holding contracts, once one is consumed or stable |
 | `contracts` | Validate and generate the contract artefacts | On every contract change |
 | `migrate` | Apply the data migrations | When the module owns data |
@@ -72,8 +72,8 @@ holds only its description: its verbs report that there is nothing to run yet, a
 `migrate` and `release` are reserved names, to declare when a module needs them.
 
 **A job leaves nothing behind.** GitHub's hosted runners are thrown away after each job; a
-self-hosted one is not. A module job starts on a clean checkout and ends with the module's
-`clean`, even after a failure — so a module whose commands write build outputs declares how
+self-hosted one is not. The module checks start on a clean checkout, and each module ends
+with its `clean`, even after a failure — so a module whose commands write build outputs declares how
 to remove them, and keeps them inside its own folder, where both reach them. What the
 machine accumulates outside any checkout — images, logs — is its owner's to clean.
 
