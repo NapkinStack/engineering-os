@@ -119,7 +119,7 @@ it has no cycle, K1 to K3 say nothing there, and every other rule applies.
 
 | Code | Reports as a gap | Why |
 |---|---|---|
-| `L1` | An engine that is not the project's version, or is not a published one | `INSTALL.md` |
+| `L1` | An engine that is not the project's version, or is not a published one — and a pinned commit the framework's default branch no longer holds | `INSTALL.md` |
 | `L2` | git or the hook runner missing | `INSTALL.md` |
 | `L3` | Hooks not installed in this clone | `INSTALL.md` |
 | `L6` | Code owners that do not start with a default owner | `07-governance.md` §7 |

@@ -3,7 +3,8 @@
 - **Status**: Accepted (2026-09-18, by the maintainer; the success criterion is observed on
   2027-03-31); implemented in v0.4.0 (M10g): every judging run names the framework that
   judges, CI installs an unpublished pin from the repository and says so, `doctor` never
-  calls it compliant (L1, L7), and `CONTRIBUTING.md` names the contributor's loop.
+  calls it compliant (L1, L7), and `CONTRIBUTING.md` names the contributor's loop; clarified on 2026-10-15 (a pin taken during
+  review, and the squash).
 - **Date**: 2026-09-18
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (its workflow), `nstack` checks, `CONTRIBUTING.md`
@@ -216,3 +217,39 @@ superseded rather than adjusted.
   checklist gains nothing: this is not a GitHub setting.
 - **Data**: nothing is collected. The framework version comes from a file the project
   already carries.
+
+---
+
+## Clarification of 2026-10-15 — a pin taken during review, and the squash
+
+Added when a contributor's private project followed this record's loop, without changing the
+decision.
+
+**Observation.** The project pinned the head of a fix's pull request while it was reviewed —
+twice, as `CONTRIBUTING.md` says it may: *"While the fix is reviewed, the project may run on
+it"*. Its own manual said the opposite — *"Once merged, `nstack update --ref <commit>`"* — and
+neither page said what happens at the merge. The squash gave `main` a new commit with the same
+tree; the pinned one stayed on no branch, reachable only through the forge's references for
+pull requests. The update still worked, because the template tool clones those references too;
+the diagnosis called the project unpublished, which was true, and nothing more. Separately, the
+manual's installation line rendered `napkinstack==<version>-<n>-g<commit>` for every project
+pinned to a commit — not a version an installer accepts — while CI, through its own script,
+installed the right thing.
+
+**Clarification.**
+
+- **A project may pin a fix while it is reviewed**, and the project's manual says so in the
+  words of `CONTRIBUTING.md`. `nstack update` does not refuse a commit that is on no branch:
+  refusing it would close the loop this decision opens.
+- **Once the fix is merged, the pin moves** — to the commit the framework's default branch
+  received, or to the first release that carries it. Both pages say it at the place they
+  describe the pin.
+- **The diagnosis says which case it is.** An unpublished pin whose commit is not on the
+  framework's default branch is named so, with the gesture that moves it; the project stays
+  reported as unpublished in both cases (L1).
+- **The manual installs the way CI does**: its first line runs the same script, so a pinned
+  commit is installed from the forge and announced, and a published version from the registry.
+
+What this does not change: *published* still means a `vX.Y.Z` tag on the registry (ADR-0002);
+every judging run still names the framework that judged it; the removal condition still counts
+a pin held across more than one release with no pull request open upstream.

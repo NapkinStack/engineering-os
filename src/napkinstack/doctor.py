@@ -6,7 +6,10 @@ project. CHECKLIST is printed by nstack init, checked here, and repeated word fo
 the foundation manual, skeleton/.nstack/handbook/INSTALL.md.jinja (a test verifies it).
 
 The registry is asked one question, without a token: which version is the latest published
-(NSTACK_REGISTRY_URL, otherwise https://pypi.org). An answer changes no exit code.
+(NSTACK_REGISTRY_URL, otherwise https://pypi.org). An answer changes no exit code. For a project
+pinned to an unpublished commit, the framework's repository is asked another, without a token
+either: whether its default branch holds that commit (GITHUB_API_URL, otherwise
+https://api.github.com). No answer leaves L1 as it is.
 
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
 fine-grained, limited to the repository, Administration: read permission. Without a token,
@@ -14,7 +17,9 @@ or when the API refuses a read, the setting is "not verified", never compliant. 
 
 Rules:
   L1  nstack installed at the project version (_commit in .copier-answers.yml), both
-      published: an unpublished framework is a gap, never compliance (PDR-0005)
+      published: an unpublished framework is a gap, never compliance (PDR-0005) — and a pinned
+      commit the framework's default branch does not hold, a pull request's head after its
+      squash, is said with the gesture that moves the pin
   L2  git and pre-commit available
   L3  pre-commit hooks installed
   L4  retired (D79): it refused a file named PRODUCT.md, which a product may write. The
@@ -67,6 +72,7 @@ THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skele
 LABELS = ("cross-module", "over-budget", "out-of-cycle")
 PUBLISHED = provenance.PUBLISHED  # a published version is a vX.Y.Z tag (ADR-0002), as CI installs it
 REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
+ON_GITHUB = re.compile(r"(?:https://github\.com/|ssh://git@github\.com/|git@github\.com:|gh:)([^/]+/[^/]+?)(?:\.git)?/?$")
 
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"
@@ -277,17 +283,54 @@ def _default_owner(root: Path) -> tuple[str, str]:
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
 
 
+def _forge(path: str) -> dict | None:
+    """JSON of a public repository's page on the forge, read without a token; None when it does
+    not answer."""
+    api = (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
+    request = urllib.request.Request(f"{api}{path}", headers={
+        "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": API_VERSION,
+        "User-Agent": f"nstack/{__version__}"})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            data = json.load(response)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _left_behind(answers: dict) -> str | None:
+    """The framework's default branch, when it does not hold the pinned commit; None when it
+    does, or when the forge could not say. A fix may be pinned while it is reviewed; its squash
+    then gives the default branch another commit, and leaves this one on no branch."""
+    commit = str(answers.get("_commit") or "")
+    repository = ON_GITHUB.match(str(answers.get("_src_path") or ""))
+    if "-g" not in commit or not repository:
+        return None
+    sha, repo = commit.rsplit("-g", 1)[1], repository.group(1)
+    branch = (_forge(f"/repos/{repo}") or {}).get("default_branch")
+    status = (_forge(f"/repos/{repo}/compare/{branch}...{sha}") or {}).get("status") if branch else None
+    return branch if status in ("ahead", "diverged") else None
+
+
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     commit = str(answers.get("_commit") or "")
     project = commit.removeprefix("v")
-    install = f'uv tool install "napkinstack=={project}" --with-executables-from pre-commit'
+    install = (f'uv tool install "napkinstack=={project}" --with-executables-from pre-commit'
+               if PUBLISHED.fullmatch(commit) else "bash .nstack/install-engine.sh")
     results = []
 
     _, origin = provenance.engine()
     if not PUBLISHED.fullmatch(commit):
-        l1 = (GAP, f"The project is pinned to an unpublished framework ({commit or 'unknown'}): its "
-                   "verdicts come from rules nobody has published.\nAction: once the change it "
-                   "waits for is released, nstack update --ref vX.Y.Z.")
+        branch = _left_behind(answers)
+        if branch:
+            l1 = (GAP, f"The project is pinned to an unpublished framework ({commit}), on no commit of "
+                       f"the framework's {branch}: the head of a pull request, left behind by its "
+                       f"squash.\nAction: nstack update --ref <the commit {branch} received for that "
+                       "change>, or --ref vX.Y.Z, a release that carries it.")
+        else:
+            l1 = (GAP, f"The project is pinned to an unpublished framework ({commit or 'unknown'}): its "
+                       "verdicts come from rules nobody has published.\nAction: once the change it "
+                       "waits for is released, nstack update --ref vX.Y.Z.")
     elif origin is not None:
         l1 = (GAP, f"The nstack running is unpublished ({origin}).\nAction: {install}")
     elif project != __version__:

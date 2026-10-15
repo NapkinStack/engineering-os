@@ -60,8 +60,8 @@ fork would run its code on that machine — and hosted minutes are unlimited any
 ## Installation
 
 ```bash
-# 1. Tooling at the project's NapkinStack version (prerequisite: uv)
-uv tool install "napkinstack=={{ _copier_answers._commit | regex_replace('^v', '') }}" --with-executables-from pre-commit
+# 1. Tooling at the project's NapkinStack version, as CI installs it (prerequisite: uv)
+bash .nstack/install-engine.sh
 
 # 2. Hooks, once per clone
 pre-commit install
@@ -74,7 +74,8 @@ nstack fitness
 ```
 
 That version is the one in `.copier-answers.yml`; it only changes through `nstack update`,
-in a reviewed pull request.
+in a reviewed pull request. A release comes from the registry; a commit, from the framework's
+repository, and every run then says an unpublished framework judges it.
 
 ## Receiving a new version of NapkinStack
 
@@ -107,13 +108,15 @@ flowchart LR
     C --> T["A failing test,<br/>then the fix"]:::fw
     T --> J["This project, judged<br/>by the sources"]:::pr
     J --> P["A pull request<br/>to the framework"]:::fw
-    P -->|"merged"| U["nstack update --ref,<br/>then the next version"]:::pr
+    P -.->|"while it is reviewed"| R["nstack update --ref<br/>the fix's commit"]:::pr
+    P -->|"merged"| U["nstack update --ref<br/>the merged commit, then the release"]:::pr
 
     classDef pr fill:#065f46,color:#fff
     classDef fw fill:#1e3a8a,color:#fff
 ```
 
-**Legend** — green: in this project · blue: in the framework's repository.
+**Legend** — green: in this project · blue: in the framework's repository · dotted: if the
+project needs the fix before its merge.
 
 ```bash
 git clone <the framework's repository> ../framework    # its address: _src_path in .copier-answers.yml
@@ -121,10 +124,11 @@ uv run --project ../framework nstack fitness --root .  # this project, judged by
 ```
 
 Any command runs that way, with nothing installed. The rest is the framework's own page:
-its `CONTRIBUTING.md` says how a fix is tested, proposed and reviewed. Once merged,
-`nstack update --ref <commit>` lets this project run on the fix before it is released: CI
-installs that commit, and every run says an unpublished framework judged it, until a
-published version replaces it.
+its `CONTRIBUTING.md` says how a fix is tested, proposed and reviewed. While it is reviewed,
+`nstack update --ref <commit>` lets this project run on the fix: CI installs that commit, and
+every run says an unpublished framework judged it. Once it is merged, the pin moves — to the
+commit the framework's default branch received, which the squash made, or to the first release
+that carries it. `nstack doctor` says when the pinned commit is on no branch any more.
 
 **A private project stays private.** The framework's repository is public: what is reported
 there describes the defect, never the project — no name, no domain, no content.
