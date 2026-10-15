@@ -87,6 +87,9 @@ flowchart LR
    your words in the kernel's table too, or the header and the table say two things again.
 4. Copies of a module's owner, criticality or responsibility already written in your module pages
    or your module map are yours: the fifth rule says to link instead.
+5. **An update that crosses several versions** — a project still on v0.7.x taking this one —
+   changes about thirty framework files and passes the review budget: label its pull request
+   `over-budget`, a mechanical migration.
 
 ---
 
