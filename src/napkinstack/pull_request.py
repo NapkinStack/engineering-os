@@ -322,7 +322,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
     return human_only
 
 
-def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, fail: Fail) -> None:
+def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, fail: Fail,
+                warn: Callable[[str], None] = lambda message: None) -> None:
     """K1 to K4, for delivery work."""
     if LABEL in labels:
         if not JUSTIFICATION.search(body):
@@ -364,6 +365,10 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     elif states[match[1]] not in {"ready", "in-progress"}:
         fail("K3", f"deliverable {match[1]} is '{states[match[1]]}': work starts on a ready "
                    "deliverable (definition of ready).")
+    elif states[match[1]] == "ready":
+        # Said, not refused: the state is the decider's record, and this pull request knows (PDR-0002).
+        warn(f"[K3] deliverable {match[1]} is still 'ready' while this pull request delivers it.\n"
+             f"      Action: set its state: in-progress in {path.name}, in this pull request.")
 
 
 def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
@@ -417,7 +422,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
     if modules:
-        check_cycle(root, body, labels, datetime.date.today(), fail)
+        check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}")

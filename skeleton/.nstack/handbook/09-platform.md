@@ -191,7 +191,8 @@ usefully without a spoken conversation.**
 The expected path:
 
 ```
-0. read the charter and the current cycle → who it is for, what is being delivered now
+0. read the charter, and of the current cycle its front matter and your deliverable's section
+                                   → who it is for, what is being delivered now
 1. read the module's MANIFEST      → what it is for, who owns it, what it consumes
 2. read the local AGENTS.md        → specific conventions and traps
 3. run bootstrap then check        → a working environment, validations green
