@@ -247,6 +247,7 @@ nstack new-contract <name>   # a contract, and the first time the module that ho
 nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
 nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
+nstack clean [module]   # removes a module's build outputs, when commands.clean is declared
 nstack pr-check --body-file <file>   # test sheet and cycle, as CI reads them from the pull request
 nstack modules --changed-since <base>   # the modules with a file changed, as CI lists them
 nstack modules --changed-since <base> --with-contract-sides   # ... and both sides of a changed contract

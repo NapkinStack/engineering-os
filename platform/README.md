@@ -60,7 +60,7 @@ uv run nstack doctor --root <project>      # workstation and GitHub settings, re
 uv run nstack new-module <name> <owner> <criticality> --root <project>
 uv run nstack new-contract <name> --root <project>
 uv run nstack settings --root <project>     # the calls that would close the gaps, printed
-uv run nstack check [module] --root <project>   # also test, bootstrap, e2e; run <module>
+uv run nstack check [module] --root <project>   # also test, bootstrap, e2e, clean; run <module>
 ```
 
 ## Skills

@@ -96,7 +96,9 @@ def build_parser() -> argparse.ArgumentParser:
     for verb, help_text in (("bootstrap", "prepares one module, or all of them (commands.bootstrap)"),
                             ("check", "format, lint, types of one module, or all (commands.check)"),
                             ("test", "tests of one module, or of all of them (commands.test)"),
-                            ("e2e", "end-to-end scenarios of one module, or of all (commands.e2e)")):
+                            ("e2e", "end-to-end scenarios of one module, or of all (commands.e2e)"),
+                            ("clean", "removes what one module's commands left in its folder, or all "
+                                      "modules' (commands.clean)")):
         vb = _add(sub, verb, help_text, lambda a, v=verb: modules.run_verb(a.root, v, a.module))
         vb.add_argument("module", nargs="?", help="module name (default: all)")
     cp = _add(sub, "compat", "a frozen contract version changes only with a proof (V1, commands.compat)",
