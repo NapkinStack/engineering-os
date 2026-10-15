@@ -22,6 +22,24 @@ a patch.
 
 ---
 
+## v0.9.1 — 2026-10-15
+
+One workstream, D119, found by the first project to take v0.9.0.
+
+**In the engine** — nothing.
+
+**In your project** — 1 file
+
+- **`.nstack/install-engine.sh` reads the registry afresh for the engine** (D119): it installs a
+  published version with `--refresh-package napkinstack`. A self-hosted runner keeps uv's cache
+  across jobs, and a page of the registry read before a release said the version did not exist —
+  every job of an update pull request failed, minutes after v0.9.0 was published, until the cached
+  page expired. Hosted runners are untouched.
+
+**Migration** — none.
+
+---
+
 ## v0.9.0 — 2026-10-15
 
 Four workstreams, D115 to D118: what an agent reads before its first line of work, when it asks
