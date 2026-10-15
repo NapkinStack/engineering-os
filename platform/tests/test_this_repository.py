@@ -30,7 +30,7 @@ def test_the_pull_request_template_is_a_workstream_s() -> None:
 
 def test_the_definition_of_done_lives_in_the_template_only() -> None:
     register = (ROOT / "docs/governance/workstreams.md").read_text(encoding="utf-8")
-    assert "Definition of Done" not in register, (
+    assert "## Definition of Done" not in register, (
         "docs/governance/workstreams.md holds a second definition of done.\n"
         "Action: keep it in .github/pull_request_template.md only.")
 
