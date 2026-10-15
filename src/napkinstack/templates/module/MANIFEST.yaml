@@ -73,6 +73,8 @@ commands:
 #  bootstrap:                    # optional: make the module usable from a fresh clone
 #  run:                          # optional: local start, with doubles for the dependencies
 #  e2e:                          # optional: end-to-end scenarios; evidence written to .evidence/
+#  clean:                        # optional: remove what the commands above leave in this folder
+#                                # (build outputs); CI runs it after every job on a self-hosted runner
 
 docs:
   readme: README.md

@@ -47,3 +47,22 @@ def test_run_passes_what_follows_the_module_to_its_command(tmp_path, capfd):
     # `--root` written after the module, as the other verbs take it, is still the root.
     assert cli.main(["run", "bench", "a folder", "--root", str(tmp_path)]) == 0
     assert "[a folder]" in capfd.readouterr().out
+
+
+def test_clean_runs_the_declared_command_and_is_optional(tmp_path, capfd):
+    """D106: a module removes what its commands left in its folder, when it declares how; a
+    module that leaves nothing declares nothing."""
+    import yaml
+
+    from napkinstack import cli
+
+    for name, commands in (("engine", {"clean": "rm -rf target"}), ("pages", {})):
+        folder = tmp_path / "modules" / name
+        (folder / "target").mkdir(parents=True)
+        (folder / "target" / "build.o").write_bytes(b"\0")
+        manifest = {"module": {"name": name}, "commands": {"check": "true", "test": "true", **commands}}
+        (folder / "MANIFEST.yaml").write_text(yaml.safe_dump(manifest), encoding="utf-8")
+    assert cli.main(["clean", "--root", str(tmp_path)]) == 0
+    assert not (tmp_path / "modules/engine/target").exists()
+    assert (tmp_path / "modules/pages/target").exists()
+    assert "pages: clean not declared, nothing to clean" in capfd.readouterr().out

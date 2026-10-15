@@ -77,10 +77,13 @@ jobs:
       FOLDER: ${{ matrix.module.folder }}
       BASE: ${{ needs.discover.outputs.base }}
     steps:
+      # A job starts clean: what an earlier job left in the checkout — a build that failed
+      # half-way on a self-hosted runner — is removed before this one runs (D106).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+          clean: true
 
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
@@ -131,6 +134,16 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+
+      # A job ends clean where the machine outlives it: GitHub's hosted runners are thrown away, a
+      # self-hosted one keeps the build until the same repository's next job (D106). Even after a
+      # failure; skipped when the engine never installed. The module declares what it leaves
+      # (commands.clean, .nstack/handbook/09-platform.md §2).
+      - name: clean
+        if: always() && runner.environment == 'self-hosted'
+        run: |
+          command -v nstack >/dev/null || exit 0
+          nstack clean "$MODULE"
 
   checks:
     name: Module checks

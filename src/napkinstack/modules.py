@@ -1,6 +1,6 @@
 """
 A project's modules: creation (nstack new-module) and standard verbs (nstack bootstrap,
-check, test, run), with no imposed stack (PRODUCT.md P1, PDR-0001 R5).
+check, test, run, e2e, clean), with no imposed stack (PRODUCT.md P1, PDR-0001 R5).
 
 Each verb runs the command declared in the `commands` section of the module's
 MANIFEST.yaml, from its folder, through the system shell. NapkinStack never assumes a
@@ -30,7 +30,7 @@ HANDLE = r"(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*"
 LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a handle inside a sentence
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
-OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario"}  # undeclared: skipped
+OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario", "clean": "nothing to clean"}  # undeclared: skipped
 # What a criticality requires is the matrix of .nstack/handbook/05-workflow.md §7, read once (assurance).
 
 RUNBOOK = """# Runbook - {name}

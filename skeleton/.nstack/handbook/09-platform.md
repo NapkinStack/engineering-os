@@ -57,18 +57,25 @@ section, with its own stack's commands.
 | `test` | The module's test suite | With no dependency on another module |
 | `run` | Start the module locally | With doubles for the dependencies |
 | `e2e` | The module's end-to-end scenarios; evidence written to `.evidence/` | Against the running module, in CI |
+| `clean` | Remove what the module's commands left in its folder — build outputs | After every CI job on a self-hosted runner, even a failed one |
 | `compat` | Tell whether a change to a contract version is compatible: exit 0 when `$NSTACK_HEAD_PATH` accepts what `$NSTACK_BASE_PATH` did | On the module holding contracts, once one is consumed or stable |
 | `contracts` | Validate and generate the contract artefacts | On every contract change |
 | `migrate` | Apply the data migrations | When the module owns data |
 | `release` | Produce the shippable artefact | Reproducibly |
 
-The engine runs `bootstrap`, `check`, `test`, `run`, `e2e` and `compat`: it reads the command from
+The engine runs `bootstrap`, `check`, `test`, `run`, `e2e`, `clean` and `compat`: it reads the command from
 the manifest and launches it from the module's folder, locally as in CI. `check` and
 `test` are mandatory as soon as the module holds anything beyond its description — its
-manifest, `AGENTS.md`, `README.md`, `docs/`; `bootstrap` and `e2e` are optional. A new module
+manifest, `AGENTS.md`, `README.md`, `docs/`; `bootstrap`, `e2e` and `clean` are optional. A new module
 holds only its description: its verbs report that there is nothing to run yet, and
 `nstack fitness` asks for `check` and `test` with its first other file. `contracts`,
 `migrate` and `release` are reserved names, to declare when a module needs them.
+
+**A job leaves nothing behind.** GitHub's hosted runners are thrown away after each job; a
+self-hosted one is not. A module job starts on a clean checkout and ends with the module's
+`clean`, even after a failure — so a module whose commands write build outputs declares how
+to remove them, and keeps them inside its own folder, where both reach them. What the
+machine accumulates outside any checkout — images, logs — is its owner's to clean.
 
 **Why this is the foundation of multi-team work.** A developer or an agent arriving on an
 unknown module does not have to discover whether to run `npm`, `make`, `cargo`, `pytest`
