@@ -310,10 +310,12 @@ rm "$EI/bin/yq"
 URL=https://github.com/NapkinStack/engineering-os.git
 printf "_commit: 'v0.4.0'\n_src_path: '%s'\n" "$URL" > "$EI/project/.copier-answers.yml"
 (cd "$EI/project" && PATH="$EI/bin:$PATH" bash .nstack/install-engine.sh 2>&1) \
-  | grep -qxF 'uv tool install napkinstack==0.4.0 --with-executables-from pre-commit' \
+  | grep -qxF 'uv tool install napkinstack==0.4.0 --refresh-package napkinstack --with-executables-from pre-commit' \
   || { echo "FAIL: a quoted answer is not read."; exit 1; }
-engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --with-executables-from pre-commit' \
-  || { echo "FAIL: a published version is not installed from PyPI."; engine v0.4.0 "$URL"; exit 1; }
+# A runner that outlives its jobs keeps uv's cache: the registry's page read before a release
+# would say the version does not exist. The package's own page is read again (D119).
+engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --refresh-package napkinstack --with-executables-from pre-commit' \
+  || { echo "FAIL: a published version is not installed from PyPI, read afresh."; engine v0.4.0 "$URL"; exit 1; }
 OUT=$(engine v0.4.0-3-g1a2b3c4 "$URL")
 echo "$OUT" | grep -qF "::warning::UNPUBLISHED NapkinStack: $URL@1a2b3c4" \
   && echo "$OUT" | grep -qF "uv tool install napkinstack @ git+$URL@1a2b3c4" \
