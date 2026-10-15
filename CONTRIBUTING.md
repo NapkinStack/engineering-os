@@ -104,7 +104,7 @@ or the first release carrying the fix — `nstack update --ref vX.Y.Z`.
   they merge once the approval and the checks are there.
 - **Documentation in the same batch**: a change of command, of status or of decision
   updates every page concerned, diagrams and their legends included.
-- **Definition of Done**: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
+- **Definition of Done**: [the pull request template](.github/pull_request_template.md).
 
 ## Publishing a version
 

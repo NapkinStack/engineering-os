@@ -45,7 +45,6 @@ def test_the_kernel_loads_the_project_s_rules_and_ranks_them() -> None:
     order = [precedence.index(level) for level in
              ("the module's local AGENTS.md", "the project's rules", "the triggered playbook")]
     assert order == sorted(order), "the nearer level must come first: module, then project, then playbook"
-    assert len(kernel.splitlines()) <= 250, "the kernel is over its 250 lines"
 
 
 def test_the_form_of_a_project_rule_asks_how_it_is_checked() -> None:

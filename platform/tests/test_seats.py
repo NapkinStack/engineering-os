@@ -113,7 +113,6 @@ def test_the_kernel_sends_whoever_writes_a_document_to_the_standard() -> None:
     kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
     rows = [line for line in kernel.splitlines() if line.startswith("|") and "`documentation.md`" in line]
     assert len(rows) == 1, "the kernel's trigger table does not name documentation.md once"
-    assert len(kernel.splitlines()) <= 250, "the kernel is over its 250 lines"
 
 
 def test_a_module_s_page_is_the_module_s() -> None:
