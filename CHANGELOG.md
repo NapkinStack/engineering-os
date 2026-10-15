@@ -22,7 +22,73 @@ a patch.
 
 ---
 
-## v0.7.6 — 2026-10-13
+## v0.7.7 — 2026-10-15
+
+Nine workstreams, D100 to D109 (D103 and D104 stay open); most of them found by a third project
+and a contributor's private one, in their first week.
+
+```mermaid
+flowchart LR
+    V["v0.7.7"]:::v --> A["The manual installs the way CI does;<br/>L1 says where a pin stands (D108)"]:::project
+    V --> B["Every refusal names its file,<br/>its line and its action (D109)"]:::engine
+    V --> C["CI on the project's own runner,<br/>a module job that cleans up (D105, D106)"]:::project
+    V --> D["Once merged, a branch is gone (D100)"]:::project
+    V --> E["What the third project showed (D102)"]:::engine
+
+    classDef v fill:#374151,color:#fff
+    classDef engine fill:#065f46,color:#fff
+    classDef project fill:#1e3a8a,color:#fff
+```
+
+**Legend** — green: in the engine · blue: in your project.
+
+**In the engine** — 5 files, and the module and contracts templates
+
+- **`doctor` L1 says where an unpublished pin stands** (D108). A fix may be pinned while it is
+  reviewed; its squash then gives the framework's default branch another commit and leaves the
+  pinned one on no branch. L1 now says so, with the gesture that moves the pin, asking the forge
+  without a token; when the forge is silent, it says what it said before. L1 stays a gap.
+- **An action never names a version no installer accepts** (D108): for a project pinned to a
+  commit, `doctor` says `bash .nstack/install-engine.sh`, not `napkinstack==<version>-<n>-g<commit>`.
+- **`nstack --version` says where the engine came from**; `--ref` is documented as a tag or a
+  commit (D108).
+- **Every manifest refusal names its file, its line and its action** (D109): M2 to M10 named the
+  module and not the place, and six of them offered no action.
+- **`nstack run <module> <arguments>`** passes the arguments to the module's command (D102).
+- **The manifests check warns (V1)** when contracts are consumed and the contracts module declares
+  no comparator — the moment it can still be met (D102). A warning: no exit code moves.
+- **The hygiene check says how many files it did not read** because they are not yet added (D102).
+- **`commands.clean`**, an optional standard verb: `nstack clean <module>` (D106). The module
+  template names it.
+
+**In your project** — 17 files
+
+- **`.nstack/handbook/INSTALL.md`'s first command is `bash .nstack/install-engine.sh`**, the script
+  CI runs (D108): for a project pinned to a commit, the old line asked for a version no installer
+  accepts. The manual now says, like the contributing guide, that a fix may be pinned while it is
+  reviewed, and that the pin moves once it is merged.
+- **`.nstack/install-engine.sh` reads the answers file without a YAML tool** (D108): a runner with
+  the wrong one was told its source was "a path on one machine".
+- **Every job runs on `vars.NSTACK_RUNS_ON`** (D105) — GitHub's hosted Ubuntu when the variable is
+  unset, so nothing changes for a project that sets nothing. INSTALL says what a self-hosted runner
+  needs, and why never on a public repository.
+- **A module job starts clean and ends clean on a self-hosted runner** (D106): `clean: true` on its
+  checkout, and the module's `clean` verb as its last step, even after a failure. Hosted runners
+  are untouched.
+- **The kernel's working loop ends with *Close*** (D100): once merged, the branch is gone — on the
+  forge, on the workstation, and its worktree.
+- **The security playbook's rules are `SEC1` to `SEC5`** (D109), so that `S1` means the skills rule
+  of `RULES.md` only; `RULES.md` marks M4 and V1's notice as warnings.
+- Pages corrected where they no longer agreed with the engine or with each other (D101); the
+  handbook says that expand/contract holds for a version's name in a consumer's tests (D102).
+
+**Migration** — none for a project on a published version: no rule turns a green project red.
+A project pinned to a commit of a pull request that has since merged moves to this version:
+`nstack update --ref v0.7.7`.
+
+---
+
+## v0.7.6 — 2026-10-14
 
 Four workstreams, three of them found by a second contributor's first days: D96 to D99.
 
@@ -480,7 +546,7 @@ working. Measured on the validation project, which was already right: nothing fi
 - Every verdict names the framework that gave it, and a project may run an unpublished fix
   without being judged by it in silence (PDR-0005).
 
-**In your project** — 18 files
+**In your project** — 17 files
 
 - The module workflow gains its `compat` step and the `Module checks` job that the ruleset can
   require; the checklist gains G13.
