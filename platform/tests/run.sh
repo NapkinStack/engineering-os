@@ -1355,7 +1355,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 22 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 23 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"
