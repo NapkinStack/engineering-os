@@ -15,8 +15,8 @@ shared by every module, and would therefore make them inseparable.
   positive) and **explanatory**: a failure message naming the rule broken, the file, and
   the corrective action.
 - The standard verbs **never change name**. Their content is free.
-- A change here affects every module: the review budget applies strictly, and an ADR is
-  expected for any new blocking rule.
+- A change here affects every module: the review budget applies strictly. A new rule has
+  its row in the register and its entry in `RULES.md`, and an ADR when it is structuring.
 
 ## Known traps
 

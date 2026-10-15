@@ -197,6 +197,10 @@ approver approves.
 How it is observed: the validation log of `NapkinStack/tool-library`, issue 1, which
 already records every question and every point of friction as it happens.
 
+**Observed on 2026-09-19**, at M9's closure: the log records **five questions the framework
+should have raised, and one contradiction** — above the three the criterion asks for. The
+direction stands; its design was M11 (`PRODUCT.md` §5: corrected in place).
+
 If the criterion is not met: the problem is the maintainer's vigilance rather than the
 framework's shape, and this direction is abandoned rather than built. Fewer than three, or
 questions that no stage would have produced, means routing would have added a step instead

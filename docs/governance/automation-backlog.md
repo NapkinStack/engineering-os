@@ -14,27 +14,10 @@
 | English is the repository's only language (ADR-0003) | `AGENTS.md`, review | Low | High — detection rests on accented letters: blind to English borrowings, false-positive on typographic punctuation and proper nouns | First outside contribution written in another language | Post-pilot review |
 | Review budget adjusted per module, by criticality | `05-workflow.md` §4 | Low | Low | A module whose budget is genuinely different | Post-pilot review |
 
-## Rules already automated — removed from the prompt
+## Rules already automated
 
-| Rule | Automated by | Date |
-|---|---|---|
-| One PR = one module | `nstack pr-scope` (`src/napkinstack/fitness/pr_scope.py`) | |
-| Declared graph = real graph, contracts included | `nstack boundaries` | 2026-09-19 |
-| Consumers of a removed version = 0 | `nstack boundaries` B6: a consumed version nobody provides fails | 2026-09-19 |
-| Backward compatibility of contracts | `nstack compat` V1, with the project's comparator | 2026-09-19 |
-| Deprecation dates not passed | `nstack manifests` | |
-| Runbook required when criticality is high | `nstack manifests` | |
-| No secret in the repository | gitleaks (hook and CI), push protection | 2026-09-13 |
-| No update conflict marker left | `check-merge-conflict --assume-in-merge` (hook and CI) | 2026-09-15 |
-| Forge settings matching the checklist | `nstack doctor`, read-only | 2026-09-15 |
-| No direct access to another module's data | `nstack boundaries` B5 | 2026-09-19 |
-| Stale approvals dismissed on push | `nstack doctor` G13 | 2026-09-19 |
-| The test sheet: verifier, evidence, commit, results | `nstack pr-check` T1 to T5 | 2026-09-17 |
-| Delivery work inside an accepted cycle | `nstack pr-check` K1 to K4 | 2026-09-17 |
-| No path from one person's machine in a tracked file | `nstack hygiene` H1 | 2026-09-19 |
-| A commit that reached the default branch outside a pull request | `nstack landed` W1, recorded | 2026-09-20 |
-| No new consumer for a deprecated module | `nstack boundaries` B8, reported | 2026-09-20 |
-| Contract tests run on both sides of a changed version | `nstack modules --with-contract-sides`, in the module workflow | 2026-09-20 |
+Listed once, with the check that holds each one:
+[`skeleton/.nstack/handbook/RULES.md`](../../skeleton/.nstack/handbook/RULES.md).
 
 ## Review
 
