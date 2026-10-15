@@ -48,7 +48,7 @@ runbook, tests and configuration.
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
-| `nstack doctor` | L1-L3, L6, L7 and G1-G18: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
+| `nstack doctor` | L1-L3, L6, L7 and G1-G19: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene

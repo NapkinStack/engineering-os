@@ -251,9 +251,11 @@ nstack plan          # the discovery, the charter and the cycles (docs/project/)
 nstack skills        # generates the Claude Code skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
 nstack settings      # the calls that would bring the forge's settings to the checklist
-nstack new-module <name> <owner> <criticality>
+nstack new-module <name> <owner> <criticality> [--user-facing]   # --user-facing: a user sees it, which decides a test sheet
 nstack new-contract <name>   # a contract, and the first time the module that holds them all
-nstack check [module]   # MANIFEST commands: check, test, bootstrap; default: all
+nstack check [module]   # the module's commands.check; default: every module
+nstack test [module]    # commands.test, likewise
+nstack bootstrap [module]   # commands.bootstrap, when declared
 nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared
 nstack clean [module]   # removes a module's build outputs, when commands.clean is declared
