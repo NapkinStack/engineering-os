@@ -25,7 +25,7 @@ a family, a number a rule; a retired rule's number is never reused.
 | `M1` | A module without its manifest | `02-modules.md` §5 |
 | `M2` | A required field missing, or still holding its template's words | `02-modules.md` §5 |
 | `M3` | An unknown lifecycle or criticality value | `02-modules.md` §6 |
-| `M4` | A responsibility that takes two sentences, or joins two capabilities | `02-modules.md` §3 |
+| `M4` | *(warning)* A responsibility that takes two sentences, or joins two capabilities | `02-modules.md` §3 |
 | `M5` | A deprecated module with no removal date, or past it | `02-modules.md` §6 |
 | `M6` | A deprecated contract with no removal date, or past it | `03-contracts.md` §4 |
 | `M7` | A module holding code and declaring no `check` and `test` | `09-platform.md` §2 |
@@ -107,7 +107,7 @@ it has no cycle, K1 to K3 say nothing there, and every other rule applies.
 
 | Code | Refuses | Why |
 |---|---|---|
-| `V1` | A frozen contract version changed without the compatibility proof | `03-contracts.md` §4 |
+| `V1` | A frozen contract version changed without the compatibility proof — and, as a *(warning)*, contracts consumed while the contracts module declares no comparator | `03-contracts.md` §4 |
 
 ## W — what reached the default branch
 
