@@ -204,3 +204,55 @@ def test_no_other_command_asks_the_registry(tmp_path, monkeypatch):
     monkeypatch.setattr(doctor.urllib.request, "urlopen", lambda *a, **k: pytest.fail("a connection was opened"))
     for command in ("fitness", "manifests", "modules", "plan"):
         cli.main([command, "--root", str(tmp_path)])
+
+
+# --- A pin taken while a fix was reviewed, and the squash that left it behind ---
+# Measured on 2026-10-15: a project pinned the head of a fix's pull request while it was
+# reviewed, as the contributor's guide allows; the squash gave the default branch another commit,
+# and the diagnosis said "unpublished" and nothing about where the pin now stood.
+
+def forge(monkeypatch, status: str | None) -> None:
+    """The framework's repository as the forge answers about it, without a network: None when
+    it does not answer."""
+    pages = {"/repos/NapkinStack/engineering-os": {"default_branch": "main"},
+             "/repos/NapkinStack/engineering-os/compare/main...1a2b3c4": {"status": status}}
+    monkeypatch.setattr(doctor, "_forge", lambda path: pages.get(path) if status else None)
+
+
+PINS = {
+    "a commit the default branch no longer leads to": ("diverged", "on no commit of the framework's main"),
+    "a commit only a pull request holds": ("ahead", "on no commit of the framework's main"),
+    "a commit of the default branch": ("behind", "once the change it waits for is released"),
+    "the forge did not answer": (None, "once the change it waits for is released"),
+}
+
+
+@pytest.mark.parametrize(("status", "expected"), PINS.values(), ids=PINS.keys())
+def test_l1_says_where_an_unpublished_pin_stands(tmp_path, capsys, monkeypatch, status, expected):
+    installed(monkeypatch, None)
+    project(tmp_path, "v0.4.0-3-g1a2b3c4")
+    forge(monkeypatch, status)
+    assert doctor.run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert any(line.split()[:2] == ["FAIL", "[L1]"] for line in output.splitlines()), output
+    assert expected in output, output
+    if status in ("diverged", "ahead"):
+        assert "nstack update --ref" in output and "a release that carries it" in output, output
+
+
+def test_no_action_names_a_version_no_installer_accepts(tmp_path, capsys, monkeypatch):
+    installed(monkeypatch, None)
+    project(tmp_path, "v0.4.0-3-g1a2b3c4")
+    monkeypatch.setattr(doctor.shutil, "which", lambda tool: None)
+    doctor.run(tmp_path)
+    output = capsys.readouterr().out
+    assert "napkinstack==0.4.0-3-g" not in output, output
+    assert "bash .nstack/install-engine.sh" in output, output
+
+
+def test_the_version_says_an_unpublished_engine(capsys, monkeypatch):
+    installed(monkeypatch, VCS)
+    with pytest.raises(SystemExit):
+        cli.main(["--version"])
+    said = capsys.readouterr().out
+    assert said.startswith("nstack 0.4.0") and "UNPUBLISHED" in said and "1a2b3c4d5e6f" in said, said

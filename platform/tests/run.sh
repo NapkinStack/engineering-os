@@ -299,7 +299,16 @@ engine() {  # $1 = _commit, $2 = _src_path; prints what CI would run
   printf '_commit: %s\n_src_path: %s\n' "$1" "$2" > "$EI/project/.copier-answers.yml"
   (cd "$EI/project" && PATH="$EI/bin:$PATH" bash .nstack/install-engine.sh 2>&1)
 }
+# The script reads the answers file itself: a runner holding another yq, or none, installs
+# the right engine all the same (a runner with the wrong yq was told its source was a path).
+! grep -qw yq skeleton/.nstack/install-engine.sh \
+  || { echo "FAIL: install-engine.sh needs yq to read two lines of the answers file."; exit 1; }
+rm "$EI/bin/yq"
 URL=https://github.com/NapkinStack/engineering-os.git
+printf "_commit: 'v0.4.0'\n_src_path: '%s'\n" "$URL" > "$EI/project/.copier-answers.yml"
+(cd "$EI/project" && PATH="$EI/bin:$PATH" bash .nstack/install-engine.sh 2>&1) \
+  | grep -qxF 'uv tool install napkinstack==0.4.0 --with-executables-from pre-commit' \
+  || { echo "FAIL: a quoted answer is not read."; exit 1; }
 engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --with-executables-from pre-commit' \
   || { echo "FAIL: a published version is not installed from PyPI."; engine v0.4.0 "$URL"; exit 1; }
 OUT=$(engine v0.4.0-3-g1a2b3c4 "$URL")
@@ -591,6 +600,11 @@ echo "$OUT" | grep -qF "Project created in" \
   || { echo "FAIL: nstack init does not confirm the creation."; echo "$OUT"; exit 1; }
 [ "$(git -C "$PROJECT" branch --show-current)" = main ] && [ -z "$(git -C "$PROJECT" status --porcelain)" ] \
   || { echo "FAIL: the project is not committed on main."; git -C "$PROJECT" status; exit 1; }
+# The manual installs the way CI does: a project pinned to a commit (this one is) is not
+# told to install a version that no installer accepts.
+grep -qxF "bash .nstack/install-engine.sh" "$PROJECT/.nstack/handbook/INSTALL.md" \
+  && ! grep -qE 'napkinstack==[0-9.]+-[0-9]+-g' "$PROJECT/.nstack/handbook/INSTALL.md" \
+  || { echo "FAIL: the manual's first install line is not the script CI runs."; grep -n "napkinstack==" "$PROJECT/.nstack/handbook/INSTALL.md"; exit 1; }
 LEFTOVERS=$(find "$PROJECT" -name '*.jinja')
 [ -z "$LEFTOVERS" ] || { echo "FAIL: template files copied as is:"; echo "$LEFTOVERS"; exit 1; }
 # D58: what an agent's runtime writes as it runs is ignored; what a team shares is not.
