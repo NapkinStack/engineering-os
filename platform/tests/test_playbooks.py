@@ -116,3 +116,34 @@ def normalised(text: str) -> str:
 def test_the_handbook_draws_no_list_of_triggers():
     ai = (SKELETON / "handbook/04-ai-context.md").read_text(encoding="utf-8")
     assert "+ security.md" not in ai and "+ ux.md" not in ai, "04-ai-context.md keeps its own list of triggers"
+
+
+# --- What a session reads of the cycle, and when it asks for approval (PDR-0002, clarified 2026-10-15) ---
+# Measured on the third project: its current cycle was 57 % of what a session loads before its
+# first line of work, most of it a journal of what each deliverable had tried. And the kernel
+# said "present steps 1 to 5 before changing anything" while the handbook's diagram committed
+# the oracle first, then presented the plan.
+
+def test_a_session_reads_its_deliverable_s_section_of_the_cycle():
+    loading = KERNEL[KERNEL.index("Load, in this order"): KERNEL.index("**Playbooks — triggers.**")]
+    assert "of the current cycle, its front matter and your deliverable's section" in loading, loading
+    assert "MANIFEST.yaml and AGENTS.md of the module concerned" in loading, loading
+
+
+def test_the_cycle_s_form_gives_each_deliverable_its_section():
+    form = (SKELETON / "forms/cycle.md").read_text(encoding="utf-8")
+    assert "### D1" in form and "log issue" in form, "the form keeps free notes for every deliverable together"
+
+
+def test_the_plan_is_approved_before_any_file_is_written():
+    assert "Before writing any file, present steps 1 to 3" in KERNEL
+    assert "always.md" not in KERNEL[KERNEL.index("## 2. Working loop"): KERNEL.index("## 3. Stopping rules")], (
+        "a project's rule may add to the kernel or tighten it, never waive its approval (PDR-0002)")
+    loop = (SKELETON / "handbook/05-workflow.md").read_text(encoding="utf-8")
+    loop = loop[loop.index("## 2. The loop"): loop.index("## 3.")]
+    assert loop.index("Present the plan") < loop.index("ORACLE: write"), "the diagram commits the oracle before the plan"
+
+
+def test_the_kernel_names_who_hears_of_a_framework_defect():
+    row = next(line for line in KERNEL.splitlines() if line.startswith("| The framework itself is wrong"))
+    assert "Report it to the decider" in row and "the decider assigns" in row, row
