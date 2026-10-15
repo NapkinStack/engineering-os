@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from napkinstack import assurance
-from napkinstack import (__version__, compat, discovery, doctor, landed, modules, provenance, settings,
+from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
 
@@ -59,9 +59,19 @@ def _update(args: argparse.Namespace) -> int:
     return project.update(args.root, args.ref or project.default_ref())
 
 
+class _Version(argparse.Action):
+    """The version, as the first line of a judging run says it: a version installed from
+    anywhere but the registry is no published version (PDR-0005)."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        version, origin = provenance.engine()
+        print(f"nstack {version}" + (f" — UNPUBLISHED: {origin}" if origin else ""))
+        parser.exit()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="NapkinStack engine.")
-    parser.add_argument("--version", action="version", version=f"nstack {__version__}")
+    parser.add_argument("--version", action=_Version, nargs=0, help="the engine's version, and where it came from")
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
     _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M10)",
          lambda a: manifests.run(a.root))
@@ -140,11 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--owner-team", help="owner of the foundation: organisation/team, or a user "
                                           "when the project has no organisation (asked when absent)")
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
-    ini.add_argument("--ref", help="skeleton version, tag vX.Y.Z (default: the one of nstack)")
+    ini.add_argument("--ref", help="skeleton version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
     ini.set_defaults(func=_init)
     up = _add(sub, "update", "merges a NapkinStack version onto a branch to review",
               _update)
-    up.add_argument("--ref", help="target version, tag vX.Y.Z (default: the one of nstack)")
+    up.add_argument("--ref", help="target version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
     return parser
 
 

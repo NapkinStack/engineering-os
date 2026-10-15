@@ -80,8 +80,9 @@ proposing the fix.
 While the fix is reviewed, the project may run on it: `nstack update --ref <commit>`
 records the commit, CI installs the framework from this repository at that commit —
 never a published version in its place — and every run says so; `nstack doctor` never
-calls such a project compliant (L1). Leave the pin with the first release carrying the
-fix: `nstack update --ref vX.Y.Z`.
+calls such a project compliant (L1). The squash gives `main` another commit and leaves the
+reviewed one on no branch, which `doctor` names: once merged, pin the commit `main` received,
+or the first release carrying the fix — `nstack update --ref vX.Y.Z`.
 
 ## The rules of the batch
 
