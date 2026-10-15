@@ -2,7 +2,8 @@
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
   before 2027-03-31); **built by M11l (2026-10-12)** and extended by M11o the same day —
-  see the two sections *Corrected in place*; it closes D59 and D60
+  see the three sections *Corrected in place*; it closes D59 and D60; corrected in place a
+  third time on 2026-10-15 (a fact has one home)
 - **Date**: 2026-09-22
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's `README.md.jinja` and `.github/ISSUE_TEMPLATE/`,
@@ -256,6 +257,34 @@ come · grey: nothing is asked.
 5. **Decision records gain the place of a diagram**, as an invitation — "otherwise delete
    this line" — reversing the first correction's refusal: a decision that changes a structure
    is better drawn, and one that does not loses a line.
+
+
+### Corrected in place a third time, 2026-10-15 — a fact has one home
+
+The standard said how a document is written and when it is brought current. It never said how
+many documents may hold the same fact, and the framework's own scaffolding wrote the same facts
+several times.
+
+**Observation.** A module's responsibility, its owner and its criticality are written by the
+scaffolding in its manifest, its page and its local instructions, and again by the project in
+its module map: on the third project, eighteen identical copies that nothing compares — and one
+already wrong, a module drawn `critical` on the map and declared `standard` in its manifest. The
+framework did the same in its own pages: a "producer/consumer matrix generated from the
+manifests" announced by three of them, which no command produces; a table of the commands in
+three places, one of which had lost a verb.
+
+**Clarification.**
+
+1. **The standard has a fifth rule: a fact has one home.** Every other document that needs it
+   links to that home, and never copies it. The home is the file a check or a command reads —
+   the manifest for a module, the cycle for a deliverable's state, the charter for the decider.
+2. **The framework's forms apply it first.** A module's page and its local instructions point at
+   its manifest for its responsibility, its owner and its criticality; a page that announced a
+   generated artefact points at the command that answers instead.
+3. **The rule is stated where agents load it**, `playbooks/documentation.md`, beside the four
+   others; the handbook keeps the why.
+4. **No check.** A copy a project already wrote is the project's to remove, and "the same fact in
+   two files" is not a thing a rule can read without knowing the project.
 
 ---
 

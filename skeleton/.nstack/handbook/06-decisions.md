@@ -373,7 +373,7 @@ a sentence written then is invented. Each form waits for the event of its row, a
 that asked for it earlier would be paid in counterfeit.
 
 **The standard** these documents are written to — shape first, a source, a date, current or
-deleted — is `.nstack/playbooks/documentation.md`: a playbook, because the handbook is never loaded
+deleted, one home for each fact — is `.nstack/playbooks/documentation.md`: a playbook, because the handbook is never loaded
 into an agent's context and agents write most of these documents.
 
 **What a machine reads, and what is owed.** Three moments are readable from the repository

@@ -190,7 +190,8 @@ def test_the_standard_has_a_fifth_rule_a_fact_has_one_home() -> None:
     eighteen identical copies on the third project, one already wrong."""
     playbook = (SKELETON / ".nstack/playbooks/documentation.md").read_text(encoding="utf-8")
     assert "## The standard — five rules, and no content" in playbook, "the standard still counts four rules"
-    assert "**A fact has one home.**" in playbook and "link to it, never copy it" in playbook
+    flat = " ".join(playbook.split())
+    assert "**A fact has one home.**" in flat and "links to it, never copies it" in flat
 
 
 def test_a_generated_module_writes_each_fact_once(tmp_path) -> None:

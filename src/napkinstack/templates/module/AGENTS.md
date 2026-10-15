@@ -8,7 +8,7 @@
 
 ## Responsibility
 
-<One sentence. The same as the one in the MANIFEST.>
+The one sentence of `MANIFEST.yaml` (`module.responsibility`); not repeated here.
 
 ## What this module does not do
 

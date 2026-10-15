@@ -1,10 +1,7 @@
 # {{MODULE_NAME}}
 
-<One sentence: what this module is for.>
-
-- **Owner**: {{OWNER}}
-- **Criticality**: {{CRITICALITY}}
-- **Manifest**: [MANIFEST.yaml](./MANIFEST.yaml)
+What this module is for, who owns it and how critical it is: its
+[MANIFEST.yaml](./MANIFEST.yaml), the one place they are written.
 
 <A diagram, with its legend: what this module provides, what it consumes, who uses it.>
 
