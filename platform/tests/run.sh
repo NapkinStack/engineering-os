@@ -1227,7 +1227,8 @@ workflow = project / landed.RECORD
 if not workflow.is_file():
     sys.exit(f"FAIL: a generated project does not carry the record at {landed.RECORD} (PDR-0006).")
 data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
-if data["permissions"] != {"contents": "read", "pull-requests": "read"}:
+# Read only (G10): how each commit arrived, and the record's own last success (actions).
+if data["permissions"] != {"contents": "read", "pull-requests": "read", "actions": "read"}:
     sys.exit(f"FAIL: the record must need no write access (G10): {data['permissions']}")
 steps = [step for job in data["jobs"].values() for step in job["steps"]]
 if not any("nstack landed" in str(step.get("run", "")) for step in steps):
