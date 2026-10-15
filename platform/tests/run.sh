@@ -1058,10 +1058,11 @@ active = {"status": "enabled"}
 # G14 to G16: shaped as the rules want them. Readable without the Administration permission
 # and settable on any plan, which is why they carry no PRIVATE_PLAN entry (D61).
 merges_ok = {"allow_auto_merge": True, "allow_squash_merge": True, "allow_merge_commit": False,
-             "allow_rebase_merge": False, "delete_branch_on_merge": True}
+             "allow_rebase_merge": False, "delete_branch_on_merge": True, "default_branch": "main"}
 # GitHub's own defaults for a fresh repository: auto-merge off, three methods allowed, branches kept.
+# G19: a default branch the workflows do not watch, as a repository created before "main" was.
 merges_default = {"allow_auto_merge": False, "allow_squash_merge": True, "allow_merge_commit": True,
-                  "allow_rebase_merge": True, "delete_branch_on_merge": False}
+                  "allow_rebase_merge": True, "delete_branch_on_merge": False, "default_branch": "master"}
 compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active},
          **merges_ok},
@@ -1179,7 +1180,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 18 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 19 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/.nstack/handbook/INSTALL.md.jinja \
@@ -1283,7 +1284,7 @@ fi
   && echo "$OUT" | grep -qF "To start: follow .nstack/playbooks/framing.md" \
   && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -1300,7 +1301,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 23 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 24 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
