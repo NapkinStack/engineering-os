@@ -727,6 +727,18 @@ fi
 (cd "$CLONE" && nstack pr-scope --root . --base HEAD) | grep -qF "No file changed." \
   || { echo "FAIL: nstack pr-scope does not respond in the project."; exit 1; }
 
+echo "-> init: before a push, the project's fitness functions run, and a fault stops the push (D120)"
+if ! OUT=$(cd "$CLONE" && pre-commit run nstack-fitness --hook-stage pre-push --all-files 2>&1); then
+  echo "FAIL: the pre-push fitness hook refuses a project that passes."; echo "$OUT"; exit 1
+fi
+printf 'Notes kept in /%s/someone/notes.\n' home > "$CLONE/notes.md"; git -C "$CLONE" add notes.md
+if OUT=$(cd "$CLONE" && pre-commit run nstack-fitness --hook-stage pre-push --all-files 2>&1); then
+  echo "FAIL: the pre-push fitness hook let a fault of hygiene through."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qF "FAIL [H1] notes.md:1" \
+  || { echo "FAIL: the pre-push hook does not say the fault."; echo "$OUT"; exit 1; }
+git -C "$CLONE" rm -q --cached notes.md; rm "$CLONE/notes.md"
+
 echo "-> new-module: in the project, the module passes fitness and hooks with no imposed stack (criterion 3)"
 nstack new-module demo acme/demo-team standard --root "$CLONE" >/dev/null
 if ! OUT=$(nstack fitness --root "$CLONE" 2>&1); then
