@@ -22,6 +22,36 @@ a patch.
 
 ---
 
+## v0.9.2 — 2026-10-17
+
+One workstream, D120: four frictions the third project's agent work met in one day.
+
+**In the engine** — nothing.
+
+**In your project** — 4 files
+
+- **The fitness functions run before a push** (`.pre-commit-config.yaml`): a `pre-push` hook runs
+  `nstack manifests`, `boundaries`, `plan` and `hygiene` — the checks CI runs on every pull
+  request — so a contract used and not declared, or a path from a home directory, is seen before
+  the push, with its rule, file and line. The skills are left to CI: what they are generated into
+  follows the engine's version. Where nstack is not installed, the hook says so and lets the push
+  go. `pre-push` joins `default_install_hook_types`.
+- **The verifier's own ground** (`.nstack/playbooks/verification.md`): a copy of one's own;
+  shared state put back after each run, also on failure; what one starts stopped by its process
+  number, nothing left running; the pull request's description fetched again just before it is
+  written.
+- **A spike's imitation checked first** (`.nstack/handbook/05-workflow.md`): a spike that
+  measures a step through an imitation of what it sends first shows it sends the same, byte for
+  byte.
+- **A deliverable added mid-cycle** (`.nstack/playbooks/framing.md` §4): the decider may add one
+  that fits what is left of the appetite, the end date unchanged; its section says on whose word
+  and on what it entered.
+
+**Migration** — run `pre-commit install` once in each clone: an install made before this version
+put no `pre-push` hook in place. Nothing else; nothing green turns red.
+
+---
+
 ## v0.9.1 — 2026-10-15
 
 One workstream, D119, found by the first project to take v0.9.0.
