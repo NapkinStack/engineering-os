@@ -22,6 +22,26 @@ a patch.
 
 ---
 
+## v0.9.3 — 2026-10-17
+
+One workstream, D121: a drawing the decider spent their eye on lived outside the project.
+
+**In the engine** — nothing.
+
+**In your project** — 2 files
+
+- **A spike's drawing is kept in the project** (`.nstack/playbooks/framing.md` §2): when a
+  spike's product is a drawing — the screens, the journey the user will see — it is committed
+  under `docs/project/drawings/<deliverable>-<name>/` with its date, and frozen. What the decider
+  accepts in it becomes criteria; once built, the product and its screenshots are the truth. A
+  new round is a new folder.
+- **A drawing of a screen is no diagram** (`.nstack/playbooks/documentation.md`): it is an image,
+  frozen; diagrams stay text.
+
+**Migration** — none; nothing green turns red.
+
+---
+
 ## v0.9.2 — 2026-10-17
 
 One workstream, D120: four frictions the third project's agent work met in one day.
