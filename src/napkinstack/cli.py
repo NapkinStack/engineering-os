@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -183,8 +184,16 @@ def _run(a) -> int:
     return modules.run_verb(root, "run", a.module, arguments)
 
 
+# What git hands a hook to name its repository (D126): a hook of a linked worktree gets GIT_DIR,
+# and every git the engine runs, in a module or a checkout of its own, would read that one.
+# The engine names its project with --root; git finds the rest from where it runs.
+GIT_LOCATION = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR")
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    for name in GIT_LOCATION:
+        os.environ.pop(name, None)
     if late := provenance.behind(_named_root(argv)):
         print(late, file=sys.stderr, flush=True)
     args = build_parser().parse_args(argv)
