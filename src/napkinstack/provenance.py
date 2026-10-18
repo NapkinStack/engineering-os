@@ -29,7 +29,10 @@ def version() -> str:
     """The engine's version. An editable install's metadata is written once, at install, and the
     checkout moves on: its own pyproject.toml says the version its source is at (D122)."""
     distribution = importlib.metadata.distribution("napkinstack")
-    data = json.loads(distribution.read_text("direct_url.json") or "{}")
+    try:
+        data = json.loads(distribution.read_text("direct_url.json") or "{}")
+    except json.JSONDecodeError:  # read at import: a damaged record never stops the engine
+        return distribution.version
     if data.get("dir_info", {}).get("editable"):
         source = Path(url2pathname(urlparse(data.get("url", "")).path)) / "pyproject.toml"
         try:

@@ -283,3 +283,11 @@ def test_an_editable_engine_says_the_version_its_source_is_at(tmp_path, monkeypa
     project(tmp_path, commit="v0.4.1")
     assert provenance.version() == "0.4.1"
     assert provenance.behind(tmp_path) is None
+
+
+def test_a_damaged_install_record_leaves_the_version_to_the_metadata(monkeypatch):
+    class Damaged(Distribution):
+        def read_text(self, name: str) -> str | None:
+            return "{not json" if name == "direct_url.json" else None
+    monkeypatch.setattr(provenance.importlib.metadata, "distribution", lambda name: Damaged(None))
+    assert provenance.version() == "0.4.0"
