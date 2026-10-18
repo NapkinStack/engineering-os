@@ -74,9 +74,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="NapkinStack engine.")
     parser.add_argument("--version", action=_Version, nargs=0, help="the engine's version, and where it came from")
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
-    _add(sub, "manifests", "manifests, lifecycles, deprecations (M1-M10)",
+    _add(sub, "manifests", "manifests, lifecycles, deprecations, what a release assembles (M1-M11)",
          lambda a: manifests.run(a.root))
-    _add(sub, "boundaries", "declared graph against real graph (B1-B8)",
+    _add(sub, "boundaries", "declared graph against real graph, release artefacts included (B1-B9)",
          lambda a: boundaries.run(a.root))
     _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8)", lambda a: plan.run(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
@@ -185,9 +185,6 @@ def _release(a) -> int:
     if "--root" in arguments[:-1]:
         at = arguments.index("--root")
         root, arguments = _root(arguments[at + 1]), arguments[:at] + arguments[at + 2:]
-    if arguments and a.module is None:
-        print("FAIL [release] arguments are passed to one module's command: name the module.")
-        return 1
     return modules.run_verb(root, "release", a.module, arguments)
 
 

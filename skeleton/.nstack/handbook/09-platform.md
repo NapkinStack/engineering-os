@@ -78,8 +78,12 @@ follows the module's name to its command: the platform, the target, the variant 
 mobile build, a web bundle, an installer, whatever the stack ships. A module that makes what a
 user installs from other modules' artefacts declares them in its manifest, `assembles:
 [<module>, …]`, and reads them in their folders (`$NSTACK_DIST/../<module>/`); `nstack
-release` with no module runs each after what it assembles. Reading another module's artefacts
-without declaring it fails (`B9`), as a path into its folder does (`B2`).
+release` with no module runs each after what it assembles, and fails on a module declaring
+none only when that module is named. One target for every module — a platform, an
+architecture — is set in the environment they all inherit (`TARGET=… nstack release`); a module
+needing several targets of another's makes them all in that one's release, since each release
+empties its folder. Reading another module's artefacts without declaring it fails (`B9`), as a
+path into its folder does (`B2`); `assembles` names modules by their folder, as the verbs do.
 
 **A job leaves nothing behind.** GitHub's hosted runners are thrown away after each job; a
 self-hosted one is not. The module checks start on a clean checkout, and each module ends

@@ -102,6 +102,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
+| `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack skills` | Exposes the playbooks as skills for the agent |

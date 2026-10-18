@@ -51,3 +51,16 @@ def test_a_named_release_takes_what_follows_and_needs_its_command(tmp_path, caps
     assert cli.main(["release", "bare", "--root", str(tmp_path)]) == 1
     said = capsys.readouterr().out
     assert "FAIL [release] module 'bare': commands.release not declared" in said and "Action:" in said, said
+
+
+def test_an_artefacts_folder_that_is_a_link_is_refused_never_followed(tmp_path, capsys):
+    module(tmp_path, "app", release='printf x > "$NSTACK_DIST/app.bin"')
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "keep").write_text("kept", encoding="utf-8")
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist" / "app").symlink_to(elsewhere)
+    assert cli.main(["release", "app", "--root", str(tmp_path)]) == 1
+    said = capsys.readouterr().out
+    assert "FAIL [release]" in said and "Action:" in said, said
+    assert (elsewhere / "keep").read_text() == "kept"

@@ -361,6 +361,11 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
         if verb == "release":
             # Its artefacts, and nothing left from an earlier release: dist/<module>, emptied first.
             dist = root / "dist" / target
+            odd = next((path for path in (dist.parent, dist) if path.is_symlink() or (path.exists() and not path.is_dir())), None)
+            if odd is not None:
+                print(f"FAIL [release] {odd.relative_to(root)} is a link or a file, not a folder of the project's own: "
+                      "nothing is emptied through it.\n      Action: remove it, then release again.")
+                return 1
             shutil.rmtree(dist, ignore_errors=True)
             dist.mkdir(parents=True)
             environment = {**os.environ, "NSTACK_DIST": str(dist.resolve())}

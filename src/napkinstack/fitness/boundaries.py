@@ -260,14 +260,38 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
     return reads
 
 
+# Another module's artefacts, as a release reads them: from its own artefacts folder, whatever
+# the shell writes the variable ("$NSTACK_DIST", ${NSTACK_DIST}, %NSTACK_DIST%, $(NSTACK_DIST)…),
+# or by a relative path that lands in the project's dist/ — never a dist/ of the module's own.
+FROM_OWN = re.compile(r"NSTACK_DIST[\"'%)}\]]?/\.\./([A-Za-z0-9._-]+)")
+RELATIVE = re.compile(r"(?<![\w.-])((?:\.\./)+)dist/([A-Za-z0-9._-]+)")
+
+
+def artefact_reads(root: Path, mod: dict, relative: str, text: str) -> tuple[set[str], str]:
+    """The module folders whose artefacts a line reads, and the line without those reads."""
+    read: set[str] = set()
+
+    def taken(match: re.Match) -> str:
+        read.add(match.group(match.lastindex))
+        return " "
+
+    text = FROM_OWN.sub(taken, text)
+
+    def landed(match: re.Match) -> str:
+        where = (mod["path"] / relative).parent / match.group(1) / "dist" / match.group(2)
+        if Path(posixpath.normpath(where.as_posix())) == root / "dist" / match.group(2):
+            read.add(match.group(2))
+            return " "
+        return match.group(0)
+
+    return read, RELATIVE.sub(landed, text)
+
+
 def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
     """B2, B5 and B9. Returns module -> modules whose code it references."""
     code: dict[str, set[str]] = {name: set() for name in modules}
     others = {name: code_patterns(mod) for name, mod in modules.items()}
-    # A module's artefacts: its folder of the project's dist/, named from the root or from the
-    # reader's own folder there ($NSTACK_DIST/../<module>).
-    artefacts = {name: re.compile(rf"(?:(?<![\w.-])dist|NSTACK_DIST\}}?/\.\.)/{re.escape(mod['dirname'])}(?![\w.-])")
-                 for name, mod in modules.items()}
+    by_folder = {mod["dirname"]: name for name, mod in modules.items()}
     contracts = [str(p.get("path")).strip("/") for mod in modules.values() for p in mod["provides"] if p.get("path")]
     for name, mod in modules.items():
         for relative, lines in read_files(mod):
@@ -275,16 +299,18 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
             for lineno, line in enumerate(lines, 1):
                 imports = source and IMPORT_HINTS.search(line)
                 text = line.replace("\\", "/")
+                # B9 - another module's artefacts: read here, they are its artefacts, not its code;
+                # what is left of the line is still B2's.
+                read, text = artefact_reads(root, mod, relative, text)
+                for folder in read:
+                    other_name = by_folder.get(folder)
+                    if other_name and other_name != name and folder not in mod["assembles"]:
+                        fail("B9", f"{mod['path'].relative_to(root) / relative}:{lineno}",
+                             f"'{name}' reads the release artefacts of '{folder}' without assembling it.\n"
+                             f"      Action: add {folder} to assembles in its MANIFEST "
+                             "(.nstack/handbook/09-platform.md §2), or stop reading them.")
                 for other_name, (code_import, reach, block) in others.items():
                     if other_name == name:
-                        continue
-                    if artefacts[other_name].search(text):
-                        # Its artefacts, not its code: B9 judges the line, not B2.
-                        if other_name not in mod["assembles"]:
-                            fail("B9", f"{mod['path'].relative_to(root) / relative}:{lineno}",
-                                 f"'{name}' reads the release artefacts of '{other_name}' without assembling it.\n"
-                                 f"      Action: add {other_name} to assembles in its MANIFEST "
-                                 "(.nstack/handbook/09-platform.md §2), or stop reading them.")
                         continue
                     via_import = (imports and code_import.search(line)) or (source and block.search(line))
                     reaches = [m for m in reach.finditer(text)

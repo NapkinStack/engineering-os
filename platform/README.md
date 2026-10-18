@@ -41,8 +41,8 @@ runbook, tests and configuration.
 
 | Command | Rules |
 |---|---|
-| `nstack manifests` | M1-M10: fields, lifecycles, deprecation dates, runbook, envelope, user-facing |
-| `nstack boundaries` | B1-B8: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed |
+| `nstack manifests` | M1-M11: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles |
+| `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment |
 | `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
@@ -60,7 +60,7 @@ uv run nstack doctor --root <project>      # workstation and GitHub settings, re
 uv run nstack new-module <name> <owner> <criticality> --root <project>
 uv run nstack new-contract <name> --root <project>
 uv run nstack settings --root <project>     # the calls that would close the gaps, printed
-uv run nstack check [module] --root <project>   # also test, bootstrap, e2e, clean; run <module>
+uv run nstack check [module] --root <project>   # also test, bootstrap, e2e, clean, release; run <module>
 ```
 
 ## Skills
