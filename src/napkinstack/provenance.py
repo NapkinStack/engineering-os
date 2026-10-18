@@ -14,6 +14,7 @@ import importlib.metadata
 import json
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import url2pathname
@@ -22,6 +23,23 @@ import yaml
 
 ANSWERS = ".copier-answers.yml"
 PUBLISHED = re.compile(r"v\d+\.\d+\.\d+")
+
+
+def version() -> str:
+    """The engine's version. An editable install's metadata is written once, at install, and the
+    checkout moves on: its own pyproject.toml says the version its source is at (D122)."""
+    distribution = importlib.metadata.distribution("napkinstack")
+    try:
+        data = json.loads(distribution.read_text("direct_url.json") or "{}")
+    except json.JSONDecodeError:  # read at import: a damaged record never stops the engine
+        return distribution.version
+    if data.get("dir_info", {}).get("editable"):
+        source = Path(url2pathname(urlparse(data.get("url", "")).path)) / "pyproject.toml"
+        try:
+            return str(tomllib.loads(source.read_text(encoding="utf-8"))["project"]["version"])
+        except (OSError, KeyError, tomllib.TOMLDecodeError):
+            pass
+    return distribution.version
 
 
 def engine() -> tuple[str, str | None]:
@@ -44,7 +62,7 @@ def engine() -> tuple[str, str | None]:
     path = Path(url2pathname(urlparse(data.get("url", "")).path))
     commit = subprocess.run(["git", "describe", "--always", "--dirty"], cwd=path,
                             capture_output=True, text=True).stdout.strip() if path.is_dir() else ""
-    return distribution.version, f"a local checkout at {commit or 'an unknown commit'}"
+    return version(), f"a local checkout at {commit or 'an unknown commit'}"
 
 
 def recorded(root: Path) -> str | None:
