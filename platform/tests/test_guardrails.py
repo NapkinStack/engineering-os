@@ -79,6 +79,9 @@ MANIFEST_CASES = {
     "M2 module section as text (D8)": (lambda r: write_module(r, "billing", degrade(module="text")), "M2", True),
     "M2 commands section as text (D8)": (lambda r: write_module(r, "billing", degrade(commands="make")), "M2", True),
     "M3 lifecycle": (lambda r: write_module(r, "billing", degrade(module__lifecycle="unknown")), "M3", True),
+    "M11 assembles a module that does not exist (D127)": (lambda r: write_module(r, "billing", {**VALID, "assembles": ["nowhere"]}), "M11", True),
+    "M11 assembles itself": (lambda r: write_module(r, "billing", {**VALID, "assembles": ["billing"]}), "M11", True),
+    "M11 assembles as text, not a list": (lambda r: write_module(r, "billing", {**VALID, "assembles": "customers"}), "M11", True),
     "M3 criticality": (lambda r: write_module(r, "billing", degrade(module__criticality="severe")), "M3", True),
     "M4 two sentences": (lambda r: write_module(r, "billing", degrade(module__responsibility="Bills. Chases.")), "M4", False),
     "M4 conjunction": (lambda r: write_module(r, "billing", degrade(
@@ -340,6 +343,19 @@ BOUNDARY_CASES = {
         "customers": (PRODUCER, {})}, "B6", True),
     "B7 a provided contract with no document": ({
         "customers": (provides(CUSTOMERS, "customers", ("v9",)), {})}, "B7", True),
+    "B9 another module's artefacts read without assembling it (D127)": ({
+        "billing": (VALID, {"scripts/pack.sh": 'cp "$NSTACK_DIST"/../customers/app pack/\n'}),
+        "customers": (CUSTOMERS, {})}, "B9", True),
+    "B9 reached from its own artefacts' folder": ({
+        "billing": (VALID, {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" pack/\n'}),
+        "customers": (CUSTOMERS, {})}, "B9", True),
+    "B9 the project's dist/ reached by a relative path": ({
+        "billing": (VALID, {"scripts/pack.sh": "cp ../../../dist/customers/app pack/\n"}),
+        "customers": (CUSTOMERS, {})}, "B9", True),
+    "B2 still seen on a line that reads declared artefacts": ({
+        "billing": ({**VALID, "assembles": ["customers"]},
+                    {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" ../../customers/src/secret.py .\n'}),
+        "customers": (CUSTOMERS, {})}, "B2", True),
     "B8 a consumer of a deprecated module (D52)": ({
         "billing": (consumes(VALID, "customers"), READS),
         "customers": (degrade(PRODUCER, module__lifecycle="deprecated",
@@ -727,3 +743,75 @@ def test_g19_a_default_branch_the_workflows_do_not_watch_is_a_gap():
 
     assert doctor.CHECKS["G19"](_Repository({"default_branch": "main"})) is True
     assert doctor.CHECKS["G19"](_Repository({"default_branch": "master"})) is False
+
+
+def test_a_module_assembling_another_reads_its_artefacts(tmp_path, capsys):
+    """D127: the artefacts another module's release made are read once it is declared assembled."""
+    pack = {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" "$NSTACK_DIST/"\n'}
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]}, pack)
+    write_module(tmp_path, "customers", CUSTOMERS)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_modules_assembling_each_other_are_refused(tmp_path, capsys):
+    """D127: a release that waits for itself never ends."""
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]})
+    write_module(tmp_path, "customers", {**CUSTOMERS, "assembles": ["billing"]})
+    assert manifests.run(tmp_path) == 1
+    assert "[M11]" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("line", [
+    'cp "$NSTACK_DIST"/../customers/app out/',
+    "copy %NSTACK_DIST%\\..\\customers\\app out\\",
+    "cp $(NSTACK_DIST)/../customers/app out/",
+    "cp ${NSTACK_DIST}/../customers/app out/",
+    "Copy-Item $env:NSTACK_DIST\\..\\customers\\app out",
+])
+def test_artefacts_read_as_each_shell_writes_the_variable(tmp_path, capsys, line):
+    """D127: declared, the read passes whatever the shell; undeclared, B9 refuses it."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]}, {"scripts/pack": line + "\n"})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+    capsys.readouterr()
+    (tmp_path / "modules" / "billing" / "MANIFEST.yaml").write_text(yaml.safe_dump(VALID), encoding="utf-8")
+    assert boundaries.run(tmp_path) == 1 and "[B9]" in capsys.readouterr().out
+
+
+def test_a_module_s_own_build_output_is_no_other_module_s_artefacts(tmp_path, capsys):
+    """D127: a web module building into its own dist/assets reads nobody's artefacts."""
+    write_module(tmp_path, "assets", degrade(module__name="assets", module__owner="acme/assets"))
+    write_module(tmp_path, "billing", VALID, {"vite.config.js": "export default { build: { outDir: 'dist/assets' } }\n",
+                                              "package.json": '{"files": ["dist/assets/index.js"]}\n'})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_assembles_names_a_module_by_its_folder_as_the_verbs_do(tmp_path, capsys):
+    """D127: a module whose name differs from its folder is assembled, and run, by its folder."""
+    write_module(tmp_path, "customers", degrade(CUSTOMERS, module__name="customers-engine"))
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]},
+                 {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" .\n'})
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_relative_path_is_read_from_the_module_s_folder_too(tmp_path, capsys):
+    """D127: a release runs from the module's folder; its script's ../../dist/x lands there."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", VALID, {"scripts/pack.sh": 'cp ../../dist/customers/app "$NSTACK_DIST"\n'})
+    assert boundaries.run(tmp_path) == 1 and "[B9]" in capsys.readouterr().out
+
+
+def test_a_release_command_in_the_manifest_is_read(tmp_path, capsys):
+    """D127: the manifest's commands are where a release command lives."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", degrade(commands__release='cp "$NSTACK_DIST"/../customers/app .'))
+    assert boundaries.run(tmp_path) == 1 and "[B9]" in capsys.readouterr().out
+
+
+def test_a_dist_inside_the_module_is_its_own(tmp_path, capsys):
+    """D127: ../dist/customers from a module's subfolder lands in the module: nobody's artefacts."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", VALID, {"web/build.sh": "cp app ../dist/customers/\n"})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out

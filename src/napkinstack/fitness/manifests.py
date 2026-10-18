@@ -17,6 +17,8 @@ Rules:
   M8  runbook required when criticality >= high
   M9  complete file envelope (AGENTS.md, README.md, tests/)
   M10 user_facing declared: true when a user sees the module (.nstack/handbook/05-workflow.md §7)
+  M11 assembles names other modules, as a list, and no module waits for itself through it
+      (.nstack/handbook/09-platform.md §2, D127)
 
 Usage :  nstack manifests [--root ROOT]
 Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
@@ -357,6 +359,53 @@ def comparator_owed(root: Path, manifests: list[Path]) -> None:
                                 "(.nstack/handbook/03-contracts.md §3).")
 
 
+def assembled(manifests: list[Path], root: Path) -> None:
+    """M11: what a module's release assembles — other modules' artefacts — names them, and never
+    leads back to the module itself: `nstack release` runs each after what it assembles."""
+    wants: dict[str, list[str]] = {}
+    places: dict[str, str] = {}
+    for manifest in manifests:
+        text = manifest.read_text(encoding="utf-8")
+        places[manifest.parent.name] = f"{manifest.relative_to(root).as_posix()}:{line_of(text, 'assembles')}"
+        try:
+            data = yaml.safe_load(text) or {}
+        except yaml.YAMLError:
+            continue  # M2 says it
+        listed = data.get("assembles") if isinstance(data, dict) else None
+        if listed is None:
+            continue
+        name = manifest.parent.name
+        if not isinstance(listed, list) or not all(isinstance(other, str) for other in listed):
+            fail(name, "M11", "assembles must be a list of module names.\n"
+                              "      Action: assembles: [<module>, …] — the modules whose release artefacts this one's release reads.",
+                 places[name])
+            continue
+        wants[name] = listed
+    known = {manifest.parent.name for manifest in manifests}
+    for name, listed in wants.items():
+        for other in listed:
+            if other == name or other not in known:
+                fail(name, "M11", f"assembles '{other}', " + ("itself" if other == name else "a module that does not exist") + ".\n"
+                                  "      Action: name another module of this project, or remove the entry (.nstack/handbook/09-platform.md §2).",
+                     places[name])
+
+    def back(name: str, path: list[str]) -> list[str] | None:
+        for other in wants.get(name, []):
+            if other == path[0]:
+                return path + [other]
+            if other not in path and (found := back(other, path + [other])):
+                return found
+        return None
+
+    seen: set[frozenset[str]] = set()
+    for name in sorted(wants):
+        loop = back(name, [name])
+        if loop and frozenset(loop) not in seen:
+            seen.add(frozenset(loop))
+            fail(name, "M11", f"releases that wait for each other: {' → '.join(loop)}.\n"
+                              "      Action: one of them stops assembling the other.", places[name])
+
+
 def run(root: Path) -> int:
     failures.clear()
     warnings.clear()
@@ -372,6 +421,7 @@ def run(root: Path) -> int:
 
     for manifest in manifests:
         check_manifest(manifest, today, root)
+    assembled(manifests, root)
     comparator_owed(root, manifests)
 
     print(f"Manifests checked: {len(manifests)}")

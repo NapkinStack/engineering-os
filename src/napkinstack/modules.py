@@ -1,6 +1,6 @@
 """
 A project's modules: creation (nstack new-module) and standard verbs (nstack bootstrap,
-check, test, run, e2e, clean), with no imposed stack (PRODUCT.md P1, PDR-0001 R5).
+check, test, run, e2e, clean, release), with no imposed stack (PRODUCT.md P1, PDR-0001 R5).
 
 Each verb runs the command declared in the `commands` section of the module's
 MANIFEST.yaml, from its folder, through the system shell. NapkinStack never assumes a
@@ -10,6 +10,7 @@ borrowed from Nx (`nx test <project>`) and moon (`moon run project:task`).
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import shlex
@@ -31,6 +32,8 @@ LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a ha
 OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario", "clean": "nothing to clean"}  # undeclared: skipped
+# Undeclared, skipped when every module is released; asked of one module by name, it is owed.
+ALL_ONLY = {"release": "nothing to release"}
 # What a criticality requires is the matrix of .nstack/handbook/05-workflow.md §7, read once (assurance).
 
 RUNBOOK = """# Runbook - {name}
@@ -301,13 +304,36 @@ def _modules(root: Path) -> dict[str, Path]:
     return {manifest.parent.name: manifest.parent for manifest in find_manifests(root)}
 
 
+def release_order(known: dict[str, Path]) -> list[str]:
+    """Every module after those its release assembles (D127); otherwise in their order."""
+    wants = {}
+    for target, folder in known.items():
+        try:
+            listed = (yaml.safe_load((folder / "MANIFEST.yaml").read_text(encoding="utf-8")) or {}).get("assembles")
+        except (yaml.YAMLError, AttributeError):
+            listed = None
+        wants[target] = [other for other in listed if other in known] if isinstance(listed, list) else []
+    order: list[str] = []
+
+    def place(target: str, path: tuple[str, ...]) -> None:
+        if target in order or target in path:  # a loop is M11's to refuse
+            return
+        for other in wants[target]:
+            place(other, path + (target,))
+        order.append(target)
+
+    for target in known:
+        place(target, ())
+    return order
+
+
 def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | None = None) -> int:
     known = _modules(root)
     if name is not None and name not in known:
         print(f"FAIL [{verb}] module '{name}' not found in {root}: no MANIFEST.yaml under that name.\n"
               f"      Known modules: {', '.join(known) or 'none'}.")
         return 1
-    targets = [name] if name is not None else list(known)
+    targets = [name] if name is not None else (release_order(known) if verb == "release" else list(known))
     if not targets:
         print(f"No module in {root}: nothing to run.")
         return 0
@@ -323,16 +349,28 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             return 1
         command = commands.get(verb)
         if not command:
-            if verb in OPTIONAL:
-                print(f"-> {target}: {verb} not declared, {OPTIONAL[verb]}.")
+            if verb in OPTIONAL or (verb in ALL_ONLY and name is None):
+                print(f"-> {target}: {verb} not declared, {OPTIONAL.get(verb) or ALL_ONLY[verb]}.")
                 continue
             print(f"FAIL [{verb}] module '{target}': commands.{verb} not declared in {manifest}.\n"
                   "      Action: declare the module stack's command there (.nstack/handbook/09-platform.md §2).")
             return 1
         if arguments:
             command = " ".join([command, *map(shlex.quote, arguments)])
+        environment = None
+        if verb == "release":
+            # Its artefacts, and nothing left from an earlier release: dist/<module>, emptied first.
+            dist = root / "dist" / target
+            odd = next((path for path in (dist.parent, dist) if path.is_symlink() or (path.exists() and not path.is_dir())), None)
+            if odd is not None:
+                print(f"FAIL [release] {odd.relative_to(root)} is a link or a file, not a folder of the project's own: "
+                      "nothing is emptied through it.\n      Action: remove it, then release again.")
+                return 1
+            shutil.rmtree(dist, ignore_errors=True)
+            dist.mkdir(parents=True)
+            environment = {**os.environ, "NSTACK_DIST": str(dist.resolve())}
         print(f"-> {target}: {command}", flush=True)
-        code = subprocess.run(command, shell=True, cwd=known[target]).returncode
+        code = subprocess.run(command, shell=True, cwd=known[target], env=environment).returncode
         if code:
             print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}.")
             return code
