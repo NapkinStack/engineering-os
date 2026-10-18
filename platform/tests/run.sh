@@ -431,6 +431,16 @@ fi
 echo "$OUT" | grep -qiE "shebangs are executable\.+Failed" \
   || { echo "FAIL: refusal without the shebang check."; echo "$OUT"; exit 1; }
 
+echo "-> hooks: a push and a message run their own hooks, not the commit's again (D125)"
+repo_with_hooks stages
+echo "said" > "$HK/stages/said.txt"
+PUSH=$(cd "$HK/stages" && pre-commit run --hook-stage pre-push --all-files 2>&1 || true)
+MSG=$(cd "$HK/stages" && pre-commit run --hook-stage commit-msg --commit-msg-filename said.txt 2>&1 || true)
+echo "$PUSH" | grep -qF "NapkinStack fitness functions" && ! echo "$PUSH" | grep -qE "Detect hardcoded secrets|large files|shebang" \
+  || { echo "FAIL: a push runs the commit's hooks again."; echo "$PUSH"; exit 1; }
+echo "$MSG" | grep -qF "No link to a private assistant session" && ! echo "$MSG" | grep -qF "Detect hardcoded secrets" \
+  || { echo "FAIL: a message runs the commit's hooks again."; echo "$MSG"; exit 1; }
+
 echo "-> CI: a secret committed by bypassing the hook MUST be found, without being printed"
 repo_with_hooks history
 TOKEN=$(fake_aws_token)
