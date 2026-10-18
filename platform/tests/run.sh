@@ -761,6 +761,19 @@ fi
 
 echo "-> pr-check: in the project, a user-facing change without a test sheet MUST fail (PDR-0003)"
 git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "First module"
+
+echo "-> hooks: a push from a linked worktree is judged on that worktree's project (D126)"
+# Git hands a hook of a linked worktree its GIT_DIR; measured on 2026-10-18, the engine's own
+# git calls followed it: a module was said to hold the whole repository, and the push refused.
+WT="$GN/worktree"
+git init -q --bare "$GN/remote.git"
+git -C "$CLONE" worktree add -q -b from-worktree "$WT"
+(cd "$CLONE" && pre-commit install >/dev/null)
+if ! OUT=$(git -C "$WT" push -q "$GN/remote.git" HEAD:refs/heads/from-worktree 2>&1); then
+  echo "FAIL: a push from a linked worktree was refused by the fitness functions."; echo "$OUT"; exit 1
+fi
+(cd "$CLONE" && pre-commit uninstall >/dev/null)
+git -C "$CLONE" worktree remove --force "$WT" && git -C "$CLONE" branch -q -D from-worktree
 nstack new-module face acme/web standard --user-facing --root "$CLONE" >/dev/null
 printf 'page\n' > "$CLONE/modules/face/src/page.html"  # an empty scaffold changes no behaviour (D24)
 git -C "$CLONE" add -A && git "${GIT_ID[@]}" -C "$CLONE" commit -q --no-verify -m "User-facing module"
