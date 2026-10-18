@@ -436,7 +436,7 @@ repo_with_hooks stages
 echo "said" > "$HK/stages/said.txt"
 PUSH=$(cd "$HK/stages" && pre-commit run --hook-stage pre-push --all-files 2>&1 || true)
 MSG=$(cd "$HK/stages" && pre-commit run --hook-stage commit-msg --commit-msg-filename said.txt 2>&1 || true)
-echo "$PUSH" | grep -qF "NapkinStack fitness functions" && ! echo "$PUSH" | grep -qF "Detect hardcoded secrets" \
+echo "$PUSH" | grep -qF "NapkinStack fitness functions" && ! echo "$PUSH" | grep -qE "Detect hardcoded secrets|large files|shebang" \
   || { echo "FAIL: a push runs the commit's hooks again."; echo "$PUSH"; exit 1; }
 echo "$MSG" | grep -qF "No link to a private assistant session" && ! echo "$MSG" | grep -qF "Detect hardcoded secrets" \
   || { echo "FAIL: a message runs the commit's hooks again."; echo "$MSG"; exit 1; }
