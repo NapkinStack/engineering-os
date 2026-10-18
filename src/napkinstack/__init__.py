@@ -1,5 +1,5 @@
 """NapkinStack - engine: fitness functions, skills and module scaffolding."""
 
-from importlib.metadata import version
+from napkinstack.provenance import version
 
-__version__ = version("napkinstack")
+__version__ = version()
