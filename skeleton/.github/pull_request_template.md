@@ -61,6 +61,7 @@ other: <specify>
 - [ ] Contract consumed — the version is declared in the manifest
 - [ ] Contract changed, **additive** — contract tests green, and `nstack compat` proving it
       once the version is consumed or stable; a promise of its page reversed: <which, or none>
+      — no consumer relies on it, or the change is breaking
 - [ ] Contract changed, **breaking** — expand/contract step no. <1|2|3|4>, ADR linked,
   removal date set
 
