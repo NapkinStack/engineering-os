@@ -271,3 +271,15 @@ def test_l2_fails_without_git_or_pre_commit(tmp_path, capsys, monkeypatch):
     output = capsys.readouterr().out
     assert any(line.split()[:2] == ["FAIL", "[L2]"] for line in output.splitlines()), output
     assert "Missing: pre-commit." in output and 'uv tool install "napkinstack==0.4.0"' in output, output
+
+
+def test_an_editable_engine_says_the_version_its_source_is_at(tmp_path, monkeypatch):
+    # D122: an editable install's metadata is written once, at install; the checkout moves on.
+    # Measured on 2026-10-18: a checkout at v0.9.3 installed at 0.9.2 was told it was behind.
+    source = tmp_path / "checkout"
+    source.mkdir()
+    (source / "pyproject.toml").write_text('[project]\nname = "napkinstack"\nversion = "0.4.1"\n', encoding="utf-8")
+    installed(monkeypatch, {"url": source.as_uri(), "dir_info": {"editable": True}})
+    project(tmp_path, commit="v0.4.1")
+    assert provenance.version() == "0.4.1"
+    assert provenance.behind(tmp_path) is None
