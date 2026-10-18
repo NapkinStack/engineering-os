@@ -22,6 +22,22 @@ a patch.
 
 ---
 
+## v0.9.5 — 2026-10-18
+
+One workstream, D126: a push from a linked worktree was refused by the fitness functions.
+
+**In the engine**
+
+- **A push from a linked worktree is judged on that worktree's project** (D126): git hands a
+  hook of a linked worktree its `GIT_DIR`, and the engine's own git calls followed it — the
+  `pre-push` fitness hook said a module held the whole repository, and refused the push. The
+  engine now drops the variables by which git names a repository when it starts; it names its
+  project with `--root`.
+
+**In your project** — nothing.
+
+---
+
 ## v0.9.4 — 2026-10-18
 
 Four workstreams, D122 to D125: what the third project's cycle 03 met, the maintainer's question
