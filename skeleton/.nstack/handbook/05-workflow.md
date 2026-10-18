@@ -141,7 +141,10 @@ things the forge and the sheet do then, to know before the first merge:
 - the next one's head moves when the default branch is merged into it, and a sheet is tied to
   the commit tested. When that merge brings no file the branch did not already carry, the two
   commits hold the same tree and the sheet stands; when it brings one, the automated scenarios
-  are run again at the new head (§7).
+  are run again at the new head (§7);
+- a **squash** merge writes the first one's work as a new commit, and the next branch still
+  carries the old ones: it conflicts with what it already holds. Move it onto the default
+  branch, `git rebase --onto <default> <the merged branch's last commit>`, before anything else.
 
 **Once merged, a branch is gone.** A merged branch is history, not a place to work: left
 there, it is one more name to read past, and one day somebody builds on it. The forge
