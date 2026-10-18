@@ -22,6 +22,35 @@ a patch.
 
 ---
 
+## v0.9.6 — 2026-10-18
+
+One workstream, D127: what ships is assembled from release artefacts, never from another
+module's folder.
+
+**In the engine**
+
+- **`nstack release [module]`** runs each module's `commands.release` with `NSTACK_DIST` naming
+  its own folder of the project's `dist/`, emptied first; what follows a named module goes to its
+  command (a platform, a target). With no module named, each runs after what it assembles; a
+  named module without the verb fails, the run of all skips it.
+- **`assembles: [<module>, …]`** in a manifest: the modules whose artefacts this one's release
+  reads, in `$NSTACK_DIST/../<module>/`. **M11** refuses one naming no module, itself, or a loop;
+  **B9** refuses another module's artefacts read without it — in its files or its manifest's
+  commands; what is left of such a line is still B2's.
+- A `dist` or `dist/<module>` that is a link or a file is refused, never emptied through.
+
+- New modules' manifests (`nstack new-module`) carry `assembles` and `release`, commented.
+
+**In your project** — 3 files
+
+- `.nstack/handbook/09-platform.md` §2: the verb, the folder, assembling, one target through the
+  environment; `02-modules.md` §8: artefacts as a declared channel; `RULES.md`: M11, B9.
+
+**Migration** — none. Nothing green turns red: no module declares `assembles` yet, and B9 reads
+only `$NSTACK_DIST/../<module>` and relative paths landing in the project's `dist/`.
+
+---
+
 ## v0.9.5 — 2026-10-18
 
 One workstream, D126: a push from a linked worktree was refused by the fitness functions.
