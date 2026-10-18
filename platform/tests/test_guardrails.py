@@ -79,6 +79,9 @@ MANIFEST_CASES = {
     "M2 module section as text (D8)": (lambda r: write_module(r, "billing", degrade(module="text")), "M2", True),
     "M2 commands section as text (D8)": (lambda r: write_module(r, "billing", degrade(commands="make")), "M2", True),
     "M3 lifecycle": (lambda r: write_module(r, "billing", degrade(module__lifecycle="unknown")), "M3", True),
+    "M11 assembles a module that does not exist (D127)": (lambda r: write_module(r, "billing", {**VALID, "assembles": ["nowhere"]}), "M11", True),
+    "M11 assembles itself": (lambda r: write_module(r, "billing", {**VALID, "assembles": ["billing"]}), "M11", True),
+    "M11 assembles as text, not a list": (lambda r: write_module(r, "billing", {**VALID, "assembles": "customers"}), "M11", True),
     "M3 criticality": (lambda r: write_module(r, "billing", degrade(module__criticality="severe")), "M3", True),
     "M4 two sentences": (lambda r: write_module(r, "billing", degrade(module__responsibility="Bills. Chases.")), "M4", False),
     "M4 conjunction": (lambda r: write_module(r, "billing", degrade(
@@ -340,6 +343,12 @@ BOUNDARY_CASES = {
         "customers": (PRODUCER, {})}, "B6", True),
     "B7 a provided contract with no document": ({
         "customers": (provides(CUSTOMERS, "customers", ("v9",)), {})}, "B7", True),
+    "B9 another module's artefacts read without assembling it (D127)": ({
+        "billing": (VALID, {"scripts/pack.sh": 'cp "$ROOT/dist/customers/app" pack/\n'}),
+        "customers": (CUSTOMERS, {})}, "B9", True),
+    "B9 reached from its own artefacts' folder": ({
+        "billing": (VALID, {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" pack/\n'}),
+        "customers": (CUSTOMERS, {})}, "B9", True),
     "B8 a consumer of a deprecated module (D52)": ({
         "billing": (consumes(VALID, "customers"), READS),
         "customers": (degrade(PRODUCER, module__lifecycle="deprecated",
@@ -727,3 +736,20 @@ def test_g19_a_default_branch_the_workflows_do_not_watch_is_a_gap():
 
     assert doctor.CHECKS["G19"](_Repository({"default_branch": "main"})) is True
     assert doctor.CHECKS["G19"](_Repository({"default_branch": "master"})) is False
+
+
+def test_a_module_assembling_another_reads_its_artefacts(tmp_path, capsys):
+    """D127: the artefacts another module's release made are read once it is declared assembled."""
+    pack = {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" "$NSTACK_DIST/"\n'}
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]}, pack)
+    write_module(tmp_path, "customers", CUSTOMERS)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+    assert manifests.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_modules_assembling_each_other_are_refused(tmp_path, capsys):
+    """D127: a release that waits for itself never ends."""
+    write_module(tmp_path, "billing", {**VALID, "assembles": ["customers"]})
+    write_module(tmp_path, "customers", {**CUSTOMERS, "assembles": ["billing"]})
+    assert manifests.run(tmp_path) == 1
+    assert "[M11]" in capsys.readouterr().out

@@ -18,6 +18,8 @@ Rules:
   B7  a provided contract exists: its path holds its document, inside a module's folder
   B8  a contract consumed from a deprecated module (warning): a deprecated module takes no
       new consumer, and the existing ones migrate before its removal date
+  B9  another module's release artefacts — its folder of the project's dist/ — read only by a
+      module that declares it in `assembles` (D127)
 
 DETECTION — textual and deliberately simple, with no stack assumed.
   - A contract is read where a module's file names its path (contracts/billing-api/v1),
@@ -99,6 +101,8 @@ def load_modules(root: Path) -> dict[str, dict]:
                 "provides": contract_entries(data, "provides"),
                 "consumes": contract_entries(data, "consumes"),
                 "owns_data": {table for table in owns if isinstance(table, str)},
+                "assembles": {other for other in (data.get("assembles") or []) if isinstance(other, str)}
+                if isinstance(data.get("assembles"), list) else set(),
             }
     return modules
 
@@ -257,9 +261,13 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
 
 
 def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
-    """B2 and B5. Returns module -> modules whose code it references."""
+    """B2, B5 and B9. Returns module -> modules whose code it references."""
     code: dict[str, set[str]] = {name: set() for name in modules}
     others = {name: code_patterns(mod) for name, mod in modules.items()}
+    # A module's artefacts: its folder of the project's dist/, named from the root or from the
+    # reader's own folder there ($NSTACK_DIST/../<module>).
+    artefacts = {name: re.compile(rf"(?:(?<![\w.-])dist|NSTACK_DIST\}}?/\.\.)/{re.escape(mod['dirname'])}(?![\w.-])")
+                 for name, mod in modules.items()}
     contracts = [str(p.get("path")).strip("/") for mod in modules.values() for p in mod["provides"] if p.get("path")]
     for name, mod in modules.items():
         for relative, lines in read_files(mod):
@@ -269,6 +277,14 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                 text = line.replace("\\", "/")
                 for other_name, (code_import, reach, block) in others.items():
                     if other_name == name:
+                        continue
+                    if artefacts[other_name].search(text):
+                        # Its artefacts, not its code: B9 judges the line, not B2.
+                        if other_name not in mod["assembles"]:
+                            fail("B9", f"{mod['path'].relative_to(root) / relative}:{lineno}",
+                                 f"'{name}' reads the release artefacts of '{other_name}' without assembling it.\n"
+                                 f"      Action: add {other_name} to assembles in its MANIFEST "
+                                 "(.nstack/handbook/09-platform.md §2), or stop reading them.")
                         continue
                     via_import = (imports and code_import.search(line)) or (source and block.search(line))
                     reaches = [m for m in reach.finditer(text)

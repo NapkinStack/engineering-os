@@ -116,6 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: compat.run(a.root, a.module, a.base))
     cp.add_argument("module", nargs="?", help="module holding the contracts (default: all)")
     cp.add_argument("--base", default="origin/main")
+    rl = _add(sub, "release", "makes one module's artefacts, or all of them, each into dist/<module> "
+                              "(commands.release), with what follows a named module passed to it",
+              lambda a: _release(a))
+    rl.add_argument("module", nargs="?", help="module name (default: all, each after what it assembles)")
+    rl.add_argument("arguments", nargs=argparse.REMAINDER, help="passed to the named module's command")
     rn = _add(sub, "run", "starts a module locally (commands.run), with what follows passed to it",
               lambda a: _run(a))
     rn.add_argument("module")
@@ -172,6 +177,18 @@ def _named_root(argv: list[str]) -> Path:
         if word.startswith("--root="):
             return Path(word.removeprefix("--root="))
     return Path(".")
+
+
+def _release(a) -> int:
+    """`release` passes what follows a named module to its command, as `run` does."""
+    root, arguments = a.root, list(a.arguments)
+    if "--root" in arguments[:-1]:
+        at = arguments.index("--root")
+        root, arguments = _root(arguments[at + 1]), arguments[:at] + arguments[at + 2:]
+    if arguments and a.module is None:
+        print("FAIL [release] arguments are passed to one module's command: name the module.")
+        return 1
+    return modules.run_verb(root, "release", a.module, arguments)
 
 
 def _run(a) -> int:
