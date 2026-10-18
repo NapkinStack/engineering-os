@@ -8,6 +8,7 @@
 
 minimum_pre_commit_version: "3.0.0"
 default_install_hook_types: [pre-commit, commit-msg, pre-push]  # the message is read too
+default_stages: [pre-commit]  # a hook runs once: at push or on the message only when it says so
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
