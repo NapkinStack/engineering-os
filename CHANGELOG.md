@@ -22,6 +22,48 @@ a patch.
 
 ---
 
+## v0.9.4 — 2026-10-18
+
+Four workstreams, D122 to D125: what the third project's cycle 03 met, the maintainer's question
+on how an agent spends its context, and four dependency updates.
+
+**In the engine**
+
+- **An editable engine says the version its checkout is at** (D122): an install made with `-e`
+  reads its checkout's `pyproject.toml`, where its metadata, written once at install, fell
+  behind — every command told a contributor's workstation it was behind a project it was level
+  with. The warning, `--version`, the first line of each judging run, `doctor`'s L1 and the ref
+  `init` and `update` default to all follow. Any other install is unchanged.
+- `uv_build` accepted up to 0.13 (#179); the built package is unchanged.
+
+**In your project** — 11 files
+
+- **A command's output is context** (`.nstack/handbook/04-ai-context.md` §3): its quiet form when
+  it has one, a failure read in full, the filtering tool the workstation's or the project's rules'
+  — the framework requires none. **One session, one task**: when the task changes, write what the
+  next one needs and start a fresh session. The kernel's summary leads with the result
+  (`AGENTS.md` §8).
+- **What a comparator guards** (`.nstack/handbook/03-contracts.md` §3): consumers, not a version's
+  exact shape, which its tests hold, nor its page's promises. A promise reversed is breaking when
+  a consumer relied on it; the pull-request template's *additive* box names it.
+- **Stacked pull requests after a squash** (`.nstack/handbook/05-workflow.md`): note the merged
+  branch's last commit, `git rebase --onto`, push with `--force-with-lease`, which dismisses an
+  approval already given.
+- **A change with a shape is drawn** in a pull request's description
+  (`.github/pull_request_template.md`).
+- **A self-hosted runner** (`.nstack/handbook/INSTALL.md`): it needs each module's toolchain;
+  a stopped one keeps its queued runs, cancelled by whoever holds Actions: write.
+- **A push runs its own hooks** (`.pre-commit-config.yaml`): `default_stages: [pre-commit]`, and
+  three hooks whose own definition added the push pinned to the commit; the fitness functions
+  alone run at push.
+- Actions updated in the workflows: `astral-sh/setup-uv` v10.3.0, `actions/upload-artifact`
+  v7.0.2.
+
+**Migration** — pre-commit 3.2.0 or later (`minimum_pre_commit_version`), the first that knows
+the stage names; `pre-commit --version` says it. Nothing else; nothing green turns red.
+
+---
+
 ## v0.9.3 — 2026-10-17
 
 One workstream, D121: a drawing the decider spent their eye on lived outside the project.
