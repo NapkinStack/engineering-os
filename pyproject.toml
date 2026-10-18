@@ -23,5 +23,5 @@ dev = ["pytest==9.1.1"]
 required-version = ">=0.12.14,<0.13"
 
 [build-system]
-requires = ["uv_build>=0.12.14,<0.13"]
+requires = ["uv_build>=0.12.14,<0.14"]
 build-backend = "uv_build"
