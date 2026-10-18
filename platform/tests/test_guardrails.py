@@ -794,3 +794,24 @@ def test_assembles_names_a_module_by_its_folder_as_the_verbs_do(tmp_path, capsys
                  {"scripts/pack.sh": 'cp "$NSTACK_DIST/../customers/app" .\n'})
     assert manifests.run(tmp_path) == 0, capsys.readouterr().out
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_relative_path_is_read_from_the_module_s_folder_too(tmp_path, capsys):
+    """D127: a release runs from the module's folder; its script's ../../dist/x lands there."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", VALID, {"scripts/pack.sh": 'cp ../../dist/customers/app "$NSTACK_DIST"\n'})
+    assert boundaries.run(tmp_path) == 1 and "[B9]" in capsys.readouterr().out
+
+
+def test_a_release_command_in_the_manifest_is_read(tmp_path, capsys):
+    """D127: the manifest's commands are where a release command lives."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", degrade(commands__release='cp "$NSTACK_DIST"/../customers/app .'))
+    assert boundaries.run(tmp_path) == 1 and "[B9]" in capsys.readouterr().out
+
+
+def test_a_dist_inside_the_module_is_its_own(tmp_path, capsys):
+    """D127: ../dist/customers from a module's subfolder lands in the module: nobody's artefacts."""
+    write_module(tmp_path, "customers", CUSTOMERS)
+    write_module(tmp_path, "billing", VALID, {"web/build.sh": "cp app ../dist/customers/\n"})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out

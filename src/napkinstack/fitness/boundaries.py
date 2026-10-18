@@ -103,6 +103,8 @@ def load_modules(root: Path) -> dict[str, dict]:
                 "owns_data": {table for table in owns if isinstance(table, str)},
                 "assembles": {other for other in (data.get("assembles") or []) if isinstance(other, str)}
                 if isinstance(data.get("assembles"), list) else set(),
+                "commands": {verb: command for verb, command in (data.get("commands") or {}).items()
+                             if isinstance(command, str)} if isinstance(data.get("commands"), dict) else {},
             }
     return modules
 
@@ -278,13 +280,25 @@ def artefact_reads(root: Path, mod: dict, relative: str, text: str) -> tuple[set
     text = FROM_OWN.sub(taken, text)
 
     def landed(match: re.Match) -> str:
-        where = (mod["path"] / relative).parent / match.group(1) / "dist" / match.group(2)
-        if Path(posixpath.normpath(where.as_posix())) == root / "dist" / match.group(2):
-            read.add(match.group(2))
-            return " "
+        # From the file, or from the module's folder, where its commands run.
+        for start in ((mod["path"] / relative).parent, mod["path"]):
+            where = start / match.group(1) / "dist" / match.group(2)
+            if Path(posixpath.normpath(where.as_posix())) == root / "dist" / match.group(2):
+                read.add(match.group(2))
+                return " "
         return match.group(0)
 
     return read, RELATIVE.sub(landed, text)
+
+
+def unassembled(root: Path, name: str, mod: dict, read: set[str], by_folder: dict[str, str], where: str) -> None:
+    """B9: the artefacts read of a module this one does not assemble."""
+    for folder in sorted(read):
+        other_name = by_folder.get(folder)
+        if other_name and other_name != name and folder not in mod["assembles"]:
+            fail("B9", where, f"'{name}' reads the release artefacts of '{folder}' without assembling it.\n"
+                              f"      Action: add {folder} to assembles in its MANIFEST "
+                              "(.nstack/handbook/09-platform.md §2), or stop reading them.")
 
 
 def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
@@ -294,6 +308,10 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
     by_folder = {mod["dirname"]: name for name, mod in modules.items()}
     contracts = [str(p.get("path")).strip("/") for mod in modules.values() for p in mod["provides"] if p.get("path")]
     for name, mod in modules.items():
+        # The commands its manifest declares, a release's among them, run from its folder.
+        for verb, command in mod["commands"].items():
+            read, _ = artefact_reads(root, mod, "MANIFEST.yaml", command.replace("\\", "/"))
+            unassembled(root, name, mod, read, by_folder, f"{mod['path'].relative_to(root)}/MANIFEST.yaml (commands.{verb})")
         for relative, lines in read_files(mod):
             source = Path(relative).suffix in SOURCE_SUFFIXES
             for lineno, line in enumerate(lines, 1):
@@ -302,13 +320,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                 # B9 - another module's artefacts: read here, they are its artefacts, not its code;
                 # what is left of the line is still B2's.
                 read, text = artefact_reads(root, mod, relative, text)
-                for folder in read:
-                    other_name = by_folder.get(folder)
-                    if other_name and other_name != name and folder not in mod["assembles"]:
-                        fail("B9", f"{mod['path'].relative_to(root) / relative}:{lineno}",
-                             f"'{name}' reads the release artefacts of '{folder}' without assembling it.\n"
-                             f"      Action: add {folder} to assembles in its MANIFEST "
-                             "(.nstack/handbook/09-platform.md §2), or stop reading them.")
+                unassembled(root, name, mod, read, by_folder, f"{mod['path'].relative_to(root) / relative}:{lineno}")
                 for other_name, (code_import, reach, block) in others.items():
                     if other_name == name:
                         continue
