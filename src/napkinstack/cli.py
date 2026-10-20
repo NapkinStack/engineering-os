@@ -67,7 +67,7 @@ def _init(args: argparse.Namespace) -> int:
 def _update(args: argparse.Namespace) -> int:
     from napkinstack import project
 
-    return project.update(args.root, args.ref or project.default_ref())
+    return project.update(args.root, args.ref or project.default_ref(), args.session)
 
 
 class _Version(argparse.Action):
@@ -176,6 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
     up = _add(sub, "update", "merges a NapkinStack version onto a branch to review",
               _update)
     up.add_argument("--ref", help="target version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
+    up.add_argument("--session", help="the agent's session, written as the commit's Agent-Session trailer")
     return parser
 
 
