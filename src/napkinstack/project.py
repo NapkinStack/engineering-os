@@ -326,7 +326,7 @@ def _readdress(root: Path) -> tuple[list[str], list[str]]:
     return rewritten, left
 
 
-def update(root: Path, ref: str) -> int:
+def update(root: Path, ref: str, session: str | None = None) -> int:
     import copier
     from copier.errors import CopierError
 
@@ -389,7 +389,9 @@ def update(root: Path, ref: str) -> int:
               "then git add --all && git commit.\n      The check-merge-conflict hook and CI "
               "reject any remaining marker.")
         return 1
-    for args in (("add", "--all"), ("commit", "--quiet", "--message", f"NapkinStack {previous} -> {current}")):
+    # An agent's update carries the kernel's trailer, as every commit it makes (D135).
+    message = f"NapkinStack {previous} -> {current}" + (f"\n\nAgent-Session: {session}" if session else "")
+    for args in (("add", "--all"), ("commit", "--quiet", "--message", message)):
         result = _git(root, *args)
         if result.returncode:
             print(f"FAIL [update] Update laid on {branch}, but `git {args[0]}` failed:\n"

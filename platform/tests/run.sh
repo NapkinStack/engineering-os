@@ -868,7 +868,7 @@ echo "$OUT" | grep -qF "cycle/03-framing" && echo "$OUT" | grep -qF "git switch 
 git -C "$A" switch -q main && git -C "$A" branch -q -D cycle/03-framing
 
 echo "-> update: fix and adaptation merged, committed on a branch (criterion 4)"
-if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
+if ! OUT=$(nstack update --root "$A" --ref v90.2.0 --session nstack-test-session 2>&1); then
   echo "FAIL: nstack update failed."; echo "$OUT"; exit 1
 fi
 [ "$(git -C "$A" branch --show-current)" = nstack/update-v90.2.0 ] && [ -z "$(git -C "$A" status --porcelain)" ] \
@@ -878,6 +878,9 @@ fi
   || { echo "FAIL: adaptation or fix lost in .nstack/playbooks/tests.md."; exit 1; }
 grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
   || { echo "FAIL: project version not bumped."; exit 1; }
+# The kernel's trailer on the commit an agent's update makes (D135).
+[ "$(git -C "$A" log -1 --format='%(trailers:key=Agent-Session,valueonly)' | head -1)" = nstack-test-session ] \
+  || { echo "FAIL: the update's commit does not carry the session it was given (D135)."; git -C "$A" log -1; exit 1; }
 grep -qx "checks: attested" "$A/.copier-answers.yml" \
   && grep -qF "The project's answers below" "$A/.copier-answers.yml" \
   || { echo "FAIL: the decider's answer was not kept, or the header forbids writing it (D134)."; head -5 "$A/.copier-answers.yml"; exit 1; }

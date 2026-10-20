@@ -107,7 +107,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks` |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
-| `nstack update` | Lays the new version on a branch to review |
+| `nstack update [--session <id>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer |
 
 **Prerequisites**: uv and git. The guardrails really block on a public GitHub repository,
 or on a private one under the Team or Pro plan; on a private repository on the Free plan
