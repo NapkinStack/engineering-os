@@ -140,6 +140,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
               f"folder inside it — nstack init {destination}/<project>.")
         return 1
     data = {question: value for question, value in answers.items() if value is not None}
+    data.setdefault("checks", "forge")  # a project starts judged on the forge; the decider may change it
     try:
         copier.run_copy(source, destination, data=data, vcs_ref=ref, quiet=True, unsafe=False)
     except (CopierError, ValueError, OSError) as exc:
