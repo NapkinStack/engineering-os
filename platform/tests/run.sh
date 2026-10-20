@@ -848,6 +848,8 @@ rm "$A/.nstack/forms/pdr.md"
 nstack new-module demo acme/demo-team standard --root "$A" >/dev/null
 printf '\nNeighbours lend each other tools.\n' >> "$A/README.md"
 rm "$A/docs/adr/README.md"
+# The decider's word on where the checks are judged, written by hand as the header allows (D134).
+in_place 's/^checks: forge$/checks: attested/' "$A/.copier-answers.yml"
 commit_project "$A" "Adaptations and first module"
 SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
@@ -876,6 +878,9 @@ fi
   || { echo "FAIL: adaptation or fix lost in .nstack/playbooks/tests.md."; exit 1; }
 grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
   || { echo "FAIL: project version not bumped."; exit 1; }
+grep -qx "checks: attested" "$A/.copier-answers.yml" \
+  && grep -qF "The project's answers below" "$A/.copier-answers.yml" \
+  || { echo "FAIL: the decider's answer was not kept, or the header forbids writing it (D134)."; head -5 "$A/.copier-answers.yml"; exit 1; }
 echo "$OUT" | grep -qF "git push -u origin nstack/update-v90.2.0" \
   || { echo "FAIL: next step missing."; echo "$OUT"; exit 1; }
 # D66: the notes name the distance travelled, never the target alone — one update can cross
