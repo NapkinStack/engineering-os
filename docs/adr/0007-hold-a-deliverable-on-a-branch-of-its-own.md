@@ -1,9 +1,11 @@
 # ADR-0007 — Hold a deliverable on a branch of its own
 
-- **Status**: Proposed (2026-10-21)
+- **Status**: Accepted (2026-10-21, by the maintainer, approving #214); built in D137. Clarified while
+  building: the verb that gives a hold back is `nstack unclaim` — `release` already makes a
+  module's artefacts; a deliverable `in-progress` may be taken too, as K3 accepts it
 - **Date**: 2026-10-21
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
-- **Scope**: project — the engine (`nstack claim`, `nstack release`, `plan`, `pr-check`), a
+- **Scope**: project — the engine (`nstack claim`, `nstack unclaim`, `plan`, `pr-check`), a
   Copier question, the skeleton's `CONTRIBUTING.md`, handbook, kernel and glossary
 - **Reversibility**: easy — the holds are branches under one prefix, deleted in one command;
   a project that never claims sees nothing refused
@@ -65,15 +67,17 @@ no service, and no forge required.
    without `.md`, `<id>` the deliverable (`nstack/hold/03-the-window/D30`). Its commits are its
    events, each an empty commit on the previous one; it is never merged.
 2. **An event.** Subject `Hold <id>: <event>`; trailers `Hold-Event:` (`claim`, `renew`,
-   `take-over`, `release`), `Hold-Person:` (the accountable person, `Name <email>`; by default
-   git's user), `Agent-Session:` (the session, when an agent), and for a take-over
-   `Hold-Previous:` (the person and session it was taken from). The hold's state is its last
-   event.
+   `take-over`, `release`), `Hold-Person:` (the accountable person — a handle such as `@alice`,
+   or `Name <email>`; by default git's user), `Agent-Session:` (the session, when an agent), and for a take-over
+   `Hold-Previous:` (the person and session it was taken from), and `Hold-Id:`, random, so two
+   runs in one second are two commits. The hold's state is its last event. One person is one
+   whether named by a handle or by git: `@alice` is `Alice <alice@example.org>` — said, not
+   proven.
 3. **`nstack claim <id> [--session S] [--person P]`.** Refuses a deliverable that is not `ready`
-   in the accepted cycle. Fetches the hold's branch: absent or last event `release`, it commits a
-   `claim` on it and pushes; held by the same person, it commits a `renew` (adding the session
+   or `in-progress` in the accepted cycle. Fetches the hold's branch: absent or last event
+   `release`, it commits a `claim` on it and pushes; held by the same person, it commits a `renew` (adding the session
    if new); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
-   creates the first work branch `d<n>-<slug>` from `main`, with one empty commit naming the
+   creates the first work branch `d<n>-<slug>` from the remote's default branch as it is now, with one empty commit naming the
    deliverable, pushes it, and with a token opens a **draft pull request** whose description
    holds `Deliverable: <id>`; without one, it says the display is skipped.
 4. **The race.** Two claims made at once are two different commits on the same parent: the
@@ -88,7 +92,7 @@ no service, and no forge required.
    claiming again.
 6. **Take-over and release.** `nstack claim <id> --take-over` commits a `take-over` on the hold
    only when it is stale — otherwise refused, saying when it will be; with a token it comments on
-   the previous holder's open draft pull request. `nstack release <id>` commits a `release`; by
+   the previous holder's open draft pull request. `nstack unclaim <id>` commits a `release`; by
    another than the holder or the charter's decider, refused unless stale. The previous holder's
    branches are never touched.
 7. **`plan`.** After its rules, a *Holds* section for the accepted cycle: each deliverable free,
@@ -115,7 +119,7 @@ bare git remote and no forge.
 
 ## Consequences
 
-- Two verbs (`claim`, `release`), a section of `plan`, rule K5, a Copier question
+- Two verbs (`claim`, `unclaim`), a section of `plan`, rule K5, a Copier question
   (`hold_days`); `CONTRIBUTING.md` gains *Working with several contributors* (PDR-0015, point 7);
   the kernel, `05-workflow.md`, `09-platform.md`, the glossary (*hold*) and `RULES.md` follow.
 - The forge's branch list shows one `nstack/hold/…` branch per held deliverable. `nstack settings`

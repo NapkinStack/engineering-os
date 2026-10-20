@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from napkinstack import assurance, attest
+from napkinstack import assurance, attest, hold
 from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
@@ -161,6 +161,19 @@ def build_parser() -> argparse.ArgumentParser:
     at.add_argument("--base", default="origin/main")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
     at.add_argument("--labels", default="", help="the pull request's labels, comma-separated")
+    cl = _add(sub, "claim", "takes a ready deliverable for a session, before its first change; "
+                            "the shared remote refuses a second taker",
+              lambda a: hold.claim(a.root, a.deliverable, a.session, a.person, a.take_over))
+    cl.add_argument("deliverable", help="the deliverable's identifier, D<n>, in the accepted cycle")
+    cl.add_argument("--session", help="the agent's session, written on the hold")
+    cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
+    cl.add_argument("--take-over", action="store_true",
+                    help="take a hold nobody has worked on for hold_days — recorded, with its previous holder")
+    rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale",
+              lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
+    rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
+    rs.add_argument("--session", help="the agent's session, written on the release")
+    rs.add_argument("--person", help="who releases it, such as @alice (default: git's user)")
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
