@@ -51,6 +51,7 @@ from napkinstack.fitness import plan
 from napkinstack import assurance
 from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests, is_description
 from napkinstack.modules import LOGIN
+from napkinstack.project import ANSWERS
 
 CHARTER = plan.CHARTER.as_posix()  # docs/project/charter.md, as the diff names it
 
@@ -388,6 +389,44 @@ def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
             "correction that decides nothing needs none (.nstack/playbooks/framing.md, Decisions)."]
 
 
+def check_attested(root: Path, head: str, fail) -> str:
+    """Where the checks are judged, as the decider's answer `checks` says (A1, A2): on the forge's
+    CI, or attested on a workstation by `nstack attest` — then a complete, passed record of the
+    head is required. Returns the line the summary prints."""
+    from napkinstack import attest  # the record's reader, and the one list of checks
+
+    try:
+        answers = yaml.safe_load((root / ANSWERS).read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        answers = {}
+    attest.fetch(root)
+    record = attest.latest(root, head)
+    if answers.get("checks", "forge") != "attested":
+        shown = ""
+        if record:
+            passed = sum(1 for check in record["checks"] if check["passed"])
+            shown = f"; a record of the head: attested {passed} of {len(record['checks'])} (information)"
+        return "the forge's CI" + shown
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        # CI's checkout keeps no credential to fetch the notes: where the checks are attested, the
+        # record is read where the merge is decided, never failed here for want of a fetch.
+        return "attested — judged where nstack attest runs, not in CI"
+    if record is None:
+        fail("A1", f"no record of the head {head[:7]}: this project's checks are attested, and none ran on "
+                   "this commit.\n      Action: run nstack attest on the head, then push.")
+        return "attested — no record of the head"
+    names = [check["name"] for check in record["checks"]]
+    missing = [check.name for check in attest.CHECKS if check.name not in names]
+    failed = [check["name"] for check in record["checks"] if not check["passed"]]
+    if missing or failed:
+        said = "; ".join(part for part in (f"missing: {', '.join(missing)}" if missing else "",
+                                           f"failed: {', '.join(failed)}" if failed else "") if part)
+        fail("A2", f"the record of the head {head[:7]} is not complete and passed ({said}).\n"
+                   "      Action: fix what failed, commit, and run nstack attest again.")
+        return "attested — the record of the head does not pass"
+    return f"attested on a workstation, by {record['by']}, at {record['at']}"
+
+
 def run(root: Path, base: str, body_file: Path | None = None) -> int:
     if body_file is not None:
         body = body_file.read_text(encoding="utf-8")
@@ -423,9 +462,11 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
+    checks = check_attested(root, head, fail)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}")
+    print(f"Checks          : {checks}")
     for line in summary(body, authorship) if reasons else []:
         print(line)
     for scenario in human_only:

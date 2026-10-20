@@ -1,9 +1,8 @@
 # PDR-0013 — Checks run where the team works; the forge is an operator
 
-- **Status**: Proposed (2026-10-20). The maintainer decided its direction — *"a user can do
-  their development in-house; GitHub is an operator"* — and accepted its five points as framed
-  (*"c'est ok"*); one is refined here, the record kept in git rather than on the forge alone.
-  Accepted by approving the pull request that brings it
+- **Status**: Accepted (2026-10-20, by the maintainer, approving #194). Its direction in the
+  maintainer's words: *"a user can do their development in-house; GitHub is an operator"*. The how:
+  ADR-0006
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a command that runs and records the checks, `pr-check`), the
