@@ -22,6 +22,27 @@ a patch.
 
 ---
 
+## v0.11.1 — 2026-10-20
+
+One workstream — D136. A patch: nothing green turns red.
+
+**In the engine**
+
+- **A contributor's checkout is `SOURCES`, not a gap** (D136): `nstack doctor` run from an
+  editable checkout of the framework that holds the project's version — the tag known and an
+  ancestor of the checkout's head — says `SOURCES [L1]`: the workstation judges with rules ahead
+  of CI's, and the line gives the command to judge as CI does. A checkout that does not hold
+  the project's version stays `FAIL [L1]`, saying why (behind, another branch, no tags) and how
+  to fix it. The first line of every judging command still says *UNPUBLISHED* (PDR-0005).
+
+**In your project** — 1 file
+
+- `.nstack/handbook/glossary.md`: *Sources*.
+
+**Migration** — none.
+
+---
+
 ## v0.11.0 — 2026-10-20
 
 Four workstreams — D131, D133, D134, D135. A minor version: a pull request that changes only
