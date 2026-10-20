@@ -22,6 +22,45 @@ a patch.
 
 ---
 
+## v0.10.0 — 2026-10-20
+
+Three workstreams — D128, D129, D130 — and the framing of a fourth, D131. A minor version:
+`nstack doctor` turns G11 into a gap until the issue templates' labels exist.
+
+**In the engine**
+
+- **`nstack attest`** (D129, PDR-0013, ADR-0006): when the forge cannot run a pull request's
+  checks, the team runs them where it works. The command runs the CI's own checks — one list,
+  bound to the skeleton's workflows by a test — on a clean head, every one even after a
+  failure, and appends the run to the commit's note under `refs/notes/nstack/checks`, one JSON
+  line per run (who, which engine, the session, each step's exit code and output, the whole
+  output hashed). The note is merged line by line and pushed with the branch's remote; with a
+  token it is shown on GitHub as `nstack / local checks`, a name no CI job has.
+- **`checks: forge | attested`**, a new answer of the project (`forge` at init). Where it is
+  `attested`, `pr-check` requires a complete, passed record of the head: **A1** none, **A2** a
+  check missing or failed. Elsewhere a record is shown as information. Under GitHub Actions the
+  A rules do not judge: CI's checkout cannot fetch the notes.
+- **G11** (D128) asks for the five labels the issue templates declare — `request`, `bug`,
+  `architecture`, `debt`, `acceptance` — beside the three exceptions; `nstack settings` creates
+  them, each meaning its template's own words.
+- **`--root`** (D130): with none given, the engine takes the nearest folder holding the
+  project's answers, this one or above — run from inside a module, a command finds its project.
+
+**In your project** — 5 files
+
+- `.copier-answers.yml`: `checks: forge`, written by the update.
+- `.nstack/handbook/07-governance.md` §7: *And when the forge cannot run the checks*.
+- `.nstack/handbook/RULES.md`: family A (A1, A2); G11's line.
+- `.nstack/handbook/INSTALL.md`: the checklist's labels.
+- `AGENTS.md`: *Done* names the record where the checks are attested.
+
+**Migration** — `nstack doctor` reports G11 until the five issue labels exist (`bug` usually
+does): run `nstack settings` and the calls it prints, or create them under Issues → Labels.
+Nothing a pull request needs turns red: G11 is not blocking, and `checks: forge` keeps the
+forge as the judge.
+
+---
+
 ## v0.9.6 — 2026-10-18
 
 One workstream, D127: what ships is assembled from release artefacts, never from another
