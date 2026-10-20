@@ -24,7 +24,7 @@ a patch.
 
 ## v0.10.0 — 2026-10-20
 
-Three workstreams — D128, D129, D130 — and the framing of a fourth, D131. A minor version:
+Four workstreams — D128, D129, D130, D132 — and the framing of a fifth, D131. A minor version:
 `nstack doctor` turns G11 into a gap until the issue templates' labels exist.
 
 **In the engine**
@@ -39,7 +39,8 @@ Three workstreams — D128, D129, D130 — and the framing of a fourth, D131. A 
 - **`checks: forge | attested`**, a new answer of the project (`forge` at init). Where it is
   `attested`, `pr-check` requires a complete, passed record of the head: **A1** none, **A2** a
   check missing or failed. Elsewhere a record is shown as information. Under GitHub Actions the
-  A rules do not judge: CI's checkout cannot fetch the notes.
+  A rules do not judge: CI's checkout cannot fetch the notes. Run by `nstack attest` itself, `pr-check`
+  does not ask for the record being made (D132, found rehearsing this version).
 - **G11** (D128) asks for the five labels the issue templates declare — `request`, `bug`,
   `architecture`, `debt`, `acceptance` — beside the three exceptions; `nstack settings` creates
   them, each meaning its template's own words.
