@@ -266,6 +266,12 @@ EOF
 OUT=$(uv run nstack check demo --root "$SC" 2>&1) && echo "$OUT" | grep -qx "stack-free" \
   || { echo "FAIL: the declared command does not run from the module."; echo "$OUT"; exit 1; }
 
+echo "-> verbs: run from inside a module, the project above it is found, as git finds its own (D130)"
+printf '_commit: v0.0.0\n' > "$SC/.copier-answers.yml"
+OUT=$(cd "$SC/modules/demo/src" && uv run --project "$OLDPWD" nstack check demo 2>&1) && echo "$OUT" | grep -qx "stack-free" \
+  || { echo "FAIL: run from a module's folder, the project above was not found."; echo "$OUT"; rm -f "$SC/.copier-answers.yml"; exit 1; }
+rm -f "$SC/.copier-answers.yml"
+
 echo "-> verbs: with no module, all modules, first failure named"
 uv run nstack new-module zeta acme/team-zeta standard --root "$SC" >/dev/null
 printf 'code\n' > "$SC/modules/zeta/src/app.txt"
