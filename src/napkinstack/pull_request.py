@@ -104,12 +104,38 @@ def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[d
         parts = path.split("/")
         if parts[-1] == "MANIFEST.yaml" and parts[0] in MODULE_DIRS and len(parts) in (2, 3):
             manifests.setdefault(path, []).append(_manifest(_git(root, "show", f"{base}:{path}").stdout))
+    relied = relied_on_pages(root, manifests)
     touched = {}
     for path, found in sorted(manifests.items()):
         folder = path.removesuffix("/MANIFEST.yaml")
-        if any(file.startswith(f"{folder}/") and not is_description(file[len(folder) + 1:]) for file in files):
+        if any(file.startswith(f"{folder}/") and (not is_description(file[len(folder) + 1:]) or file in relied)
+               for file in files):
             touched[folder] = found
     return touched
+
+
+CONTRACT_PAGE = re.compile(r"(?P<path>.+/(?P<contract>[^/]+)/(?P<version>v\d+))/README\.md")
+
+
+def relied_on_pages(root: Path, manifests: dict[str, list[dict]]) -> set[str]:
+    """The pages of the contract versions someone relies on — a module consumes the version, or
+    it holds a schema — relative to the root (D133). Such a page is the contract: its prose is
+    held by review and by nothing else (03-contracts.md), so changing it changes its module. A
+    version nobody relies on yet keeps PDR-0012's relief: its page is a description."""
+    consumed = {(str(entry.get("contract")), str(entry.get("version")))
+                for found in manifests.values() for data in found[:1]
+                for entry in (data.get("consumes") or []) if isinstance(entry, dict)}
+    pages = set()
+    for data in (found[0] for found in manifests.values() if found):
+        for entry in data.get("provides") or []:
+            if not isinstance(entry, dict) or not entry.get("path"):
+                continue
+            page = f"{str(entry['path']).rstrip('/')}/README.md"
+            match = CONTRACT_PAGE.fullmatch(page)
+            if match and ((match["contract"], match["version"]) in consumed
+                          or any((root / match["path"]).glob("*.schema.json"))):
+                pages.add(page)
+    return pages
 
 
 def sheet_reason(folder: str, manifests: list[dict]) -> str | None:

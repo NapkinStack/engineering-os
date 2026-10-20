@@ -128,7 +128,9 @@ def is_description(path: str) -> bool:
     (D24); a module holding nothing else has nothing to check yet (D33)."""
     # A page at any depth describes; it runs nothing. A contract's own page —
     # contracts/<name>/v1/README.md — is the case that asked: the module that holds it must
-    # stay green until the contract gains a schema or a test (PDR-0012).
+    # stay green until the contract gains a schema or a test (PDR-0012). Once a module consumes
+    # the version, or it holds a schema, its page is the contract, and a pull request changing it
+    # changes its module (pull_request.relied_on_pages, D133).
     return (path in DESCRIPTION or path.startswith("docs/")
             or path.rsplit("/", 1)[-1] in {".gitkeep", "README.md"})
 
