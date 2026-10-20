@@ -225,3 +225,10 @@ def test_attested_with_a_complete_passed_record_is_compliant_and_says_attested(t
     code, out = judged(tmp_path, base, monkeypatch, capsys)
     assert code == 0 and "Checks          : attested on a workstation, by test <test@example.invalid>" in out
     assert "Pull request rules: compliant." in out
+
+
+def test_in_ci_an_attested_project_is_not_judged_on_a_record_ci_cannot_fetch(tmp_path, monkeypatch, capsys):
+    base, _ = change(tmp_path, "attested")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0 and "attested — judged where nstack attest runs, not in CI" in out
