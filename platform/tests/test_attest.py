@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -236,3 +237,20 @@ def test_in_ci_an_attested_project_is_not_judged_on_a_record_ci_cannot_fetch(tmp
     base, _ = change(tmp_path, "attested")
     code, out = judged(tmp_path, base, monkeypatch, capsys, ci=True)
     assert code == 0 and "attested — judged where nstack attest runs, not in CI" in out
+
+
+def test_attest_judges_the_pull_request_rules_without_asking_for_the_record_it_is_making(tmp_path, monkeypatch, capsys):
+    """Found rehearsing v0.10.0 on the third project: `attest` runs pr-check, which in an attested
+    project asked for a record of the head — the one being made. A1 failed inside attest, so
+    no record ever passed."""
+    base, head = change(tmp_path, "attested")
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setenv("PR_BODY", "A change.")
+    calls = (attest.Check("Test sheet and cycle", (attest.Step(
+        "nstack pr-check", "Test sheet and cycle",
+        f'"{sys.executable}" -c "import sys; from napkinstack import pull_request; '
+        f'sys.exit(pull_request.run(__import__(\'pathlib\').Path(\'.\'), \'{base}\'))"'),)),)
+    monkeypatch.setattr(attest, "CHECKS", calls)
+    assert attest.run(tmp_path, base, None, "") == 0, capsys.readouterr().out
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0 and "attested on a workstation" in out
