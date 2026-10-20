@@ -144,7 +144,7 @@ The nineteen lines of the checklist, in its order (`INSTALL.md`, "To do once on 
 | `G8` | Actions not pinned to a commit | `07-governance.md` §7 |
 | `G9` | A workflow runs for an outside contributor without approval | `07-governance.md` §7 |
 | `G10` | A workflow token that writes, or that approves pull requests | `07-governance.md` §7 |
-| `G11` | A label of the three exceptions missing | `10-measurement.md` §3 |
+| `G11` | A label missing: one of the three exceptions, or one a shipped issue template puts on an issue | `10-measurement.md` §3 |
 | `G12` | Somebody on the bypass list | `07-governance.md` §7 |
 | `G13` | An approval that survives a new commit | `07-governance.md` §7 |
 | `G14` | Auto-merge not available | `07-governance.md` §7 |

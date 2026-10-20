@@ -1091,8 +1091,8 @@ rules = [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
         {"context": "Test sheet and cycle"}, {"context": "Module checks"}]}},
 ]
-labels = {"/labels/cross-module": {"name": "cross-module"}, "/labels/over-budget": {"name": "over-budget"},
-          "/labels/out-of-cycle": {"name": "out-of-cycle"}}
+labels = {f"/labels/{name}": {"name": name} for name in ("cross-module", "over-budget", "out-of-cycle",
+                                                          "request", "bug", "architecture", "debt", "acceptance")}
 ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
 active = {"status": "enabled"}
 # G14 to G16: shaped as the rules want them. Readable without the Administration permission
@@ -1469,6 +1469,7 @@ echo "$OUT" | grep -qF "gh api --method POST repos/acme/bare/rulesets" \
   && echo "$OUT" | grep -qF "gh api --method PUT repos/acme/bare/private-vulnerability-reporting" \
   && echo "$OUT" | grep -qF '"sha_pinning_required": true' \
   && echo "$OUT" | grep -qF '"name": "out-of-cycle"' \
+  && echo "$OUT" | grep -qF '"name": "request"' && echo "$OUT" | grep -qF '"name": "acceptance"' \
   && echo "$OUT" | grep -qF "Nothing was changed" && echo "$OUT" | grep -qF "Then: nstack doctor" \
   || { echo "FAIL: the plan of a bare repository is incomplete."; echo "$OUT"; exit 1; }
 [ ! -s "$API/writes" ] || { echo "FAIL: the settings command wrote to the forge:"; cat "$API/writes"; exit 1; }
