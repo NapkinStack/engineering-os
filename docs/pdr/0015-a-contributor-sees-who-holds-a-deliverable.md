@@ -5,8 +5,9 @@
   direction below agreed with them before this record
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
-- **Modules affected**: the engine (a new verb, `plan`, `pr-check`), the skeleton's handbook
-  (`05-workflow.md`, `09-platform.md`, the glossary), the kernel, `RULES.md`
+- **Modules affected**: the engine (a new verb, `plan`, `pr-check`), the skeleton's
+  `CONTRIBUTING.md` and handbook (`05-workflow.md`, `09-platform.md`, the glossary), the kernel,
+  `RULES.md`
 
 > The PDR describes **what the product must do and why**, never its implementation.
 > The how belongs to an ADR.
@@ -20,6 +21,12 @@ agent on their workstation, or a forge's cloud agent. nstack tells every agent *
 taken**: a `ready` deliverable of the accepted cycle, in one module (K3; `09-platform.md`,
 *pick up a ready deliverable*). It tells **who approves**: the module's owner. It never tells
 **who has taken it**.
+
+Nor is it written, in one place a newcomer reads, how several contributors share a project:
+the pieces are in the handbook — postures (`05-workflow.md`), modules and owners (`02-modules.md`),
+contracts (`03-contracts.md`), the newcomer's path (`09-platform.md`) — and `CONTRIBUTING.md`
+speaks to one contributor. The maintainer had to ask the agent how a second contributor would
+join, and whether their agent had to be Claude.
 
 Observed (#212): a deliverable's `in-progress` is a line of the cycle file on `main`, changed by
 a merged pull request — after the work, never before it. No field names who holds a
@@ -89,6 +96,12 @@ saying *I am on it*.
    holds, with a rule of its own, and says who holds it.
 6. **Told.** The kernel tells an agent to take a deliverable before its first change, and to
    stop if it is held; the glossary defines *hold*.
+7. **Written for a newcomer.** `CONTRIBUTING.md` gains *Working with several contributors*: how
+   work is shared — by module, each with its owner; how a contributor joins — the forge's
+   invitation, the module's `owner` and `CODEOWNERS`, nstack installed; that any agent reading
+   `AGENTS.md` works, the generated skills being one tool's convenience; and taking a deliverable
+   before the first change. A short section that points into the handbook, never a copy of it;
+   it ships with the verb, so it never describes a command that does not exist.
 
 ---
 
@@ -116,6 +129,9 @@ command says so.
       naming the holder.
 - [ ] Given the holder or the decider releasing it, then the deliverable is free again.
 - [ ] Given a repository with no forge, then claiming, refusing and releasing behave the same.
+- [ ] Given the skeleton's `CONTRIBUTING.md`, then it says how work is shared by module, how a
+      contributor joins, that the agent is the contributor's choice, and to take a deliverable
+      before the first change — each pointing to the handbook page that holds the detail.
 
 ---
 
@@ -133,8 +149,9 @@ before working on it — the gesture then costs more than the collisions it prev
 ## Impacts
 
 - **The engine**: a new verb (take, release), a section of `plan`, a rule of `pr-check`.
-- **The skeleton**: `05-workflow.md` and `09-platform.md` say when to take a deliverable; the
-  kernel tells the agent; the glossary gains *hold*; `RULES.md` the new rule.
+- **The skeleton**: `CONTRIBUTING.md` gains *Working with several contributors* and its first
+  step becomes *take a ready deliverable*; `05-workflow.md` and `09-platform.md` say when to take
+  a deliverable; the kernel tells the agent; the glossary gains *hold*; `RULES.md` the new rule.
 - **Projects**: nothing changes for one contributor until they claim; the `pr-check` rule
   refuses only a pull request whose deliverable another session holds.
 - **The how** — where the hold is recorded, how git refuses the second, how a stale hold is
