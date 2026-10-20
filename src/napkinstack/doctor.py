@@ -61,6 +61,7 @@ from napkinstack.fitness import plan
 from napkinstack.project import ANSWERS
 
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
+SOURCES = "SOURCES"  # a contributor's checkout holding the project's version: said, not a gap (D136)
 OUT_OF_REACH = "OUT OF REACH"      # the plan forbids it: a state, not a fault (PDR-0006)
 # The settings that make the forge refuse a merge. A repository is guarded when they are
 # all in force; the others matter and none of them stops a merge.
@@ -341,7 +342,18 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                        "verdicts come from rules nobody has published.\nAction: once the change it "
                        "waits for is released, nstack update --ref vX.Y.Z.")
     elif origin is not None:
-        l1 = (GAP, f"The nstack running is unpublished ({origin}).\nAction: {install}")
+        folder = provenance.checkout()
+        if folder is not None and provenance.holds(folder, commit):
+            # A contributor running the framework's latest sources: ahead of the project, never behind.
+            l1 = (SOURCES, f"nstack from a contributor's checkout ({origin}), which holds the project's "
+                           f"{commit}: this workstation judges with rules ahead of CI's, which installs "
+                           f"{commit}.\nTo judge as CI does: {install}")
+        elif folder is not None:
+            l1 = (GAP, f"The nstack running is a checkout ({origin}) that does not hold the project's "
+                       f"{commit}: it is behind it, on another branch, or without its tags.\nAction: git "
+                       f"-C {folder} pull --tags on the framework's main, or {install}")
+        else:
+            l1 = (GAP, f"The nstack running is unpublished ({origin}).\nAction: {install}")
     elif project != __version__:
         l1 = (GAP, f"nstack {__version__} installed, project on {project}: the engine and the project "
                    f"move together.\nAction: {install}")
