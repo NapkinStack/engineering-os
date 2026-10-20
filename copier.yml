@@ -39,3 +39,12 @@ owner_team:
     {% if not (owner_team | regex_search('^(' ~ team ~ '|' ~ user ~ ')$')) %}
     Expected: organisation/team, for example acme/platform, or a user, for example alice.
     {% endif %}
+
+# Where a pull request's checks are judged (ADR-0006): the forge's CI, or attested on a
+# workstation by `nstack attest` — the decider's word, changed in a pull request. Not asked at
+# init: a project starts on the forge.
+checks:
+  type: str
+  choices: [forge, attested]
+  default: forge
+  help: Where a pull request's checks are judged — forge, or attested on a workstation
