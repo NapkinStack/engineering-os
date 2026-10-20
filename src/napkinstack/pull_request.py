@@ -407,6 +407,8 @@ def check_attested(root: Path, head: str, fail) -> str:
             passed = sum(1 for check in record["checks"] if check["passed"])
             shown = f"; a record of the head: attested {passed} of {len(record['checks'])} (information)"
         return "the forge's CI" + shown
+    if os.environ.get("NSTACK_ATTESTING") == head:
+        return "attested — this run is the record being made"
     if os.environ.get("GITHUB_ACTIONS") == "true":
         # CI's checkout keeps no credential to fetch the notes: where the checks are attested, the
         # record is read where the merge is decided, never failed here for want of a fetch.

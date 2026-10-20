@@ -169,7 +169,10 @@ def run(root: Path, base: str, body_file: Path | None, labels: str) -> int:
         body = body_file or Path(tmp, "body.md")
         if body_file is None:
             body.write_text("", encoding="utf-8")
-        env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp)
+        # NSTACK_ATTESTING: pr-check, run as one of the checks, judges the pull request's rules
+        # without asking for the record this run is making (A1, A2) — found rehearsing v0.10.0.
+        env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
+                   NSTACK_ATTESTING=commit)
         for check in CHECKS:
             steps = []
             for step in check.steps:
