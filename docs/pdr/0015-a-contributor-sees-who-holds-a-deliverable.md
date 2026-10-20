@@ -57,8 +57,8 @@ sees who holds what and since when; a hold nobody works on is seen and released.
 | Product / reference | Solution chosen | What we keep from it |
 |---|---|---|
 | [GitHub Agent HQ](https://github.blog/news-insights/company-news/pick-your-agent-use-claude-and-codex-on-agent-hq/) | Assign an issue to Copilot, Claude or Codex; the agent opens a draft pull request | **A draft pull request shows the work from its start** — on a forge, as a display |
-| [Linear agents](https://linear.app/developers/agents) | The agent is the issue's *delegate*; a human stays accountable; a session can go `stale` | **A person accountable for every agent's hold**, and **an abandoned hold is seen** |
-| [Rust triagebot `claim`](https://forge.rust-lang.org/triagebot/issue-assignment.html) | Claim an issue by a comment; released by the holder or a team member | **Release by the holder or the decider**, never silently |
+| [Linear agents](https://linear.app/developers/agents) | The agent is the issue's *delegate*; a human stays accountable; a session can go `stale` | **A person accountable for every agent's hold**, and **an abandoned hold is seen** — and handed on without an administrator |
+| [Rust triagebot `claim`](https://forge.rust-lang.org/triagebot/issue-assignment.html) | Claim an issue by a comment; released by the holder or a team member | **Release by the holder or the decider**, never silently — and not its gap: with no expiry, dead claims pile up and wait for a team member |
 | [Beads](https://pkg.go.dev/github.com/steveyegge/beads@v0.24.3) | A git-backed tracker; agents take the top unblocked task | **The record lives in git**, no service required |
 | [Claude Code agent teams](https://www.morphllm.com/claude-code-agent-teams) | A shared task list; a claim under a file lock | **A second claim fails**, it is not merely discouraged |
 
@@ -90,8 +90,13 @@ saying *I am on it*.
 3. **Seen.** `nstack plan` says, for each deliverable of the cycle: free, held — by which person
    and session, since when, last worked on when — or stale: held with no work for longer than
    the project allows (a week by default).
-4. **Released.** The holder releases it; the decider may release anyone's. A stale hold is
-   reported, never released silently. A deliverable merged or `dropped` frees itself.
+4. **Released, or taken over.** The holder releases it; the decider may release anyone's, at
+   any time. A stale hold may be **taken over** by any contributor, in a gesture of its own —
+   never automatically, never silently: the take-over is recorded (who, when, from whom), the
+   previous holder is told where the forge allows it, and their work is kept for the new holder
+   to start from. A hold that is not stale cannot be taken over. A deliverable merged or
+   `dropped` frees itself. One absent person — the holder or the decider — never blocks a
+   deliverable for longer than the project's limit.
 5. **Checked.** `pr-check` refuses a pull request delivering a deliverable that another session
    holds, with a rule of its own, and says who holds it.
 6. **Told.** The kernel tells an agent to take a deliverable before its first change, and to
@@ -112,7 +117,9 @@ held by Alice, session `capture-d30-resume`, and a draft pull request appears. B
 `nstack plan`, sees D30 held and D31 free, and takes D31.
 
 **Edge cases.** Bob's agent tries D30 a second later: refused, *held by Alice since 10:02*. Alice
-stops for two weeks: `plan` says D30 is stale; the decider releases it; Bob takes it. A project
+stops for two weeks: `plan` says D30 is stale; Bob takes it over, starting from Alice's work, and
+Alice is told — the decider was not needed. Bob tries to take over a hold Alice worked on
+yesterday: refused, it is not stale. A project
 with no forge: the hold and its refusal work the same; there is no draft pull request, and the
 command says so.
 
@@ -128,6 +135,10 @@ command says so.
 - [ ] Given a pull request delivering a deliverable another session holds, then `pr-check` fails,
       naming the holder.
 - [ ] Given the holder or the decider releasing it, then the deliverable is free again.
+- [ ] Given a stale hold, when another contributor takes it over, then they hold it, the take-over
+      is recorded with the previous holder, and the previous holder's work is kept.
+- [ ] Given a hold that is not stale, then a take-over is refused, saying when it would become
+      stale.
 - [ ] Given a repository with no forge, then claiming, refusing and releasing behave the same.
 - [ ] Given the skeleton's `CONTRIBUTING.md`, then it says how work is shared by module, how a
       contributor joins, that the agent is the contributor's choice, and to take a deliverable
@@ -154,5 +165,6 @@ before working on it — the gesture then costs more than the collisions it prev
   a deliverable; the kernel tells the agent; the glossary gains *hold*; `RULES.md` the new rule.
 - **Projects**: nothing changes for one contributor until they claim; the `pr-check` rule
   refuses only a pull request whose deliverable another session holds.
-- **The how** — where the hold is recorded, how git refuses the second, how a stale hold is
-  measured, the forge's display — goes to an ADR.
+- **The how** — where the hold is recorded, how git refuses the second, what counts as work on
+  a hold and how staleness is measured, how a take-over is recorded and told, the forge's
+  display — goes to an ADR.
