@@ -48,3 +48,10 @@ checks:
   choices: [forge, attested]
   default: forge
   help: Where a pull request's checks are judged — forge, or attested on a workstation
+
+# How many days a hold of a deliverable may go without work before another contributor may take
+# it over (ADR-0007) — the decider's word, changed in a pull request. Not asked at init.
+hold_days:
+  type: int
+  default: 7
+  help: Days without work before a hold of a deliverable is stale
