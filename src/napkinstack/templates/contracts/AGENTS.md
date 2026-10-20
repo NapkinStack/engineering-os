@@ -13,6 +13,9 @@ Defines and versions the interface contracts between modules.
 - A version a module consumes, or marked stable, changes only with the merged `compat`
   command's approval (V1).
 - Contract tests run on **both sides**: producer and consumer.
+- A version's page (`<name>/v<n>/README.md`) is the contract once a module consumes the
+  version or it holds a schema: a pull request changing it changes this module, and this
+  module's test sheet is due — its prose is held by review and by nothing else.
 
 ## The main trap
 
