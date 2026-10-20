@@ -22,6 +22,39 @@ a patch.
 
 ---
 
+## v0.11.0 — 2026-10-20
+
+Four workstreams — D131, D133, D134, D135. A minor version: a pull request that changes only
+the page of a contract version a module consumes now owes its test sheet (D133).
+
+**In the engine**
+
+- **A contract's page is the contract once someone relies on it** (D133): the page of a version
+  a module consumes, or that holds a schema, is a change of the module holding it — `pr-scope`
+  counts it, `pr-check` asks that module's test sheet. A version nobody relies on yet keeps its
+  page a description (PDR-0012).
+- **`nstack update --session <id>`** (D135): the commit an update makes carries an agent's
+  `Agent-Session` trailer.
+- **A judging command that fails** ends with where its codes and words are explained (D131).
+- The contracts module's template (new contracts modules) says a consumed version's page is
+  reviewed as the contract.
+
+**In your project** — 12 files
+
+- `.nstack/handbook/glossary.md` (new): the framework's words in plain sentences, where you
+  meet them, an example (D131); `00-overview.md` §6 points to it; the handbook's index.
+- `AGENTS.md`: *Words* — use these words facing a person, explain one at first mention.
+- `.nstack/forms/` (adr, charter, cycle, discovery, pdr): a pointer to the glossary.
+- `.copier-answers.yml`: its header tells Copier's lines from the project's answers — `checks`
+  is the decider's, changed by hand in a pull request (D134); `.yamllint.yaml`'s comment agrees.
+- `.nstack/handbook/INSTALL.md`: an agent passes `--session` to `nstack update`.
+
+**Migration** — none. One pull request may turn red where it passed: one changing only a
+consumed contract's page now asks the contracts module's test sheet and a deliverable — what the
+contracts module's own instructions already asked.
+
+---
+
 ## v0.10.0 — 2026-10-20
 
 Four workstreams — D128, D129, D130, D132 — and the framing of a fifth, D131. A minor version:
