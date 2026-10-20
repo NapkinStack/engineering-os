@@ -69,7 +69,11 @@ API_VERSION = "2026-03-10"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", "Test sheet and cycle",
         "Module checks")
 THIRD_PARTY_ACTIONS = ("astral-sh/setup-uv",)  # non-GitHub actions of the skeleton workflows
-LABELS = ("cross-module", "over-budget", "out-of-cycle")
+# The pull requests' three exceptions, then what the shipped issue templates put on an issue: a
+# label that does not exist is dropped by GitHub without a word (D128).
+EXCEPTIONS = ("cross-module", "over-budget", "out-of-cycle")
+ISSUES = ("request", "bug", "architecture", "debt", "acceptance")
+LABELS = EXCEPTIONS + ISSUES
 PUBLISHED = provenance.PUBLISHED  # a published version is a vX.Y.Z tag (ADR-0002), as CI installs it
 REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
 ON_GITHUB = re.compile(r"(?:https://github\.com/|ssh://git@github\.com/|git@github\.com:|gh:)([^/]+/[^/]+?)(?:\.git)?/?$")

@@ -39,10 +39,18 @@ from napkinstack.project import ANSWERS
 RULESET_NAME = "nstack-checklist"
 IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18")
 PULL_REQUEST = ("G1", "G2", "G3", "G13")
-LABEL_COLOURS = {"cross-module": "d93f0b", "over-budget": "fbca04", "out-of-cycle": "5319e7"}
+LABEL_COLOURS = {"cross-module": "d93f0b", "over-budget": "fbca04", "out-of-cycle": "5319e7",
+                 "request": "0e8a16", "bug": "d73a4a", "architecture": "1d76db", "debt": "c5def5",
+                 "acceptance": "bfdadc"}
+# An issue label means what its template says: the same words, the template being the source.
 LABEL_MEANING = {"cross-module": "A pull request touching several modules, with its justification",
                  "over-budget": "A pull request beyond the review budget, with its justification",
-                 "out-of-cycle": "Work outside the current cycle, with its justification"}
+                 "out-of-cycle": "Work outside the current cycle, with its justification",
+                 "request": "Something asked for that no cycle plans yet",
+                 "bug": "Incorrect behaviour in production or in test",
+                 "architecture": "Boundary, contract, coupling, structuring decision",
+                 "debt": "Identified debt, with its cost and its trigger",
+                 "acceptance": "A deliverable tried by a person — what to run, what was seen"}
 Call = tuple[str, str, str, dict | None]  # (rules closed, method, path under the repository, body)
 
 
