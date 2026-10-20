@@ -69,13 +69,15 @@ no service, and no forge required.
 2. **An event.** Subject `Hold <id>: <event>`; trailers `Hold-Event:` (`claim`, `renew`,
    `take-over`, `release`), `Hold-Person:` (the accountable person — a handle such as `@alice`,
    or `Name <email>`; by default git's user), `Agent-Session:` (the session, when an agent), and for a take-over
-   `Hold-Previous:` (the person and session it was taken from). The hold's state is its last
-   event.
+   `Hold-Previous:` (the person and session it was taken from), and `Hold-Id:`, random, so two
+   runs in one second are two commits. The hold's state is its last event. One person is one
+   whether named by a handle or by git: `@alice` is `Alice <alice@example.org>` — said, not
+   proven.
 3. **`nstack claim <id> [--session S] [--person P]`.** Refuses a deliverable that is not `ready`
    or `in-progress` in the accepted cycle. Fetches the hold's branch: absent or last event
    `release`, it commits a `claim` on it and pushes; held by the same person, it commits a `renew` (adding the session
    if new); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
-   creates the first work branch `d<n>-<slug>` from `main`, with one empty commit naming the
+   creates the first work branch `d<n>-<slug>` from the remote's default branch as it is now, with one empty commit naming the
    deliverable, pushes it, and with a token opens a **draft pull request** whose description
    holds `Deliverable: <id>`; without one, it says the display is skipped.
 4. **The race.** Two claims made at once are two different commits on the same parent: the

@@ -15,6 +15,7 @@ Output:  0 when the hold is taken, renewed or released; 1 when refused — sayin
 from __future__ import annotations
 
 import datetime
+import os
 import re
 import subprocess
 import time
@@ -57,13 +58,19 @@ def remote(root: Path) -> str | None:
     return _remote(root)
 
 
+class Unreachable(Exception):
+    """The remote could not be read: nothing about its holds is known."""
+
+
 def fetch(root: Path, again: bool = False) -> str | None:
-    """Brings the remote's holds and work branches in, as they are now; returns the remote's name.
-    `again`: the read after a refused push, which must see the hold that won."""
+    """Brings the remote's holds, work branches and default branch in, as they are now; returns
+    the remote's name. `again`: the read after a refused push, which must see the hold that won."""
     name = remote(root)
     if name is not None:
-        _git(root, "fetch", "--quiet", "--prune", "--no-tags", name,
-             f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*")
+        got = _git(root, "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
+                   f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*")
+        if got.returncode != 0:
+            raise Unreachable(got.stderr.strip())
     return name
 
 
@@ -75,8 +82,18 @@ def _work_refs(root: Path, ident: str) -> str:
     return f"{MIRROR}/work/{ident.lower()}-*" if remote(root) else f"refs/heads/{ident.lower()}-*"
 
 
+def _names(person: str) -> set[str]:
+    """What a person is called: a handle without its @, or a git identity's name, email and
+    email's local part."""
+    found = re.fullmatch(r"\s*(.*?)\s*<([^>]*)>\s*", person)
+    names = {found[1], found[2], found[2].split("@")[0]} if found else {person.strip().lstrip("@")}
+    return {name.lower() for name in names if name}
+
+
 def same(one: str, other: str) -> bool:
-    return one.strip().lstrip("@").lower() == other.strip().lstrip("@").lower()
+    """One person, whether named by a handle (@alice) or by git (Alice <alice@example.org>). Said,
+    not proven: whoever may push may name anyone, as an attested record."""
+    return bool(_names(one) & _names(other))
 
 
 def read(root: Path, cycle: str, ident: str) -> Hold:
@@ -151,6 +168,7 @@ def _event(root: Path, parent: str | None, ident: str, event: str, person: str, 
     if previous is not None:
         sessions = f" ({', '.join(previous.sessions)})" if previous.sessions else ""
         trailers.append(f"Hold-Previous: {previous.person}{sessions}")
+    trailers.append(f"Hold-Id: {os.urandom(4).hex()}")  # two runs in one second are two claims
     message = f"Hold {ident}: {event}\n\n" + "\n".join(trailers) + "\n"
     tree = _git(root, "mktree", stdin="", check=True).stdout.strip()
     parents = ["-p", parent] if parent else []
@@ -188,15 +206,18 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
     if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0 or (
             name and _git(root, "rev-parse", "--verify", "--quiet", f"{MIRROR}/work/{branch}").returncode == 0):
         return f"work continues on {branch}, which exists: nothing of it is touched"
-    base = f"refs/remotes/{name}/HEAD" if name else "HEAD"
+    base = f"{MIRROR}/base" if name else "refs/heads/main"
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode != 0:
-        base = f"refs/remotes/{name}/main" if name else "HEAD"
+        return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself."
     tree = _git(root, "rev-parse", f"{base}^{{tree}}", check=True).stdout.strip()
     message = f"Start {ident} — {title}\n" + (f"\nAgent-Session: {session}\n" if session else "")
     start = _git(root, "commit-tree", tree, "-p", base, stdin=message, check=True).stdout.strip()
     _git(root, "branch", branch, start, check=True)
     if name:
-        _git(root, "push", "--quiet", name, f"{branch}:refs/heads/{branch}")
+        pushed = _git(root, "push", "--quiet", name, f"{branch}:refs/heads/{branch}")
+        if pushed.returncode != 0:
+            return (f"work branch {branch} created here, NOT pushed: {pushed.stderr.strip()}\n"
+                    f"      Next: git push -u {name} {branch}")
         _git(root, "update-ref", f"{MIRROR}/work/{branch}", start)
     return f"work branch {branch} created.\n      Next: git switch {branch}"
 
@@ -208,8 +229,17 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         print(f"FAIL [hold] {found}")
         return 1
     cycle, title = found
-    name = fetch(root)
     person = _person(root, person)
+    if any(not value.isprintable() for value in (person, session or "")):
+        print("FAIL [hold] a person or a session holds a line break or a control character: it would "
+              "write the record's lines.\n      Action: name them on one line.")
+        return 1
+    try:
+        name = fetch(root)
+    except Unreachable as error:
+        print(f"FAIL [hold] the remote cannot be read: nothing is known of {ident}'s hold.\n"
+              f"      {error}\n      Action: check the network and the remote, then again.")
+        return 1
     current = read(root, cycle, ident)
     days = limit(root)
     stale_at = current.worked + days * DAY
@@ -226,18 +256,27 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         return 1
     else:
         stale = time.time() >= stale_at
+        again = " ".join(["nstack claim", ident, "--take-over", *(["--person", person] if person else []),
+                          *(["--session", session] if session else [])])
         print(f"FAIL [hold] {ident} is {said(current)}" + (f" — stale, no work for {days} days." if stale else ".")
-              + ("\n      Action: nstack claim " + ident + " --take-over — recorded, its holder told."
+              + (f"\n      Action: {again} — recorded, with its previous holder."
                  if stale else "\n      Action: take another ready deliverable — nstack plan lists them; "
                                "or ask its holder to give it back (nstack unclaim)."))
         return 1
     sha = _event(root, current.tip, ident, event, person, session, previous)
     ok, where = _record(root, name, cycle, ident, sha)
     if not ok:
-        fetch(root, again=True)
+        try:
+            fetch(root, again=True)
+        except Unreachable:
+            pass
         winner = read(root, cycle, ident)
-        print(f"FAIL [hold] {ident} was taken first: {said(winner) if winner.held else 'the hold moved'}.\n"
-              f"      Action: take another ready deliverable — nstack plan lists them.")
+        if winner.tip != current.tip:
+            print(f"FAIL [hold] {ident} was taken first: "
+                  f"{said(winner) if winner.held else 'given back meanwhile'}.\n"
+                  "      Action: take another ready deliverable — nstack plan lists them; or run again.")
+        else:
+            print(f"FAIL [hold] {ident}: the remote refused the hold.\n      {where}")
         return 1
     done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {previous.person if previous else ''}"}
     print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "") + f"; {where}.")
@@ -252,8 +291,16 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         print("FAIL [hold] no accepted cycle: there is no hold to release.")
         return 1
     stem = cycle[0].stem
-    name = fetch(root)
     person = _person(root, person)
+    if any(not value.isprintable() for value in (person, session or "")):
+        print("FAIL [hold] a person or a session holds a line break or a control character.\n"
+              "      Action: name them on one line.")
+        return 1
+    try:
+        name = fetch(root)
+    except Unreachable as error:
+        print(f"FAIL [hold] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
+        return 1
     current = read(root, stem, ident)
     if not current.held:
         print(f"FAIL [hold] {ident} is not held: nothing to release.")

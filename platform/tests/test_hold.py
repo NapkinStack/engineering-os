@@ -221,3 +221,70 @@ def test_with_no_remote_the_hold_is_local_and_says_so(shared, capsys):
     assert hold.claim(alone, "D1", session="s", person="@alice") == 0
     assert "local only" in capsys.readouterr().out
     assert git(alone, "log", "-1", "--format=%(trailers:key=Hold-Event,valueonly)", REF) == "claim"
+
+
+# --- found by the verifier of part 1 ----------------------------------------------------
+
+def test_a_default_branch_not_named_main_with_no_remote_head_still_gives_a_work_branch(shared, capsys):
+    git(shared, "branch", "-m", "main", "trunk")
+    git(shared, "symbolic-ref", "HEAD", "refs/heads/trunk")
+    alice = clone(shared, "alice")
+    git(alice, "remote", "set-head", "origin", "-d")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert git(shared, "rev-parse", "d1-resume-an-interrupted-recording^") == git(shared, "rev-parse", "trunk")
+
+
+def test_the_work_branch_starts_from_the_remote_s_default_branch_as_it_is_now(shared):
+    alice, other = clone(shared, "alice"), clone(shared, "other")
+    git(other, "commit", "-q", "--allow-empty", "-m", "main advanced")
+    git(other, "push", "-q", "origin", "main")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    assert git(shared, "rev-parse", "d1-resume-an-interrupted-recording^") == git(shared, "rev-parse", "main")
+
+
+def test_an_unreachable_remote_is_said_never_taken_first(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    git(alice, "remote", "set-url", "origin", str(shared.parent / "nowhere.git"))
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "unreachable" in out and "taken first" not in out
+
+
+@pytest.mark.parametrize("one, other, alike", [
+    ("@alice", "Alice <alice@example.org>", True),
+    ("@dana", "Dana Lee <dlee@example.org>", False),  # a full name is not a handle
+    ("@dana", "Someone <dana@example.org>", True),  # the email's local part is
+    ("@alice", "@bob", False),
+    ("", "@", False),
+])
+def test_a_person_named_by_handle_or_by_git_identity_is_one_person(one, other, alike):
+    assert hold.same(one, other) is alike
+
+
+def test_the_decider_releases_under_their_git_identity(shared, monkeypatch):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    dana = clone(shared, "dana")
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Dana")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "dana@example.org")
+    assert hold.release(dana, "D1") == 0
+
+
+@pytest.mark.parametrize("person, session", [("mallory\nHold-Person: dana", "s"), ("@m", "s\nHold-Event: release")])
+def test_a_line_break_in_a_person_or_a_session_is_refused(shared, capsys, person, session):
+    assert hold.claim(clone(shared, "m"), "D1", session=session, person=person) == 1
+    assert "FAIL [hold]" in capsys.readouterr().out
+
+
+def test_two_claims_in_one_second_by_one_person_are_still_two_commits(shared, monkeypatch, capsys):
+    for name, value in ago(0).items():
+        monkeypatch.setenv(name, value)
+    alice, twin = clone(shared, "alice"), clone(shared, "twin")
+    assert hold.claim(alice, "D1", person="@alice") == 0
+    real = hold.fetch
+    # The twin read D1 free a moment before the first claim landed, in the same second.
+    monkeypatch.setattr(hold, "fetch", lambda root, again=False: real(root) if again or root != twin else hold.remote(root))
+    capsys.readouterr()
+    assert hold.claim(twin, "D1", person="@alice") == 1
+    assert "taken first" in capsys.readouterr().out

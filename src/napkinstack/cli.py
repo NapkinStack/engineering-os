@@ -168,7 +168,7 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--session", help="the agent's session, written on the hold")
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
-                    help="take a hold nobody has worked on for hold_days — recorded, its holder told")
+                    help="take a hold nobody has worked on for hold_days — recorded, with its previous holder")
     rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
