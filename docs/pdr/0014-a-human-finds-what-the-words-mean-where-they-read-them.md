@@ -1,8 +1,8 @@
 # PDR-0014 — A human finds what the words mean, where they read them
 
-- **Status**: Proposed (2026-10-20). Asked by the maintainer: *a lexicon of the product, for a
-  human — even if the AI understands, it makes things hard to follow* (#191); the direction
-  below was proposed to them and agreed before this record
+- **Status**: Accepted (2026-10-20, by the maintainer, approving #197). Asked by them: *a
+  lexicon of the product, for a human — even if the AI understands, it makes things hard to
+  follow* (#191)
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the skeleton's handbook (a glossary page out of `00-overview.md` §6),

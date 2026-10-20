@@ -231,4 +231,9 @@ def main(argv: list[str] | None = None) -> int:
         print(provenance.judged_by(args.root), flush=True)
         if said := plan.stage_line(args.root):
             print(said, flush=True)
-    return args.func(args)
+    code = args.func(args)
+    if code and args.command in JUDGES | {"attest"}:
+        # Where a person reads what the codes and words above mean (D131).
+        print("A rule's code is explained in .nstack/handbook/RULES.md; a word of the framework in "
+              ".nstack/handbook/glossary.md.", flush=True)
+    return code
