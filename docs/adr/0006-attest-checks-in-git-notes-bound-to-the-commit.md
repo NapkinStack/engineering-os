@@ -1,6 +1,6 @@
 # ADR-0006 — Attest checks in git notes, bound to the commit
 
-- **Status**: Proposed (2026-10-20)
+- **Status**: Accepted (2026-10-20, by the maintainer, approving #196); built in D129
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier
