@@ -1,8 +1,8 @@
 # PDR-0015 — A contributor sees who holds a deliverable
 
-- **Status**: Proposed (2026-10-20). Asked by the maintainer: *how do agents know what they
-  must or may take, and how is the work shared out?* (#212); the market was surveyed and the
-  direction below agreed with them before this record
+- **Status**: Accepted (2026-10-21, by the maintainer, approving #213). Asked by them: *how do
+  agents know what they must or may take, and how is the work shared out?* (#212); the how in
+  ADR-0007
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (a new verb, `plan`, `pr-check`), the skeleton's
