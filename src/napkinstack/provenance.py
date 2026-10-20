@@ -65,6 +65,29 @@ def engine() -> tuple[str, str | None]:
     return version(), f"a local checkout at {commit or 'an unknown commit'}"
 
 
+def checkout() -> Path | None:
+    """The folder of the local checkout the engine is installed from, editable, or None."""
+    distribution = importlib.metadata.distribution("napkinstack")
+    try:
+        data = json.loads(distribution.read_text("direct_url.json") or "{}")
+    except json.JSONDecodeError:
+        return None
+    if not data.get("dir_info", {}).get("editable"):
+        return None
+    path = Path(url2pathname(urlparse(data.get("url", "")).path))
+    return path if path.is_dir() else None
+
+
+def holds(folder: Path, tag: str) -> bool:
+    """Whether a checkout's HEAD holds a release: the tag is known there and is HEAD's ancestor."""
+    known = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}"],
+                           cwd=folder, capture_output=True, text=True)
+    if known.returncode:
+        return False
+    return subprocess.run(["git", "merge-base", "--is-ancestor", known.stdout.strip(), "HEAD"],
+                          cwd=folder, capture_output=True).returncode == 0
+
+
 def recorded(root: Path) -> str | None:
     """The framework version the project records, `_commit`, or None outside a project."""
     try:

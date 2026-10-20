@@ -1455,15 +1455,26 @@ fi
 echo "$OUT" | grep -qE "NOT VERIFIED +\[G1\]" && echo "$OUT" | grep -qF "unreachable" \
   || { echo "FAIL: unreachable API mishandled."; echo "$OUT"; exit 1; }
 
-echo "-> doctor: the engine of a checkout is unpublished, a gap and never compliance (L1, PDR-0005)"
+echo "-> doctor: a contributor's checkout holding the project's version is SOURCES, said and not a gap (L1, D136)"
 repo_c acme/compliant
-if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
-  echo "FAIL: an unpublished engine reported compliant."; echo "$OUT"; exit 1
-fi
+# This suite's engine is this repository's checkout: it holds v0.9.6, a release of its history.
+in_place "s#^_commit: .*#_commit: v0.9.6#" "$C/.copier-answers.yml"
+OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1) \
+  || { echo "FAIL: a contributor's checkout ahead of the project reported as a gap."; echo "$OUT"; exit 1; }
 echo "$OUT" | head -1 | grep -qF "Judged by an UNPUBLISHED NapkinStack — a local checkout" \
-  && echo "$OUT" | grep -qE "FAIL +\[L1\]" && echo "$OUT" | grep -qF "The nstack running is unpublished" \
+  && echo "$OUT" | grep -qE "SOURCES +\[L1\]" && echo "$OUT" | grep -qF "which holds the project's v0.9.6" \
+  && echo "$OUT" | grep -qF "To judge as CI does: uv tool install" \
+  || { echo "FAIL: a contributor's checkout badly reported."; echo "$OUT"; exit 1; }
+
+echo "-> doctor: a checkout without the project's version is a gap that says why (L1, PDR-0005)"
+in_place "s#^_commit: .*#_commit: v90.9.9#" "$C/.copier-answers.yml"
+if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
+  echo "FAIL: an unpublished engine without the project's version reported compliant."; echo "$OUT"; exit 1
+fi
+echo "$OUT" | grep -qE "FAIL +\[L1\]" && echo "$OUT" | grep -qF "does not hold the project's v90.9.9" \
   && echo "$OUT" | grep -qF "1 gap(s), 0 not verified" \
-  || { echo "FAIL: unpublished engine badly reported."; echo "$OUT"; exit 1; }
+  || { echo "FAIL: a checkout without the project's version badly reported."; echo "$OUT"; exit 1; }
+in_place "s#^_commit: .*#_commit: v$V#" "$C/.copier-answers.yml"
 
 echo "-> doctor: a gap exits 1 even when other settings were not read (D77)"
 repo_c acme/bare
