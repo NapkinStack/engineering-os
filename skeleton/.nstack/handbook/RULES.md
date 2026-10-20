@@ -94,6 +94,17 @@ a family, a number a rule; a retired rule's number is never reused.
 | `T4` | Evidence older than the head commit | `05-workflow.md` §7 |
 | `T5` | A scenario failed, or left not verified | `05-workflow.md` §7 |
 
+## A — checks attested on a workstation
+
+Where the project's answer `checks` is `attested` (`.copier-answers.yml`), the checks of a
+pull request run on a workstation through `nstack attest`, which records the run on the commit
+in git; elsewhere a record is shown, and the forge's CI judges.
+
+| Code | Refuses | Why |
+|---|---|---|
+| `A1` | In a project whose checks are attested, a head commit with no record | `07-governance.md` §7 |
+| `A2` | A record of the head that misses a check the CI runs, or holds a failed one | `07-governance.md` §7 |
+
 ## K — the cycle a change belongs to
 
 These rules bound work inside a cycle. A project with no accepted charter is **unframed**:

@@ -150,3 +150,89 @@ def test_the_output_kept_is_capped_and_its_whole_is_hashed():
     kept = attest.capped(text)
     assert len(kept) < attest.KEPT + 200 and "bytes cut" in kept
     assert kept.startswith("x") and kept.endswith("x")
+
+
+# --- the decider's word, read by pr-check (rules A1, A2) ------------------------------------
+
+from napkinstack import pull_request  # noqa: E402
+
+
+def change(root: Path, checks: str | None) -> tuple[str, str]:
+    """A project whose answers say how its checks are judged; a second commit changes a file."""
+    git(root, "init", "-q", "--initial-branch=main")
+    answers = {"_commit": "v0.9.6", "project_name": "p"} | ({"checks": checks} if checks else {})
+    (root / ".copier-answers.yml").write_text(yaml.safe_dump(answers), encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "base")
+    base = git(root, "rev-parse", "HEAD")
+    (root / "notes.txt").write_text("a change\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "change\n\nAgent-Session: a-session")
+    return base, git(root, "rev-parse", "HEAD")
+
+
+def judged(root: Path, base: str, monkeypatch, capsys, ci: bool = False) -> tuple[int, str]:
+    # The tests themselves run under GitHub Actions in CI: where they run is set, never inherited.
+    if ci:
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    else:
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setenv("PR_BODY", "A change.")
+    monkeypatch.delenv("PR_HEAD_SHA", raising=False)
+    code = pull_request.run(root, base)
+    return code, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("answer", [None, "forge"])
+def test_judged_on_the_forge_a_record_is_shown_and_nothing_required(tmp_path, monkeypatch, capsys, answer):
+    base, _ = change(tmp_path, answer)
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0 and "Checks          : the forge's CI" in out
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(tmp_path, base, None, "")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0 and "a record of the head: attested 1 of 1 (information)" in out
+
+
+def test_attested_with_no_record_of_the_head_is_refused(tmp_path, monkeypatch, capsys):
+    base, _ = change(tmp_path, "attested")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 1 and "FAIL [A1]" in out and "nstack attest" in out
+
+
+def test_attested_with_a_record_of_another_commit_is_refused(tmp_path, monkeypatch, capsys):
+    base, _ = change(tmp_path, "attested")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(tmp_path, base, None, "")  # recorded on this head
+    (tmp_path / "notes.txt").write_text("a later change\n", encoding="utf-8")
+    git(tmp_path, "commit", "-q", "-am", "later")  # a new head, with no record
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 1 and "FAIL [A1]" in out
+
+
+def test_attested_with_a_failed_or_incomplete_record_is_refused(tmp_path, monkeypatch, capsys):
+    base, _ = change(tmp_path, "attested")
+    monkeypatch.setattr(attest, "CHECKS", FAILING)
+    attest.run(tmp_path, base, None, "")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 1 and "FAIL [A2]" in out and "Fails" in out
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(tmp_path, base, None, "")
+    monkeypatch.setattr(attest, "CHECKS", FAILING)  # the list now has a check the record lacks
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 1 and "FAIL [A2]" in out and "missing: Fails" in out
+
+
+def test_attested_with_a_complete_passed_record_is_compliant_and_says_attested(tmp_path, monkeypatch, capsys):
+    base, head = change(tmp_path, "attested")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(tmp_path, base, None, "")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0 and "Checks          : attested on a workstation, by test <test@example.invalid>" in out
+    assert "Pull request rules: compliant." in out
+
+
+def test_in_ci_an_attested_project_is_not_judged_on_a_record_ci_cannot_fetch(tmp_path, monkeypatch, capsys):
+    base, _ = change(tmp_path, "attested")
+    code, out = judged(tmp_path, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "attested — judged where nstack attest runs, not in CI" in out
