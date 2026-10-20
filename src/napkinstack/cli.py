@@ -12,6 +12,15 @@ from napkinstack import assurance, attest
 from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
+from napkinstack.project import ANSWERS
+
+
+def _here() -> Path:
+    """The project the current folder belongs to: the nearest folder, this one or above, holding
+    the project's answers — as git and cargo find their root (D130). Outside any project, the
+    current folder, as before."""
+    here = Path.cwd()
+    return next((folder for folder in (here, *here.parents) if (folder / ANSWERS).is_file()), here)
 
 
 def _root(value: str) -> Path:
@@ -39,8 +48,9 @@ def _fitness(root: Path) -> int:
 
 def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
     parser = sub.add_parser(name, help=help_)
-    parser.add_argument("--root", type=_root, default=Path.cwd(),
-                        help="project root (default: current folder)")
+    parser.add_argument("--root", type=_root, default=_here(),
+                        help="project root (default: the nearest folder holding .copier-answers.yml, "
+                             "this one or above; else the current folder)")
     parser.set_defaults(func=func)
     return parser
 
@@ -181,7 +191,7 @@ def _named_root(argv: list[str]) -> Path:
             return Path(argv[index + 1])
         if word.startswith("--root="):
             return Path(word.removeprefix("--root="))
-    return Path(".")
+    return _here()
 
 
 def _release(a) -> int:
