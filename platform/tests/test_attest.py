@@ -171,7 +171,12 @@ def change(root: Path, checks: str | None) -> tuple[str, str]:
     return base, git(root, "rev-parse", "HEAD")
 
 
-def judged(root: Path, base: str, monkeypatch, capsys) -> tuple[int, str]:
+def judged(root: Path, base: str, monkeypatch, capsys, ci: bool = False) -> tuple[int, str]:
+    # The tests themselves run under GitHub Actions in CI: where they run is set, never inherited.
+    if ci:
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    else:
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setenv("PR_BODY", "A change.")
     monkeypatch.delenv("PR_HEAD_SHA", raising=False)
     code = pull_request.run(root, base)
@@ -229,6 +234,5 @@ def test_attested_with_a_complete_passed_record_is_compliant_and_says_attested(t
 
 def test_in_ci_an_attested_project_is_not_judged_on_a_record_ci_cannot_fetch(tmp_path, monkeypatch, capsys):
     base, _ = change(tmp_path, "attested")
-    monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    code, out = judged(tmp_path, base, monkeypatch, capsys, ci=True)
     assert code == 0 and "attested — judged where nstack attest runs, not in CI" in out
