@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from napkinstack import assurance
+from napkinstack import assurance, attest
 from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
@@ -146,6 +146,11 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: landed.run(a.root, a.span, landed.from_environment(a.root)))
     ld.add_argument("--span", default="HEAD~1..HEAD",
                     help="the commits to read, BEFORE..AFTER (default: the last commit)")
+    at = _add(sub, "attest", "runs the CI's checks here and records the run on the commit, in git",
+              lambda a: attest.run(a.root, a.base, a.body_file, a.labels))
+    at.add_argument("--base", default="origin/main")
+    at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
+    at.add_argument("--labels", default="", help="the pull request's labels, comma-separated")
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
