@@ -22,6 +22,51 @@ a patch.
 
 ---
 
+## v0.13.0 — 2026-10-21
+
+Two workstreams — D138 and D139 (PDR-0016, ADR-0008): a cycle's progress said in one line, and
+shown on the forge where the decider looks — one way, the cycle files staying the only plan. A
+minor version: K2 now refuses delivery work on the cycle's end date itself, and a new workflow
+writes issues and milestones.
+
+**In the engine**
+
+- **`nstack plan` says the accepted cycle in one line** (D138): deliverables accepted of those
+  that count, in progress, ready, proposed, deferred, other — a dropped one counts in nothing —
+  and the day of the appetite with the days left, or the circuit breaker fallen. Read from the
+  front matter, never written. The holds' header counts held, of which stale. A cycle whose
+  `deliverables` is not a list is reported (C4), never a crash.
+- **K2 refuses from the end date** — the first day the cycle is over, as the cycle form always
+  defined `end`; it let that day through.
+- **`nstack board [--dry-run]`** (D139): each accepted, closed or stopped cycle as a milestone —
+  keyed on its number, titled by its heading, due on its end date, its counts in the description —
+  and each deliverable as an issue in it — keyed on its identifier: acceptance criteria as a
+  checklist, module, state, holder (assigned when the repository can), the pull requests naming
+  it; closed *completed* when accepted, *not planned* when dropped, deferred or left by a closed
+  cycle. Its own objects found by a marker in their body; a person's never touched; a person's
+  milestone holding a title, or a person's items in a milestone, said; existing labels used in
+  any case. A hand edit put back and said; writes paced; whatever is not shown said in the output,
+  the job's summary and a warning — the run always succeeds.
+- **The holds are read in CI** with the job's token for that one fetch, masked; never on a
+  workstation.
+
+**In your project** — 5 files
+
+- `.github/workflows/plan-on-the-forge.yml` (new): `nstack board` on every merge to `main` — as
+  every workflow of the skeleton watches it (G19) —, once a day (holders), and by hand; `issues: write`, `pull-requests: read`,
+  `contents: read` at its one job.
+- `.nstack/handbook/project.md`: *A cycle's progress* and *On the forge*.
+- `.nstack/handbook/RULES.md`: K2 "from the cycle's end date — its first day over".
+- `.nstack/handbook/INSTALL.md`: the commands `claim` and `board`.
+- `.copier-answers.yml`: `_commit`.
+
+**Migration** — none to take it. The first run of *Plan on the forge*, after the update merges,
+creates an issue per deliverable of the accepted, closed and stopped cycles — about sixty writes
+on a project with thirty deliverables — and the repository's watchers get a notification for each.
+On the cycle's end date, delivery work is now refused until the decider decides (K2).
+
+---
+
 ## v0.12.0 — 2026-10-21
 
 One workstream — D137, PDR-0015 and ADR-0007: several contributors, each with the agent of their
