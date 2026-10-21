@@ -1,6 +1,7 @@
 # PDR-0017 — A change's runs show what their logs said
 
-- **Status**: Proposed (2026-10-21). Asked by the third project's decider, watching its
+- **Status**: Accepted (2026-10-21, merged with #230 after its independent review); the how in
+  ADR-0009. Asked by the third project's decider, watching its
   end-to-end runs: *I sometimes see errors written in red on the interface … are the logs in
   place? do you analyse the logs during each test?* (#224). Reshaped by an independent review
   (#230) before its acceptance
