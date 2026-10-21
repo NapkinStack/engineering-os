@@ -127,9 +127,9 @@ def stage_line(root: Path) -> str | None:
     """What every judging run says of the project's stage, beside the framework that judges.
     A framed project is never told the other word."""
     return {
-        UNFRAMED: "Project unframed — no accepted charter: the cycle rules (K1 to K3) do not apply "
+        UNFRAMED: "Project unframed — no accepted charter: the cycle rules (K1 to K3, K5) do not apply "
                   "here, every other rule does.",
-        FRAMED: "Project framed — the cycle rules (K1 to K3) apply.",
+        FRAMED: "Project framed — the cycle rules (K1 to K3, K5) apply.",
         UNREADABLE: f"Project stage unknown — {CHARTER} cannot be read (C1): nothing is assumed.",
     }.get(stage(root) or "")
 

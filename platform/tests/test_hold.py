@@ -288,3 +288,77 @@ def test_two_claims_in_one_second_by_one_person_are_still_two_commits(shared, mo
     capsys.readouterr()
     assert hold.claim(twin, "D1", person="@alice") == 1
     assert "taken first" in capsys.readouterr().out
+
+
+# --- part 2: who holds what, said by plan; K5 in pr-check --------------------------------
+
+def test_plan_says_who_holds_what_and_what_is_stale(shared, monkeypatch, capsys):
+    alice = clone(shared, "alice")
+    for name, value in ago(10).items():
+        monkeypatch.setenv(name, value)
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
+        monkeypatch.delenv(name)
+    capsys.readouterr()
+    assert hold.show(clone(shared, "bob")) == 0
+    out = capsys.readouterr().out
+    assert "Holds in 03-the-window" in out
+    assert "D1" in out and "STALE" in out and "@alice" in out and "--take-over" in out
+
+
+def test_plan_says_a_free_deliverable_free(shared, capsys):
+    hold.show(clone(shared, "bob"))
+    assert "D1  free" in capsys.readouterr().out
+
+
+def test_plan_never_fails_on_a_remote_it_cannot_read(shared, capsys):
+    bob = clone(shared, "bob")
+    git(bob, "remote", "set-url", "origin", str(shared.parent / "nowhere.git"))
+    assert hold.show(bob) == 0
+    assert "holds not read" in capsys.readouterr().out
+
+
+AUTHORED = ({"bob"}, {"bob-d1"}, [])
+
+
+def test_k5_refuses_a_pull_request_for_a_deliverable_another_session_holds(shared):
+    from napkinstack import pull_request
+
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    failed, said = [], []
+    pull_request.check_hold(clone(shared, "bob"), "Deliverable: D1", set(), AUTHORED,
+                            lambda rule, message: failed.append((rule, message)), said.append)
+    assert [rule for rule, _ in failed] == ["K5"] and "@alice" in failed[0][1]
+
+
+@pytest.mark.parametrize("authorship", [({"x"}, {"alice-d1"}, []), ({"alice"}, set(), [])],
+                         ids=["by its session", "by its person's account"])
+def test_k5_accepts_the_holder_s_pull_request(shared, authorship):
+    from napkinstack import pull_request
+
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    failed = []
+    pull_request.check_hold(clone(shared, "bob"), "Deliverable: D1", set(), authorship,
+                            lambda rule, message: failed.append(rule), lambda message: None)
+    assert failed == []
+
+
+def test_k5_asks_nothing_of_a_deliverable_nobody_holds(shared):
+    from napkinstack import pull_request
+
+    failed = []
+    pull_request.check_hold(clone(shared, "bob"), "Deliverable: D1", set(), AUTHORED,
+                            lambda rule, message: failed.append(rule), lambda message: None)
+    assert failed == []
+
+
+def test_k5_unread_is_said_never_failed(shared):
+    from napkinstack import pull_request
+
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    bob = clone(shared, "bob")
+    git(bob, "remote", "set-url", "origin", str(shared.parent / "nowhere.git"))
+    failed, said = [], []
+    pull_request.check_hold(bob, "Deliverable: D1", set(), AUTHORED,
+                            lambda rule, message: failed.append(rule), said.append)
+    assert failed == [] and any("K5" in line and "not read" in line for line in said)

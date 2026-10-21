@@ -393,7 +393,7 @@ def test_cycle_rules_spare_work_outside_the_modules(tmp_path, capsys, monkeypatc
 
 STAGE_CASES = {
     "no accepted charter": (lambda r: (r / "docs" / "project").mkdir(parents=True),
-                            "Project unframed — no accepted charter: the cycle rules (K1 to K3) do not apply", True),
+                            "Project unframed — no accepted charter: the cycle rules (K1 to K3, K5) do not apply", True),
     "charter proposed": (lambda r: framed(r, {**CHARTER, "status": "proposed"}, cycles={}), "Project unframed", True),
     "charter and cycle accepted": (framed, "Project framed", False),
     "between two cycles": (lambda r: framed(r, cycles={}), "Project framed", False),

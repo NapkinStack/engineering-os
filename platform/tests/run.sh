@@ -789,7 +789,7 @@ fi
 # PDR-0007, its first two criteria in one run: the project has no charter, so the cycle rules
 # say nothing and the run names the stage — while another rule, the test sheet, still refuses.
 echo "$OUT" | grep -qF "modules/face (criticality standard, user-facing)" \
-  && echo "$OUT" | grep -qF "Project unframed — no accepted charter: the cycle rules (K1 to K3) do not apply" \
+  && echo "$OUT" | grep -qF "Project unframed — no accepted charter: the cycle rules (K1 to K3, K5) do not apply" \
   || { echo "FAIL: T1 or the project's stage missing."; echo "$OUT"; exit 1; }
 if echo "$OUT" | grep -qE "FAIL \[K[123]\]"; then
   echo "FAIL: a cycle rule fired in a project that has no cycle (PDR-0007)."; echo "$OUT"; exit 1

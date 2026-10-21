@@ -319,3 +319,51 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         return 1
     print(f"{ident} released by {person}; {where}. Its branches are kept.")
     return 0
+
+
+def show(root: Path) -> int:
+    """Who holds what in the accepted cycle, for `nstack plan`: said, never a failure."""
+    cycle = plan.accepted_cycle(root)
+    if cycle is None:
+        return 0
+    path, data = cycle
+    days = limit(root)
+    try:
+        name = fetch(root)
+    except Unreachable as error:
+        print(f"\nHolds in {path.stem}: holds not read — the remote cannot be read.\n      {error.args[0].splitlines()[0]}")
+        return 0
+    lines = []
+    for item in data.get("deliverables") or []:
+        if not isinstance(item, dict):
+            continue
+        ident, state = str(item.get("id")), item.get("state")
+        found = read(root, path.stem, ident)
+        if not found.held and state not in TAKEABLE:
+            continue
+        if not found.held:
+            lines.append(f"  {ident}  free")
+        elif state not in TAKEABLE:
+            lines.append(f"  {ident}  ended — {state}; was {said(found)}")
+        elif time.time() >= found.worked + days * DAY:
+            lines.append(f"  {ident}  STALE — {said(found)}: nstack claim {ident} --take-over")
+        else:
+            lines.append(f"  {ident}  {said(found)}")
+    where = f"from {name}" if name else "local only: no remote"
+    print(f"\nHolds in {path.stem} ({where}; stale after {days} days without work):")
+    print("\n".join(lines) or "  no ready deliverable")
+    return 0
+
+
+def judge(root: Path, ident: str) -> Hold | str | None:
+    """The hold of a deliverable of the accepted cycle for `pr-check`: None when nobody holds
+    it, the reason when it cannot be read."""
+    cycle = plan.accepted_cycle(root)
+    if cycle is None:
+        return None
+    try:
+        fetch(root)
+    except Unreachable as error:
+        return error.args[0].splitlines()[0] if error.args[0] else "the remote cannot be read"
+    found = read(root, cycle[0].stem, ident)
+    return found if found.held else None
