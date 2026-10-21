@@ -134,17 +134,15 @@ def _session(root: Path, commit: str) -> str | None:
 
 def _show(root: Path, commit: str, passed: int, total: int) -> str:
     """The forge's display, when there is one and a token: never a judgement, a view of the record."""
-    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    url = _git(root, "remote", "get-url", _remote(root) or "origin", check=False).stdout.strip()
-    from napkinstack.doctor import ON_GITHUB  # the doctor's reading of a GitHub remote
+    from napkinstack import hold  # the one reading of the project's GitHub
 
-    found = ON_GITHUB.search(url)
-    if not token or not found:
-        return "not shown on a forge (no GitHub remote, or no token)"
-    api = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+    forge = hold._forge(root, _remote(root) or "origin")
+    if forge is None:
+        return hold.unshown(root)
+    api, repo, token = forge
     body = json.dumps({"state": "success" if passed == total else "failure", "context": CONTEXT,
                        "description": f"attested: {passed} of {total}"}).encode()
-    request = urllib.request.Request(f"{api}/repos/{found.group(1)}/statuses/{commit}", data=body, method="POST",
+    request = urllib.request.Request(f"{api}/repos/{repo}/statuses/{commit}", data=body, method="POST",
                                      headers={"Accept": "application/vnd.github+json",
                                               "Authorization": f"Bearer {token}"})
     try:

@@ -210,7 +210,7 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
         return 0
     forge = hold._forge(root, hold.remote(root))
     if forge is None:
-        _tell(["not shown: no GitHub remote, or no token"], "Plan on the forge")
+        _tell([hold.unshown(root)], "Plan on the forge")
         return 0
     lines = list(said)
     try:

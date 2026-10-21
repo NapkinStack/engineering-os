@@ -26,13 +26,21 @@ Rules:
       number is not reused.
   L5  retired (PDR-0010): it reported the front page's unwritten sentence from a project's
       first minute. The plan check asks for it at the discovery's go (C8). Not reused.
-  L6  CODEOWNERS starts with a default owner: the code owner review covers every path
+  L6  the ownership file starts with a default owner: the code owner review covers every path;
+      where no forge reads it — Forgejo and Gitea read another syntax, `none` has no forge — it
+      is said
   L7  the template source reachable by anyone: a repository, not a path on one machine
+  L8  off GitHub only: `checks: forge` names a CI this version ships only on GitHub — nothing
+      would run the checks; the answer is `attested`
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. No other command opens a connection
   G1-G20  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
           or option required
+
+Off GitHub (the project's `forge` answer, ADR-0010) no G rule is read: the forge-neutral
+PROTECTIONS are said as information — the same list as INSTALL.md's, bound by a test — and the
+repository is unguarded as far as this version knows. The exit is the workstation's alone.
 
 Usage :  nstack doctor [--root ROOT]
 Output:  0 when everything is verified and compliant; 1 when a setting is missing — a gap;
@@ -84,6 +92,17 @@ SECURITY = "Settings → Advanced Security"
 ACTIONS = "Settings → Actions → General"
 MERGES = "Settings → General → Pull Requests"
 CODEOWNERS = Path(".github") / "CODEOWNERS"
+# Off GitHub, what a forge should refuse, in its own words; read by no version yet (ADR-0010 §5).
+PROTECTIONS = (
+    "A pull request required: no direct push to the main branch",
+    "At least 1 approval",
+    "The code owners' review required",
+    "The main branch neither force-pushed nor deleted",
+    "Squash the only merge method",
+    "Secrets refused at push",
+    "Hold branches `nstack/hold/…` neither force-pushed nor deleted",
+)
+UNREAD_OWNERSHIP = {"forgejo": "Forgejo", "gitea": "Gitea"}  # CODEOWNERS as regular expressions
 
 CHECKLIST = [  # (rule, setting, action)
     ("G1", "Pull request required: no direct push to main",
@@ -310,7 +329,7 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
 
 def _default_owner(root: Path) -> tuple[str, str]:
     """L6: `*` first, so that the code owner review covers every path (ADR-0004)."""
-    from napkinstack.project import ownership
+    from napkinstack.project import forge, ownership
 
     path = ownership(root)  # where the project's forge reads it (ADR-0010)
     shown = path.relative_to(root).as_posix()
@@ -319,6 +338,12 @@ def _default_owner(root: Path) -> tuple[str, str]:
     rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
              if line.strip() and not line.lstrip().startswith("#")]
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
+        name = forge(root)
+        if name in UNREAD_OWNERSHIP:
+            return OK, (f"Written, not read by {UNREAD_OWNERSHIP[name]}: its code owners take another "
+                        "syntax. The owners it names are for people to read.")
+        if name == "none":
+            return OK, "No forge reads it: the owners it names are for people to read."
         return OK, ""
     return GAP, (f"The first rule of {shown} is not a default owner.\nAction: make `*  @<owner>` "
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
@@ -415,6 +440,17 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     results.append(("L7", "Template source reachable by anyone", GAP if local else OK,
                     f"The project was generated from '{source}', a path on one machine: nobody else can "
                     "update it.\nAction: nstack update, from the published source." if local else ""))
+
+    from napkinstack.project import forge
+
+    name = forge(root)
+    if name != "github":
+        forced = answers.get("checks") == "forge"
+        results.append(("L8", "Checks run where the project says", GAP if forced else OK,
+                        f"`checks: forge`, and this version ships a CI only on GitHub: nothing runs the "
+                        f"checks of a {name} project.\nAction: answer `checks: attested` in {ANSWERS}, in a "
+                        "pull request; each change then carries its record, made by nstack attest."
+                        if forced else ""))
     return results
 
 
@@ -500,6 +536,30 @@ def _state(results: list[tuple[str, str, str, str]]) -> None:
         print("  Each setting not yet in place carries its action above.")
 
 
+def _off_github(name: str, answers: dict, results: list[tuple[str, str, str, str]]) -> int:
+    """No G rule off GitHub (ADR-0010 §5): what the forge should refuse said as information, the
+    repository unguarded as far as this version knows, and the exit the workstation's alone."""
+    if name == "none":
+        print("\nForge: none — no forge, so nothing refuses a change. Hosted on one, it should refuse:")
+    else:
+        print(f"\nForge: {name} — {answers.get('repository') or 'repository not named'}\n"
+              "  This version reads no setting of this forge. Set there, as INSTALL.md lists them:")
+    for protection in PROTECTIONS:
+        print(f"    - {protection}")
+    print("  The record of commits on the main branch (nstack landed) does not run: its workflow is "
+          "written only on GitHub.")
+    print("\nThis repository: unguarded — " + ("no forge, nothing refuses a change." if name == "none"
+                                                else "this version does not read the forge's protections."))
+    gaps = sum(status == GAP for _, _, status, _ in results)
+    unknown = sum(status == UNKNOWN for _, _, status, _ in results)
+    if not gaps and not unknown:
+        print(f"\nnstack doctor: the workstation compliant; the forge's settings not read (forge {name}).")
+        return 0
+    print(f"\nnstack doctor: {gaps} gap(s), {unknown} not verified, on the workstation; the forge's "
+          f"settings not read (forge {name}).")
+    return 1 if gaps else 2
+
+
 def run(root: Path) -> int:
     if not (root / ANSWERS).is_file():
         print(f"FAIL [doctor] {ANSWERS} not found in {root}: this folder is not a project "
@@ -523,6 +583,12 @@ def run(root: Path) -> int:
               "                 It is worth its price when there is something to bound: several people,\n"
               "                 a deadline, a decider who is not the one typing.\n"
               "                 To start: follow .nstack/playbooks/framing.md with your agent.")
+
+    from napkinstack.project import forge
+
+    name = forge(root)
+    if name != "github":
+        return _off_github(name, answers, results)
 
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     print(f"\nGitHub: {answers.get('github_repo')}")

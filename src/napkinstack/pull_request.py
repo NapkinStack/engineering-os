@@ -50,7 +50,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack.fitness import plan
-from napkinstack import assurance
+from napkinstack import assurance, project
 from napkinstack.fitness.manifests import MODULE_DIRS, changed_files, find_manifests, is_description
 from napkinstack.modules import LOGIN
 from napkinstack.project import ANSWERS
@@ -526,18 +526,28 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     def tree_of(commit: str) -> str:
         return _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{tree}}").stdout.strip()
 
+    forge = project.forge(root)
+    # With no forge there is no pull request to carry a sheet: one filled in the form's file and
+    # passed with --body-file is judged; none at all is said, not failed (ADR-0010 §6).
+    carried = forge != "none" or bool(body.strip())
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
-                             lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
+                             lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head)) if carried else []
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
-    print(f"Test sheet      : {'required' if reasons else 'not required'}")
+    print(f"Test sheet      : {'required' if reasons else 'not required'}"
+          + ("" if carried or not reasons else " — no carrier: forge none has no pull request. T1 to T5 "
+             "judge a sheet filled in docs/pull_request_template.md — with its Deliverable line — passed by "
+             "nstack attest --body-file <file>"))
     print(f"Checks          : {checks}")
-    for line in summary(body, authorship) if reasons else []:
+    for line in summary(body, authorship) if reasons and carried else []:
         print(line)
+    if reasons and carried and forge != "github":
+        print(f"  Off GitHub (forge {forge}): the verifier compared with the change's agent sessions and "
+              "GitHub's noreply addresses only — no person is recognised as an author off GitHub by any other address")
     for scenario in human_only:
         print(f"  For the approver, human only: {scenario}")
     for warning in warnings:

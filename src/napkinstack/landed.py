@@ -97,6 +97,12 @@ def _since_last_record(root: Path, span: str, forge: GitHub) -> tuple[str, str |
 
 
 def run(root: Path, span: str, forge: GitHub | None) -> int:
+    from napkinstack import project
+
+    if (name := project.forge(root)) != "github":
+        print(f"[W1] not run — forge {name}: the record reads GitHub's pull requests, and this version reads "
+              "no other forge's.")
+        return 0
     pushed = _commits(root, span)
     commits = pushed
     if commits is None:
