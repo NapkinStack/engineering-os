@@ -570,7 +570,7 @@ SKELETON = Path(__file__).resolve().parents[2] / "skeleton"
 
 def test_contributing_says_how_several_contributors_share_a_project():
     """PDR-0015, point 7: each of the four, pointing to the handbook page that holds the detail."""
-    page = (SKELETON / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    page = (SKELETON / "CONTRIBUTING.md.jinja").read_text(encoding="utf-8")
     section = page.split("## Working with several contributors", 1)[1].split("\n## ", 1)[0]
     said = {
         "shared by module": ("by module", "02-modules.md"),

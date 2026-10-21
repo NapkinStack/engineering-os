@@ -685,3 +685,48 @@ def test_back_on_github_the_way_to_ci_is_said(tmp_path, snapshot, capsys):
     root = create(tmp_path, "gitlab", snapshot)
     assert project.change_forge(root, "github", github_repo="acme/demo") == 0
     assert "checks: forge" in capsys.readouterr().out
+
+
+# --- the pages, per forge (ADR-0010, consequences) ------------------------------------------------
+
+OFF = [forge for forge in EXPECTED if forge != "github"]
+
+
+@pytest.mark.parametrize("forge", OFF)
+def test_off_github_the_pages_a_project_reads_name_no_github_file(created, forge):
+    for page in ("CONTRIBUTING.md", "SECURITY.md", ".nstack/handbook/INSTALL.md"):
+        text = (created[forge] / page).read_text(encoding="utf-8")
+        assert ".github/" not in text, f"{forge}: {page} names .github/"
+    install = (created[forge] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    for said in ("GitHub repository", "hosted Ubuntu", "variable set NSTACK_RUNS_ON", "shown on GitHub as milestones"):
+        assert said not in install, f"{forge}: INSTALL.md says '{said}'"
+    assert "GitHub push" not in (created[forge] / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+
+def test_on_github_the_pages_keep_github_s_words(created):
+    root = created["github"]
+    contributing = (root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "`.github/CODEOWNERS`" in contributing and "GitHub push<br/>protection" in contributing
+    assert "CI 'Hooks and secrets'" in contributing and "{%" not in contributing
+    assert "**Security** tab" in (root / "SECURITY.md").read_text(encoding="utf-8")
+    install = (root / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    assert "GitHub repository" in install and "NSTACK_RUNS_ON" in install and "| `.github/` |" in install
+
+
+def test_security_off_github_names_a_private_channel(created):
+    assert "confidential issue" in (created["gitlab"] / "SECURITY.md").read_text(encoding="utf-8")
+    for forge in OFF:
+        assert "`CODEOWNERS`" in (created[forge] / "SECURITY.md").read_text(encoding="utf-8")
+
+
+def test_the_kernel_and_the_handbook_name_the_identity_and_the_ownership_file_of_any_forge():
+    skeleton = ROOT / "skeleton"
+    assert "your own GitHub identity" not in (skeleton / "AGENTS.md").read_text(encoding="utf-8")
+    for page in ("05-workflow.md", "07-governance.md", "09-platform.md", "README.md"):
+        text = (skeleton / ".nstack/handbook" / page).read_text(encoding="utf-8")
+        assert "`.github/CODEOWNERS`" not in text or "`CODEOWNERS`" in text.replace("`.github/CODEOWNERS`", ""), page
+
+
+def test_the_glossary_defines_the_forge():
+    glossary = (ROOT / "skeleton/.nstack/handbook/glossary.md").read_text(encoding="utf-8")
+    assert "| **Forge" in glossary and "unguarded" in glossary.split("| **Forge", 1)[1].split("\n", 1)[0]
