@@ -153,6 +153,24 @@ def _show(root: Path, commit: str, passed: int, total: int) -> str:
         return f"not shown on GitHub ({error})"
 
 
+def evidence_of(root: Path, commit: str) -> list[dict]:
+    """The audits of the end-to-end runs made on this commit (ADR-0009): each module's folder,
+    relative to the project — never a path naming a person's home in notes pushed."""
+    found = []
+    for path in sorted(root.rglob(".evidence/e2e/audit.json")):
+        try:
+            audit = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(audit, dict) and audit.get("commit") == commit:
+            kept = {key: value for key, value in audit.items() if key not in ("commit", "module")}
+            # A log line may carry a path or a name: ten at most travel in notes pushed to a remote.
+            undeclared = kept.get("undeclared") if isinstance(kept.get("undeclared"), list) else []
+            kept.update(undeclared=undeclared[:10], undeclared_count=len(undeclared))
+            found.append({"module": audit.get("module"), "folder": path.parent.relative_to(root).as_posix(), "audit": kept})
+    return found
+
+
 def run(root: Path, base: str, body_file: Path | None, labels: str) -> int:
     print(provenance.judged_by(root), flush=True)
     if _git(root, "status", "--porcelain", "--untracked-files=normal").stdout.strip():
@@ -191,7 +209,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str) -> int:
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "published": origin is None, "by": who, "session": _session(root, commit),
-              "base": base, "checks": results}
+              "base": base, "checks": results, "evidence": evidence_of(root, commit)}
     remote = fetch(root)
     before = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False)
     lines = (before.stdout.rstrip("\n") + "\n" if before.returncode == 0 and before.stdout.strip() else "")

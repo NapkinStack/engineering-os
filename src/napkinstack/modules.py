@@ -369,6 +369,24 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             shutil.rmtree(dist, ignore_errors=True)
             dist.mkdir(parents=True)
             environment = {**os.environ, "NSTACK_DIST": str(dist.resolve())}
+        if verb == "e2e":
+            # Its evidence: a folder of its own, its output kept, its logs read after (ADR-0009).
+            from napkinstack import evidence
+
+            folder = evidence.prepare(root, known[target])
+            if isinstance(folder, str):
+                print(f"FAIL [e2e] module '{target}': {folder}")
+                return 1
+            print(f"-> {target}: {command}", flush=True)
+            code, held = evidence.run(command, known[target], {**os.environ, "NSTACK_EVIDENCE": str(folder.resolve())},
+                                      folder)
+            passed = evidence.finish(root, target, known[target], folder, code, held)
+            if code:
+                print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}.")
+                return code
+            if not passed:
+                return 1
+            continue
         print(f"-> {target}: {command}", flush=True)
         code = subprocess.run(command, shell=True, cwd=known[target], env=environment).returncode
         if code:
