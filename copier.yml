@@ -34,16 +34,16 @@ _skip_if_exists:
   - /docs/adr/README.md
   - /docs/pdr/README.md
 
-project_name:
-  type: str
-  help: Project name
-
-# Where the project's changes merge (PDR-0018): GitHub by default; git is required everywhere.
+# Asked first — where the project's changes merge (PDR-0018): GitHub by default; git is required everywhere.
 forge:
   type: str
   choices: [github, gitlab, forgejo, gitea, other, none]
   default: github
   help: The forge where the project's changes merge — github, gitlab, forgejo, gitea, other, or none
+
+project_name:
+  type: str
+  help: Project name
 
 github_repo:
   type: str
@@ -66,7 +66,8 @@ repository:
 owner_team:
   type: str
   help: >-
-    Owner of the foundation: a team at the forge (organisation/team, or a GitLab group/subgroup),
+    Owner of the foundation: a team at the forge —
+    organisation/team{{ ', or group/subgroup/team' if forge != 'github' else '' }} —
     or a user when the project has no organisation
   validator: >-
     {% set team = '[A-Za-z0-9-]+(/[A-Za-z0-9._-]+)+' if forge != 'github' else '[A-Za-z0-9-]+/[A-Za-z0-9._-]+' %}

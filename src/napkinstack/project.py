@@ -137,6 +137,16 @@ def ownership(root: Path) -> Path:
     return root / (OWNERSHIP[0] if forge(root) == "github" else OWNERSHIP[1])
 
 
+def settle_checks(root: Path, given: dict) -> None:
+    """A forge chosen at Copier's prompt is unknown before the copy: off GitHub, where no CI is
+    shipped, `checks` is attested unless the caller gave it (PDR-0018)."""
+    path = root / ANSWERS
+    if "checks" in given or not path.is_file() or forge(root) == "github":
+        return
+    text = path.read_text(encoding="utf-8")
+    path.write_text(re.sub(r"^checks: forge$", "checks: attested", text, flags=re.M), encoding="utf-8")
+
+
 def init(destination: Path, answers: dict[str, str | None], source: str, ref: str) -> int:
     import copier
     from copier.errors import CopierError
@@ -161,12 +171,18 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     if "github_repo" in data:
         data.setdefault("forge", "github")  # a GitHub repository named: the forge needs no asking
     named = data.get("forge", "github")
+    if named in ("github", "none") and data.get("repository"):
+        print(f"FAIL [init] --repository names a repository at another forge, and this project's forge is "
+              f"{named}.\n      Action: " + ("give --github-repo instead." if named == "github" else "leave it out: "
+              "with no forge there is no repository but this folder."))
+        return 1
     if named != "github" and data.get("github_repo"):
         print(f"FAIL [init] github_repo is GitHub's answer, and this project's forge is {named}.\n"
               "      Action: give its repository at that forge with --repository, or choose --forge github.")
         return 1
     # Not asked at init (Copier would ask): a project on GitHub starts on its CI; elsewhere no CI
-    # is shipped, and its checks are attested (PDR-0018).
+    # is shipped, and its checks are attested (PDR-0018) — settled after the copy when the forge
+    # was asked by Copier itself.
     data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
     try:
@@ -175,6 +191,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
         print(_explain(exc, "init", destination, source, ref))
         return 1
 
+    settle_checks(destination, given=data)
     created = _answers(destination)
     version = created.get("_commit", ref)
     for args in (("init", "--quiet", "--initial-branch=main"), ("add", "--all"),

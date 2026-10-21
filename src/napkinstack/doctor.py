@@ -310,14 +310,17 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
 
 def _default_owner(root: Path) -> tuple[str, str]:
     """L6: `*` first, so that the code owner review covers every path (ADR-0004)."""
-    path = root / CODEOWNERS
+    from napkinstack.project import ownership
+
+    path = ownership(root)  # where the project's forge reads it (ADR-0010)
+    shown = path.relative_to(root).as_posix()
     if not path.is_file():
-        return GAP, f"{CODEOWNERS} missing.\nAction: create it, starting with `*  @<owner>`."
+        return GAP, f"{shown} missing.\nAction: create it, starting with `*  @<owner>`."
     rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
              if line.strip() and not line.lstrip().startswith("#")]
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
         return OK, ""
-    return GAP, (f"The first rule of {CODEOWNERS} is not a default owner.\nAction: make `*  @<owner>` "
+    return GAP, (f"The first rule of {shown} is not a default owner.\nAction: make `*  @<owner>` "
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
 
 

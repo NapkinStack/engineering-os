@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack import assurance
-from napkinstack.project import ownership
+from napkinstack.project import forge, ownership
 from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
                                            module_content)
 
@@ -30,8 +30,14 @@ NAME = re.compile(r"[a-z][a-z0-9-]*")
 # Defined once here, the identity rule's home: fitness/plan.py reads it for a charter's decider.
 HANDLE = r"(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*"
 LOGIN = r"[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}"  # the same rule, unanchored: a handle inside a sentence
-OWNER = re.compile(  # same rule as copier.yml: organisation/team, or a GitHub user
+OWNER = re.compile(  # same rule as copier.yml on GitHub: organisation/team, or a GitHub user
     rf"[A-Za-z0-9-]+/[A-Za-z0-9._-]+|{HANDLE}")
+SUBGROUPS = re.compile(  # off GitHub, a forge's nested groups too: group/subgroup/team (ADR-0010)
+    rf"[A-Za-z0-9-]+(?:/[A-Za-z0-9._-]+)+|{HANDLE}")
+
+
+def owner_valid(root: Path, owner: str) -> bool:
+    return bool((OWNER if forge(root) == "github" else SUBGROUPS).fullmatch(owner))
 OPTIONAL = {"bootstrap": "nothing to prepare", "e2e": "no end-to-end scenario", "clean": "nothing to clean"}  # undeclared: skipped
 # Undeclared, skipped when every module is released; asked of one module by name, it is owed.
 ALL_ONLY = {"release": "nothing to release"}
@@ -62,10 +68,10 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     if not NAME.fullmatch(name):
         print(f"FAIL [new-module] invalid name '{name}': kebab-case expected, for example billing.")
         return 1
-    if not OWNER.fullmatch(owner):
-        print(f"FAIL [new-module] invalid owner '{owner}': a GitHub team, organisation/team, "
-              "or a user when the project has no organisation, for example acme/billing "
-              "(CODEOWNERS, .nstack/handbook/07-governance.md §7).")
+    if not owner_valid(root, owner):
+        print(f"FAIL [new-module] invalid owner '{owner}': a team at the forge — organisation/team, or a "
+              "GitLab group/subgroup off GitHub — or a user when the project has no organisation, for "
+              "example acme/billing (CODEOWNERS, .nstack/handbook/07-governance.md §7).")
         return 1
     folder = root / "modules" / name
     if folder.exists():
@@ -150,7 +156,7 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
     except (OSError, yaml.YAMLError):
         answers = {}
     owner = owner or str(answers.get("owner_team") or "")
-    if not OWNER.fullmatch(owner):
+    if not owner_valid(root, owner):
         print(f"FAIL [new-contract] no valid owner for the contracts module ('{owner}').\n"
               "      Action: pass --owner organisation/team — a boundary is never orphaned "
               "(.nstack/handbook/03-contracts.md §2).")
@@ -164,7 +170,10 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
     created = not (module / "MANIFEST.yaml").is_file()
     if created:
         shutil.copytree(CONTRACTS, module, dirs_exist_ok=True)
-        values = {"{{OWNER}}": owner, "{{GITHUB_REPO}}": str(answers.get("github_repo") or "")}
+        # The contact: the project's discussions on GitHub; elsewhere, the module's owner (ADR-0010).
+        contact = (f"https://github.com/{answers.get('github_repo')}/discussions" if forge(root) == "github"
+                   else f"@{owner}")
+        values = {"{{OWNER}}": owner, "{{CONTACT}}": contact}
         manifest = module / "MANIFEST.yaml"
         text = manifest.read_text(encoding="utf-8")
         for marker, value in values.items():

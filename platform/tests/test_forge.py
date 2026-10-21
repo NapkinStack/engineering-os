@@ -131,3 +131,52 @@ def test_a_github_project_s_update_writes_forge_github_and_changes_nothing_else(
     updated = yaml.safe_load((old / ".copier-answers.yml").read_text(encoding="utf-8"))
     assert updated["forge"] == "github" and updated["github_repo"] == "acme/demo"
     assert after == before, f"files added or removed: {sorted(after ^ before)}"
+
+
+# --- what the verifier of part 1 found --------------------------------------------------------
+
+def test_a_forge_chosen_interactively_still_gets_attested_checks(tmp_path):
+    """Asked by Copier, the forge is unknown before the copy: the engine settles `checks` after it."""
+    (tmp_path / ".copier-answers.yml").write_text("_commit: v0.15.0\nforge: gitlab\nchecks: forge\n", encoding="utf-8")
+    project.settle_checks(tmp_path, given={})
+    assert "checks: attested" in (tmp_path / ".copier-answers.yml").read_text(encoding="utf-8")
+    (tmp_path / ".copier-answers.yml").write_text("_commit: v0.15.0\nforge: gitlab\nchecks: forge\n", encoding="utf-8")
+    project.settle_checks(tmp_path, given={"checks": "forge"})  # the decider said it: kept
+    assert "checks: forge" in (tmp_path / ".copier-answers.yml").read_text(encoding="utf-8")
+
+
+def test_doctor_reads_the_ownership_file_where_the_forge_has_it(created):
+    from napkinstack import doctor
+
+    assert doctor._default_owner(created["gitlab"])[0] == doctor.OK
+
+
+@pytest.mark.parametrize("forge, accepted", [("gitlab", True), ("github", False)])
+def test_a_subgroup_owner_is_accepted_where_the_forge_has_subgroups(created, forge, accepted):
+    from napkinstack import modules
+
+    assert (modules.create(created[forge], f"pay-{forge}", "acme/sub/pay", "standard", False) == 0) is accepted
+
+
+def test_a_contract_off_github_has_its_owner_as_contact_never_a_github_link(created):
+    from napkinstack import modules
+
+    root = created["gitlab"]
+    assert modules.create_contract(root, "orders", None) == 0
+    manifest = (root / "contracts/MANIFEST.yaml").read_text(encoding="utf-8")
+    assert "github.com" not in manifest and "acme/platform" in manifest
+
+
+@pytest.mark.parametrize("forge", ["github", "none"])
+def test_a_repository_path_is_refused_where_the_forge_takes_none(tmp_path, capsys, forge):
+    answers = {"project_name": "Demo", "owner_team": "acme/platform", "forge": forge, "repository": "acme/demo",
+               **({"github_repo": "acme/demo"} if forge == "github" else {})}
+    assert project.init(tmp_path / forge, answers, str(ROOT), "HEAD") == 1
+    assert "repository" in capsys.readouterr().out
+
+
+def test_a_description_file_that_does_not_exist_is_said_never_a_traceback(tmp_path, capsys):
+    from napkinstack import pull_request
+
+    assert pull_request.run(tmp_path, "HEAD", tmp_path / "missing.md") == 1
+    assert "FAIL [pr-check]" in capsys.readouterr().out
