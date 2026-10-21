@@ -46,6 +46,7 @@ One workstream — D140 (PDR-0017, ADR-0009): a change's end-to-end runs show wh
   patterns that compile and accept no empty line, a level, a scenario.
 - **`nstack attest`** records each module's audit of the commit (`evidence`), folders relative,
   ten undeclared lines at most.
+- **`nstack new-module`**'s manifest shows a commented `evidence` section.
 - **`nstack board`** says *updated* — it cannot tell the plan moving from a hand edit — and once
   what an update means.
 
@@ -62,7 +63,18 @@ One workstream — D140 (PDR-0017, ADR-0009): a change's end-to-end runs show wh
 
 **Migration** — none to take it: the audit reports only. Before the next minor version, a module
 with an `e2e` command writes its logs into `$NSTACK_EVIDENCE` and declares, in its manifest, the
-warnings and errors its scenarios provoke — each run lists them, ready to paste.
+warnings and errors its scenarios provoke — each run lists them, ready to paste. What changes for
+an `e2e` command now:
+
+- its output is a pipe, not a terminal — standard error merged into standard output: a script
+  that tests for a terminal (colour, a progress bar, a prompt) sees none;
+- `.evidence/e2e/` is emptied before each run: what a module kept there from an earlier run is
+  removed — keep it elsewhere;
+- the run is refused when `.evidence` or `.evidence/e2e` is a link or a file, when another run of
+  the module is in progress, or when a file there cannot be removed — each said, with its action;
+- a declaration that cannot be read stops the run even while the audit only reports: run
+  `nstack manifests` (M12) after writing one; an undeclared or unknown criticality is judged as
+  `critical`.
 
 ---
 
