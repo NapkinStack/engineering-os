@@ -20,6 +20,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack import assurance
+from napkinstack.project import ownership
 from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
                                            module_content)
 
@@ -93,14 +94,14 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
         manifest.write_text(re.sub(r"^( *)# runbook:", r"\1runbook:",
                                    manifest.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
 
-    codeowners = root / ".github" / "CODEOWNERS"
+    codeowners = ownership(root)
     line = f"/modules/{name}/"
     if codeowners.is_file():
         content = codeowners.read_text(encoding="utf-8")
         if not any(existing.split()[:1] == [line] for existing in content.splitlines()):
             codeowners.write_text(content.rstrip("\n") + f"\n{line:<31}@{owner}\n", encoding="utf-8")
     else:
-        print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
+        print(f"WARNING: {codeowners.relative_to(root)} missing; add \"{line} @{owner}\" to it.")
 
     print(f"Module created: modules/{name} (owner {owner}, criticality {criticality}"
           + (", user-facing" if user_facing else "") + (", runbook to fill in" if runbook else "") + ").")
@@ -169,7 +170,7 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
         for marker, value in values.items():
             text = text.replace(marker, value)
         manifest.write_text(text, encoding="utf-8")
-        codeowners = root / ".github" / "CODEOWNERS"
+        codeowners = ownership(root)
         line = "/contracts/"
         if codeowners.is_file():
             content = codeowners.read_text(encoding="utf-8")
@@ -177,7 +178,7 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
                 codeowners.write_text(content.rstrip("\n") + "\n\n# Contracts: the most critical boundary "
                                       f"in the system, never orphaned.\n{line:<31}@{owner}\n", encoding="utf-8")
         else:
-            print(f"WARNING: .github/CODEOWNERS missing; add \"{line} @{owner}\" to it.")
+            print(f"WARNING: {codeowners.relative_to(root)} missing; add \"{line} @{owner}\" to it.")
         print(f"contracts/ created: the module that holds every contract (owner {owner}, criticality high).")
     (folder / "v1").mkdir(parents=True)
     (folder / "v1" / "README.md").write_text(CONTRACT.format(name=name), encoding="utf-8")

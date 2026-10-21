@@ -58,7 +58,8 @@ def _add(sub, name: str, help_: str, func) -> argparse.ArgumentParser:
 def _init(args: argparse.Namespace) -> int:
     from napkinstack import project  # Copier is only loaded for init and update
 
-    answers = {"project_name": args.project_name, "github_repo": args.github_repo,
+    answers = {"project_name": args.project_name, "forge": args.forge, "github_repo": args.github_repo,
+               "repository": args.repository,
                "owner_team": args.owner_team}
     return project.init(args.destination, answers, args.source or project.SOURCE,
                         args.ref or project.default_ref())
@@ -186,7 +187,11 @@ def build_parser() -> argparse.ArgumentParser:
     ini = sub.add_parser("init", help="creates a project from the skeleton")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")
-    ini.add_argument("--github-repo", help="GitHub repository, organisation/name (asked when absent)")
+    ini.add_argument("--forge", choices=["github", "gitlab", "forgejo", "gitea", "other", "none"],
+                     help="where the project's changes merge (asked when absent; github by default)")
+    ini.add_argument("--github-repo", help="GitHub repository, organisation/name — on GitHub (asked when absent)")
+    ini.add_argument("--repository", help="the repository's path at another forge, group/name or "
+                                          "group/subgroup/name (asked when absent)")
     ini.add_argument("--owner-team", help="owner of the foundation: organisation/team, or a user "
                                           "when the project has no organisation (asked when absent)")
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")

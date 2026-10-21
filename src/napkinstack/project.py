@@ -119,6 +119,24 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
     return f"FAIL [{command}] Copier: {text}"
 
 
+FORGES = ("github", "gitlab", "forgejo", "gitea", "other", "none")
+OWNERSHIP = (Path(".github") / "CODEOWNERS", Path("CODEOWNERS"), Path("docs") / "CODEOWNERS")
+
+
+def forge(root: Path) -> str:
+    """The project's forge, as its answers file says it (PDR-0018): GitHub where it says none."""
+    value = _answers(root).get("forge") if (root / ANSWERS).is_file() else None
+    return str(value) if value in FORGES else "github"
+
+
+def ownership(root: Path) -> Path:
+    """The ownership file the forge reads: the first that exists, else where this forge's goes."""
+    found = next((root / path for path in OWNERSHIP if (root / path).is_file()), None)
+    if found is not None:
+        return found
+    return root / (OWNERSHIP[0] if forge(root) == "github" else OWNERSHIP[1])
+
+
 def init(destination: Path, answers: dict[str, str | None], source: str, ref: str) -> int:
     import copier
     from copier.errors import CopierError
@@ -140,7 +158,16 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
               f"folder inside it — nstack init {destination}/<project>.")
         return 1
     data = {question: value for question, value in answers.items() if value is not None}
-    data.setdefault("checks", "forge")  # a project starts judged on the forge; the decider may change it
+    if "github_repo" in data:
+        data.setdefault("forge", "github")  # a GitHub repository named: the forge needs no asking
+    named = data.get("forge", "github")
+    if named != "github" and data.get("github_repo"):
+        print(f"FAIL [init] github_repo is GitHub's answer, and this project's forge is {named}.\n"
+              "      Action: give its repository at that forge with --repository, or choose --forge github.")
+        return 1
+    # Not asked at init (Copier would ask): a project on GitHub starts on its CI; elsewhere no CI
+    # is shipped, and its checks are attested (PDR-0018).
+    data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
     try:
         copier.run_copy(source, destination, data=data, vcs_ref=ref, quiet=True, unsafe=False)
@@ -163,11 +190,20 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     print(f"Project created in {destination}, NapkinStack {version}, initial commit on main.")
     print("\nNext steps:")
     print(f"  1. cd {destination} && pre-commit install")
-    print(f"  2. Create the GitHub repository {created.get('github_repo')}, push main to it, then apply "
-          "these settings:")
-    for _, setting, _ in CHECKLIST:
-        print(f"     - [ ] {setting}")
-    print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
+    named = str(created.get("forge") or "github")
+    if named == "github":
+        print(f"  2. Create the GitHub repository {created.get('github_repo')}, push main to it, then apply "
+              "these settings:")
+        for _, setting, _ in CHECKLIST:
+            print(f"     - [ ] {setting}")
+        print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
+        return 0
+    where = (f"Create the repository {created.get('repository')} at {named}, push main to it"
+             if named != "none" else "No forge: the repository is this folder")
+    print(f"  2. {where}. No CI is shipped for {named}: a change's checks are attested where the team "
+          "works — nstack attest — and the repository is unguarded: nothing at the forge refuses a merge "
+          "(.nstack/handbook/07-governance.md).")
+    print("  3. Check the workstation, read-only: nstack doctor")
     return 0
 
 
