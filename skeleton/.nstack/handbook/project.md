@@ -67,12 +67,13 @@ Read, never kept: `nstack plan` computes it from the accepted cycle's front matt
 one line, then who holds each deliverable.
 
 ```
-Cycle 03-the-window: 10 of 14 accepted · 2 in progress · 2 ready · day 4 of 21, 17 left (ends 2026-11-07)
-Holds in 03-the-window: 3 held, 0 stale (from origin; stale after 7 days without work):
+Cycle 03-the-window: 10 of 14 accepted · 2 in progress · 2 ready · day 5 of 21, 17 left (ends 2026-11-07)
+Holds in 03-the-window: 3 held, of which 0 stale (from origin; stale after 7 days without work):
 ```
 
-*Accepted* counts what the decider accepted; a `dropped` deliverable counts in nothing. Past its
-end date, the line says the circuit breaker fell and the decider chooses. The project's own
+*Accepted* counts what the decider accepted; a `dropped` deliverable counts in nothing. From its
+end date — the first day the cycle is over — the line says the circuit breaker fell and the
+decider chooses, and the pull request check refuses delivery work (K2). The project's own
 success — the charter's criteria — is read at the cycle's closure, not here. An agent reporting
 progress gives this line, so that one figure circulates.
 

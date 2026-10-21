@@ -161,7 +161,7 @@ def _deliverable(root: Path, ident: str) -> tuple[str, str] | str:
         return ("no accepted cycle: a deliverable is taken from the cycle in progress.\n"
                 "      Action: the decider accepts a cycle (.nstack/playbooks/framing.md).")
     path, data = cycle
-    items = {str(item.get("id")): item for item in data.get("deliverables") or [] if isinstance(item, dict)}
+    items = {str(item.get("id")): item for item in (data.get("deliverables") if isinstance(data.get("deliverables"), list) else []) if isinstance(item, dict)}
     if ident not in items:
         return (f"{ident} is not in {path.stem}.\n      Action: name one of {', '.join(items) or 'its deliverables'}.")
     state = items[ident].get("state")
@@ -442,7 +442,8 @@ def show(root: Path) -> int:
         print(f"\nHolds in {path.stem}: holds not read — the remote cannot be read.\n      {error}")
         return 0
     lines, held, stale = [], 0, 0
-    for item in data.get("deliverables") or []:
+    items = data.get("deliverables")
+    for item in items if isinstance(items, list) else []:
         if not isinstance(item, dict):
             continue
         ident, state = str(item.get("id")), item.get("state")
@@ -461,7 +462,7 @@ def show(root: Path) -> int:
             held += 1
             lines.append(f"  {ident}  {said(found)}")
     where = f"from {name}" if name else "local only: no remote"
-    print(f"\nHolds in {path.stem}: {held} held, {stale} stale ({where}; stale after {days} days without work):")
+    print(f"\nHolds in {path.stem}: {held} held, of which {stale} stale ({where}; stale after {days} days without work):")
     print("\n".join(lines) or "  no ready deliverable")
     return 0
 

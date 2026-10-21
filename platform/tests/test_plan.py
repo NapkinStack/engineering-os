@@ -298,3 +298,41 @@ def test_no_accepted_cycle_says_no_line(tmp_path, capsys):
 def test_the_handbook_says_where_progress_is_read():
     page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/project.md").read_text(encoding="utf-8")
     assert "## A cycle's progress" in page and "nstack plan" in page.split("## A cycle's progress", 1)[1]
+
+
+def test_a_cycle_whose_deliverables_are_not_a_list_is_reported_never_a_crash(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": cycle(deliverables=5)})
+    assert plan.run(tmp_path) == 1
+    assert "[C4]" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("days_before_end, said", [(1, "day 21 of 21, 1 left"),
+                                                   (0, "ended on")], ids=["last day", "end date"])
+def test_the_end_date_is_the_first_day_over(tmp_path, capsys, days_before_end, said):
+    """The cycle form: `end` is the first day the cycle is over — the circuit breaker."""
+    start = TODAY + datetime.timedelta(days=days_before_end) - datetime.timedelta(weeks=3)
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(start)})
+    plan.run(tmp_path)
+    assert said in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("start, said", [(TODAY + datetime.timedelta(days=1), "starts in 1 day ("),
+                                         (TODAY - datetime.timedelta(weeks=3, days=1), "1 day ago")])
+def test_one_day_is_said_in_the_singular(tmp_path, capsys, start, said):
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(start)})
+    plan.run(tmp_path)
+    assert said in capsys.readouterr().out
+
+
+def test_a_state_the_line_does_not_name_is_counted_as_other(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(TODAY, states=("accepted", "doing"))})
+    plan.run(tmp_path)
+    assert "1 of 2 accepted · 1 other" in capsys.readouterr().out
+
+
+def test_the_handbook_s_example_is_one_the_engine_prints():
+    page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/project.md").read_text(encoding="utf-8")
+    example = next(line for line in page.splitlines() if line.startswith("Cycle 03-the-window:"))
+    import re
+    day, length, left = map(int, re.search(r"day (\d+) of (\d+), (\d+) left", example).groups())
+    assert day - 1 + left == length, example

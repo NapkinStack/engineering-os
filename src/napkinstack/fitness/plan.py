@@ -161,17 +161,24 @@ def progress(root: Path, today: datetime.date | None = None) -> str | None:
     if cycle is None:
         return None
     path, data = cycle
-    states = [item.get("state") for item in data.get("deliverables") or [] if isinstance(item, dict)]
+    items = data.get("deliverables")
+    states = [item.get("state") for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
     counted = [state for state in states if state != "dropped"]
     said = [f"{states.count('accepted')} of {len(counted)} accepted"]
     said += [f"{counted.count(state)} {name}" for state, name in PROGRESS[1:] if counted.count(state)]
+    other = len(counted) - sum(counted.count(state) for state, _ in PROGRESS)
+    said += [f"{other} other"] if other else []
     today = today or datetime.date.today()
     start, end = as_date(data.get("start")), as_date(data.get("end"))
+
+    def days(count: int) -> str:
+        return f"{count} day" + ("" if count == 1 else "s")
+
     if start and end:
         if today < start:
-            said.append(f"starts in {(start - today).days} days ({start})")
-        elif today >= end:
-            said.append(f"ended on {end}, {(today - end).days} days ago — the circuit breaker: the decider chooses")
+            said.append(f"starts in {days((start - today).days)} ({start})")
+        elif today >= end:  # the first day the cycle is over (the cycle form), as K2 reads it
+            said.append(f"ended on {end}, {days((today - end).days)} ago — the circuit breaker: the decider chooses")
         else:
             said.append(f"day {(today - start).days + 1} of {(end - start).days}, {(end - today).days} left (ends {end})")
     return f"Cycle {path.stem}: " + " · ".join(said)
