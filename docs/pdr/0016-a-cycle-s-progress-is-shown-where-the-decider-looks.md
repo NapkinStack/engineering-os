@@ -1,6 +1,7 @@
 # PDR-0016 — A cycle's progress is shown where the decider looks, and kept nowhere else
 
-- **Status**: Proposed (2026-10-21). Asked by the maintainer: *can't we see progress properly in
+- **Status**: Accepted (2026-10-21, by the maintainer, approving #226); the how in ADR-0008. Asked
+  by the maintainer: *can't we see progress properly in
   GitHub, as a timeline in Jira?* (#220), under two rules they set as absolute the same day — the
   repository is the single source of truth; no manual intervention on a forge
 - **Date**: 2026-10-21
