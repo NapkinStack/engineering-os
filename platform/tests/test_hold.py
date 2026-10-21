@@ -477,19 +477,24 @@ def test_a_stale_hold_tells_its_holder_to_renew_and_others_to_take_over(shared, 
 class Forge:
     """GitHub's API as the claim calls it: each request recorded, each answer given."""
 
-    def __init__(self, pulls=()):
-        self.calls, self.pulls = [], list(pulls)
+    def __init__(self, pulls=(), repository=None):
+        self.calls, self.pulls, self.headers = [], list(pulls), []
+        self.repository = {"default_branch": "main"} if repository is None else repository
 
     def __call__(self, request, timeout=None):
         import io
         import json as j
+        import urllib.parse
 
         body = j.loads(request.data) if request.data else None
         self.calls.append((request.get_method(), request.full_url, body))
+        self.headers.append({key.lower(): value for key, value in request.header_items()})
         if request.get_method() == "GET" and "/pulls" in request.full_url:
-            answer = self.pulls
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.full_url).query)
+            head = query.get("head", [""])[0]
+            answer = [pull for pull in self.pulls if not head or f"acme:{pull['head']['ref']}" == head]
         elif request.get_method() == "GET":
-            answer = {"default_branch": "main"}
+            answer = self.repository
         elif request.full_url.endswith("/pulls"):
             answer = {"html_url": "https://github.com/acme/p/pull/7", "number": 7}
         else:
@@ -580,3 +585,109 @@ def test_contributing_says_how_several_contributors_share_a_project():
 def test_the_kernel_tells_an_agent_to_take_its_deliverable_and_stop_on_a_hold():
     kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
     assert "nstack claim D<n> --session" in kernel and "held by someone else" in kernel.lower()
+
+
+# --- found by the verifier of part 2b ---------------------------------------------------
+
+def stale_alice(shared, monkeypatch):
+    for name, value in ago(10).items():
+        monkeypatch.setenv(name, value)
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
+        monkeypatch.delenv(name)
+
+
+def test_a_take_over_tells_only_pull_requests_from_this_repository_s_work_branches(shared, monkeypatch, capsys):
+    """A fork's branch of the same name is no work on the hold: GitHub's head filter, owner:branch,
+    asks for this repository's branches only."""
+    stale_alice(shared, monkeypatch)
+    forge = Forge(pulls=[{"number": 3, "head": {"ref": "d1-resume-an-interrupted-recording"}}])
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    hold.claim(on_github(clone(shared, "bob"), shared), "D1", session="bob-d1", person="@bob", take_over=True)
+    asked = [url for method, url, _ in forge.calls if method == "GET" and "/pulls" in url]
+    assert asked and all("head=acme%3Ad1-" in url or "head=acme:d1-" in url for url in asked)
+
+
+def test_a_new_holder_on_an_existing_branch_is_said_on_its_open_pull_request(shared, monkeypatch, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    hold.release(alice, "D1", person="@alice")
+    forge = Forge(pulls=[{"number": 3, "head": {"ref": "d1-resume-an-interrupted-recording"}}])
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    capsys.readouterr()
+    assert hold.claim(on_github(clone(shared, "bob"), shared), "D1", session="bob-d1", person="@bob") == 0
+    told = [body["body"] for method, url, body in forge.calls if url.endswith("/issues/3/comments")]
+    assert len(told) == 1 and "@bob" in told[0]
+    assert "#3 told" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("repository", [[], None, {"no": "default branch"}], ids=["list", "null", "no field"])
+def test_an_odd_answer_from_the_forge_never_escapes_after_the_hold(shared, monkeypatch, capsys, repository):
+    forge = Forge(repository=repository)
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    assert hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice") == 0
+    assert remote_events(shared) == ["claim"]
+
+
+def test_a_truncated_answer_never_escapes_after_the_hold(shared, monkeypatch, capsys):
+    import http.client
+
+    def truncated(request, timeout=None):
+        raise http.client.IncompleteRead(b"{}")
+
+    monkeypatch.setattr(hold.urllib.request, "urlopen", truncated)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    assert hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice") == 0
+    assert "not shown on GitHub" in capsys.readouterr().out
+
+
+def test_the_forge_s_own_reason_is_said(shared, monkeypatch, capsys):
+    import io
+    import urllib.error
+
+    def refuse(request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 422, "Unprocessable Content", {},
+                                     io.BytesIO(b'{"message": "Draft pull requests are not supported in this repository."}'))
+
+    monkeypatch.setattr(hold.urllib.request, "urlopen", refuse)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice")
+    assert "Draft pull requests are not supported" in capsys.readouterr().out
+
+
+def test_requests_carry_the_api_version_the_engine_and_json(shared, monkeypatch):
+    from napkinstack import doctor
+
+    forge = Forge()
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice")
+    for headers in forge.headers:
+        assert headers.get("x-github-api-version") == doctor.API_VERSION
+        assert headers.get("user-agent", "").startswith("nstack/")
+    posted = [h for (method, _, _), h in zip(forge.calls, forge.headers) if method == "POST"]
+    assert posted and all(h.get("content-type") == "application/json" for h in posted)
+
+
+def test_an_empty_api_address_is_the_default_one(shared, monkeypatch):
+    forge = Forge()
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    monkeypatch.setenv("GITHUB_API_URL", "")
+    hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice")
+    assert forge.calls and all(url.startswith("https://api.github.com/") for _, url, _ in forge.calls)
+
+
+def test_the_definition_of_ready_asks_the_deliverable_held():
+    page = (SKELETON / ".nstack/handbook/05-workflow.md").read_text(encoding="utf-8")
+    ready = page.split("## 6. Definition of Ready", 1)[1].split("\n## ", 1)[0]
+    assert "nstack claim" in ready
+
+
+def test_the_kernel_says_where_the_person_comes_from_and_agrees_with_the_engine():
+    kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
+    assert "asked once" in kernel and "never git's user" in kernel
+    assert "take another ready deliverable" in kernel

@@ -35,11 +35,12 @@ flowchart LR
   `nstack claim D30 --person @you` — and an agent adds `--session <its session>`. `nstack plan`
   says who holds what; a hold nobody works on goes stale and may be taken over
   (`.nstack/handbook/project.md`, *Who holds a deliverable*).
-- **Any coding agent works.** It reads `AGENTS.md` at the root and follows it; the skills under
-  `.claude/skills/` are one tool's shortcut to the same playbooks (`.nstack/playbooks/`). Give
+- **Any coding agent works.** It reads `AGENTS.md` at the root and follows it; the skills
+  `nstack skills` makes under `.claude/skills/` are one tool's shortcut to the same playbooks
+  (`.nstack/playbooks/`). Give
   your agent its own identity and a session name (`.nstack/handbook/07-governance.md` §7).
-- **Joining.** The decider invites you on the forge; a pull request names you the owner of a
-  module in its `MANIFEST.yaml` and `.github/CODEOWNERS`, when you own one; you install the
+- **Joining.** The decider invites you on the forge; when you, or your team, own a
+  module, a pull request names the owner in its `MANIFEST.yaml` and `.github/CODEOWNERS`; you install the
   engine (`.nstack/handbook/INSTALL.md`) and run `pre-commit install`. Then *Before you start*.
 - **Who checks whom.** The author never verifies nor approves their own work: a verifier
   runs the test sheet, the module's owner approves (`.nstack/handbook/05-workflow.md` §10).
