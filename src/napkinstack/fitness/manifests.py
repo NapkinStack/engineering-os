@@ -19,6 +19,8 @@ Rules:
   M10 user_facing declared: true when a user sees the module (.nstack/handbook/05-workflow.md §7)
   M11 assembles names other modules, as a list, and no module waits for itself through it
       (.nstack/handbook/09-platform.md §2, D127)
+  M12 evidence declares what the module's end-to-end scenarios provoke: patterns that compile and
+      check something, a level, a scenario (ADR-0009)
 
 Usage :  nstack manifests [--root ROOT]
 Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
@@ -42,7 +44,7 @@ REQUIRED_COMMANDS = ["check", "test"]
 MODULE_DIRS = ["modules", "services", "apps", "packages", "contracts", "platform"]
 MODULE_BASES = ["modules", "services", "apps", "packages"]  # bases where every folder is a module
 SECTIONS = {"module": dict, "provides": list, "consumes": list, "data": dict,
-            "commands": dict, "docs": dict, "dependencies": list}
+            "commands": dict, "docs": dict, "dependencies": list, "evidence": dict}
 TYPES = {dict: "mapping", list: "list"}
 DESCRIPTION = {"MANIFEST.yaml", "AGENTS.md", "README.md"}
 STABILITIES = {"experimental", "stable", "deprecated"}
@@ -361,6 +363,57 @@ def comparator_owed(root: Path, manifests: list[Path]) -> None:
                                 "(.nstack/handbook/03-contracts.md §3).")
 
 
+EVIDENCE_LEVELS = ("warning", "error")
+DECLARED_KEYS = {"pattern", "level", "scenario"}
+
+
+def declared_evidence(manifests: list[Path], root: Path) -> None:
+    """M12: what a module's end-to-end scenarios provoke is declared so that it checks something —
+    a pattern that compiles and does not accept every line, a level, the scenario."""
+    for manifest in manifests:
+        text = manifest.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(text) or {}
+        except yaml.YAMLError:
+            continue  # M2 says it
+        section = data.get("evidence") if isinstance(data, dict) else None
+        if not isinstance(section, dict):
+            continue  # absent, or not a mapping: M2 says it
+        name, at = manifest.parent.name, f"{manifest.relative_to(root).as_posix()}:{line_of(text, 'evidence')}"
+        action = "      Action: evidence.provoked — a list of {pattern, level: warning|error, scenario} (.nstack/playbooks/tests.md)."
+        for key in sorted(set(section) - {"provoked", "levels"}):
+            fail(name, "M12", f"evidence has an unknown key '{key}': it declares nothing.\n{action}", at)
+        provoked = section.get("provoked", [])
+        if not isinstance(provoked, list):
+            fail(name, "M12", f"evidence.provoked must be a list.\n{action}", at)
+            provoked = []
+        for item in provoked:
+            if not isinstance(item, dict) or set(item) != DECLARED_KEYS:
+                fail(name, "M12", f"each declaration holds exactly pattern, level and scenario: {item!r}.\n{action}", at)
+                continue
+            try:
+                compiled = re.compile(str(item["pattern"]))
+            except re.error as error:
+                fail(name, "M12", f"pattern {item['pattern']!r} does not compile ({error}).\n{action}", at)
+                continue
+            if compiled.search(""):
+                fail(name, "M12", f"pattern {item['pattern']!r} matches an empty line: it would accept every line, "
+                                  f"and check nothing.\n{action}", at)
+            if item["level"] not in EVIDENCE_LEVELS:
+                fail(name, "M12", f"level {item['level']!r}: warning or error.\n{action}", at)
+            if not isinstance(item["scenario"], str) or not item["scenario"].strip():
+                fail(name, "M12", f"the declaration of {item['pattern']!r} names no scenario: say which provokes it.\n{action}", at)
+        if "levels" in section:
+            try:
+                levels = re.compile(str(section["levels"]))
+                if "level" not in levels.groupindex:
+                    fail(name, "M12", "evidence.levels needs a group named level: (?P<level>…).\n"
+                                      "      Action: an expression whose group named level captures the line's level word.", at)
+            except re.error as error:
+                fail(name, "M12", f"evidence.levels does not compile ({error}).\n"
+                                  "      Action: a Python regular expression with a group named level.", at)
+
+
 def assembled(manifests: list[Path], root: Path) -> None:
     """M11: what a module's release assembles — other modules' artefacts — names them, and never
     leads back to the module itself: `nstack release` runs each after what it assembles."""
@@ -424,6 +477,7 @@ def run(root: Path) -> int:
     for manifest in manifests:
         check_manifest(manifest, today, root)
     assembled(manifests, root)
+    declared_evidence(manifests, root)
     comparator_owed(root, manifests)
 
     print(f"Manifests checked: {len(manifests)}")

@@ -77,7 +77,8 @@ commands:
 #  test:                         # NEVER starts another module
 #  bootstrap:                    # optional: make the module usable from a fresh clone
 #  run:                          # optional: local start, with doubles for the dependencies
-#  e2e:                          # optional: end-to-end scenarios; evidence written to .evidence/
+#  e2e:                          # optional: end-to-end scenarios; logs and screenshots written
+#                                # to $NSTACK_EVIDENCE, read after the run (.nstack/playbooks/tests.md)
 #  clean:                        # optional: remove what the commands above leave in this folder
 #                                # (build outputs); CI runs it after every job on a self-hosted runner
 #  release:                      # optional: the module's shippable artefacts, written into
