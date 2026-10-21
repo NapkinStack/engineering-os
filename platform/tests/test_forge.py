@@ -597,3 +597,91 @@ def test_update_takes_a_forge_on_the_command_line(tmp_path, monkeypatch):
     monkeypatch.setattr(project, "change_forge", lambda root, forge, **flags: seen.update(forge=forge, **flags) or 0)
     assert cli.main(["update", "--root", str(tmp_path), "--forge", "gitlab", "--repository", "acme/demo"]) == 0
     assert seen == {"forge": "gitlab", "github_repo": None, "repository": "acme/demo", "session": None}
+
+
+# --- what the verifier of part 3 found -----------------------------------------------------------
+
+def test_a_version_that_does_not_know_the_forge_refuses_the_change_and_leaves_nothing(tmp_path, snapshot, capsys):
+    root = tmp_path / "old"
+    assert project.init(root, {"project_name": "Demo", "github_repo": "acme/demo", "owner_team": "acme/platform"},
+                        str(snapshot), "v0.14.0") == 0
+    head = _git(root, "rev-parse", "HEAD")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 1
+    out = capsys.readouterr().out
+    assert "v0.14.0" in out and "nstack update" in out
+    assert _git(root, "rev-parse", "HEAD") == head and not _git(root, "status", "--porcelain")
+    assert _git(root, "branch", "--show-current") == "main"
+
+
+def _conflicted(root: Path, path: str, old: str, new: str) -> None:
+    file = root / path
+    file.write_text(file.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+    _git(root, "commit", "-qam", f"the project's own {path}")
+
+
+@pytest.mark.parametrize("path, old, new", [
+    (".nstack/handbook/INSTALL.md", "- [ ] At least 1 approving review", "- [ ] At least 2 approving reviews"),
+    (".github/CODEOWNERS", "/.github/", "/.github/ @acme/infra #"),
+])
+def test_a_conflict_is_never_committed(tmp_path, snapshot, capsys, path, old, new):
+    root = create(tmp_path, "github", snapshot)
+    _conflicted(root, path, old, new)
+    head = _git(root, "rev-parse", "HEAD")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [update]" in out and "<<<<<<<" in out and "git add --all && git commit" in out
+    assert _git(root, "rev-parse", "HEAD") == head, "nothing committed"
+
+
+def test_a_contract_s_contact_follows_the_forge(tmp_path, snapshot, capsys):
+    from napkinstack import modules
+
+    root = create(tmp_path, "github", snapshot)
+    assert modules.create_contract(root, "orders", "acme/contracts") == 0
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "a contract")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 0
+    manifest = (root / "contracts/MANIFEST.yaml").read_text(encoding="utf-8")
+    assert "github.com" not in manifest and "@acme/contracts" in manifest
+
+
+def test_the_same_form_does_not_hide_a_hand_edit(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "other", snapshot)
+    answers = root / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("forge: other", "forge: none"), encoding="utf-8")
+    _git(root, "commit", "-qam", "by hand")
+    assert project.written_for(root) == "other"
+    root = create(tmp_path, "none")
+    answers = root / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("forge: none", "forge: other"), encoding="utf-8")
+    assert project.written_for(root) == "none"
+
+
+def test_a_hand_edit_is_l9_alone_and_the_refusal_names_the_forge_asked(tmp_path, capsys):
+    from napkinstack import doctor
+
+    root = create(tmp_path, "github")
+    _by_hand(root, "gitlab")
+    said = {rule for rule, _, status, _ in doctor._workstation(root, _answers(root)) if status == doctor.GAP}
+    assert "L9" in said and "L8" not in said
+    assert project.change_forge(root, "forgejo", repository="acme/demo") == 1
+    assert "nstack update --forge forgejo" in capsys.readouterr().out
+
+
+def test_flags_are_judged_before_the_same_forge(tmp_path, capsys):
+    root = create(tmp_path, "github")
+    assert project.change_forge(root, "github", repository="acme/demo") == 1
+    assert "--repository" in capsys.readouterr().out
+
+
+def test_a_version_with_a_forge_change_is_refused(tmp_path, capsys):
+    from napkinstack import cli
+
+    assert cli.main(["update", "--root", str(tmp_path), "--forge", "gitlab", "--repository", "a/b", "--ref", "v1.0.0"]) == 1
+    assert "--ref" in capsys.readouterr().out
+
+
+def test_back_on_github_the_way_to_ci_is_said(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "gitlab", snapshot)
+    assert project.change_forge(root, "github", github_repo="acme/demo") == 0
+    assert "checks: forge" in capsys.readouterr().out

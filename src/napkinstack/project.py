@@ -164,6 +164,11 @@ def written_for(root: Path) -> str | None:
     when they agree, or when no form says either way."""
     named = forge(root)
     if (root / FORMS[named]).is_file():
+        # other and none share a form; only other names a repository at a forge.
+        if named == "none" and answer(root, "repository"):
+            return "other"
+        if named == "other" and not answer(root, "repository"):
+            return "none"
         return None
     found = [name for name, path in FORMS.items() if (root / path).is_file()]
     return found[0] if found else None
@@ -525,7 +530,7 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
     return 0
 
 
-def _by_hand(root: Path, command: str) -> int | None:
+def _by_hand(root: Path, command: str, wanted: str | None = None) -> int | None:
     """1, said, when the answers name a forge the files were not written for; else None."""
     written = written_for(root)
     if written is None:
@@ -533,15 +538,37 @@ def _by_hand(root: Path, command: str) -> int | None:
     print(f"FAIL [{command}] {ANSWERS} says `forge: {forge(root)}`, and the project's files are written for "
           f"{written}: the answer was changed by hand, and Copier would read the old files as {forge(root)}'s.\n"
           f"      Action: put back `forge: {written}` in {ANSWERS}, commit it, then nstack update --forge "
-          f"{forge(root)}, which moves the files and carries the project's lines.")
+          f"{wanted or forge(root)}, which moves the files and carries the project's lines.")
     return 1
+
+
+def _contact(root: Path, old: str, new: str, answers: dict, github_repo: str | None) -> bool:
+    """The contracts module's contact follows the forge, as `new-contract` writes it (ADR-0010 §2):
+    the discussions on GitHub, the module's owner elsewhere. Only the value the engine wrote is
+    changed; one the project chose is the project's. True when rewritten."""
+    manifest = root / "contracts" / "MANIFEST.yaml"
+    if not manifest.is_file():
+        return False
+    text = manifest.read_text(encoding="utf-8")
+    try:
+        data = yaml.safe_load(text) or {}
+        owner = str((data.get("module") or {}).get("owner") or data.get("owner") or "")
+    except (yaml.YAMLError, AttributeError):
+        return False
+    discussions = f"https://github.com/{answers.get('github_repo')}/discussions"
+    before, after = (discussions, f"@{owner}") if old == "github" else (f"@{owner}", f"https://github.com/{github_repo}/discussions")
+    if not owner or (old != "github" and new != "github") or f'contact: "{before}"' not in text:
+        return False
+    manifest.write_text(text.replace(f'contact: "{before}"', f'contact: "{after}"'), encoding="utf-8")
+    return True
 
 
 def change_forge(root: Path, new: str, github_repo: str | None = None, repository: str | None = None,
                  session: str | None = None) -> int:
     """Moves the project to another forge at its own version (ADR-0010 §3): Copier renders the old
     copy with the forge its files were written for and the new one with `new`; the ownership file
-    and the pull request form are carried as the framework's moves are. On a branch, for review."""
+    and the pull request form are carried as the framework's moves are. On a branch, for review;
+    a conflict is never committed."""
     import copier
     from copier.errors import CopierError
 
@@ -550,12 +577,9 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
               "created by nstack init.\n      Action: run the command at the project root, "
               "or pass --root.")
         return 1
-    if (refused := _by_hand(root, "update")) is not None:
+    if (refused := _by_hand(root, "update", new)) is not None:
         return refused
     old, answers = forge(root), _answers(root)
-    if new == old:
-        print(f"The project is already on forge {new}: nothing to change.")
-        return 0
     data: dict[str, str] = {"forge": new}
     if new == "github":
         if repository:
@@ -584,6 +608,9 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
                   "--repository <group/name> or <group/subgroup/name>.")
             return 1
         data["repository"] = str(repository)
+    if new == old and all(answers.get(key) == value for key, value in data.items()):
+        print(f"The project is already on forge {new}: nothing to change.")
+        return 0
     # No CI is shipped off GitHub: a project whose checks were the forge's would have none run.
     settled = new != "github" and answers.get("checks") == "forge"
     if settled:
@@ -606,7 +633,17 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
     try:
         copier.run_update(root, vcs_ref=version, data=data, overwrite=True, skip_answered=True, defaults=True,
                           conflict="inline", quiet=True, unsafe=False)
-        carried, conflicts = _carry(root, base, version, moved=moves.get)
+        if _answers(root).get("forge") != new:
+            # A version from before the question renders the answer away: nothing would move, and the
+            # branch would say otherwise. The tree was clean — Copier refuses one that is not.
+            _git(root, "reset", "--quiet", "--hard", base)
+            _git(root, "clean", "-fdq")
+            print(f"FAIL [update] NapkinStack {version} does not know the forge question: a change of forge "
+                  "needs a version that writes each forge's files.\n      Action: nstack update to the "
+                  "latest version first, merge it, then run this again.")
+            return 1
+        carried, moved_conflicts = _carry(root, base, version, moved=moves.get)
+        contact = _contact(root, old, new, answers, data.get("github_repo"))
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(answers.get("_src_path")), version))
         return 1
@@ -614,6 +651,17 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
     if switch.returncode:
         print(f"FAIL [update] Branch {branch} could not be created: {switch.stderr.strip()}\n"
               "      Action: the changes stay in the working tree; create the branch by hand, then commit.")
+        return 1
+    conflicts = [path for path in _git(root, "diff", "--name-only", "-z", "--diff-filter=U").stdout.split("\0") if path]
+    marked = [path for path in _git(root, "grep", "-l", "-z", "--untracked", "-e", "^<<<<<<< ").stdout.split("\0") if path]
+    conflicts = sorted(set(conflicts) | set(marked) | {pair.split(" -> ")[1] for pair in moved_conflicts})
+    if conflicts:
+        print(f"FAIL [update] forge {old} -> {new} laid on {branch}, with conflicts — the project had changed "
+              "these files where the forge's version differs; <<<<<<< marks each one:")
+        for path in conflicts:
+            print(f"  - {path}")
+        print("      Action: in each file, keep the right version between <<<<<<< and >>>>>>>, then "
+              "git add --all && git commit.\n      The check-merge-conflict hook and CI reject any remaining marker.")
         return 1
     message = f"NapkinStack: forge {old} -> {new}" + (f"\n\nAgent-Session: {session}" if session else "")
     for args in (("add", "--all"), ("commit", "--quiet", "--message", message)):
@@ -628,13 +676,15 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
         print("What the project had written in the files that moved moved with them:")
         for pair in carried:
             print(f"  - {pair}")
-    if conflicts:
-        print("Carried with a conflict, marked between <<<<<<< and >>>>>>> — keep the right lines, then commit:")
-        for pair in conflicts:
-            print(f"  - {pair}")
+    if contact:
+        print("contracts/MANIFEST.yaml: the contact follows the forge — "
+              + ("the module's owner." if new != "github" else "the project's discussions on GitHub."))
     if settled:
         print("checks: attested — no CI is shipped off GitHub; each change's checks are run and recorded by "
               "nstack attest. The decider's answer, changed in a pull request.")
+    elif new == "github" and _answers(root).get("checks") == "attested":
+        print("checks: attested, kept — the decider's answer. GitHub's CI judges once it is `checks: forge`, "
+              "changed in a pull request.")
     print(f"\n{next_step(root, branch)}")
     return 0
 

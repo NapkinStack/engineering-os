@@ -458,7 +458,7 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                   f"a project that lives there: nstack update --forge {remote[1]} {flag}.")
     else:
         l9 = (OK, "")
-    if name != "github":
+    if name != "github" and written is None:  # a hand edit is L9's: the files are still the old forge's
         forced = answers.get("checks") == "forge"
         results.append(("L8", "Checks run where the project says", GAP if forced else OK,
                         f"`checks: forge`, and this version ships a CI only on GitHub: nothing runs the "
