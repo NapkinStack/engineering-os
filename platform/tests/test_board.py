@@ -201,7 +201,7 @@ def test_a_second_run_changes_nothing(forge, capsys):
     assert "in step with the cycle files" in capsys.readouterr().out
 
 
-def test_a_title_edited_on_the_forge_is_restored_and_said(forge, capsys):
+def test_a_title_edited_on_the_forge_is_put_back_and_said(forge, capsys):
     root, site = forge
     board.run(root, today=TODAY)
     issue = next(issue for issue in site.issues.values() if issue["title"] == "D2 — Export")
@@ -209,7 +209,8 @@ def test_a_title_edited_on_the_forge_is_restored_and_said(forge, capsys):
     capsys.readouterr()
     board.run(root, today=TODAY)
     assert issue["number"] and site.issues[issue["number"]]["title"] == "D2 — Export"
-    assert "restored issue D2 — Export: title" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "updated issue D2 — Export: title" in out and "the plan is edited in the cycle files" in out
 
 
 def test_an_issue_without_the_marker_is_never_touched(forge):
@@ -386,7 +387,7 @@ def test_a_due_date_returned_with_another_time_is_not_a_change(forge, capsys):
     site.milestones[1]["description"] += "\r\n"
     capsys.readouterr()
     board.run(root, today=TODAY)
-    assert "restored milestone" not in capsys.readouterr().out
+    assert "updated milestone" not in capsys.readouterr().out
 
 
 def test_items_a_person_put_in_the_milestone_are_counted_and_said(forge, capsys):
@@ -463,7 +464,7 @@ def test_the_due_date_is_the_cycle_s_own_on_github_and_never_rewritten(pacific, 
     assert site.milestones[1]["due_on"].startswith("2026-11-07")
     capsys.readouterr()
     board.run(root, today=TODAY)
-    assert "restored milestone" not in capsys.readouterr().out
+    assert "updated milestone" not in capsys.readouterr().out
 
 
 def test_a_new_day_rewrites_nothing(forge, capsys):
@@ -471,7 +472,7 @@ def test_a_new_day_rewrites_nothing(forge, capsys):
     board.run(root, today=TODAY)
     capsys.readouterr()
     board.run(root, today=TODAY + datetime.timedelta(days=1))
-    assert "restored" not in capsys.readouterr().out
+    assert "updated" not in capsys.readouterr().out
 
 
 def test_a_label_existing_in_another_case_is_used_as_it_is(pacific, capsys):
@@ -484,7 +485,7 @@ def test_a_label_existing_in_another_case_is_used_as_it_is(pacific, capsys):
     for issue in site.issues.values():  # GitHub names the label as it exists
         issue["labels"] = [{"name": "Deliverable" if l["name"] == "deliverable" else l["name"]} for l in issue["labels"]]
     board.run(root, today=TODAY)
-    assert "restored issue" not in capsys.readouterr().out
+    assert "updated issue" not in capsys.readouterr().out
 
 
 def test_an_issue_whose_label_a_person_removed_is_still_the_display_s(forge):
@@ -562,3 +563,15 @@ def test_the_workflow_runs_on_merges_daily_and_by_hand_never_on_a_hold():
     assert triggers["push"]["branches"] == ["main"] and triggers["schedule"] and "workflow_dispatch" in triggers
     assert workflow["permissions"] == {} and workflow["jobs"]["board"]["permissions"] == {
         "contents": "read", "issues": "write", "pull-requests": "read"}
+
+
+def test_a_pull_request_opened_since_the_last_run_is_an_update_never_called_a_hand_edit(forge, capsys):
+    """Seen on the third project: a run after a new pull request said "restored", as if a person had
+    edited the issue."""
+    root, site = forge
+    board.run(root, today=TODAY)
+    site.pulls = [{"number": 45, "body": "Deliverable: D2", "created_at": "2026-10-20T10:00:00Z"}]
+    capsys.readouterr()
+    board.run(root, today=TODAY)
+    out = capsys.readouterr().out
+    assert "updated issue D2 — Export: body" in out and "restored" not in out

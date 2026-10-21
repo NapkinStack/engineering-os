@@ -65,7 +65,7 @@ and undone; what the run costs on a project with many pull requests.
 
 1. **The verb, `nstack board`.** Reads the cycle files (`docs/project/cycles/`), the holds
    (ADR-0007), the pull requests, and the forge's objects; computes the display the files call
-   for; applies the difference; prints what it made, changed, restored, left and could not show.
+   for; applies the difference; prints what it made, updated, left and could not show.
    `--dry-run` prints without applying.
 2. **Which cycles.** The accepted one, and the closed and stopped ones (their milestones closed):
    the history stays readable. A proposed cycle is not shown — nothing is decided.
@@ -99,8 +99,9 @@ and undone; what the run costs on a project with many pull requests.
    stands in the way.
 6. **A hand edit.** Fields are compared after normalising — line endings and trailing space in
    bodies, labels and assignees as sets, a due date on its date — so that nothing is reported that
-   did not change; a difference is rewritten and said: *restored D31's title, edited on the forge
-   — the plan is edited in docs/project/cycles/03-the-window.md*. A display issue whose
+   did not change; a difference is rewritten and said as an update — *updated issue D31: title* — with one
+   line saying that an update also undoes a change made by hand, and where the plan is edited: the
+   run cannot tell the plan moving from a hand edit, and never claims to. A display issue whose
    deliverable left every shown cycle is closed `not_planned` and said, never deleted. A
    milestone's items the display did not make are counted and said (*2 items in Cycle 03 not from
    the plan*): GitHub's bar counts them, the description's line does not.

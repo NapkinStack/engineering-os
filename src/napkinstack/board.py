@@ -7,7 +7,7 @@ objects carry a marker in their body; an object without one is never touched. Wh
 holds decides nothing but whether the display must be rewritten.
 
 Usage :  nstack board [--root ROOT] [--dry-run]
-Output:  0 whatever the forge answers — what was made, changed, restored or not shown is said.
+Output:  0 whatever the forge answers — what was made, updated or not shown is said.
 """
 
 from __future__ import annotations
@@ -296,7 +296,7 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
             changed.append("due date")
         if changed:
             call("PATCH", f"/milestones/{have['number']}", want)
-            said.append(f"restored milestone {item.title}: {', '.join(changed)} — the plan is edited in the cycle file")
+            said.append(f"updated milestone {item.title}: {', '.join(changed)}")
         ours = sum(1 for issue in own_issues.values()
                    if isinstance(issue.get("milestone"), dict) and issue["milestone"].get("number") == have.get("number"))
         theirs = int(have.get("open_issues") or 0) + int(have.get("closed_issues") or 0) - ours
@@ -349,11 +349,15 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
             want.update(state="closed", state_reason=item.reason)
         if changed:
             call("PATCH", f"/issues/{have['number']}", want)
-            said.append(f"restored issue {item.title}: {', '.join(changed)}")
+            said.append(f"updated issue {item.title}: {', '.join(changed)}")
 
     wanted = {item.key for item in shown if item.kind == "deliverable"}
     for key, have in own_issues.items():
         if key not in wanted and have.get("state") == "open" and have.get("number"):
             call("PATCH", f"/issues/{have['number']}", {"state": "closed", "state_reason": "not_planned"})
             said.append(f"closed issue {have.get('title')}: its deliverable is no longer in a shown cycle")
+    if any(line.startswith("updated ") for line in said):
+        # The run cannot tell the plan moving from a hand edit; it says what either means.
+        said.append("an update follows the cycle files and the pull requests, and undoes a change made here by "
+                    "hand: the plan is edited in the cycle files, in a pull request")
     return said
