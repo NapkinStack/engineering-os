@@ -85,6 +85,13 @@ commands:
 #                                # $NSTACK_DIST (dist/<module>/); `nstack release <module> …`
 #                                # passes the platform or target to it
 
+# evidence:                      # optional, with e2e: what its scenarios provoke on purpose (M12)
+#   provoked:                    # a warning or an error not declared here is said after the run:
+#     - pattern: "key refused"   # an error fails it, a warning fails from criticality high
+#       level: warning           # warning | error
+#       scenario: S3             # the scenario that provokes it, for the reader
+#   levels: '^(?P<level>\w+)\|'  # only if the logs say their level in an uncommon form
+
 docs:
   readme: README.md
   agents: AGENTS.md

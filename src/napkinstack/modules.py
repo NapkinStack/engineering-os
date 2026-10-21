@@ -380,11 +380,12 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             print(f"-> {target}: {command}", flush=True)
             code, held = evidence.run(command, known[target], {**os.environ, "NSTACK_EVIDENCE": str(folder.resolve())},
                                       folder)
-            code = evidence.finish(root, target, known[target], folder, code, held)
+            passed = evidence.finish(root, target, known[target], folder, code, held)
             if code:
-                print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}, or its run logged "
-                      "what it does not declare.")
+                print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}.")
                 return code
+            if not passed:
+                return 1
             continue
         print(f"-> {target}: {command}", flush=True)
         code = subprocess.run(command, shell=True, cwd=known[target], env=environment).returncode

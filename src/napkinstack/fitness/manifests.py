@@ -391,8 +391,11 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
             if not isinstance(item, dict) or set(item) != DECLARED_KEYS:
                 fail(name, "M12", f"each declaration holds exactly pattern, level and scenario: {item!r}.\n{action}", at)
                 continue
+            if not isinstance(item["pattern"], str):
+                fail(name, "M12", f"pattern {item['pattern']!r} must be text, a regular expression.\n{action}", at)
+                continue
             try:
-                compiled = re.compile(str(item["pattern"]))
+                compiled = re.compile(item["pattern"])
             except re.error as error:
                 fail(name, "M12", f"pattern {item['pattern']!r} does not compile ({error}).\n{action}", at)
                 continue
@@ -403,9 +406,12 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
                 fail(name, "M12", f"level {item['level']!r}: warning or error.\n{action}", at)
             if not isinstance(item["scenario"], str) or not item["scenario"].strip():
                 fail(name, "M12", f"the declaration of {item['pattern']!r} names no scenario: say which provokes it.\n{action}", at)
-        if "levels" in section:
+        if "levels" in section and not isinstance(section["levels"], str):
+            fail(name, "M12", "evidence.levels must be text, a regular expression.\n"
+                              "      Action: an expression whose group named level captures the line's level word.", at)
+        elif "levels" in section:
             try:
-                levels = re.compile(str(section["levels"]))
+                levels = re.compile(section["levels"])
                 if "level" not in levels.groupindex:
                     fail(name, "M12", "evidence.levels needs a group named level: (?P<level>…).\n"
                                       "      Action: an expression whose group named level captures the line's level word.", at)

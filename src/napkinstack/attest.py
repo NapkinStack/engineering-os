@@ -163,8 +163,11 @@ def evidence_of(root: Path, commit: str) -> list[dict]:
         except (OSError, ValueError):
             continue
         if isinstance(audit, dict) and audit.get("commit") == commit:
-            found.append({"module": audit.get("module"), "folder": path.parent.relative_to(root).as_posix(),
-                          "audit": {key: value for key, value in audit.items() if key not in ("commit", "module")}})
+            kept = {key: value for key, value in audit.items() if key not in ("commit", "module")}
+            # A log line may carry a path or a name: ten at most travel in notes pushed to a remote.
+            undeclared = kept.get("undeclared") if isinstance(kept.get("undeclared"), list) else []
+            kept.update(undeclared=undeclared[:10], undeclared_count=len(undeclared))
+            found.append({"module": audit.get("module"), "folder": path.parent.relative_to(root).as_posix(), "audit": kept})
     return found
 
 

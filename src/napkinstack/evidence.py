@@ -38,11 +38,12 @@ WORDS = {"warn": "warning", "warning": "warning",
 KEYS = ("level", "levelname", "severity", "lvl", "@l")
 PINO = {40: "warning", 50: "error", 60: "error"}
 COLOUR = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-LOGFMT = re.compile(r"\blevel=\"?([A-Za-z]+)")
+LOGFMT = re.compile(r"^\S+=\S*(?:\s+\S+=\S*)*?\s*\blevel=\"?([A-Za-z]+)")  # a line of key=value pairs
+STAMP = r"(?=\S*\d)(?=\S*[:./T-])[\d:.,/TZ+\-]+"  # a timestamp: a digit and a separator, never a lone number or dash
 UPPER = "|".join(sorted((word.upper() for word in WORDS), key=len, reverse=True))
 LOWER = "|".join(sorted(WORDS, key=len, reverse=True))
 LEADING = re.compile(
-    r"^\s*\[?(?:[\d:.,/TZ+\-]+\s+){0,2}\[?\s*"
+    rf"^\s*\[?(?:{STAMP}\s+){{0,2}}\[?\s*"
     rf"(?:(?P<up>{UPPER})(?=[\s:\]])|(?P<any>(?i:{LOWER}))(?=:|\]))")
 GLIB = re.compile(r"[\w.-]+-(WARNING|CRITICAL|MESSAGE|DEBUG|INFO) \*\*:")
 
@@ -73,16 +74,16 @@ def level_of(line: str, own: re.Pattern | None = None) -> str | None:
                 if value is not None:
                     return "below"
             return None
-    found = LOGFMT.search(text)
-    if found:
-        return WORDS.get(found[1].lower(), "below")
     plain = COLOUR.sub("", text)
-    found = LEADING.match(plain)
+    found = LEADING.match(plain)  # a leading word first: a message may hold "level=…"
     if found:
         return WORDS[(found["up"] or found["any"]).lower()]
     found = GLIB.search(plain)
     if found:
         return {"WARNING": "warning", "CRITICAL": "error"}.get(found[1], "below")
+    found = LOGFMT.match(plain)
+    if found:
+        return WORDS.get(found[1].lower(), "below")
     return None
 
 
@@ -105,11 +106,13 @@ def _message(line: str) -> str:
 def suggest(line: str) -> str:
     """A declaration's pattern that matches this line, and its kin, again: the message, escaped,
     its numbers and hexadecimal identifiers made general."""
-    parts = re.split(r"(\b[0-9a-f]{8,}\b|\d+)", _message(line)[:200])
+    general = (r"(?i:\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"  # a UUID
+               r"|\b0x[0-9a-f]+\b|\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b)|\d+")
+    parts = re.split(f"({general})", _message(line)[:200])
     out = []
     for index, part in enumerate(parts):
         if index % 2:
-            out.append(r"\d+" if part.isdigit() else "[0-9a-f]+")
+            out.append(r"\d+" if part.isdigit() else "(?i:(?:0x)?[0-9a-f-]+)")
         else:
             out.append(re.escape(part))
     return "".join(out).strip() or re.escape(line.strip()[:80])
@@ -127,6 +130,24 @@ def _files(folder: Path) -> list[Path]:
     return found
 
 
+def _lines(path: Path):
+    """(number, line) of a file, each line its first WIDTH characters — never a whole huge line held."""
+    with open(path, encoding="utf-8", errors="replace", newline=None) as source:
+        number = 0
+        while True:
+            chunk = source.readline(WIDTH)
+            if not chunk:
+                return
+            number += 1
+            line, ended = chunk.rstrip("\n"), chunk.endswith("\n")
+            while not ended:
+                rest = source.readline(WIDTH)
+                if not rest:
+                    break
+                ended = rest.endswith("\n")
+            yield number, line
+
+
 def audit(folder: Path, declared: list[dict], criticality: str | None, step: str,
           levels: str | None = None) -> dict:
     """The audit of a run's folder: what was read, what nobody declared, the verdict."""
@@ -137,22 +158,21 @@ def audit(folder: Path, declared: list[dict], criticality: str | None, step: str
     for path in _files(folder):
         relative = path.relative_to(folder).as_posix()
         classified = False
-        with open(path, encoding="utf-8", errors="replace", newline=None) as source:
-            for number, raw in enumerate(source, 1):
-                line = raw.rstrip("\n")[:WIDTH]
-                if not line.strip():
-                    continue
-                level = level_of(line, own)
-                if level is None:
-                    continue
-                classified = True
-                if level == "below":
-                    continue
-                hit = [item for item, pattern in patterns if item["level"] == level and pattern.search(line)]
-                matched.update(item["pattern"] for item in hit)
-                if not hit:
-                    undeclared.append({"file": relative, "line": number, "level": level,
-                                       "text": line[:500], "suggest": suggest(line)})
+        for number, line in _lines(path):
+            if not line.strip():
+                continue
+            level = level_of(line, own)
+            if level is None:
+                continue
+            classified = True
+            if level == "below":
+                continue
+            plain = COLOUR.sub("", line)  # searched as the suggestion was built: without colour
+            hit = [item for item, pattern in patterns if item["level"] == level and pattern.search(plain)]
+            matched.update(item["pattern"] for item in hit)
+            if not hit:
+                undeclared.append({"file": relative, "line": number, "level": level,
+                                   "text": line[:500], "suggest": suggest(line)})
         (read if classified else not_read).append(relative)
     strict = criticality not in {"prototype", "standard"}  # undeclared or unknown: judged as critical
     failing = [item for item in undeclared if item["level"] == "error" or strict]
@@ -269,7 +289,11 @@ def run(command: str, cwd: Path, environment: dict, folder: Path) -> tuple[int, 
             process.wait()
         except KeyboardInterrupt:
             process.send_signal(signal.SIGINT)
-            process.wait()
+            previous = signal.signal(signal.SIGINT, signal.SIG_IGN)  # a second interrupt: the audit still runs
+            try:
+                process.wait()
+            finally:
+                signal.signal(signal.SIGINT, previous)
         deadline = time.monotonic() + DRAIN
         while open_pipe and time.monotonic() < deadline:
             open_pipe = copy(max(0.0, deadline - time.monotonic()))
@@ -300,37 +324,42 @@ def say(root: Path, name: str, folder: Path, found: dict) -> list[str]:
     lines = [f"Evidence of {name}: {where} — {head} ({found['step']}; read: {', '.join(found['read']) or 'no log file'})"]
     for item in found["undeclared"][:SHOWN]:
         lines.append(f"  {item['level'].upper():8} {item['file']}:{item['line']}: {item['text'][:200]}")
-        lines.append(f"           declare it: - pattern: {json.dumps(item['suggest'])}, level: {item['level']}, "
-                     "scenario: <the scenario that provokes it>")
+        lines.append(f"           declare it: - {{pattern: {json.dumps(item['suggest'])}, level: {item['level']}, "
+                     "scenario: <the scenario that provokes it>}")
     if len(found["undeclared"]) > SHOWN:
         lines.append(f"  … and {len(found['undeclared']) - SHOWN} more, in {where}/audit.json")
     for name_ in found["not_read"]:
         lines.append(f"  not read: {name_} — no line says its level in a form the engine knows; declare "
                      "evidence.levels, an expression with a group named level")
     for pattern in found["stale"]:
-        lines.append(f"  declared, matched nothing: {pattern!r} — the failure it stood for did not happen")
+        lines.append(f"  declared, matched nothing: {json.dumps(pattern)} — the failure it stood for did not happen")
     if found["step"] == "report" and found["undeclared"]:
         lines.append("  Reported, not judged: this project's next minor version of NapkinStack fails on what is "
                      "undeclared then (an error at any criticality, a warning from high).")
     return lines
 
 
-def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: str | None) -> int:
-    """The audit after the command, whatever its exit code; the run fails if either fails."""
-    declared, levels, criticality = declarations(module / "MANIFEST.yaml")
+def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: str | None) -> bool:
+    """The audit after the command, whatever its exit code: True when the logs pass. The running
+    mark is removed whatever happens."""
     try:
-        found = audit(folder, declared, criticality, step(root), levels)
-    except re.error as error:
-        print(f"FAIL [e2e] module '{name}': a declared pattern does not compile ({error}).\n      Action: nstack manifests.")
-        return code or 1
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
-    record = {"commit": commit, "module": name, "exit": code, **found}
-    (folder / "audit.json").write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
-    (folder / ".running").unlink(missing_ok=True)
-    for line in say(root, name, folder, found) + ([f"  {held}"] if held else []):
-        print(line, flush=True)
-    if found["verdict"] == "failed":
-        print(f"FAIL [e2e] module '{name}': its run logged what it does not declare — see above.\n"
-              "      Action: fix the cause, or declare the line in evidence.provoked with the scenario that provokes it.")
-        return code or 1
-    return code
+        declared, levels, criticality = declarations(module / "MANIFEST.yaml")
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
+        try:
+            found = audit(folder, declared, criticality, step(root), levels)
+        except (re.error, TypeError) as error:
+            (folder / "audit.json").write_text(json.dumps({"commit": commit, "module": name, "exit": code,
+                                                           "verdict": "unread", "error": str(error)}), encoding="utf-8")
+            print(f"FAIL [e2e] module '{name}': a declaration cannot be read ({error}).\n      Action: nstack manifests.")
+            return False
+        record = {"commit": commit, "module": name, "exit": code, **found}
+        (folder / "audit.json").write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
+        for line in say(root, name, folder, found) + ([f"  {held}"] if held else []):
+            print(line, flush=True)
+        if found["verdict"] == "failed":
+            print(f"FAIL [e2e] module '{name}': its run logged what it does not declare — see above.\n"
+                  "      Action: fix the cause, or declare the line in evidence.provoked with the scenario that provokes it.")
+            return False
+        return True
+    finally:
+        (folder / ".running").unlink(missing_ok=True)

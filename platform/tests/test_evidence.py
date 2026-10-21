@@ -281,3 +281,77 @@ def test_the_attested_record_carries_the_audit_with_a_relative_path(tmp_path, ju
     assert found[0]["folder"] == "modules/capture/.evidence/e2e"
     assert found[0]["audit"]["verdict"] == "reported"
     assert str(tmp_path) not in json.dumps(found)
+
+
+# --- what the verifier of the build found --------------------------------------------------
+
+def test_the_printed_declaration_pastes_into_the_manifest_and_matches_again(tmp_path, judging, capsys):
+    import yaml
+    root = e2e_project(tmp_path, "import os, pathlib\n"
+                                 "pathlib.Path(os.environ['NSTACK_EVIDENCE'], 'a.log').write_text("
+                                 "'\\x1b[31mERROR\\x1b[0m device 0xDEADbeef lost, id 3f2504e0-4f89-11d3-9a0c-0305e82c3301\\n')\n")
+    assert modules.run_verb(root, "e2e", "capture") == 1
+    printed = next(line for line in capsys.readouterr().out.splitlines() if "declare it:" in line)
+    entry = yaml.safe_load(printed.split("declare it:", 1)[1].strip().replace("<the scenario that provokes it>", "S1"))
+    manifest = root / "modules/capture/MANIFEST.yaml"
+    data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
+    data["evidence"] = {"provoked": entry}
+    manifest.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    script = tmp_path / "e2e.py"
+    script.write_text(script.read_text(encoding="utf-8").replace("0xDEADbeef", "0xCAFEf00d")
+                      .replace("3f2504e0-4f89-11d3-9a0c-0305e82c3301", "6ba7b810-9dad-11d1-80b4-00c04fd430c8"), encoding="utf-8")
+    assert modules.run_verb(root, "e2e", "capture") == 0
+
+
+@pytest.mark.parametrize("pattern", [5, ["x"]], ids=["a number", "a list"])
+def test_m12_requires_a_pattern_to_be_text(tmp_path, capsys, pattern):
+    module(tmp_path, evidence_section={"provoked": [{"pattern": pattern, "level": "error", "scenario": "S1"}]})
+    assert manifests.run(tmp_path) == 1
+    assert "[M12]" in capsys.readouterr().out
+
+
+def test_a_declaration_that_breaks_the_audit_still_leaves_an_audit_and_no_running_mark(tmp_path, judging, capsys):
+    root = e2e_project(tmp_path, "print('ok')\n", section={"provoked": [{"pattern": "(", "level": "error", "scenario": "S1"}]})
+    assert modules.run_verb(root, "e2e", "capture") == 1
+    folder = root / "modules/capture/.evidence/e2e"
+    assert not (folder / ".running").exists()
+
+
+@pytest.mark.parametrize("line, level", [
+    ("INFO user set level=error", "below"),   # a leading word before a logfmt value in the message
+    ("- error: x", None),
+    ("1 error: x", None),
+])
+def test_a_leading_word_comes_first_and_a_timestamp_is_a_timestamp(line, level):
+    assert evidence.level_of(line) == level
+
+
+def test_a_huge_single_line_is_read_without_holding_it_whole(tmp_path):
+    folder = tmp_path / "f"
+    folder.mkdir()
+    with open(folder / "big.log", "w", encoding="utf-8") as out:
+        out.write("ERROR " + "x" * (30 * 1024 * 1024) + "\nINFO fine\n")
+    import resource
+    before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    found = evidence.audit(folder, [], "standard", "report")
+    grown_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - before
+    assert found["undeclared"][0]["line"] == 1 and len(found["undeclared"]) == 1
+    assert grown_kib < 20 * 1024
+
+
+def test_the_record_keeps_at_most_ten_lines_of_log_text(tmp_path, judging):
+    from napkinstack import attest
+
+    lines = "".join(f"ERROR failure {n}\\n" for n in range(30))
+    root = e2e_project(tmp_path, f"import os, pathlib\npathlib.Path(os.environ['NSTACK_EVIDENCE'], 'a.log').write_text('{lines}')\n")
+    modules.run_verb(root, "e2e", "capture")
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
+    audit = attest.evidence_of(root, commit)[0]["audit"]
+    assert len(audit["undeclared"]) == 10 and audit["undeclared_count"] == 30
+
+
+def test_the_failure_says_whether_the_command_failed_or_its_logs(tmp_path, judging, capsys):
+    root = e2e_project(tmp_path, "import os, pathlib\npathlib.Path(os.environ['NSTACK_EVIDENCE'], 'a.log').write_text('ERROR x\\n')\n")
+    modules.run_verb(root, "e2e", "capture")
+    out = capsys.readouterr().out
+    assert "exited with" not in out and "logged what it does not declare" in out
