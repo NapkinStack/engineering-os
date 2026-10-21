@@ -22,6 +22,62 @@ a patch.
 
 ---
 
+## v0.12.0 — 2026-10-21
+
+One workstream — D137, PDR-0015 and ADR-0007: several contributors, each with the agent of their
+choice, take a deliverable before its first change, and nobody delivers it twice. A minor
+version: rule K5 can turn a pull request red, and `nstack doctor` reports a new gap, G20.
+
+**In the engine**
+
+- **`nstack claim D<n> [--session S] [--person @you] [--take-over]`** takes a ready or
+  in-progress deliverable of the accepted cycle. The hold is a branch of the shared remote,
+  `nstack/hold/<cycle>/<id>`, whose empty commits are its events (claim, renew, take-over,
+  release; person and session as trailers): pushed without force, so the remote takes the first
+  of two claims and refuses the second, which is told who won. The holder claiming again renews;
+  a hold with no work — no event, no commit on a branch `d<n>-…` — for `hold_days` is stale and
+  may be taken over, recorded with whom it was taken from, their branches untouched. The first
+  work branch `d<n>-<slug>` is made from the remote's default branch.
+- **`nstack unclaim D<n>`** gives a hold back: its holder, the charter's decider, or anyone once
+  stale.
+- **On GitHub with a token**, a claim opens a draft pull request from its first work branch,
+  naming the deliverable; a claim that makes no new branch — a take-over, or a claim after a
+  release — comments the new holder on the open pull requests of the deliverable's branches. No
+  token, or a refusal: said; the hold, git's, stands.
+- **`nstack plan`** says, after its rules, each deliverable of the accepted cycle free, held
+  (person, session, since, last worked on) or stale — never a failure; `nstack fitness` stays
+  offline.
+- **K5** in `pr-check`: delivery work for a deliverable someone holds comes from one of the
+  hold's sessions, or its person — a commit's author or committer, or the opener's account. Nobody
+  holds it: nothing is asked. The holds unreadable: a warning. Lifted by `out-of-cycle`, silent
+  when unframed, as K1 to K3.
+- **G20** in `doctor` and `nstack settings`: forced pushes and deletion refused on
+  `refs/heads/nstack/hold/**/*`, by a ruleset of its own, `nstack-holds`, nobody on its bypass
+  list. Out of reach on a private repository without a paid plan, as G17 and G18.
+- **`hold_days`**, a new answer of the project (7 at init and at update), the decider's.
+
+**In your project** — 9 files
+
+- `CONTRIBUTING.md`: *Working with several contributors* — the work shared by module and its
+  owner, a deliverable taken first, any agent reading `AGENTS.md`, joining, who checks whom; its
+  first step takes the deliverable.
+- `AGENTS.md`: *Hold* — take the deliverable before the first change, with the person's forge
+  handle, asked once; stop on someone else's hold, never force a hold's branch; a stopping rule.
+- `.nstack/handbook/project.md`: *Who holds a deliverable*, and the pull request check's K5.
+- `.nstack/handbook/05-workflow.md`: the Definition of Ready asks the deliverable held.
+- `.nstack/handbook/09-platform.md`: the newcomer's step 6 takes it.
+- `.nstack/handbook/RULES.md`: K5, G20; the cycle rules "K1 to K3 and K5".
+- `.nstack/handbook/glossary.md`: *Hold · stale*.
+- `.nstack/handbook/INSTALL.md`: the checklist's second ruleset, on `nstack/hold/**/*` — and why
+  not `**`.
+- `.copier-answers.yml`: `hold_days: 7`; its header names it beside `checks`.
+
+**Migration** — none to take it. To be protected, a project claims its deliverables
+(`nstack claim`); until it does, K5 asks nothing. `nstack doctor` reports G20 until the holds'
+ruleset exists: `nstack settings` plans it.
+
+---
+
 ## v0.11.1 — 2026-10-20
 
 One workstream — D136. A patch: nothing green turns red.
