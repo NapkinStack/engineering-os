@@ -762,3 +762,10 @@ def test_every_page_names_the_holds_pattern_a_ruleset_matches_at_their_depth():
     record = next((SKELETON.parent / "docs/adr").glob("0007-*.md")).read_text(encoding="utf-8")
     assert "`nstack/hold/**/*`" in record
     assert all("nstack/hold/**/*" in " ".join(entry) for entry in doctor.CHECKLIST if entry[0] == "G20")
+
+
+def test_plan_s_holds_say_how_many_are_held_and_stale(shared, monkeypatch, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    capsys.readouterr()
+    hold.show(clone(shared, "bob"))
+    assert "Holds in 03-the-window: 1 held, 0 stale (" in capsys.readouterr().out

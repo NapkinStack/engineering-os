@@ -250,3 +250,51 @@ def test_the_map_s_words_are_the_skeleton_s():
     written = [line for line in (Path(__file__).resolve().parents[2] / "skeleton/modules/README.md")
                .read_text(encoding="utf-8").splitlines() if line.startswith("<") and line.endswith(">")]
     assert written == [plan.MODULE_MAP_FORM], written
+
+
+# --- D138: a cycle's progress in one line (#219) --------------------------------------------
+
+def progress_cycle(start, weeks=3, states=("accepted", "accepted", "in-progress", "ready", "dropped")):
+    return cycle(start=start, weeks=weeks, deliverables=[deliverable(id=f"D{n}", state=state)
+                                                         for n, state in enumerate(states, 1)])
+
+
+def test_the_accepted_cycle_says_its_progress_in_one_line(tmp_path, capsys):
+    framed(tmp_path, cycles={"03-the-window.md": progress_cycle(TODAY - datetime.timedelta(days=3))})
+    assert plan.run(tmp_path) == 0
+    line = next(line for line in capsys.readouterr().out.splitlines() if line.startswith("Cycle 03-the-window:"))
+    end = (TODAY - datetime.timedelta(days=3) + datetime.timedelta(weeks=3)).isoformat()
+    assert line == f"Cycle 03-the-window: 2 of 4 accepted · 1 in progress · 1 ready · day 4 of 21, 18 left (ends {end})"
+
+
+def test_a_dropped_deliverable_counts_in_nothing_and_a_state_absent_is_not_said(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(TODAY, states=("accepted", "dropped"))})
+    plan.run(tmp_path)
+    line = next(line for line in capsys.readouterr().out.splitlines() if line.startswith("Cycle 01-first:"))
+    assert line.startswith("Cycle 01-first: 1 of 1 accepted · day 1 of 21")
+
+
+def test_a_cycle_past_its_end_says_the_circuit_breaker(tmp_path, capsys):
+    start = TODAY - datetime.timedelta(weeks=4)
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(start)})
+    plan.run(tmp_path)
+    out = capsys.readouterr().out
+    ended = (start + datetime.timedelta(weeks=3)).isoformat()
+    assert f"ended on {ended}, 7 days ago — the circuit breaker: the decider chooses" in out
+
+
+def test_a_cycle_not_started_says_when_it_starts(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(TODAY + datetime.timedelta(days=2))})
+    plan.run(tmp_path)
+    assert "starts in 2 days" in capsys.readouterr().out
+
+
+def test_no_accepted_cycle_says_no_line(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": cycle(status="proposed")})
+    plan.run(tmp_path)
+    assert not any(line.startswith("Cycle ") for line in capsys.readouterr().out.splitlines())
+
+
+def test_the_handbook_says_where_progress_is_read():
+    page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/project.md").read_text(encoding="utf-8")
+    assert "## A cycle's progress" in page and "nstack plan" in page.split("## A cycle's progress", 1)[1]

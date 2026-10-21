@@ -441,7 +441,7 @@ def show(root: Path) -> int:
     except Unreachable as error:
         print(f"\nHolds in {path.stem}: holds not read — the remote cannot be read.\n      {error}")
         return 0
-    lines = []
+    lines, held, stale = [], 0, 0
     for item in data.get("deliverables") or []:
         if not isinstance(item, dict):
             continue
@@ -454,12 +454,14 @@ def show(root: Path) -> int:
         elif state not in TAKEABLE:
             lines.append(f"  {ident}  ended — {state}; was {said(found)}")
         elif time.time() >= found.worked + days * DAY:
+            held, stale = held + 1, stale + 1
             lines.append(f"  {ident}  STALE — {said(found)}: its holder renews (nstack claim {ident}); "
                          f"anyone else may nstack claim {ident} --take-over")
         else:
+            held += 1
             lines.append(f"  {ident}  {said(found)}")
     where = f"from {name}" if name else "local only: no remote"
-    print(f"\nHolds in {path.stem} ({where}; stale after {days} days without work):")
+    print(f"\nHolds in {path.stem}: {held} held, {stale} stale ({where}; stale after {days} days without work):")
     print("\n".join(lines) or "  no ready deliverable")
     return 0
 
