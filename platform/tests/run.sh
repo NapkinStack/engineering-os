@@ -1107,7 +1107,8 @@ rules = [
 ]
 labels = {f"/labels/{name}": {"name": name} for name in ("cross-module", "over-budget", "out-of-cycle",
                                                           "request", "bug", "architecture", "debt", "acceptance")}
-ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
+ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []},
+           "/rulesets/2?includes_parents=true": {"id": 2, "bypass_actors": []}}  # nstack-holds (G20)
 active = {"status": "enabled"}
 # G14 to G16: shaped as the rules want them. Readable without the Administration permission
 # and settable on any plan, which is why they carry no PRIVATE_PLAN entry (D61).
@@ -1121,6 +1122,7 @@ compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active},
          **merges_ok},
     "/rules/branches/main": rules,
+    "/rules/branches/nstack/hold/probe/probe": [{"type": "deletion", "ruleset_id": 2}, {"type": "non_fast_forward", "ruleset_id": 2}],  # G20
     "/private-vulnerability-reporting": {"enabled": True},
     "/actions/permissions": {"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True},
     "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
@@ -1133,6 +1135,7 @@ bare = {
     "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive},
          **merges_default},
     "/rules/branches/main": [],
+    "/rules/branches/nstack/hold/probe/probe": [],
     "/private-vulnerability-reporting": {"enabled": False},
     "/actions/permissions": {"enabled": True, "allowed_actions": "all", "sha_pinning_required": False},
     "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "first_time_contributors"},
@@ -1234,7 +1237,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 19 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 20 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/.nstack/handbook/INSTALL.md.jinja \
@@ -1356,7 +1359,7 @@ fi
   && echo "$OUT" | grep -qF "To start: follow .nstack/playbooks/framing.md" \
   && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19 G20; do
   echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -1373,7 +1376,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 24 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 25 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1410,7 +1413,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 9 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 10 ] \
   && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
   && echo "$OUT" | grep -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
@@ -1426,7 +1429,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 23 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 24 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"

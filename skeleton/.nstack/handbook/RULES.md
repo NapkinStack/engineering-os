@@ -142,7 +142,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 
 ## G — the forge's settings
 
-The nineteen lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
+The twenty lines of the checklist, in its order (`INSTALL.md`, "To do once on GitHub").
 
 | Code | Reports as a gap | Why |
 |---|---|---|
@@ -165,3 +165,4 @@ The nineteen lines of the checklist, in its order (`INSTALL.md`, "To do once on 
 | `G17` | The main branch can be deleted | `07-governance.md` §7 |
 | `G18` | The main branch's history can be rewritten by a force push | `07-governance.md` §7 |
 | `G19` | A default branch other than `main`, which no workflow watches | `07-governance.md` §7 |
+| `G20` | A hold of a deliverable that can be force-pushed or deleted: the one way past its refusal | `project.md`, *Who holds a deliverable* |

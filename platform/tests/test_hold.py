@@ -691,3 +691,74 @@ def test_the_kernel_says_where_the_person_comes_from_and_agrees_with_the_engine(
     kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
     assert "asked once" in kernel and "never git's user" in kernel
     assert "take another ready deliverable" in kernel
+
+
+# --- part 2c: the forge refuses a forced push on a hold (G20) ----------------------------
+
+class Rules:
+    """A forge answering the rules that apply to a branch, and the rulesets they come from, as
+    doctor reads them. A hold is two levels under the prefix — cycle, then deliverable — and a
+    ruleset's `**` stops at a slash (GitHub's fnmatch, FNM_PATHNAME): the probe has a hold's depth."""
+
+    def __init__(self, on_holds, bypass=()):
+        self.on_holds, self.bypass = on_holds, list(bypass)
+
+    def get(self, path, missing=False):
+        if path.startswith("/rulesets/"):
+            return {"id": 9, "bypass_actors": self.bypass}
+        assert path == f"/rules/branches/{hold.PREFIX}/probe/probe", path
+        return [{"type": kind, "ruleset_id": 9} for kind in self.on_holds]
+
+
+@pytest.mark.parametrize("kinds, kept", [(["non_fast_forward", "deletion"], True), (["non_fast_forward"], False),
+                                         (["deletion"], False), ([], False)])
+def test_g20_reads_forced_pushes_and_deletion_refused_on_the_holds(kinds, kept):
+    from napkinstack import doctor
+
+    assert doctor.CHECKS["G20"](Rules(kinds)) is kept
+
+
+def test_g20_is_planned_as_a_ruleset_of_its_own_on_the_holds():
+    from napkinstack import settings
+
+    calls, _ = settings.plan(None, {"G20"})
+    assert [(closed, method, path) for closed, method, path, _ in calls] == [("G20", "POST", "/rulesets")]
+    body = calls[0][3]
+    assert body["conditions"]["ref_name"]["include"] == ["refs/heads/nstack/hold/**/*"]
+    assert {rule["type"] for rule in body["rules"]} == {"non_fast_forward", "deletion"}
+    assert body["bypass_actors"] == [] and body["enforcement"] == "active"
+
+
+def test_g20_is_out_of_reach_where_rulesets_are_and_said_in_the_manual():
+    from napkinstack import doctor
+
+    assert "G20" in doctor.PRIVATE_PLAN
+    setting = next(setting for rule, setting, _ in doctor.CHECKLIST if rule == "G20")
+    assert f"- [ ] {setting}" in (SKELETON / ".nstack/handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
+
+
+def test_g20_is_a_gap_when_someone_may_bypass_the_holds_ruleset():
+    from napkinstack import doctor
+
+    assert doctor.CHECKS["G20"](Rules(["non_fast_forward", "deletion"],
+                                      bypass=[{"actor_id": 5, "actor_type": "RepositoryRole"}])) is False
+
+
+def test_the_settings_say_both_rulesets_are_created_once(tmp_path, capsys):
+    from napkinstack import settings
+
+    (tmp_path / ".copier-answers.yml").write_text("github_repo: acme/p\n", encoding="utf-8")
+    settings.run(tmp_path)
+    said = " ".join(capsys.readouterr().out.split())
+    assert "nstack-checklist exists" in said and "nstack-holds does" in said
+
+
+def test_every_page_names_the_holds_pattern_a_ruleset_matches_at_their_depth():
+    from napkinstack import doctor
+
+    manual = (SKELETON / ".nstack/handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
+    assert "a second ruleset, on the branches `nstack/hold/**/*`" in manual
+    assert "- [ ] Hold branches `nstack/hold/**/*`" in manual
+    record = next((SKELETON.parent / "docs/adr").glob("0007-*.md")).read_text(encoding="utf-8")
+    assert "`nstack/hold/**/*`" in record
+    assert all("nstack/hold/**/*" in " ".join(entry) for entry in doctor.CHECKLIST if entry[0] == "G20")

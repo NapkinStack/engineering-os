@@ -84,7 +84,8 @@ no service, and no forge required.
    remote takes the first and refuses the second (non-fast-forward); the second `claim` then
    fetches and reports the holder. Never `--force`: the engine never forces a hold's branch, the
    kernel tells an agent never to, and where the forge allows it `nstack settings` blocks forced
-   pushes on `nstack/hold/**` — a forced push is the one way past the refusal.
+   pushes and deletion on `nstack/hold/**/*` (G20) — a ruleset's `**` stops at a slash, and a hold
+   is two levels down; a forced push is the one way past the refusal.
 5. **Work on a hold.** Its last activity is the newest of: its last event, and the tip of any
    remote branch named `d<n>-…` for its id. A hold is **stale** when that is older than the
    project's limit: a Copier answer `hold_days` (7 at init), the decider's, changed by hand as
