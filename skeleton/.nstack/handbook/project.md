@@ -79,10 +79,10 @@ progress gives this line, so that one figure circulates.
 
 ### On the forge
 
-The same plan, where a person already looks: after every merge to the default branch, and after
-every claim, the workflow *Plan on the forge* runs `nstack board`. Each cycle the decider accepted,
+The same plan, where a person already looks: after every merge to the default branch, and once a
+day — so that a new holder shows within a day —, the workflow *Plan on the forge* runs `nstack board`. Each cycle the decider accepted,
 closed or stopped is a **milestone** — titled by the cycle file's heading, due on its end date,
-its description carrying the line above — and each deliverable an **issue** in it: its acceptance
+its description carrying the line above, counts only — and each deliverable an **issue** in it: its acceptance
 criteria as a checklist, its module and state, who holds it, the pull requests that name it.
 An issue closes as *completed* when the deliverable is accepted, as *not planned* when it is
 dropped, deferred, or left unfinished by a closed cycle.

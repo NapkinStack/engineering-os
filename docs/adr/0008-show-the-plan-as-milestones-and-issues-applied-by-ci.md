@@ -72,9 +72,11 @@ and undone; what the run costs on a project with many pull requests.
 3. **A cycle is a milestone**, keyed on its number `NN` (the file's leading digits), so that a
    renamed slug keeps its milestone. Title: the cycle file's own heading, `Cycle NN — <title>`
    (`# Cycle 03 — the window`), short enough for a phone's list; description: the goal, the
-   one-line progress of D138 — the figure that counts, whatever else a person puts in the
+   one-line progress of D138 without its appetite — the counts, which change only with the plan;
+   the forge shows the due date itself — the figure that counts, whatever else a person puts in the
    milestone — and the marker `<!-- nstack:cycle NN -->`. Due on `end`, sent as
-   `<end>T00:00:00Z` and compared on its date alone: the forge shows *due by* the first day the
+   `<end>T12:00:00Z` — GitHub keeps a due date as midnight, Pacific time, of the day it receives —
+   and compared on its date alone: the forge shows *due by* the first day the
    cycle is over, deliberately the cycle form's own date. Closed when the cycle is closed or
    stopped. Two cycle files with the same `NN` are not shown, and said.
 4. **A deliverable is an issue** in its cycle's milestone, keyed on its identifier `D<n>` alone —
@@ -103,9 +105,10 @@ and undone; what the run costs on a project with many pull requests.
    milestone's items the display did not make are counted and said (*2 items in Cycle 03 not from
    the plan*): GitHub's bar counts them, the description's line does not.
 7. **Where and when it runs.** A workflow of its own in the skeleton, `Plan on the forge`:
-   - on every push to the default branch — the plan changed — and to `nstack/hold/**` — a holder
-     changed (ADR-0007) — and by hand (`workflow_dispatch`); it always reads the default branch's
-     tip, whatever pushed, so a re-run never applies an older plan;
+   - on every push to the default branch — the plan changed —, once a day — a holder changed: a
+     claim pushes a branch whose commits hold no file, so no workflow can start from it
+     (ADR-0007) —, and by hand (`workflow_dispatch`); it always reads the default branch's tip, so a
+     re-run never applies an older plan. A holder is shown at the next merge, or within a day;
    - `permissions: {}` at the workflow, and at its one job `issues: write`, `pull-requests: read`,
      `contents: read` — nothing else; one run at a time (a fixed `concurrency` group, the latest
      waiting run kept);

@@ -382,7 +382,7 @@ def test_a_reopened_deliverable_reopens_its_issue(forge):
 def test_a_due_date_returned_with_another_time_is_not_a_change(forge, capsys):
     root, site = forge
     board.run(root, today=TODAY)
-    site.milestones[1]["due_on"] = "2026-11-07T07:00:00Z"
+    site.milestones[1]["due_on"] = "2026-11-07T08:00:00Z"  # GitHub's own time of day
     site.milestones[1]["description"] += "\r\n"
     capsys.readouterr()
     board.run(root, today=TODAY)
@@ -431,3 +431,134 @@ def test_a_secondary_rate_limit_stops_the_run_partially_shown(forge, monkeypatch
     site.answer = limited
     assert board.run(root, today=TODAY) == 0
     assert "partially shown, the rest at the next run" in capsys.readouterr().out
+
+
+# --- what the verifier of the build found -------------------------------------------------
+
+class PacificGitHub(GitHub):
+    """GitHub as it is: a milestone's due date kept as midnight, Pacific time, of the UTC day
+    it was sent; label names unique whatever their case."""
+
+    def answer(self, method, path, query, body):
+        if path.startswith("/milestones") and body and "due_on" in body:
+            sent = datetime.datetime.fromisoformat(body["due_on"].replace("Z", "+00:00"))
+            pacific = (sent - datetime.timedelta(hours=8)).date()
+            body = {**body, "due_on": f"{pacific}T08:00:00Z"}
+        if path == "/labels" and method == "POST" and body["name"].lower() in {n.lower() for n in self.labels}:
+            raise urllib.error.HTTPError(path, 422, "Unprocessable", {}, io.BytesIO(b'{"message": "Validation Failed"}'))
+        return super().answer(method, path, query, body)
+
+
+@pytest.fixture
+def pacific(forge, monkeypatch):
+    root, _ = forge
+    site = PacificGitHub()
+    monkeypatch.setattr(hold.urllib.request, "urlopen", site)
+    return root, site
+
+
+def test_the_due_date_is_the_cycle_s_own_on_github_and_never_rewritten(pacific, capsys):
+    root, site = pacific
+    board.run(root, today=TODAY)
+    assert site.milestones[1]["due_on"].startswith("2026-11-07")
+    capsys.readouterr()
+    board.run(root, today=TODAY)
+    assert "restored milestone" not in capsys.readouterr().out
+
+
+def test_a_new_day_rewrites_nothing(forge, capsys):
+    root, site = forge
+    board.run(root, today=TODAY)
+    capsys.readouterr()
+    board.run(root, today=TODAY + datetime.timedelta(days=1))
+    assert "restored" not in capsys.readouterr().out
+
+
+def test_a_label_existing_in_another_case_is_used_as_it_is(pacific, capsys):
+    root, site = pacific
+    site.labels["Deliverable"] = {"name": "Deliverable"}
+    board.run(root, today=TODAY)
+    out = capsys.readouterr().out
+    assert "not shown further" not in out and "made label deliverable" not in out
+    capsys.readouterr()
+    for issue in site.issues.values():  # GitHub names the label as it exists
+        issue["labels"] = [{"name": "Deliverable" if l["name"] == "deliverable" else l["name"]} for l in issue["labels"]]
+    board.run(root, today=TODAY)
+    assert "restored issue" not in capsys.readouterr().out
+
+
+def test_an_issue_whose_label_a_person_removed_is_still_the_display_s(forge):
+    root, site = forge
+    board.run(root, today=TODAY)
+    export = next(issue for issue in site.issues.values() if issue["title"] == "D2 — Export")
+    export["labels"] = []
+    board.run(root, today=TODAY)
+    again = [issue for issue in site.issues.values() if "deliverable D2 -->" in issue["body"]]
+    assert len(again) == 1 and {"name": "deliverable"} in again[0]["labels"]
+
+
+@pytest.mark.parametrize("acceptance", [5, "one line"], ids=["a number", "a string"])
+def test_odd_acceptance_criteria_never_break_the_run(tmp_path, acceptance):
+    root = project(tmp_path, **{"03-the-window.md": cycle(deliverables=[deliverable(state="dropped", acceptance=acceptance)])})
+    shown, _ = board.desired(root, today=TODAY)
+    issue = next(item for item in shown if item.kind == "deliverable")
+    assert "- [ ] o\n" not in issue.body
+
+
+def test_an_unexpected_failure_is_said_and_the_run_succeeds(forge, monkeypatch, capsys):
+    root, _ = forge
+    monkeypatch.setattr(board, "_apply", lambda *args, **kwargs: {}["boom"])
+    assert board.run(root, today=TODAY) == 0
+    assert "not shown further" in capsys.readouterr().out
+
+
+def test_a_closed_cycle_says_its_count_and_no_appetite(tmp_path):
+    root = project(tmp_path, **{"01-old.md": cycle(status="closed", outcome="completed", ended_on="2026-10-01")})
+    milestone = next(item for item in board.desired(root, today=TODAY)[0] if item.kind == "cycle")
+    assert "0 of 1 accepted" in milestone.body and "day " not in milestone.body and "circuit" not in milestone.body
+
+
+def test_the_heading_is_found_past_a_rule_in_the_body(tmp_path):
+    from test_plan import write
+    write(tmp_path, "cycles/03-w.md", cycle(), body="\n# Cycle 03 — the window\n\n---\n\nmore\n")
+    write(tmp_path, "charter.md", CHARTER)
+    assert board.desired(tmp_path, today=TODAY)[0][0].title == "Cycle 03 — the window"
+
+
+def test_a_display_issue_moved_out_of_a_cycle_is_not_counted_as_a_person_s(forge, capsys):
+    root, site = forge
+    board.run(root, today=TODAY)
+    path = root / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("id: D2", "id: D9"), encoding="utf-8")
+    board.run(root, today=TODAY)
+    site.milestones[1].update(open_issues=1, closed_issues=3)  # D9 open; D1, D3 and the old D2 closed: all the display's
+    capsys.readouterr()
+    board.run(root, today=TODAY)
+    assert "not from the plan" not in capsys.readouterr().out
+
+
+def test_a_refused_permission_is_not_called_a_rate_limit(forge, monkeypatch, capsys):
+    root, _ = forge
+
+    def refuse(request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {},
+                                     io.BytesIO(b'{"message": "Resource not accessible by integration"}'))
+
+    monkeypatch.setattr(hold.urllib.request, "urlopen", refuse)
+    board.run(root, today=TODAY)
+    out = capsys.readouterr().out
+    assert "Resource not accessible by integration" in out and "partially shown" not in out
+
+
+def test_the_workflow_runs_on_merges_daily_and_by_hand_never_on_a_hold():
+    """A hold's commits hold no file: GitHub reads the workflows of the pushed commit, so a push to
+    nstack/hold/** can start none — the holders are shown by a daily run instead."""
+    import yaml
+    from pathlib import Path
+
+    workflow = yaml.safe_load((Path(__file__).resolve().parents[2] / "skeleton/.github/workflows/plan-on-the-forge.yml")
+                              .read_text(encoding="utf-8"))
+    triggers = workflow.get(True) or workflow["on"]
+    assert triggers["push"]["branches"] == ["main"] and triggers["schedule"] and "workflow_dispatch" in triggers
+    assert workflow["permissions"] == {} and workflow["jobs"]["board"]["permissions"] == {
+        "contents": "read", "issues": "write", "pull-requests": "read"}

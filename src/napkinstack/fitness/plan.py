@@ -161,9 +161,10 @@ def progress(root: Path, today: datetime.date | None = None) -> str | None:
     return None if cycle is None else progress_of(*cycle, today=today)
 
 
-def progress_of(path: Path, data: dict, today: datetime.date | None = None) -> str:
-    """One cycle's line, accepted or not: what `progress` says, and what the forge's display of a
-    cycle repeats (ADR-0008)."""
+def progress_of(path: Path, data: dict, today: datetime.date | None = None, appetite: bool = True) -> str:
+    """One cycle's line, accepted or not: what `progress` says. Without the appetite — the
+    day and the days left, which change every day — it is what the forge's display repeats
+    (ADR-0008)."""
     items = data.get("deliverables")
     states = [item.get("state") for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
     counted = [state for state in states if state != "dropped"]
@@ -177,7 +178,7 @@ def progress_of(path: Path, data: dict, today: datetime.date | None = None) -> s
     def days(count: int) -> str:
         return f"{count} day" + ("" if count == 1 else "s")
 
-    if start and end:
+    if start and end and appetite:
         if today < start:
             said.append(f"starts in {days((start - today).days)} ({start})")
         elif today >= end:  # the first day the cycle is over (the cycle form), as K2 reads it

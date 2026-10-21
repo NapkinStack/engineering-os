@@ -99,13 +99,15 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
         path, data = files[0]
         relative = path.relative_to(root).as_posix()
         closed = data.get("status") != "accepted"
-        heading = HEADING.search(path.read_text(encoding="utf-8").split("\n---", 2)[-1])
+        text = path.read_text(encoding="utf-8", errors="replace")
+        front = plan.FRONT_MATTER.match(text)
+        heading = HEADING.search(text[front.end():] if front else text)
         title = heading[1] if heading and heading[1].lower().startswith("cycle") else f"Cycle {path.stem}"
         goal = str(data.get("goal") or "").strip()
         end = plan.as_date(data.get("end"))
         shown.append(Shown(
             kind="cycle", key=number, title=title, state="closed" if closed else "open",
-            body="\n\n".join(part for part in (goal, plan.progress_of(path, data, today),
+            body="\n\n".join(part for part in (goal, plan.progress_of(path, data, today, appetite=False),
                                                EDITED_THERE.format(path=relative), marker("cycle", number)) if part),
             due=str(end) if end else None, start=plan.as_date(data.get("start"))))
         items = data.get("deliverables")
@@ -113,7 +115,9 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
             if not isinstance(item, dict) or not item.get("id") or str(item["id"]) in twice:
                 continue
             ident, state = str(item["id"]), str(item.get("state") or "")
-            criteria = [f"- [{'x' if state == 'accepted' else ' '}] {line}" for line in item.get("acceptance") or []
+            listed = item.get("acceptance")
+            criteria = [f"- [{'x' if state == 'accepted' else ' '}] {line}"
+                        for line in (listed if isinstance(listed, list) else [listed] if isinstance(listed, str) else [])
                         if isinstance(line, str)]
             person = holders.get(ident)
             lines = [f"**Module**: `{item.get('module')}`" if item.get("module") else "",
@@ -217,12 +221,14 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
         starts = [item.start for item in first if item.kind == "cycle" and item.start]
         shown, _ = desired(root, holders or {}, _pulls(forge, min(starts) if starts else None), today)
         milestones = _pages(forge, "/milestones?state=all")
-        issues = [item for item in _pages(forge, f"/issues?state=all&labels={urllib.parse.quote(LABEL)}")
-                  if "pull_request" not in item]
+        # Every issue, not those carrying the label: a label removed by hand leaves the marker.
+        issues = [item for item in _pages(forge, "/issues?state=all") if "pull_request" not in item]
         lines += _apply(forge, shown, milestones, issues, dry_run, keep_assignees=holders is None)
     except hold.Refused as error:
-        lines.append(f"not shown further: {error}"
-                     + (" — partially shown, the rest at the next run" if re.search(r"HTTP (403|429)", str(error)) else ""))
+        limited = re.search(r"HTTP 429|rate limit", str(error), re.I)
+        lines.append(f"not shown further: {error}" + (" — partially shown, the rest at the next run" if limited else ""))
+    except Exception as error:  # an answer nobody foresaw: said, never a failed merge
+        lines.append(f"not shown further: {type(error).__name__}: {error}")
     _tell(lines, f"Plan on the forge ({forge[1]})" + (" — dry run, nothing applied" if dry_run else ""))
     return 0
 
@@ -257,16 +263,18 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
 
     own_milestones, own_issues = _own(milestones, "description", "cycle"), _own(issues, "body", "deliverable")
     foreign_titles = {item.get("title") for item in milestones if not MARKER.search(str(item.get("description") or ""))}
-    present = {label.get("name") for label in _pages(forge, "/labels")}
-    for name in sorted({label for item in shown for label in item.labels} - present):
+    present = {str(label.get("name") or "").lower() for label in _pages(forge, "/labels")}  # one name, any case
+    for name in sorted(label for label in {label for item in shown for label in item.labels} if label.lower() not in present):
         call("POST", "/labels", {"name": name, "color": "1d76db" if name == LABEL else "c5def5",
                                  "description": "Shown from the cycle files by nstack board"})
         said.append(f"made label {name}")
 
     numbers: dict[str, int | None] = {}
     for item in (entry for entry in shown if entry.kind == "cycle"):
+        # Noon, UTC: GitHub keeps a due date as midnight, Pacific time, of the day it receives —
+        # sent at midnight UTC, it would read the day before.
         want = {"title": item.title, "description": item.body, "state": item.state,
-                **({"due_on": f"{item.due}T00:00:00Z"} if item.due else {})}
+                **({"due_on": f"{item.due}T12:00:00Z"} if item.due else {})}
         have = own_milestones.get(item.key)
         if have is None:
             if item.title in foreign_titles:
@@ -279,6 +287,8 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
             said.append(f"made milestone {item.title}")
             continue
         numbers[item.key] = have.get("number")
+        if not have.get("number"):
+            continue
         changed = [name for name in ("title", "state") if have.get(name) != want[name]]
         if _clean(have.get("description")) != _clean(want["description"]):
             changed.append("description")
@@ -287,7 +297,8 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
         if changed:
             call("PATCH", f"/milestones/{have['number']}", want)
             said.append(f"restored milestone {item.title}: {', '.join(changed)} — the plan is edited in the cycle file")
-        ours = sum(1 for entry in shown if entry.kind == "deliverable" and entry.cycle == item.key)
+        ours = sum(1 for issue in own_issues.values()
+                   if isinstance(issue.get("milestone"), dict) and issue["milestone"].get("number") == have.get("number"))
         theirs = int(have.get("open_issues") or 0) + int(have.get("closed_issues") or 0) - ours
         if theirs > 0:
             said.append(f"{theirs} item(s) in {item.title} not from the plan: GitHub's bar counts them, the "
@@ -306,6 +317,8 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
 
     for item in (entry for entry in shown if entry.kind == "deliverable"):
         have = own_issues.get(item.key)
+        if have is not None and not have.get("number"):
+            continue
         assignees = [item.assignee] if item.assignee and can_assign(item.assignee) else []
         if keep_assignees and have is not None:
             assignees = sorted(a.get("login") for a in have.get("assignees") or [] if isinstance(a, dict))
@@ -320,9 +333,11 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
         changed = ["title"] if have.get("title") != want["title"] else []
         if _clean(have.get("body")) != _clean(want["body"]):
             changed.append("body")
-        if {label.get("name") for label in have.get("labels") or [] if isinstance(label, dict)} != set(item.labels):
+        if ({str(label.get("name") or "").lower() for label in have.get("labels") or [] if isinstance(label, dict)}
+                != {label.lower() for label in item.labels}):
             changed.append("labels")
-        if (have.get("milestone") or {}).get("number") != want["milestone"]:
+        milestone = have.get("milestone")
+        if (milestone.get("number") if isinstance(milestone, dict) else None) != want["milestone"]:
             changed.append("milestone")
         if {a.get("login") for a in have.get("assignees") or [] if isinstance(a, dict)} != set(assignees):
             changed.append("assignees")
@@ -338,7 +353,7 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
 
     wanted = {item.key for item in shown if item.kind == "deliverable"}
     for key, have in own_issues.items():
-        if key not in wanted and have.get("state") == "open":
+        if key not in wanted and have.get("state") == "open" and have.get("number"):
             call("PATCH", f"/issues/{have['number']}", {"state": "closed", "state_reason": "not_planned"})
             said.append(f"closed issue {have.get('title')}: its deliverable is no longer in a shown cycle")
     return said

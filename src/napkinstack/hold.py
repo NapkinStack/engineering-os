@@ -96,6 +96,7 @@ def _ci_credential(root: Path, name: str) -> list[str]:
     if os.environ.get("GITHUB_ACTIONS") != "true" or not token or not url.startswith("https://github.com/"):
         return []
     secret = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    print(f"::add-mask::{secret}", flush=True)  # never printed in clear by the runner, as actions/checkout does
     return ["-c", f"http.https://github.com/.extraheader=AUTHORIZATION: basic {secret}"]
 
 
@@ -271,8 +272,7 @@ class Refused(Exception):
     """The forge did not do what was asked: the reason, as it says it."""
 
 
-def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None = None,
-          search: str | None = None):
+def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None = None):
     """One call, as doctor makes them; any failure — a status, the network, an answer that is not
     JSON — is Refused, with the forge's own message when it gives one."""
     from napkinstack import __version__
@@ -283,9 +283,7 @@ def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None
                "X-GitHub-Api-Version": API_VERSION, "User-Agent": f"nstack/{__version__}"}
     if body is not None:
         headers["Content-Type"] = "application/json"
-    url = (f"{api}/search/issues?per_page=100&q={urllib.parse.quote(search)}" if search is not None
-           else f"{api}/repos/{repo}{path}")
-    request = urllib.request.Request(url, method=method, headers=headers,
+    request = urllib.request.Request(f"{api}/repos/{repo}{path}", method=method, headers=headers,
                                      data=json.dumps(body).encode() if body is not None else None)
     try:
         with urllib.request.urlopen(request, timeout=10) as answer:
