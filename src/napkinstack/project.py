@@ -151,6 +151,36 @@ def ownership(root: Path) -> Path:
     return root / (OWNERSHIP[0] if forge(root) == "github" else OWNERSHIP[1])
 
 
+# Where each forge reads the pull request form (ADR-0010 §2): the file that says which forge a
+# project's files were written for.
+FORMS = {"github": ".github/pull_request_template.md", "gitlab": ".gitlab/merge_request_templates/Default.md",
+         "forgejo": ".gitea/pull_request_template.md", "gitea": ".gitea/pull_request_template.md",
+         "other": "docs/pull_request_template.md", "none": "docs/pull_request_template.md"}
+
+
+def written_for(root: Path) -> str | None:
+    """The forge the project's files were written for, when they contradict its answer: the
+    answer edited by hand, which Copier would then read as the old copy's (ADR-0010 §3). None
+    when they agree, or when no form says either way."""
+    named = forge(root)
+    if (root / FORMS[named]).is_file():
+        return None
+    found = [name for name, path in FORMS.items() if (root / path).is_file()]
+    return found[0] if found else None
+
+
+def remote_forge(root: Path) -> tuple[str, str] | None:
+    """(host, forge) when the remote `origin` is on a known public forge that is not the answer's:
+    said, never judged — a mirror is a choice (ADR-0010 §4)."""
+    url = _git(root, "config", "remote.origin.url").stdout.strip()
+    host = re.search(r"^(?:[a-z+]+://)?(?:[^@/]+@)?([^/:]+)", url)
+    found = KNOWN_HOSTS.get(host.group(1).lower()) if host else None
+    kin = {"forgejo", "gitea"}  # one family: Codeberg runs Forgejo, a Gitea answer reads the same files
+    if not found or found == forge(root) or {found, forge(root)} <= kin:
+        return None
+    return host.group(1).lower(), found
+
+
 def settle_checks(root: Path, given: dict) -> None:
     """A forge chosen at Copier's prompt is unknown before the copy: off GitHub, where no CI is
     shipped, `checks` is attested unless the caller gave it (PDR-0018)."""
@@ -272,15 +302,16 @@ def _moved(path: str) -> str | None:
     return next((new + path[len(old):] for old, new in MOVED_FOLDERS.items() if path.startswith(old)), None)
 
 
-def _carry(root: Path, base: str, previous: str) -> tuple[list[str], list[str]]:
+def _carry(root: Path, base: str, previous: str, moved=_moved) -> tuple[list[str], list[str]]:
     """After an update that moved files: each one the project had adapted in its old place is
     merged — the project's change against what the framework wrote there — into its new place.
     Returns what was carried and what conflicted, as "old -> new". Nothing is carried, and the
-    older skeleton is not even fetched, when no file of the project sat in an old place."""
+    older skeleton is not even fetched, when no file of the project sat in an old place.
+    `moved` names a file's new place: the framework's moves, or a forge change's (ADR-0010 §3)."""
     import copier
 
     held = [path for path in _git(root, "ls-tree", "-r", "--name-only", "-z", base).stdout.split("\0")
-            if path and _moved(path) and (root / _moved(path)).is_file() and not (root / path).exists()]
+            if path and moved(path) and (root / moved(path)).is_file() and not (root / path).exists()]
     if not held:
         return [], []
     answers = yaml.safe_load(_git(root, "show", f"{base}:{ANSWERS}").stdout) or {}
@@ -298,14 +329,14 @@ def _carry(root: Path, base: str, previous: str) -> tuple[list[str], list[str]]:
                 continue  # never adapted: the new file is already the right one
             own = Path(scratch) / "mine"
             own.write_text(mine, encoding="utf-8")
-            new = root / _moved(path)
+            new = root / moved(path)
             merged = subprocess.run(["git", "merge-file", "-p", "-L", "the framework's new version",
                                      "-L", "the framework's old version", "-L", "the project's adaptation",
                                      str(new), str(theirs), str(own)], capture_output=True, text=True)
             if merged.returncode < 0 or merged.returncode > 127:
                 continue  # the merge itself failed: the new file is left as the framework wrote it
             new.write_text(merged.stdout, encoding="utf-8")
-            (conflicted if merged.returncode else carried).append(f"{path} -> {_moved(path)}")
+            (conflicted if merged.returncode else carried).append(f"{path} -> {moved(path)}")
     return carried, conflicted
 
 
@@ -326,8 +357,8 @@ def _keep_contracts(root: Path, base: str) -> bool:
     lost = [path for path in held if path in CONTRACTS_SCAFFOLD and not (root / path).exists()]
     for path in lost:
         _git(root, "checkout", base, "--", path)
-    owners = root / ".github" / "CODEOWNERS"
-    before = [line for line in _git(root, "show", f"{base}:.github/CODEOWNERS").stdout.splitlines()
+    owners = ownership(root)  # where the project's forge reads it (ADR-0010)
+    before = [line for path in OWNERSHIP for line in _git(root, "show", f"{base}:{path.as_posix()}").stdout.splitlines()
               if line.split()[:1] == ["/contracts/"]]
     if before and owners.is_file():
         content = owners.read_text(encoding="utf-8")
@@ -404,6 +435,8 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
               "or pass --root.")
         return 1
     previous = str(_answers(root).get("_commit"))
+    if (refused := _by_hand(root, "update")) is not None:
+        return refused
     if previous == ref:
         print(f"Already up to date: NapkinStack {ref}.")
         return 0
@@ -488,6 +521,120 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
             print(f"  - {name}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
+    print(f"\n{next_step(root, branch)}")
+    return 0
+
+
+def _by_hand(root: Path, command: str) -> int | None:
+    """1, said, when the answers name a forge the files were not written for; else None."""
+    written = written_for(root)
+    if written is None:
+        return None
+    print(f"FAIL [{command}] {ANSWERS} says `forge: {forge(root)}`, and the project's files are written for "
+          f"{written}: the answer was changed by hand, and Copier would read the old files as {forge(root)}'s.\n"
+          f"      Action: put back `forge: {written}` in {ANSWERS}, commit it, then nstack update --forge "
+          f"{forge(root)}, which moves the files and carries the project's lines.")
+    return 1
+
+
+def change_forge(root: Path, new: str, github_repo: str | None = None, repository: str | None = None,
+                 session: str | None = None) -> int:
+    """Moves the project to another forge at its own version (ADR-0010 §3): Copier renders the old
+    copy with the forge its files were written for and the new one with `new`; the ownership file
+    and the pull request form are carried as the framework's moves are. On a branch, for review."""
+    import copier
+    from copier.errors import CopierError
+
+    if not (root / ANSWERS).is_file():
+        print(f"FAIL [update] {ANSWERS} not found in {root}: this folder is not a project "
+              "created by nstack init.\n      Action: run the command at the project root, "
+              "or pass --root.")
+        return 1
+    if (refused := _by_hand(root, "update")) is not None:
+        return refused
+    old, answers = forge(root), _answers(root)
+    if new == old:
+        print(f"The project is already on forge {new}: nothing to change.")
+        return 0
+    data: dict[str, str] = {"forge": new}
+    if new == "github":
+        if repository:
+            print("FAIL [update] --repository names a repository at another forge, and the forge asked is "
+                  "github.\n      Action: give --github-repo <owner/name> instead.")
+            return 1
+        github_repo = github_repo or answers.get("github_repo")
+        if not github_repo:
+            print("FAIL [update] On GitHub the project needs its repository.\n      Action: give "
+                  "--github-repo <owner/name>.")
+            return 1
+        data["github_repo"] = str(github_repo)
+    elif github_repo:
+        print(f"FAIL [update] github_repo is GitHub's answer, and the forge asked is {new}.\n      Action: "
+              + ("leave it out." if new == "none" else "give its repository at that forge with --repository."))
+        return 1
+    elif new == "none":
+        if repository:
+            print("FAIL [update] --repository names a repository at a forge, and the forge asked is none.\n"
+                  "      Action: leave it out: with no forge there is no repository but this folder.")
+            return 1
+    else:
+        repository = repository or answers.get("repository")
+        if not repository:
+            print(f"FAIL [update] On {new} the project needs its repository's path.\n      Action: give "
+                  "--repository <group/name> or <group/subgroup/name>.")
+            return 1
+        data["repository"] = str(repository)
+    # No CI is shipped off GitHub: a project whose checks were the forge's would have none run.
+    settled = new != "github" and answers.get("checks") == "forge"
+    if settled:
+        data["checks"] = "attested"
+    branch = f"nstack/forge-{new}"
+    if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+        print(f"FAIL [update] Branch {branch} already exists in {root}.\n"
+              "      Action: merge it or delete it (git branch -D), then run again.")
+        return 1
+    default, current_branch = _default_branch(root), _git(root, "branch", "--show-current").stdout.strip()
+    if default and current_branch != default:
+        print(f"FAIL [update] {current_branch or 'a detached HEAD'} is checked out, not {default}: the "
+              f"change's branch would carry its commits.\n      Action: git switch {default}, then run again.")
+        return 1
+    version = str(answers.get("_commit"))
+    base = _git(root, "rev-parse", "HEAD").stdout.strip()
+    moves = {FORMS[old]: FORMS[new], ownership(root).relative_to(root).as_posix():
+             (OWNERSHIP[0] if new == "github" else OWNERSHIP[1]).as_posix()}
+    moves = {before: after for before, after in moves.items() if before != after}
+    try:
+        copier.run_update(root, vcs_ref=version, data=data, overwrite=True, skip_answered=True, defaults=True,
+                          conflict="inline", quiet=True, unsafe=False)
+        carried, conflicts = _carry(root, base, version, moved=moves.get)
+    except (CopierError, ValueError, OSError) as exc:
+        print(_explain(exc, "update", root, str(answers.get("_src_path")), version))
+        return 1
+    switch = _git(root, "switch", "--create", branch)
+    if switch.returncode:
+        print(f"FAIL [update] Branch {branch} could not be created: {switch.stderr.strip()}\n"
+              "      Action: the changes stay in the working tree; create the branch by hand, then commit.")
+        return 1
+    message = f"NapkinStack: forge {old} -> {new}" + (f"\n\nAgent-Session: {session}" if session else "")
+    for args in (("add", "--all"), ("commit", "--quiet", "--message", message)):
+        result = _git(root, *args)
+        if result.returncode:
+            print(f"FAIL [update] The change laid on {branch}, but `git {args[0]}` failed:\n"
+                  f"      {(result.stdout + result.stderr).strip()}\n"
+                  "      Action: fix it, then git add --all && git commit.")
+            return 1
+    print(f"Branch {branch}: forge {old} -> {new}, at NapkinStack {version}.")
+    if carried:
+        print("What the project had written in the files that moved moved with them:")
+        for pair in carried:
+            print(f"  - {pair}")
+    if conflicts:
+        print("Carried with a conflict, marked between <<<<<<< and >>>>>>> — keep the right lines, then commit:")
+        for pair in conflicts:
+            print(f"  - {pair}")
+    if settled:
+        print("checks: attested — no CI is shipped off GitHub; each change's checks are run and recorded by "
+              "nstack attest. The decider's answer, changed in a pull request.")
     print(f"\n{next_step(root, branch)}")
     return 0
 

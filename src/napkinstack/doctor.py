@@ -32,6 +32,9 @@ Rules:
   L7  the template source reachable by anyone: a repository, not a path on one machine
   L8  off GitHub only: `checks: forge` names a CI this version ships only on GitHub — nothing
       would run the checks; the answer is `attested`
+  L9  the `forge` answer is the one the project's files were written for — never changed by
+      hand, which Copier would misread; `nstack update --forge` changes it. A remote on another
+      known public forge is said, never judged: a mirror is a choice
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. No other command opens a connection
   G1-G20  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
@@ -441,9 +444,20 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                     f"The project was generated from '{source}', a path on one machine: nobody else can "
                     "update it.\nAction: nstack update, from the published source." if local else ""))
 
-    from napkinstack.project import forge
+    from napkinstack.project import forge, remote_forge, written_for
 
     name = forge(root)
+    written, remote = written_for(root), remote_forge(root)
+    if written is not None:
+        l9 = (GAP, f"`forge: {name}`, and the project's files are written for {written}: the answer was changed "
+                   f"by hand.\nAction: put back `forge: {written}` in {ANSWERS}, commit it, then nstack update "
+                   f"--forge {name}, which moves the files and carries the project's lines.")
+    elif remote is not None:
+        flag = "--github-repo <owner/name>" if remote[1] == "github" else "--repository <group/name>"
+        l9 = (OK, f"Said: the remote is on {remote[0]}, and the answer says {name}. A mirror stays as it is; "
+                  f"a project that lives there: nstack update --forge {remote[1]} {flag}.")
+    else:
+        l9 = (OK, "")
     if name != "github":
         forced = answers.get("checks") == "forge"
         results.append(("L8", "Checks run where the project says", GAP if forced else OK,
@@ -451,6 +465,7 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                         f"checks of a {name} project.\nAction: answer `checks: attested` in {ANSWERS}, in a "
                         "pull request; each change then carries its record, made by nstack attest."
                         if forced else ""))
+    results.append(("L9", "The forge answered is the one the files are written for", *l9))
     return results
 
 
