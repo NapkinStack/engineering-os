@@ -44,8 +44,8 @@ runbook, tests and configuration.
 | `nstack manifests` | M1-M11: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles |
 | `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
-| `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment |
-| `nstack pr-check` | T1-T5, K1-K4: the test sheet and the cycle, read from the pull request description |
+| `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment; then who holds each deliverable, said and never failed |
+| `nstack pr-check` | T1-T5, K1-K5: the test sheet, the cycle and who holds the deliverable, read from the pull request description |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
 | `nstack doctor` | L1-L3, L6, L7 and G1-G19: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |

@@ -383,6 +383,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
                    "frame a new cycle with a new appetite, or stop the project (status: stopped).")
         return
     match = DELIVERABLE.search(body)
+    match = match and [match[0], match[1].upper()]
     states = {str(item.get("id")): item.get("state") for item in data.get("deliverables") or []
               if isinstance(item, dict)}
     if not match:
@@ -400,8 +401,15 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
              f"      Action: set its state: in-progress in {path.name}, in this pull request.")
 
 
+def identities(root: Path, base: str, head: str) -> set[str]:
+    """The git identities, `Name <email>`, of the authors and committers of the commits the pull
+    request brings."""
+    log = _git(root, "log", "--no-merges", "--format=%an <%ae>%n%cn <%ce>", f"{base}..{head}").stdout
+    return {line for line in log.splitlines() if line.strip()}
+
+
 def check_hold(root: Path, body: str, labels: set[str], authorship: tuple[set[str], set[str], list[str]],
-               fail: Fail, warn: Callable[[str], None]) -> None:
+               fail: Fail, warn: Callable[[str], None], people: set[str] = frozenset()) -> None:
     """K5: the deliverable a pull request delivers is not held by someone else. Nobody holds it:
     nothing is asked — claiming protects, it is no toll. The holds cannot be read: said."""
     from napkinstack import hold
@@ -417,12 +425,13 @@ def check_hold(root: Path, body: str, labels: set[str], authorship: tuple[set[st
     if found is None:
         return
     logins, sessions, _ = authorship
-    if {session.casefold() for session in found.sessions} & sessions or any(hold.same(found.person, login) for login in logins):
+    if ({session.casefold() for session in found.sessions} & sessions
+            or any(hold.same(found.person, someone) for someone in [*logins, *people])):
         return
     fail("K5", f"{ident} is {hold.said(found)}: this pull request comes from none of its sessions "
                f"and not from its person.\n      Action: the holder gives it back (nstack unclaim {ident}), "
-               f"or once stale nstack claim {ident} --take-over; a session of the holder claims it again "
-               "to be named on it.")
+               f"or once stale nstack claim {ident} --take-over. The holder working from another session "
+               f"names it on the hold first: nstack claim {ident} --session <it>.")
 
 
 def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
@@ -517,7 +526,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
-        check_hold(root, body, labels, authorship, fail, warnings.append)
+        check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))

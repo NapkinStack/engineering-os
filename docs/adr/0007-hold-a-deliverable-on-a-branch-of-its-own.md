@@ -96,12 +96,13 @@ no service, and no forge required.
    another than the holder or the charter's decider, refused unless stale. The previous holder's
    branches are never touched.
 7. **`plan`.** After its rules, a *Holds* section for the accepted cycle: each deliverable free,
-   held (person, session, since, last worked on) or stale. Read from the remote; unreachable or
-   none, it says *holds not read* — never a failure. A hold of a deliverable `accepted` or
+   held (person, session, since, last worked on) or stale. Read from the remote; unreachable, it
+   says *holds not read* — never a failure; no remote, the local holds are read and said local. A hold of a deliverable `accepted` or
    `dropped` is shown ended.
 8. **`pr-check`, rule K5.** A pull request naming a deliverable that has a hold matches it when
-   one of its commits carries a session of the hold's events, or its committer is the hold's
-   person; otherwise K5 fails, naming the holder. No hold: nothing is asked — claiming is the
+   one of its commits carries a session of the hold's events, or one of its commits' authors or
+   committers, or its opener's account, is the hold's person — by email, or a GitHub account
+   by handle or noreply address, never by a display name; otherwise K5 fails, naming the holder. No hold: nothing is asked — claiming is the
    way to be protected, not a new toll (PDR-0015, impacts). Under GitHub Actions the hold's branch
    is fetched by name from the checkout's remote.
 

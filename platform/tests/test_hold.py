@@ -362,3 +362,111 @@ def test_k5_unread_is_said_never_failed(shared):
     pull_request.check_hold(bob, "Deliverable: D1", set(), AUTHORED,
                             lambda rule, message: failed.append(rule), said.append)
     assert failed == [] and any("K5" in line and "not read" in line for line in said)
+
+
+# --- found by the verifier of part 2a ---------------------------------------------------
+
+MANIFEST = """module:
+  name: capture
+  owner: "acme/team"
+  criticality: prototype
+  lifecycle: active
+"""
+
+
+def delivery(clone_root: Path, body: str, labels: str, monkeypatch, session: str | None = None,
+             who: tuple[str, str] | None = None) -> int:
+    """pr-check on a branch that changes the capture module, as CI runs it."""
+    from napkinstack import pull_request
+
+    (clone_root / "modules/capture").mkdir(parents=True, exist_ok=True)
+    (clone_root / "modules/capture/MANIFEST.yaml").write_text(MANIFEST, encoding="utf-8")
+    git(clone_root, "add", "-A")
+    git(clone_root, "commit", "-q", "-m", "the module")
+    git(clone_root, "push", "-q", "origin", "HEAD:main")
+    git(clone_root, "fetch", "-q")
+    (clone_root / "modules/capture/code.py").write_text("x = 1\n", encoding="utf-8")
+    git(clone_root, "add", "-A")
+    env = {"GIT_AUTHOR_NAME": who[0], "GIT_AUTHOR_EMAIL": who[1],
+           "GIT_COMMITTER_NAME": who[0], "GIT_COMMITTER_EMAIL": who[1]} if who else {}
+    git(clone_root, "commit", "-q", "-m", "work" + (f"\n\nAgent-Session: {session}" if session else ""), env=env)
+    monkeypatch.setenv("PR_BODY", body)
+    monkeypatch.setenv("PR_LABELS", labels)
+    monkeypatch.delenv("PR_AUTHOR", raising=False)
+    return pull_request.run(clone_root, "origin/main")
+
+
+def test_k5_through_pr_check_refuses_another_session(shared, monkeypatch, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    assert delivery(clone(shared, "bob"), "Deliverable: D1", "", monkeypatch, session="bob-d1") == 1
+    assert "FAIL [K5]" in capsys.readouterr().out
+
+
+def test_the_out_of_cycle_label_lifts_k5(shared, monkeypatch, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    body = "Deliverable: D1\n\nOut of cycle: a production incident"
+    delivery(clone(shared, "bob"), body, "out-of-cycle", monkeypatch, session="bob-d1")
+    assert "[K5]" not in capsys.readouterr().out
+
+
+def test_k5_is_silent_in_an_unframed_project(shared, monkeypatch, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    bob = clone(shared, "bob")
+    charter = bob / "docs/project/charter.md"
+    charter.write_text(charter.read_text(encoding="utf-8").replace("status: accepted", "status: proposed"),
+                       encoding="utf-8")
+    delivery(bob, "Deliverable: D1", "", monkeypatch, session="bob-d1")
+    assert "[K5]" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("name, email", [("Carol Doe", "12345+carol-gh@users.noreply.github.com"),
+                                         ("Bob", "bob@example.org")], ids=["noreply", "plain"])
+def test_k5_knows_the_holder_by_the_git_identity_they_claimed_with(shared, monkeypatch, capsys, name, email):
+    holder = clone(shared, "holder")
+    monkeypatch.setenv("GIT_AUTHOR_NAME", name)
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", email)
+    hold.claim(holder, "D1")
+    for variable, value in IDENTITY.items():
+        monkeypatch.setenv(variable, value)
+    capsys.readouterr()
+    delivery(holder, "Deliverable: D1", "", monkeypatch, who=(name, email))
+    assert "[K5]" not in capsys.readouterr().out
+
+
+def test_a_noreply_address_names_its_github_account():
+    assert hold.same("@carol-gh", "Carol Doe <12345+carol-gh@users.noreply.github.com>")
+
+
+def test_a_display_name_alone_never_names_an_account():
+    assert not hold.same("@bob", "Bob <robert@example.org>")
+
+
+def test_k3_and_k5_read_a_lowercase_identifier_alike(shared, monkeypatch, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    delivery(clone(shared, "bob"), "Deliverable: d1", "", monkeypatch, session="bob-d1")
+    out = capsys.readouterr().out
+    assert "FAIL [K5]" in out and "[K3] deliverable d1 is not in" not in out
+
+
+def test_plan_shows_the_holds_even_when_its_rules_fail(shared, capsys):
+    from napkinstack import cli
+
+    bob = clone(shared, "bob")
+    cycle = bob / "docs/project/cycles/03-the-window.md"
+    cycle.write_text(cycle.read_text(encoding="utf-8").replace("end: 2026-11-07", "end: 2026-11-08"),
+                     encoding="utf-8")
+    args = cli.build_parser().parse_args(["plan", "--root", str(bob)])
+    assert args.func(args) == 1
+    assert "Holds in 03-the-window" in capsys.readouterr().out
+
+
+def test_a_stale_hold_tells_its_holder_to_renew_and_others_to_take_over(shared, monkeypatch, capsys):
+    for name, value in ago(10).items():
+        monkeypatch.setenv(name, value)
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
+        monkeypatch.delenv(name)
+    capsys.readouterr()
+    hold.show(clone(shared, "bob"))
+    out = capsys.readouterr().out
+    assert "its holder renews (nstack claim D1)" in out and "--take-over" in out
