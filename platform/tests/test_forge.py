@@ -317,8 +317,8 @@ def test_attest_s_display_off_github_says_the_forge(created, monkeypatch):
 
 
 @pytest.mark.parametrize("forge, checks, said, unsaid", [
-    ("github", "forge", "CI validates it", "nstack attest"),
-    ("github", "attested", "nstack attest", "CI validates it"),
+    ("github", "forge", "CI validates it", "run nstack attest"),
+    ("github", "attested", "run nstack attest", "CI validates it"),
     ("gitlab", "attested", "nstack attest", "CI validates it"),
     ("none", "attested", "nstack attest", "open the pull request"),
 ])
@@ -359,3 +359,81 @@ def test_with_no_forge_and_no_sheet_the_test_rules_say_no_carrier(tmp_path, caps
     _off(tmp_path, "gitlab")  # a forge with pull requests: a missing sheet stays a failure
     check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
     assert "[T1]" in capsys.readouterr().out
+
+
+# --- what the verifier of part 2 found ---------------------------------------------------------
+
+@pytest.mark.parametrize("url", ["../ghq/github.com/acme/demo", "../acme/demo", "file:///srv/git/acme/demo",
+                                 "https://git.corp/x/acme/demo", "https://gitlab.com/acme/demo.git"])
+def test_a_path_or_another_host_is_never_the_project_s_github(created, monkeypatch, url):
+    from napkinstack import hold
+
+    root = created["github"]
+    _remote(root, url)
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.setenv("GITHUB_API_URL", "https://git.example.corp/api/v3")
+    assert hold._forge(root, "origin") is None
+
+
+def test_a_server_of_its_own_needs_its_api_and_matches_without_case(created, monkeypatch):
+    from napkinstack import hold
+
+    root = created["github"]
+    _remote(root, "git@git.example.corp:ACME/Demo.git")
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.delenv("GITHUB_API_URL", raising=False)
+    assert hold._forge(root, "origin") is None  # no API named: never api.github.com for another host
+    monkeypatch.setenv("GITHUB_API_URL", "https://git.example.corp/api/v3")
+    assert hold._forge(root, "origin") == ("https://git.example.corp/api/v3", "acme/demo", "t")
+
+
+def test_an_alias_rewritten_to_github_is_github(created, monkeypatch):
+    import subprocess
+
+    from napkinstack import hold
+
+    root = created["github"]
+    _remote(root, "work:demo")
+    subprocess.run(["git", "config", "url.https://github.com/acme/.insteadOf", "work:"], cwd=root, check=True)
+    monkeypatch.setenv("GH_TOKEN", "t")
+    try:
+        assert hold._forge(root, "origin")[1] == "acme/demo"
+    finally:
+        subprocess.run(["git", "config", "--unset", "url.https://github.com/acme/.insteadOf"], cwd=root)
+
+
+@pytest.mark.parametrize("text", ["foo: [", "- a\n", "just text\n"])
+def test_a_malformed_answers_file_is_github_never_a_traceback(tmp_path, text):
+    (tmp_path / ".copier-answers.yml").write_text(text, encoding="utf-8")
+    assert project.answer(tmp_path, "forge") is None and project.forge(tmp_path) == "github"
+
+
+def test_landed_off_github_says_it_does_not_run(created, capsys, monkeypatch):
+    from napkinstack import landed
+
+    monkeypatch.setenv("GH_TOKEN", "t")
+    assert landed.run(created["gitlab"], "HEAD~1..HEAD", landed.from_environment(created["gitlab"])) == 0
+    assert "not run — forge gitlab" in capsys.readouterr().out
+
+
+def test_doctor_with_no_forge_says_nothing_refuses(created, monkeypatch, capsys):
+    from napkinstack import doctor
+
+    _all_ok(monkeypatch)
+    doctor.run(created["none"])
+    out = capsys.readouterr().out
+    assert "unguarded — no forge" in out and "forge's protections" not in out
+
+
+def test_install_names_the_forge_as_people_do(created):
+    assert "on GitLab" in (created["gitlab"] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    assert "on your forge" in (created["other"] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+
+
+def test_the_no_carrier_line_names_the_description_s_file(tmp_path, capsys, monkeypatch):
+    from test_pull_request import USER_FACING, change, check
+
+    base, head = change(tmp_path, USER_FACING)
+    _off(tmp_path, "none")
+    check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
+    assert "nstack attest --body-file" in capsys.readouterr().out

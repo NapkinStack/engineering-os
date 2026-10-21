@@ -540,7 +540,8 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}"
           + ("" if carried or not reasons else " — no carrier: forge none has no pull request. T1 to T5 "
-             "judge a sheet filled in docs/pull_request_template.md, passed with --body-file"))
+             "judge a sheet filled in docs/pull_request_template.md — with its Deliverable line — passed by "
+             "nstack attest --body-file <file>"))
     print(f"Checks          : {checks}")
     for line in summary(body, authorship) if reasons and carried else []:
         print(line)

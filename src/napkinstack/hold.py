@@ -264,14 +264,28 @@ def _forge(root: Path, name: str | None) -> tuple[str, str, str] | None:
     from napkinstack.doctor import ON_GITHUB
 
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if not token or project.forge(root) != "github":
+    if not token or not name or project.forge(root) != "github":
         return None
-    url = _git(root, "config", f"remote.{name}.url").stdout.strip() if name else ""
-    found = ON_GITHUB.search(url)
-    repo = found.group(1) if found else str(project.answer(root, "github_repo") or "")
-    if not found and not (repo and re.search(rf"[/:]{re.escape(repo)}(?:\.git)?/?$", url)):
-        return None
-    return (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/"), repo, token
+    # As configured, and as git rewrites it (an `insteadOf` alias): github.com in either.
+    urls = [_git(root, "config", f"remote.{name}.url").stdout.strip(), _git(root, "remote", "get-url", name).stdout.strip()]
+    api = os.environ.get("GITHUB_API_URL")
+    for url in urls:
+        if found := ON_GITHUB.search(url):
+            return (api or "https://api.github.com").rstrip("/"), found.group(1), token
+    # A server of the company's own: its API named, and a remote with a host — never a path, a
+    # file:// URL nor a public forge — whose path is exactly `github_repo`, as GitHub compares
+    # names, without case.
+    repo = str(project.answer(root, "github_repo") or "")
+    for url in urls if api and repo else []:
+        host = SERVER.fullmatch(url)
+        if host and (host["host"] or host["scp"]).lower() not in project.KNOWN_HOSTS and host["path"].lower() == repo.lower():
+            return api.rstrip("/"), repo, token
+    return None
+
+
+# A remote with a host: scheme://[user@]host[:port]/path, or scp-like user@host:path.
+SERVER = re.compile(r"(?:(?:https?|ssh|git)://(?:[^@/]+@)?(?P<host>[^/:]+)(?::\d+)?/|[^/@:]+@(?P<scp>[^/:]+):)"
+                    r"(?P<path>[^/]+/[^/]+?)(?:\.git)?/?")
 
 
 def unshown(root: Path) -> str:

@@ -249,10 +249,10 @@ on a forge one day, the project should have it refuse:
 
 `nstack doctor` checks the workstation and says the repository is **unguarded**: no forge, so
 nothing to read. The owners in `CODEOWNERS` are for people to read; no forge reads them.
-{% else %}## To do once on the forge — otherwise nothing is guaranteed
+{% else %}{% set shown = {"gitlab": "GitLab", "forgejo": "Forgejo", "gitea": "Gitea"}.get(forge, "your forge") %}## To do once on the forge — otherwise nothing is guaranteed
 
 Hooks and records **inform**; it is the forge that **blocks**. This version reads and writes
-GitHub's settings only: on {{ forge }}, set these in its own pages, on the main branch and on the
+GitHub's settings only: on {{ shown }}, set these in its own pages, on the main branch and on the
 hold branches:
 
 - [ ] A pull request required: no direct push to the main branch
@@ -264,10 +264,10 @@ hold branches:
 - [ ] Hold branches `nstack/hold/…` neither force-pushed nor deleted
 
 `nstack doctor` checks the workstation, lists these, and says the repository is **unguarded**:
-it does not read {{ forge }}'s settings, so it never reports them in place. Every change's checks
+it does not read {{ shown }}'s settings, so it never reports them in place. Every change's checks
 are **attested** — run on a workstation by `nstack attest` and recorded on the commit — since no
 CI is shipped for this forge.{% if forge in ["forgejo", "gitea"] %} `CODEOWNERS` is written for
-people to read: {{ forge }} reads its code owners as regular expressions, another syntax.{% endif %}
+people to read: {{ shown }} reads its code owners as regular expressions, another syntax.{% endif %}
 
 Your agents work under an identity of their own — a bot account on the forge, with no
 administration right (`.nstack/handbook/07-governance.md` §7): a pull request's author cannot

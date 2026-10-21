@@ -123,9 +123,18 @@ FORGES = ("github", "gitlab", "forgejo", "gitea", "other", "none")
 OWNERSHIP = (Path(".github") / "CODEOWNERS", Path("CODEOWNERS"), Path("docs") / "CODEOWNERS")
 
 
+# Public forges by host: a remote there is that forge's, never a GitHub server of a company's own.
+KNOWN_HOSTS = {"github.com": "github", "gitlab.com": "gitlab", "codeberg.org": "forgejo", "gitea.com": "gitea"}
+
+
 def answer(root: Path, key: str):
-    """One answer of the project's answers file; None without the file or the answer."""
-    return _answers(root).get(key) if (root / ANSWERS).is_file() else None
+    """One answer of the project's answers file; None without the file, without the answer, or
+    when the file is not a mapping YAML can read — never a traceback for a command that only asks."""
+    try:
+        answers = _answers(root) if (root / ANSWERS).is_file() else None
+    except (OSError, yaml.YAMLError):
+        return None
+    return answers.get(key) if isinstance(answers, dict) else None
 
 
 def forge(root: Path) -> str:
@@ -489,5 +498,5 @@ def next_step(root: Path, branch: str) -> str:
     if forge(root) == "github" and answer(root, "checks") != "attested":
         return f"Next step: git push -u origin {branch}, then open the PR; CI validates it."
     if forge(root) == "none":
-        return f"Next step: nstack attest on {branch}, then merge it as the project merges its changes."
-    return f"Next step: nstack attest on {branch}, then git push -u origin {branch} and open the pull request."
+        return f"Next step: on {branch}, run nstack attest, then merge it as the project merges its changes."
+    return f"Next step: on {branch}, run nstack attest, then git push -u origin {branch} and open the pull request."

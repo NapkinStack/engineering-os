@@ -548,7 +548,8 @@ def _off_github(name: str, answers: dict, results: list[tuple[str, str, str, str
         print(f"    - {protection}")
     print("  The record of commits on the main branch (nstack landed) does not run: its workflow is "
           "written only on GitHub.")
-    print("\nThis repository: unguarded — this version does not read the forge's protections.")
+    print("\nThis repository: unguarded — " + ("no forge, nothing refuses a change." if name == "none"
+                                                else "this version does not read the forge's protections."))
     gaps = sum(status == GAP for _, _, status, _ in results)
     unknown = sum(status == UNKNOWN for _, _, status, _ in results)
     if not gaps and not unknown:
