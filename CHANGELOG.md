@@ -22,6 +22,50 @@ a patch.
 
 ---
 
+## v0.14.0 — 2026-10-21
+
+One workstream — D140 (PDR-0017, ADR-0009): a change's end-to-end runs show what their logs said
+— and a wording of D139's display. A minor version: a new manifest rule, M12, and an audit that
+**only reports** in this version; the project's next minor version of NapkinStack judges.
+
+**In the engine**
+
+- **`nstack e2e` keeps what the run said** (D140): each run gets its folder, `NSTACK_EVIDENCE`
+  (`<module>/.evidence/e2e/`, refused if a link, a second run refused while one lives), and its
+  output is kept there as `output.txt` — live, in bytes, a traceback included, a child left
+  holding the output said after two seconds, an interrupt passed on.
+- **The audit**, whatever the command's exit code: the `.log` and `.jsonl` files the run wrote
+  there are read — each line's level from JSON keys (words, or pino's 40/50/60), a leading level
+  word after colour codes and timestamps, GLib's `Domain-WARNING/CRITICAL`, `level=` (logfmt), or
+  the module's own `evidence.levels`. A warning or an error the module did not declare is quoted
+  with `file:line` and a declaration, ready to paste, that matches it again. **In this version
+  every verdict is reported**; from the project's next minor version an undeclared error fails
+  the run, and an undeclared warning from criticality `high`. A declaration nothing matched, and a
+  file whose lines say no level, are said.
+- **M12** in `nstack manifests`: an `evidence` section that checks something — known keys, text
+  patterns that compile and accept no empty line, a level, a scenario.
+- **`nstack attest`** records each module's audit of the commit (`evidence`), folders relative,
+  ten undeclared lines at most.
+- **`nstack board`** says *updated* — it cannot tell the plan moving from a hand edit — and once
+  what an update means.
+
+**In your project** — 6 files
+
+- `.nstack/playbooks/tests.md`: *What the run said* — write logs and screenshots to
+  `$NSTACK_EVIDENCE`, log a page's errors there, declare what the scenarios provoke, assert what
+  they expect — never both.
+- `.nstack/playbooks/verification.md`: for a visible change, read the run's screenshots and logs
+  and cite them.
+- `.nstack/handbook/RULES.md`: M12. `.nstack/handbook/09-platform.md`: the `e2e` line.
+- `.nstack/handbook/project.md`: *On the forge* says an update may be the plan moving.
+- `.copier-answers.yml`: `_commit`.
+
+**Migration** — none to take it: the audit reports only. Before the next minor version, a module
+with an `e2e` command writes its logs into `$NSTACK_EVIDENCE` and declares, in its manifest, the
+warnings and errors its scenarios provoke — each run lists them, ready to paste.
+
+---
+
 ## v0.13.0 — 2026-10-21
 
 Two workstreams — D138 and D139 (PDR-0016, ADR-0008): a cycle's progress said in one line, and
