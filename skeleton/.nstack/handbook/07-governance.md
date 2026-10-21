@@ -304,8 +304,8 @@ The record names who ran it, as git would sign a commit made in that checkout, a
 remote with the notes: it never publishes an address the project's history does not already show.
 A checkout whose identity is unknown there — a fresh clone falls back on the workstation's own,
 often personal — is refused before any check runs; set the checkout's identity, or, for a first
-record of a new contributor, `nstack attest --accept-identity`. A forge's noreply address is always
-accepted, and enough.
+record of a new contributor, `nstack attest --accept-identity`. GitHub's noreply address is always
+accepted, and enough. A repository with no remote is never refused: nothing travels.
 
 ### Agents and approval
 
