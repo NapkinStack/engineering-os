@@ -52,8 +52,8 @@ writes issues and milestones.
 
 **In your project** — 5 files
 
-- `.github/workflows/plan-on-the-forge.yml` (new): `nstack board` on every merge to the default
-  branch, once a day (holders), and by hand; `issues: write`, `pull-requests: read`,
+- `.github/workflows/plan-on-the-forge.yml` (new): `nstack board` on every merge to `main` — as
+  every workflow of the skeleton watches it (G19) —, once a day (holders), and by hand; `issues: write`, `pull-requests: read`,
   `contents: read` at its one job.
 - `.nstack/handbook/project.md`: *A cycle's progress* and *On the forge*.
 - `.nstack/handbook/RULES.md`: K2 "from the cycle's end date — its first day over".
