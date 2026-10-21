@@ -126,7 +126,7 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
     if "G20" in missing:
         calls.append(("G20", "POST", "/rulesets", {
             "name": HOLDS_RULESET, "target": "branch", "enforcement": "active",
-            "conditions": {"ref_name": {"include": ["refs/heads/nstack/hold/**"], "exclude": []}},
+            "conditions": {"ref_name": {"include": ["refs/heads/nstack/hold/**/*"], "exclude": []}},
             "bypass_actors": [], "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}]}))
     if "G5" in missing:
         calls.append(("G5", "PATCH", "", {"security_and_analysis": {
@@ -207,8 +207,8 @@ def run(root: Path) -> int:
         # an older one that has is a step by hand, which only a read can find.
         missing = {rule for rule, _, _ in doctor.CHECKLIST} - {"G12"}
         print(f"Settings of {repo}: not read — no token (GH_TOKEN or GITHUB_TOKEN). The whole checklist is "
-              "planned below; a call for a setting already in place changes nothing, except the first one: "
-              f"skip it if a ruleset named {RULESET_NAME} exists.\n"
+              "planned below; a call for a setting already in place changes nothing, except a ruleset's: "
+              f"skip it if a ruleset named {RULESET_NAME} exists, and the G20 one if {HOLDS_RULESET} does.\n"
               "Not read either: the repository's visibility and plan. On a private repository without a "
               "paid plan the forge refuses the ruleset and the secret scanning — out of reach there, not a "
               "fault; run again with a token to have them left out and named.")

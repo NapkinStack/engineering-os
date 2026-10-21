@@ -128,8 +128,9 @@ CHECKLIST = [  # (rule, setting, action)
      "Settings → General → Default branch: rename it main"),
     # G20: a hold of a deliverable is refused twice by the remote, unless forced (ADR-0007): its
     # branches are rewritten or deleted by nobody.
-    ("G20", "Hold branches `nstack/hold/**` cannot be force-pushed nor deleted",
-     "Settings → Rules → Rulesets, branches nstack/hold/**: block force pushes and restrict deletions"),
+    ("G20", "Hold branches `nstack/hold/**/*` cannot be force-pushed nor deleted",
+     "Settings → Rules → Rulesets, a ruleset on the branches nstack/hold/**/* — not nstack/hold/**, "
+     "which stops at a slash — with nobody on its bypass list: block force pushes and restrict deletions"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
@@ -188,13 +189,26 @@ def _rule(client: GitHub, kind: str) -> dict | None:
     return next((rule for rule in client.get("/rules/branches/main") if rule.get("type") == kind), None)
 
 
-HOLD_PROBE = "nstack/hold/probe"  # any name under the prefix: GitHub answers for a branch that need not exist
+# A name at a hold's depth, nstack/hold/<cycle>/<id>: GitHub answers for a branch that need not
+# exist, and a ruleset's `**` stops at a slash (fnmatch, FNM_PATHNAME) — a probe one level up
+# would read a pattern that covers no hold.
+HOLD_PROBE = "nstack/hold/probe/probe"
 
 
 def _holds_kept(client: GitHub) -> bool:
-    """G20: the rules applying to a hold's branch refuse a forced push and a deletion."""
-    kinds = {rule.get("type") for rule in client.get(f"/rules/branches/{HOLD_PROBE}")}
-    return {"non_fast_forward", "deletion"} <= kinds
+    """G20: the rules applying to a hold's branch refuse a forced push and a deletion, from
+    rulesets nobody may bypass."""
+    found = [rule for rule in client.get(f"/rules/branches/{HOLD_PROBE}")
+             if rule.get("type") in ("non_fast_forward", "deletion")]
+    if {rule.get("type") for rule in found} != {"non_fast_forward", "deletion"}:
+        return False
+    for ruleset in sorted({rule["ruleset_id"] for rule in found if rule.get("ruleset_id")}):
+        actors = client.get(f"/rulesets/{ruleset}?includes_parents=true").get("bypass_actors")
+        if actors is None:
+            raise NotVerified("bypass list not visible: the token lacks the Administration: read permission")
+        if actors:
+            return False
+    return True
 
 
 def _parameters(client: GitHub, kind: str) -> dict:

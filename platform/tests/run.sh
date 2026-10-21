@@ -1107,7 +1107,8 @@ rules = [
 ]
 labels = {f"/labels/{name}": {"name": name} for name in ("cross-module", "over-budget", "out-of-cycle",
                                                           "request", "bug", "architecture", "debt", "acceptance")}
-ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []}}
+ruleset = {"/rulesets/1?includes_parents=true": {"id": 1, "bypass_actors": []},
+           "/rulesets/2?includes_parents=true": {"id": 2, "bypass_actors": []}}  # nstack-holds (G20)
 active = {"status": "enabled"}
 # G14 to G16: shaped as the rules want them. Readable without the Administration permission
 # and settable on any plan, which is why they carry no PRIVATE_PLAN entry (D61).
@@ -1121,7 +1122,7 @@ compliant = {
     "": {"security_and_analysis": {"secret_scanning": active, "secret_scanning_push_protection": active},
          **merges_ok},
     "/rules/branches/main": rules,
-    "/rules/branches/nstack/hold/probe": [{"type": "deletion", "ruleset_id": 2}, {"type": "non_fast_forward", "ruleset_id": 2}],  # G20
+    "/rules/branches/nstack/hold/probe/probe": [{"type": "deletion", "ruleset_id": 2}, {"type": "non_fast_forward", "ruleset_id": 2}],  # G20
     "/private-vulnerability-reporting": {"enabled": True},
     "/actions/permissions": {"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True},
     "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
@@ -1134,7 +1135,7 @@ bare = {
     "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive},
          **merges_default},
     "/rules/branches/main": [],
-    "/rules/branches/nstack/hold/probe": [],
+    "/rules/branches/nstack/hold/probe/probe": [],
     "/private-vulnerability-reporting": {"enabled": False},
     "/actions/permissions": {"enabled": True, "allowed_actions": "all", "sha_pinning_required": False},
     "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "first_time_contributors"},
