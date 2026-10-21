@@ -158,10 +158,12 @@ def build_parser() -> argparse.ArgumentParser:
     ld.add_argument("--span", default="HEAD~1..HEAD",
                     help="the commits to read, BEFORE..AFTER (default: the last commit)")
     at = _add(sub, "attest", "runs the CI's checks here and records the run on the commit, in git",
-              lambda a: attest.run(a.root, a.base, a.body_file, a.labels))
+              lambda a: attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity))
     at.add_argument("--base", default="origin/main")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
     at.add_argument("--labels", default="", help="the pull request's labels, comma-separated")
+    at.add_argument("--accept-identity", action="store_true",
+                    help="record under an identity the project's history does not show yet — a first record of yours")
     cl = _add(sub, "claim", "takes a ready deliverable for a session, before its first change; "
                             "the shared remote refuses a second taker",
               lambda a: hold.claim(a.root, a.deliverable, a.session, a.person, a.take_over))

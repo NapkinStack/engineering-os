@@ -9,7 +9,7 @@ and is merged line by line; the latest line for a commit is its record. On GitHu
 that may write statuses, the run is also shown as `nstack / local checks` — a name no CI job
 has. A record is *attested*, never *checked*: it makes a claim traceable, not true.
 
-Usage :  nstack attest [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b]
+Usage :  nstack attest [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b] [--accept-identity]
 Output:  0 when every check passed, 1 otherwise — the record is written either way.
 """
 
@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -171,8 +172,44 @@ def evidence_of(root: Path, commit: str) -> list[dict]:
     return found
 
 
-def run(root: Path, base: str, body_file: Path | None, labels: str) -> int:
+# GitHub's noreply address, whole: never a personal address dressed in its suffix.
+NOREPLY = re.compile(r"(?:\d+\+)?[a-z0-9-]+(?:\[bot\])?@users\.noreply\.github\.com", re.I)
+
+
+def _identity(root: Path) -> tuple[str, str]:
+    """Who the record will name, as git would sign a commit made here — and its address."""
+    ident = _git(root, "var", "GIT_COMMITTER_IDENT", check=False).stdout.strip()
+    who = ident.rsplit(" ", 2)[0] if ident.count(" ") >= 2 else ident
+    found = re.search(r"<([^>]*)>", who)
+    return who, (found[1] if found else "").lower()
+
+
+def _shown(root: Path, base: str) -> set[str]:
+    """The addresses the project's history already shows, up to its base: a record never adds one."""
+    log = _git(root, "log", "--format=%ae%n%ce", base, check=False)
+    return {line.strip().lower() for line in log.stdout.splitlines() if line.strip()}
+
+
+def run(root: Path, base: str, body_file: Path | None, labels: str, accept_identity: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
+    who, address = _identity(root)
+    remote = _remote(root)
+    if remote is not None and not accept_identity and not NOREPLY.fullmatch(address):
+        if _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False).returncode != 0:
+            print(f"FAIL [attest] base '{base}' not found: the identities the project already shows cannot be "
+                  f"read, and the record would travel to {remote}.\n"
+                  "      Action: fetch the base (git fetch), or pass --base with a commit of the shared history.")
+            return 1
+    # No remote: nothing travels — the record stays in this repository, whoever ran it.
+    if remote is not None and not accept_identity and not NOREPLY.fullmatch(address) and address not in _shown(root, base):
+        # A record travels with the notes to the remote: it never publishes an address the project
+        # does not already show — a fresh clone falls back on a workstation's personal identity (#235).
+        print(f"FAIL [attest] the record would name {who or 'no one'}, an identity this project's history does not "
+              f"show — it travels with the notes to {remote}.\n"
+              "      Action: set this checkout's identity to the one the project works under "
+              "(git config user.name / user.email), or, for a first record of your own, "
+              "nstack attest --accept-identity.")
+        return 1
     if _git(root, "status", "--porcelain", "--untracked-files=normal").stdout.strip():
         print("FAIL [attest] the tree holds changes: a record names one commit, and this tree is none.\n"
               "      Action: commit or stash them, then run nstack attest again.")
@@ -203,9 +240,6 @@ def run(root: Path, base: str, body_file: Path | None, labels: str) -> int:
             results.append({"name": check.name, "passed": passed, "steps": steps})
             failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
             print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
-    # Who ran it, as git would sign a commit made here — its environment and its configuration.
-    ident = _git(root, "var", "GIT_COMMITTER_IDENT", check=False).stdout.strip()
-    who = ident.rsplit(" ", 2)[0] if ident.count(" ") >= 2 else ident
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "published": origin is None, "by": who, "session": _session(root, commit),
