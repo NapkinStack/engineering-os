@@ -91,8 +91,10 @@ no service, and no forge required.
    `checks` (D134). Between two pull requests, with no branch in flight, the holder renews by
    claiming again.
 6. **Take-over and release.** `nstack claim <id> --take-over` commits a `take-over` on the hold
-   only when it is stale — otherwise refused, saying when it will be; with a token it comments on
-   the previous holder's open draft pull request. `nstack unclaim <id>` commits a `release`; by
+   only when it is stale — otherwise refused, saying when it will be. With a token, a claim that
+   makes no new work branch — a take-over, or a claim after a release — comments on the open pull
+   requests of this repository's work branches `d<n>-…`, asked branch by branch so that a
+   fork's is never one: who holds it now, and from whom. `nstack unclaim <id>` commits a `release`; by
    another than the holder or the charter's decider, refused unless stale. The previous holder's
    branches are never touched.
 7. **`plan`.** After its rules, a *Holds* section for the accepted cycle: each deliverable free,
