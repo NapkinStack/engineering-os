@@ -1,6 +1,7 @@
 # PDR-0018 — Git is required; the forge is the project's choice
 
-- **Status**: Proposed (2026-10-21). Asked by the maintainer: *how tied is nstack to GitHub — a
+- **Status**: Accepted (2026-10-21, merged with #236 after its independent review); the how in
+  ADR-0010. Asked by the maintainer: *how tied is nstack to GitHub — a
   prerequisite? is a git repository mandatory?*, then *analyse the market and the solutions, to
   decide in an expert and clean way* (#223). Reshaped by an independent review (#236) before its
   acceptance
