@@ -14,6 +14,7 @@ Output:  0 when the hold is taken, renewed or released; 1 when refused — sayin
 
 from __future__ import annotations
 
+import base64
 import datetime
 import json
 import os
@@ -76,7 +77,7 @@ def fetch(root: Path, again: bool = False) -> str | None:
     name = remote(root)
     if name is not None:
         try:
-            got = _git(root, "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
+            got = _git(root, *_ci_credential(root, name), "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
                        f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*",
                        timeout=60)
         except subprocess.TimeoutExpired:
@@ -84,6 +85,18 @@ def fetch(root: Path, again: bool = False) -> str | None:
         if got.returncode != 0:
             raise Unreachable(got.stderr.strip().splitlines()[0] if got.stderr.strip() else f"{name} refused the fetch")
     return name
+
+
+def _ci_credential(root: Path, name: str) -> list[str]:
+    """In GitHub Actions, the job's token for this one command: the checkout keeps no credential
+    (`persist-credentials: false`), and a private repository's holds are read with it (ADR-0008).
+    Never on a workstation, and never to another host."""
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    url = _git(root, "config", f"remote.{name}.url").stdout.strip()
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not token or not url.startswith("https://github.com/"):
+        return []
+    secret = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    return ["-c", f"http.https://github.com/.extraheader=AUTHORIZATION: basic {secret}"]
 
 
 def _hold_ref(root: Path, cycle: str, ident: str) -> str:
@@ -258,7 +271,8 @@ class Refused(Exception):
     """The forge did not do what was asked: the reason, as it says it."""
 
 
-def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None = None):
+def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None = None,
+          search: str | None = None):
     """One call, as doctor makes them; any failure — a status, the network, an answer that is not
     JSON — is Refused, with the forge's own message when it gives one."""
     from napkinstack import __version__
@@ -269,7 +283,9 @@ def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None
                "X-GitHub-Api-Version": API_VERSION, "User-Agent": f"nstack/{__version__}"}
     if body is not None:
         headers["Content-Type"] = "application/json"
-    request = urllib.request.Request(f"{api}/repos/{repo}{path}", method=method, headers=headers,
+    url = (f"{api}/search/issues?per_page=100&q={urllib.parse.quote(search)}" if search is not None
+           else f"{api}/repos/{repo}{path}")
+    request = urllib.request.Request(url, method=method, headers=headers,
                                      data=json.dumps(body).encode() if body is not None else None)
     try:
         with urllib.request.urlopen(request, timeout=10) as answer:

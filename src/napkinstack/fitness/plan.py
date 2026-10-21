@@ -158,9 +158,12 @@ def progress(root: Path, today: datetime.date | None = None) -> str | None:
     deliverables by state — a dropped one counts in nothing — and where the cycle stands in its
     appetite (#219). None when no cycle is accepted."""
     cycle = accepted_cycle(root)
-    if cycle is None:
-        return None
-    path, data = cycle
+    return None if cycle is None else progress_of(*cycle, today=today)
+
+
+def progress_of(path: Path, data: dict, today: datetime.date | None = None) -> str:
+    """One cycle's line, accepted or not: what `progress` says, and what the forge's display of a
+    cycle repeats (ADR-0008)."""
     items = data.get("deliverables")
     states = [item.get("state") for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
     counted = [state for state in states if state != "dropped"]
