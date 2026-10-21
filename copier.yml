@@ -6,6 +6,24 @@
 _subdirectory: skeleton
 _min_copier_version: "9.18"
 
+# What a project receives depends on its forge (PDR-0018, ADR-0010): GitHub's own files only on
+# GitHub; the method's ownership file and pull request form where the named forge reads them, each
+# one content included from its GitHub place. Copier's own exclusions are kept.
+_exclude:
+  - copier.yaml
+  - copier.yml
+  - "~*"
+  - "*.py[co]"
+  - __pycache__
+  - .git
+  - .DS_Store
+  - .svn
+  - "{% if forge != 'github' %}/.github{% endif %}"
+  - "{% if forge == 'github' %}/CODEOWNERS{% endif %}"
+  - "{% if forge != 'gitlab' %}/.gitlab{% endif %}"
+  - "{% if forge not in ['forgejo', 'gitea'] %}/.gitea{% endif %}"
+  - "{% if forge not in ['other', 'none'] %}/docs/pull_request_template.md{% endif %}"
+
 # The seats: files whose content is the project's (PDR-0010). Written once, as a form, when
 # the project is created; no update merges them again. The table of
 # skeleton/.nstack/handbook/00-overview.md §5 lists the same five, and a test binds the two.
@@ -16,25 +34,43 @@ _skip_if_exists:
   - /docs/adr/README.md
   - /docs/pdr/README.md
 
+# Asked first — where the project's changes merge (PDR-0018): GitHub by default; git is required everywhere.
+forge:
+  type: str
+  choices: [github, gitlab, forgejo, gitea, other, none]
+  default: github
+  help: The forge where the project's changes merge — github, gitlab, forgejo, gitea, other, or none
+
 project_name:
   type: str
   help: Project name
 
 github_repo:
   type: str
+  when: "{{ forge == 'github' }}"
   help: The project's GitHub repository, of the form organisation/name
   validator: >-
     {% if not (github_repo | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
     Expected: organisation/name, for example acme/billing.
     {% endif %}
 
+repository:
+  type: str
+  when: "{{ forge in ['gitlab', 'forgejo', 'gitea', 'other'] }}"
+  help: The project's repository at its forge, its path — group/name, or group/subgroup/name
+  validator: >-
+    {% if not (repository | regex_search('^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$')) %}
+    Expected: group/name, or group/subgroup/name, for example acme/billing.
+    {% endif %}
+
 owner_team:
   type: str
   help: >-
-    Owner of the foundation: a GitHub team, organisation/team, or a GitHub user when the
-    project has no organisation
+    Owner of the foundation: a team at the forge —
+    organisation/team{{ ', or group/subgroup/team' if forge != 'github' else '' }} —
+    or a user when the project has no organisation
   validator: >-
-    {% set team = '[A-Za-z0-9-]+/[A-Za-z0-9._-]+' %}
+    {% set team = '[A-Za-z0-9-]+(/[A-Za-z0-9._-]+)+' if forge != 'github' else '[A-Za-z0-9-]+/[A-Za-z0-9._-]+' %}
     {% set user = '(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(-[A-Za-z0-9]+)*' %}
     {% if not (owner_team | regex_search('^(' ~ team ~ '|' ~ user ~ ')$')) %}
     Expected: organisation/team, for example acme/platform, or a user, for example alice.
@@ -42,11 +78,11 @@ owner_team:
 
 # Where a pull request's checks are judged (ADR-0006): the forge's CI, or attested on a
 # workstation by `nstack attest` — the decider's word, changed in a pull request. Not asked at
-# init: a project starts on the forge.
+# init: a project on GitHub starts on its CI; elsewhere no CI is shipped, and checks are attested.
 checks:
   type: str
   choices: [forge, attested]
-  default: forge
+  default: "{{ 'forge' if forge == 'github' else 'attested' }}"
   help: Where a pull request's checks are judged — forge, or attested on a workstation
 
 # How many days a hold of a deliverable may go without work before another contributor may take

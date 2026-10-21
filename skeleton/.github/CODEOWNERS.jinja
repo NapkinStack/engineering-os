@@ -8,7 +8,12 @@
 # Foundation: any change to the OS itself goes through an ADR.
 /AGENTS.md                     @{{ owner_team }}
 /.nstack/                      @{{ owner_team }}
-/.github/                      @{{ owner_team }}
-/.copier-answers.yml           @{{ owner_team }}
+{% if forge | default('github') == 'github' %}/.github/                      @{{ owner_team }}
+{% elif forge == 'gitlab' %}/.gitlab/                      @{{ owner_team }}
+/CODEOWNERS                    @{{ owner_team }}
+{% elif forge in ['forgejo', 'gitea'] %}/.gitea/                       @{{ owner_team }}
+/CODEOWNERS                    @{{ owner_team }}
+{% else %}/CODEOWNERS                    @{{ owner_team }}
+{% endif %}/.copier-answers.yml           @{{ owner_team }}
 
 # Modules — one line per module, added by the scaffolding.

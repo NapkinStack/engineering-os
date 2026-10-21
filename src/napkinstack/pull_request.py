@@ -493,6 +493,10 @@ def check_attested(root: Path, head: str, fail) -> str:
 
 def run(root: Path, base: str, body_file: Path | None = None) -> int:
     if body_file is not None:
+        if not body_file.is_file():
+            print(f"FAIL [pr-check] {body_file} not found: no description to read.\n"
+                  "      Action: pass the pull request's filled form with --body-file.")
+            return 1
         body = body_file.read_text(encoding="utf-8")
     elif "PR_BODY" in os.environ:
         body = os.environ["PR_BODY"]
