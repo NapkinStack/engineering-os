@@ -180,3 +180,182 @@ def test_a_description_file_that_does_not_exist_is_said_never_a_traceback(tmp_pa
 
     assert pull_request.run(tmp_path, "HEAD", tmp_path / "missing.md") == 1
     assert "FAIL [pr-check]" in capsys.readouterr().out
+
+
+# --- off GitHub, what the engine says (ADR-0010 §4-§9) -----------------------------------------
+
+def _all_ok(monkeypatch):
+    from napkinstack import doctor
+
+    real = doctor._workstation
+
+    def workstation(root, answers):  # the engine's own rules, every other one compliant
+        return [(rule, setting, doctor.OK if rule != "L8" else status, detail if rule == "L8" else "")
+                for rule, setting, status, detail in real(root, answers)]
+
+    monkeypatch.setattr(doctor, "_workstation", workstation)
+    monkeypatch.setattr(doctor, "_newer", lambda answers: None)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+
+def test_doctor_off_github_reads_no_github_setting_and_says_unguarded(created, monkeypatch, capsys):
+    from napkinstack import doctor
+
+    _all_ok(monkeypatch)
+    assert doctor.run(created["gitlab"]) == 0  # the workstation's rules alone: no token is not "not verified"
+    out = capsys.readouterr().out
+    assert "[G" not in out and "GitHub:" not in out and "token" not in out
+    assert "unguarded" in out and "gitlab" in out
+    for protection in doctor.PROTECTIONS:
+        assert protection in out
+    assert "nstack landed" in out and "does not run" in out
+
+
+def test_doctor_on_github_still_reads_its_settings(created, monkeypatch, capsys):
+    from napkinstack import doctor
+
+    _all_ok(monkeypatch)
+    assert doctor.run(created["github"]) == 2
+    assert "[G1]" in capsys.readouterr().out
+
+
+def test_checks_forge_off_github_is_a_contradiction(created):
+    from napkinstack import doctor
+
+    root = created["forgejo"]
+    answers = yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8"))
+    said = {rule: (status, detail) for rule, _, status, detail in doctor._workstation(root, {**answers, "checks": "forge"})}
+    assert said["L8"][0] == doctor.GAP and "attested" in said["L8"][1]
+    said = {rule: status for rule, _, status, _ in doctor._workstation(root, answers)}
+    assert said["L8"] == doctor.OK
+
+
+def test_l8_is_not_said_on_github(created):
+    from napkinstack import doctor
+
+    answers = yaml.safe_load((created["github"] / ".copier-answers.yml").read_text(encoding="utf-8"))
+    assert "L8" not in {rule for rule, *_ in doctor._workstation(created["github"], answers)}
+
+
+@pytest.mark.parametrize("forge, said", [("forgejo", "not read by"), ("gitea", "not read by"), ("none", "No forge reads")])
+def test_l6_says_when_no_forge_reads_the_ownership_file(created, forge, said):
+    from napkinstack import doctor
+
+    status, detail = doctor._default_owner(created[forge])
+    assert status == doctor.OK and said in detail
+
+
+@pytest.mark.parametrize("forge", [forge for forge in EXPECTED if forge != "github"])
+def test_install_lists_the_forge_neutral_protections_off_github(created, forge):
+    from napkinstack import doctor
+
+    manual = (created[forge] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    for protection in doctor.PROTECTIONS:
+        assert f"- [ ] {protection}" in manual, f"{forge}: '{protection}' not in INSTALL.md"
+    assert "Settings → Rules" not in manual
+
+
+def test_install_on_github_keeps_its_checklist(created):
+    from napkinstack import doctor
+
+    manual = (created["github"] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    assert all(f"- [ ] {setting}" in manual for rule, setting, _ in doctor.CHECKLIST)
+
+
+def test_settings_off_github_has_nothing_to_apply(created, capsys, monkeypatch):
+    from napkinstack import settings
+
+    monkeypatch.setenv("GH_TOKEN", "a-token-never-used")
+    assert settings.run(created["gitlab"]) == 0
+    out = capsys.readouterr().out
+    assert "nothing to apply" in out and "gitlab" in out and "--method" not in out
+
+
+def _remote(root: Path, url: str) -> None:
+    import subprocess
+
+    subprocess.run(["git", "remote", "remove", "origin"], cwd=root, capture_output=True)
+    subprocess.run(["git", "remote", "add", "origin", url], cwd=root, check=True)
+
+
+def test_the_displays_off_github_are_not_shown_and_say_the_forge(created, monkeypatch):
+    from napkinstack import hold
+
+    root = created["gitlab"]
+    _remote(root, "https://github.com/acme/demo.git")  # even a GitHub remote: the answer says gitlab
+    monkeypatch.setenv("GH_TOKEN", "a-token-never-used")
+    assert hold._forge(root, "origin") is None
+    assert hold.unshown(root) == "not shown — forge gitlab"
+
+
+def test_github_enterprise_server_is_github(created, monkeypatch):
+    from napkinstack import hold
+
+    root = created["github"]
+    _remote(root, "https://git.example.corp/acme/demo.git")
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.setenv("GITHUB_API_URL", "https://git.example.corp/api/v3")
+    assert hold._forge(root, "origin") == ("https://git.example.corp/api/v3", "acme/demo", "t")
+    _remote(root, "../clone-of-demo")  # a clone of a checkout: never the project's forge
+    assert hold._forge(root, "origin") is None
+
+
+def test_the_board_off_github_says_the_forge(created, monkeypatch, capsys):
+    from napkinstack import board
+
+    monkeypatch.setattr(board, "desired", lambda root, *args, **kwargs: ([object()], []))
+    assert board.run(created["gitlab"]) == 0
+    assert "not shown — forge gitlab" in capsys.readouterr().out
+
+
+def test_attest_s_display_off_github_says_the_forge(created, monkeypatch):
+    from napkinstack import attest
+
+    monkeypatch.setenv("GH_TOKEN", "a-token-never-used")
+    assert attest._show(created["forgejo"], "0" * 40, 5, 5) == "not shown — forge forgejo"
+
+
+@pytest.mark.parametrize("forge, checks, said, unsaid", [
+    ("github", "forge", "CI validates it", "nstack attest"),
+    ("github", "attested", "nstack attest", "CI validates it"),
+    ("gitlab", "attested", "nstack attest", "CI validates it"),
+    ("none", "attested", "nstack attest", "open the pull request"),
+])
+def test_update_s_next_step_says_who_checks(tmp_path, forge, checks, said, unsaid):
+    (tmp_path / ".copier-answers.yml").write_text(f"_commit: v0.15.0\nforge: {forge}\nchecks: {checks}\n", encoding="utf-8")
+    step = project.next_step(tmp_path, "nstack/update-v0.15.0")
+    assert said in step and unsaid not in step
+
+
+# --- pr-check off GitHub -------------------------------------------------------------------------
+
+def _off(root: Path, forge: str) -> None:
+    (root / ".copier-answers.yml").write_text(f"_commit: v0.15.0\nforge: {forge}\nchecks: forge\n", encoding="utf-8")
+
+
+def test_pr_check_off_github_says_how_the_verifier_was_compared(tmp_path, capsys, monkeypatch):
+    from test_pull_request import PASSED, USER_FACING, change, check, sheet
+
+    base, head = change(tmp_path, USER_FACING)
+    _off(tmp_path, "gitlab")
+    check(tmp_path, base, head, sheet(PASSED), monkeypatch)
+    assert "no person is recognised as an author off GitHub" in capsys.readouterr().out
+    (tmp_path / ".copier-answers.yml").unlink()
+    check(tmp_path, base, head, sheet(PASSED), monkeypatch)
+    assert "off GitHub" not in capsys.readouterr().out
+
+
+def test_with_no_forge_and_no_sheet_the_test_rules_say_no_carrier(tmp_path, capsys, monkeypatch):
+    from test_pull_request import USER_FACING, change, check
+
+    base, head = change(tmp_path, USER_FACING)
+    _off(tmp_path, "none")  # attest with no --body-file passes an empty description
+    check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
+    out = capsys.readouterr().out
+    assert "no carrier" in out and "[T1]" not in out
+    check(tmp_path, base, head, "", monkeypatch)  # a description passed: its sheet is judged
+    assert "[T1]" in capsys.readouterr().out
+    _off(tmp_path, "gitlab")  # a forge with pull requests: a missing sheet stays a failure
+    check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
+    assert "[T1]" in capsys.readouterr().out

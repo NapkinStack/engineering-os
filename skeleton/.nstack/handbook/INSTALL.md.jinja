@@ -142,7 +142,7 @@ that carries it. `nstack doctor` says when the pinned commit is on no branch any
 **A private project stays private.** The framework's repository is public: what is reported
 there describes the defect, never the project — no name, no domain, no content.
 
-## To do once on GitHub — otherwise nothing is guaranteed
+{% if forge == "github" %}## To do once on GitHub — otherwise nothing is guaranteed
 
 Workflows **inform**; it is the rulesets that **block**. Without this step the whole
 edifice rests on goodwill, which the OS forbids (`.nstack/handbook/07-governance.md`).
@@ -233,7 +233,46 @@ the one question any command asks the registry.
 `nstack doctor` reads the token from `GH_TOKEN`, otherwise `GITHUB_TOKEN`: a fine-grained
 token, limited to the repository, with the **Administration: read** permission. Without a
 token, the GitHub part stays "not verified", never compliant.
+{% elif forge == "none" %}## No forge — nothing refuses a change
 
+Without a forge, nothing stands between a commit and the main branch but the team's habits:
+the hooks run on each workstation, and `nstack attest` records the checks on each commit. Hosted
+on a forge one day, the project should have it refuse:
+
+- [ ] A pull request required: no direct push to the main branch
+- [ ] At least 1 approval
+- [ ] The code owners' review required
+- [ ] The main branch neither force-pushed nor deleted
+- [ ] Squash the only merge method
+- [ ] Secrets refused at push
+- [ ] Hold branches `nstack/hold/…` neither force-pushed nor deleted
+
+`nstack doctor` checks the workstation and says the repository is **unguarded**: no forge, so
+nothing to read. The owners in `CODEOWNERS` are for people to read; no forge reads them.
+{% else %}## To do once on the forge — otherwise nothing is guaranteed
+
+Hooks and records **inform**; it is the forge that **blocks**. This version reads and writes
+GitHub's settings only: on {{ forge }}, set these in its own pages, on the main branch and on the
+hold branches:
+
+- [ ] A pull request required: no direct push to the main branch
+- [ ] At least 1 approval
+- [ ] The code owners' review required
+- [ ] The main branch neither force-pushed nor deleted
+- [ ] Squash the only merge method
+- [ ] Secrets refused at push
+- [ ] Hold branches `nstack/hold/…` neither force-pushed nor deleted
+
+`nstack doctor` checks the workstation, lists these, and says the repository is **unguarded**:
+it does not read {{ forge }}'s settings, so it never reports them in place. Every change's checks
+are **attested** — run on a workstation by `nstack attest` and recorded on the commit — since no
+CI is shipped for this forge.{% if forge in ["forgejo", "gitea"] %} `CODEOWNERS` is written for
+people to read: {{ forge }} reads its code owners as regular expressions, another syntax.{% endif %}
+
+Your agents work under an identity of their own — a bot account on the forge, with no
+administration right (`.nstack/handbook/07-governance.md` §7): a pull request's author cannot
+approve it.
+{% endif %}
 ---
 
 ## What is in this repository

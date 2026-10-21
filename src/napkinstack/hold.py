@@ -256,16 +256,30 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
 
 
 def _forge(root: Path, name: str | None) -> tuple[str, str, str] | None:
-    """(API, owner/name, token) when the remote is on GitHub and a token is set; else None. The
-    remote's URL as configured, before any rewriting."""
+    """(API, owner/name, token) when the project is on GitHub, its remote is there and a token is
+    set; else None. The remote's URL as configured, before any rewriting: on github.com, or one
+    naming the project's `github_repo` — GitHub Enterprise Server, its API in GITHUB_API_URL. A
+    clone of a checkout names neither, and never writes to the project's forge (ADR-0010 §4)."""
+    from napkinstack import project
     from napkinstack.doctor import ON_GITHUB
 
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token or project.forge(root) != "github":
+        return None
     url = _git(root, "config", f"remote.{name}.url").stdout.strip() if name else ""
     found = ON_GITHUB.search(url)
-    if not token or not found:
+    repo = found.group(1) if found else str(project.answer(root, "github_repo") or "")
+    if not found and not (repo and re.search(rf"[/:]{re.escape(repo)}(?:\.git)?/?$", url)):
         return None
-    return (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/"), found.group(1), token
+    return (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/"), repo, token
+
+
+def unshown(root: Path) -> str:
+    """Why the forge shows nothing: its name off GitHub, else a remote or a token missing."""
+    from napkinstack import project
+
+    name = project.forge(root)
+    return f"not shown — forge {name}" if name != "github" else "not shown on a forge (no GitHub remote, or no token)"
 
 
 class Refused(Exception):
@@ -318,7 +332,7 @@ def _show(root: Path, name: str | None, ident: str, title: str, person: str, bra
     judgement: the hold is git's, and stands whatever the forge answers."""
     forge = _forge(root, name)
     if forge is None:
-        return "not shown on a forge (no GitHub remote, or no token)"
+        return unshown(root)
     said: list[str] = []
     try:
         if branch is None:

@@ -123,9 +123,14 @@ FORGES = ("github", "gitlab", "forgejo", "gitea", "other", "none")
 OWNERSHIP = (Path(".github") / "CODEOWNERS", Path("CODEOWNERS"), Path("docs") / "CODEOWNERS")
 
 
+def answer(root: Path, key: str):
+    """One answer of the project's answers file; None without the file or the answer."""
+    return _answers(root).get(key) if (root / ANSWERS).is_file() else None
+
+
 def forge(root: Path) -> str:
     """The project's forge, as its answers file says it (PDR-0018): GitHub where it says none."""
-    value = _answers(root).get("forge") if (root / ANSWERS).is_file() else None
+    value = answer(root, "forge")
     return str(value) if value in FORGES else "github"
 
 
@@ -474,5 +479,15 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
             print(f"  - {name}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
-    print(f"\nNext step: git push -u origin {branch}, then open the PR; CI validates it.")
+    print(f"\n{next_step(root, branch)}")
     return 0
+
+
+def next_step(root: Path, branch: str) -> str:
+    """Who checks the update's branch: the forge's CI on GitHub with `checks: forge`; elsewhere a
+    record made on this workstation (ADR-0010 §9)."""
+    if forge(root) == "github" and answer(root, "checks") != "attested":
+        return f"Next step: git push -u origin {branch}, then open the PR; CI validates it."
+    if forge(root) == "none":
+        return f"Next step: nstack attest on {branch}, then merge it as the project merges its changes."
+    return f"Next step: nstack attest on {branch}, then git push -u origin {branch} and open the pull request."

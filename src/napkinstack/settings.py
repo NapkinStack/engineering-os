@@ -33,7 +33,7 @@ from pathlib import Path
 
 import yaml
 
-from napkinstack import doctor
+from napkinstack import doctor, project
 from napkinstack.project import ANSWERS
 
 RULESET_NAME = "nstack-checklist"
@@ -195,6 +195,11 @@ def run(root: Path) -> int:
               "or pass --root.")
         return 1
     answers = yaml.safe_load((root / ANSWERS).read_text(encoding="utf-8")) or {}
+    forge = project.forge(root)
+    if forge != "github":
+        print(f"Settings: nothing to apply — forge {forge}. This version writes GitHub's settings only; "
+              "what the forge should refuse is listed by nstack doctor and in .nstack/handbook/INSTALL.md.")
+        return 0
     repo = str(answers.get("github_repo"))
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     client = doctor.GitHub(repo, token, os.environ.get("GITHUB_API_URL") or "https://api.github.com") if token else None
