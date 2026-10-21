@@ -15,11 +15,13 @@ Output:  0 when the hold is taken, renewed or released; 1 when refused — sayin
 from __future__ import annotations
 
 import datetime
+import json
 import os
 import re
 import subprocess
 import time
 import unicodedata
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -214,15 +216,16 @@ def slug(title: str) -> str:
     return "-".join(kept)[:40] or "work"
 
 
-def _work_branch(root: Path, name: str | None, ident: str, title: str, session: str | None) -> str:
-    """The deliverable's first work branch, from the default branch, unless it exists."""
+def _work_branch(root: Path, name: str | None, ident: str, title: str, session: str | None) -> tuple[str, str | None]:
+    """The deliverable's first work branch, from the default branch, unless it exists: what is
+    said, and the branch when it was made and pushed."""
     branch = f"{ident.lower()}-{slug(title)}"
     if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0 or (
             name and _git(root, "rev-parse", "--verify", "--quiet", f"{MIRROR}/work/{branch}").returncode == 0):
-        return f"work continues on {branch}, which exists: nothing of it is touched"
+        return f"work continues on {branch}, which exists: nothing of it is touched", None
     base = f"{MIRROR}/base" if name else "refs/heads/main"
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode != 0:
-        return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself."
+        return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself.", None
     tree = _git(root, "rev-parse", f"{base}^{{tree}}", check=True).stdout.strip()
     message = f"Start {ident} — {title}\n" + (f"\nAgent-Session: {session}\n" if session else "")
     start = _git(root, "commit-tree", tree, "-p", base, stdin=message, check=True).stdout.strip()
@@ -231,9 +234,62 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
         pushed = _git(root, "push", "--quiet", name, f"{branch}:refs/heads/{branch}")
         if pushed.returncode != 0:
             return (f"work branch {branch} created here, NOT pushed: {pushed.stderr.strip()}\n"
-                    f"      Next: git push -u {name} {branch}")
+                    f"      Next: git push -u {name} {branch}"), None
         _git(root, "update-ref", f"{MIRROR}/work/{branch}", start)
-    return f"work branch {branch} created.\n      Next: git switch {branch}"
+    return f"work branch {branch} created.\n      Next: git switch {branch}", branch if name else None
+
+
+def _forge(root: Path, name: str | None) -> tuple[str, str, str] | None:
+    """(API, owner/name, token) when the remote is on GitHub and a token is set; else None. The
+    remote's URL as configured, before any rewriting."""
+    from napkinstack.doctor import ON_GITHUB
+
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    url = _git(root, "config", f"remote.{name}.url").stdout.strip() if name else ""
+    found = ON_GITHUB.search(url)
+    if not token or not found:
+        return None
+    return os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/"), found.group(1), token
+
+
+def _call(forge: tuple[str, str, str], method: str, path: str, body: dict | None = None):
+    api, repo, token = forge
+    request = urllib.request.Request(f"{api}/repos/{repo}{path}", method=method,
+                                     data=json.dumps(body).encode() if body is not None else None,
+                                     headers={"Accept": "application/vnd.github+json",
+                                              "Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(request, timeout=10) as answer:
+        return json.loads(answer.read() or b"null")
+
+
+def _show(root: Path, name: str | None, ident: str, title: str, person: str, branch: str | None,
+          previous: Hold | None) -> str:
+    """The hold where people look: a draft pull request from its first work branch; on a take-over,
+    a comment on the previous holder's open pull requests. Never a judgement: the hold is git's."""
+    forge = _forge(root, name)
+    if forge is None:
+        return "not shown on a forge (no GitHub remote, or no token)"
+    try:
+        said = []
+        if previous is not None:
+            prefix = f"{ident.lower()}-"
+            for pull in _call(forge, "GET", "/pulls?state=open&per_page=100") or []:
+                if str((pull.get("head") or {}).get("ref", "")).startswith(prefix):
+                    _call(forge, "POST", f"/issues/{pull['number']}/comments", {"body": (
+                        f"{ident} was taken over by {person} from {previous.person}: nobody had worked on it "
+                        f"since {when(previous.worked)}. This branch is kept; the new holder may start from it "
+                        "(nstack claim --take-over).")})
+                    said.append(f"#{pull['number']} told")
+        if branch is not None:
+            base = _call(forge, "GET", "").get("default_branch") or "main"
+            opened = _call(forge, "POST", "/pulls", {
+                "title": f"{ident} — {title}", "head": branch, "base": base, "draft": True,
+                "body": (f"Deliverable: {ident}\n\nHeld by {person} (nstack claim). A draft until the work "
+                         "is done: its description is completed before it is marked ready for review.")})
+            said.append(f"draft pull request {opened.get('html_url')}")
+        return "shown on GitHub: " + ", ".join(said) if said else "nothing to show on GitHub"
+    except (OSError, ValueError) as error:
+        return f"not shown on GitHub ({error})"
 
 
 def claim(root: Path, ident: str, session: str | None = None, person: str | None = None,
@@ -295,7 +351,9 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {previous.person if previous else ''}"}
     print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "") + f"; {where}.")
     if event != "renew":
-        print(_work_branch(root, name, ident, title, session))
+        made, branch = _work_branch(root, name, ident, title, session)
+        print(made)
+        print(_show(root, name, ident, title, person, branch, previous) + ".")
     return 0
 
 

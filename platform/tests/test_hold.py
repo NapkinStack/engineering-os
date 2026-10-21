@@ -470,3 +470,113 @@ def test_a_stale_hold_tells_its_holder_to_renew_and_others_to_take_over(shared, 
     hold.show(clone(shared, "bob"))
     out = capsys.readouterr().out
     assert "its holder renews (nstack claim D1)" in out and "--take-over" in out
+
+
+# --- part 2b: shown on the forge -----------------------------------------------------------
+
+class Forge:
+    """GitHub's API as the claim calls it: each request recorded, each answer given."""
+
+    def __init__(self, pulls=()):
+        self.calls, self.pulls = [], list(pulls)
+
+    def __call__(self, request, timeout=None):
+        import io
+        import json as j
+
+        body = j.loads(request.data) if request.data else None
+        self.calls.append((request.get_method(), request.full_url, body))
+        if request.get_method() == "GET" and "/pulls" in request.full_url:
+            answer = self.pulls
+        elif request.get_method() == "GET":
+            answer = {"default_branch": "main"}
+        elif request.full_url.endswith("/pulls"):
+            answer = {"html_url": "https://github.com/acme/p/pull/7", "number": 7}
+        else:
+            answer = {"html_url": "https://github.com/acme/p/pull/3#issuecomment-1"}
+
+        class Answer(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        return Answer(j.dumps(answer).encode())
+
+
+def on_github(folder: Path, shared: Path) -> Path:
+    git(folder, "config", f"url.{shared}.insteadOf", "https://github.com/acme/p.git")
+    git(folder, "remote", "set-url", "origin", "https://github.com/acme/p.git")
+    return folder
+
+
+def test_a_claim_opens_a_draft_pull_request_naming_the_deliverable(shared, monkeypatch, capsys):
+    forge = Forge()
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    assert hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice") == 0
+    opened = [body for method, url, body in forge.calls if method == "POST" and url.endswith("/repos/acme/p/pulls")]
+    assert len(opened) == 1
+    assert opened[0]["draft"] is True and opened[0]["head"] == "d1-resume-an-interrupted-recording"
+    assert opened[0]["base"] == "main" and "Deliverable: D1" in opened[0]["body"]
+    assert "pull/7" in capsys.readouterr().out
+
+
+def test_without_a_token_the_display_is_skipped_and_said(shared, capsys):
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    assert "not shown on a forge" in capsys.readouterr().out
+
+
+def test_a_take_over_tells_the_previous_holder_on_their_open_pull_request(shared, monkeypatch, capsys):
+    for name, value in ago(10).items():
+        monkeypatch.setenv(name, value)
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
+    for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
+        monkeypatch.delenv(name)
+    forge = Forge(pulls=[{"number": 3, "head": {"ref": "d1-resume-an-interrupted-recording"}},
+                         {"number": 4, "head": {"ref": "d10-other"}}])
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    capsys.readouterr()
+    assert hold.claim(on_github(clone(shared, "bob"), shared), "D1", session="bob-d1", person="@bob",
+                      take_over=True) == 0
+    told = [(url, body) for method, url, body in forge.calls if url.endswith("/comments")]
+    assert [url.rsplit("/", 2)[-2] for url, _ in told] == ["3"]
+    assert "@bob" in told[0][1]["body"] and "@alice" in told[0][1]["body"]
+    assert not any(url.endswith("/pulls") and method == "POST" for method, url, _ in forge.calls)
+
+
+def test_a_forge_that_refuses_is_said_and_the_hold_stands(shared, monkeypatch, capsys):
+    def refuse(request, timeout=None):
+        raise OSError("HTTP Error 422: draft pull requests are not supported in this repository")
+
+    monkeypatch.setattr(hold.urllib.request, "urlopen", refuse)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    assert hold.claim(on_github(clone(shared, "alice"), shared), "D1", session="alice-d1", person="@alice") == 0
+    assert "not shown on GitHub" in capsys.readouterr().out
+    assert remote_events(shared) == ["claim"]
+
+
+# --- part 2b: what a newcomer reads -------------------------------------------------------
+
+SKELETON = Path(__file__).resolve().parents[2] / "skeleton"
+
+
+def test_contributing_says_how_several_contributors_share_a_project():
+    """PDR-0015, point 7: each of the four, pointing to the handbook page that holds the detail."""
+    page = (SKELETON / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    section = page.split("## Working with several contributors", 1)[1].split("\n## ", 1)[0]
+    said = {
+        "shared by module": ("by module", "02-modules.md"),
+        "joining": ("CODEOWNERS", "INSTALL.md"),
+        "any agent": ("AGENTS.md", ".nstack/playbooks/"),
+        "take first": ("nstack claim", "project.md"),
+    }
+    for point, (words, pointer) in said.items():
+        assert words in section and pointer in section, f"{point}: '{words}' and '{pointer}' expected"
+
+
+def test_the_kernel_tells_an_agent_to_take_its_deliverable_and_stop_on_a_hold():
+    kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
+    assert "nstack claim D<n> --session" in kernel and "held by someone else" in kernel.lower()
