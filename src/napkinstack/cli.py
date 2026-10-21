@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from napkinstack import assurance, attest, hold
+from napkinstack import assurance, attest, board, hold
 from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
@@ -175,6 +175,9 @@ def build_parser() -> argparse.ArgumentParser:
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
     rs.add_argument("--session", help="the agent's session, written on the release")
     rs.add_argument("--person", help="who releases it, such as @alice (default: git's user)")
+    bd = _add(sub, "board", "shows the cycles and their deliverables on the forge, one way: milestones and issues",
+              lambda a: board.run(a.root, a.dry_run))
+    bd.add_argument("--dry-run", action="store_true", help="say what would change, change nothing")
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")

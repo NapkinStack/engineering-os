@@ -77,6 +77,24 @@ decider chooses, and the pull request check refuses delivery work (K2). The proj
 success — the charter's criteria — is read at the cycle's closure, not here. An agent reporting
 progress gives this line, so that one figure circulates.
 
+### On the forge
+
+The same plan, where a person already looks: after every merge to the default branch, and once a
+day — so that a new holder shows within a day —, the workflow *Plan on the forge* runs `nstack board`. Each cycle the decider accepted,
+closed or stopped is a **milestone** — titled by the cycle file's heading, due on its end date,
+its description carrying the line above, counts only — and each deliverable an **issue** in it: its acceptance
+criteria as a checklist, its module and state, who holds it, the pull requests that name it.
+An issue closes as *completed* when the deliverable is accepted, as *not planned* when it is
+dropped, deferred, or left unfinished by a closed cycle.
+
+Nothing is maintained by hand and nothing on the forge is the plan: an issue or a milestone edited
+there is put back at the next run, and the run says so — the plan is edited in the cycle file, in a
+pull request. The display finds its own objects by a marker in their body; an issue or a milestone
+a person made is never touched, and a person's milestone already holding a cycle's title is said,
+not overwritten. What cannot be shown — no token, a refusal, holds unreadable — is said in the
+run's summary, never a failed merge. The first run on a project creates an issue per deliverable,
+and the repository's watchers get a notification for each.
+
 ## Who holds a deliverable
 
 With several contributors, a deliverable is **held** before its first change, so that two of
