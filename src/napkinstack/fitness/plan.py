@@ -149,6 +149,41 @@ def accepted_cycle(root: Path) -> tuple[Path, dict] | None:
     return None
 
 
+PROGRESS = (("accepted", "accepted"), ("in-progress", "in progress"), ("ready", "ready"),
+            ("proposed", "proposed"), ("deferred", "deferred"))  # dropped: out of the count
+
+
+def progress(root: Path, today: datetime.date | None = None) -> str | None:
+    """The accepted cycle in one line, read from its front matter and never written down:
+    deliverables by state — a dropped one counts in nothing — and where the cycle stands in its
+    appetite (#219). None when no cycle is accepted."""
+    cycle = accepted_cycle(root)
+    if cycle is None:
+        return None
+    path, data = cycle
+    items = data.get("deliverables")
+    states = [item.get("state") for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
+    counted = [state for state in states if state != "dropped"]
+    said = [f"{states.count('accepted')} of {len(counted)} accepted"]
+    said += [f"{counted.count(state)} {name}" for state, name in PROGRESS[1:] if counted.count(state)]
+    other = len(counted) - sum(counted.count(state) for state, _ in PROGRESS)
+    said += [f"{other} other"] if other else []
+    today = today or datetime.date.today()
+    start, end = as_date(data.get("start")), as_date(data.get("end"))
+
+    def days(count: int) -> str:
+        return f"{count} day" + ("" if count == 1 else "s")
+
+    if start and end:
+        if today < start:
+            said.append(f"starts in {days((start - today).days)} ({start})")
+        elif today >= end:  # the first day the cycle is over (the cycle form), as K2 reads it
+            said.append(f"ended on {end}, {days((today - end).days)} ago — the circuit breaker: the decider chooses")
+        else:
+            said.append(f"day {(today - start).days + 1} of {(end - start).days}, {(end - today).days} left (ends {end})")
+    return f"Cycle {path.stem}: " + " · ".join(said)
+
+
 def _left(path: Path, form: tuple[str, ...]) -> list[str]:
     """The words of `form` a seat still holds, as whole lines: a page may hold any tag."""
     lines = {line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()}
@@ -323,6 +358,8 @@ def run(root: Path) -> int:
                                 f"({CHARTER}, status: accepted)")
 
     print(f"Plan: charter {'present' if charter.is_file() else 'absent'}, {len(cycles)} cycle(s).")
+    if len(accepted) == 1 and accepted_charter:
+        print(progress(root))
     for failure in failures:
         print(f"  FAIL {failure}")
     if failures:

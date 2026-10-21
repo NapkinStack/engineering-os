@@ -377,14 +377,14 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         return
     path, data = cycle
     end = plan.as_date(data.get("end"))
-    if end is not None and today > end:
+    if end is not None and today >= end:  # `end` is the first day the cycle is over (the cycle form)
         fail("K2", f"circuit breaker: {path.name} ended on {end}, with no automatic extension.\n"
                    "      Action: the decider chooses — ship what is accepted (status: closed), "
                    "frame a new cycle with a new appetite, or stop the project (status: stopped).")
         return
     match = DELIVERABLE.search(body)
     match = match and [match[0], match[1].upper()]
-    states = {str(item.get("id")): item.get("state") for item in data.get("deliverables") or []
+    states = {str(item.get("id")): item.get("state") for item in (data.get("deliverables") if isinstance(data.get("deliverables"), list) else [])
               if isinstance(item, dict)}
     if not match:
         fail("K3", f"no deliverable named.\n      Action: \"Deliverable: D<n>\" in the description, "

@@ -357,6 +357,10 @@ CYCLE_CASES = {
                                                     "FAIL [K1] no accepted cycle", 1),
     "K2 circuit breaker": (lambda r: framed(r, cycles={"01-first.md": BROKEN}), "Deliverable: D1", "",
                            "FAIL [K2] circuit breaker: 01-first.md ended on", 1),
+    # The cycle form: `end` is the first day the cycle is over. K2 let the end date through (D138).
+    "K2 on the end date itself": (lambda r: framed(r, cycles={"01-first.md": cycle(
+        start=datetime.date.today() - datetime.timedelta(weeks=3))}), "Deliverable: D1", "",
+        "FAIL [K2] circuit breaker: 01-first.md ended on", 1),
     "K3 no deliverable named": (framed, "", "", "FAIL [K3] no deliverable named", 1),
     "K3 deliverable outside the cycle": (framed, "Deliverable: D9", "", "FAIL [K3] deliverable D9 is not in 01-first.md", 1),
     "K3 deliverable not ready": (lambda r: framed(r, cycles={"01-first.md": cycle(deliverables=[
