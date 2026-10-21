@@ -201,7 +201,7 @@ def test_a_second_run_changes_nothing(forge, capsys):
     assert "in step with the cycle files" in capsys.readouterr().out
 
 
-def test_a_title_edited_on_the_forge_is_restored_and_said(forge, capsys):
+def test_a_title_edited_on_the_forge_is_put_back_and_said(forge, capsys):
     root, site = forge
     board.run(root, today=TODAY)
     issue = next(issue for issue in site.issues.values() if issue["title"] == "D2 — Export")
