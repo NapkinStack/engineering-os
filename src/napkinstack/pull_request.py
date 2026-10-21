@@ -18,11 +18,13 @@ Rules:
   K2  delivery work stops once the cycle is past its end date: the circuit breaker
   K3  delivery work names a ready or in-progress deliverable of the cycle
   K4  the out-of-cycle label carries its justification
+  K5  delivery work for a deliverable someone holds comes from its holder: one of the hold's
+      sessions, or its person's account (`nstack claim`)
 
 Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
 beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24). A NapkinStack
 update or a documentation fix is neither delivery work nor a reason for a sheet.
-The out-of-cycle label lifts K1 to K3, visibly and countably (.nstack/handbook/10-measurement.md).
+The out-of-cycle label lifts K1 to K3 and K5, visibly and countably (.nstack/handbook/10-measurement.md).
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
 In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event.
@@ -364,7 +366,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
                    "assumed.\n      Action: fix its front matter — nstack plan says what is wrong.")
         return
     if stage != plan.FRAMED:
-        return  # unframed: K1 to K3 bound work inside a cycle, and there is none (PDR-0007)
+        return  # unframed: K1 to K3 and K5 bound work inside a cycle, and there is none (PDR-0007)
     cycle = plan.accepted_cycle(root)
     if cycle is None:
         # The charter is accepted: sending the reader back to framing would be false (D47).
@@ -381,6 +383,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
                    "frame a new cycle with a new appetite, or stop the project (status: stopped).")
         return
     match = DELIVERABLE.search(body)
+    match = match and [match[0], match[1].upper()]
     states = {str(item.get("id")): item.get("state") for item in data.get("deliverables") or []
               if isinstance(item, dict)}
     if not match:
@@ -396,6 +399,39 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         # Said, not refused: the state is the decider's record, and this pull request knows (PDR-0002).
         warn(f"[K3] deliverable {match[1]} is still 'ready' while this pull request delivers it.\n"
              f"      Action: set its state: in-progress in {path.name}, in this pull request.")
+
+
+def identities(root: Path, base: str, head: str) -> set[str]:
+    """The git identities, `Name <email>`, of the authors and committers of the commits the pull
+    request brings."""
+    log = _git(root, "log", "--no-merges", "--format=%an <%ae>%n%cn <%ce>", f"{base}..{head}").stdout
+    return {line for line in log.splitlines() if line.strip()}
+
+
+def check_hold(root: Path, body: str, labels: set[str], authorship: tuple[set[str], set[str], list[str]],
+               fail: Fail, warn: Callable[[str], None], people: set[str] = frozenset()) -> None:
+    """K5: the deliverable a pull request delivers is not held by someone else. Nobody holds it:
+    nothing is asked — claiming protects, it is no toll. The holds cannot be read: said."""
+    from napkinstack import hold
+
+    match = DELIVERABLE.search(body)
+    if LABEL in labels or not match or plan.stage(root) != plan.FRAMED:
+        return
+    ident = match[1].upper()
+    found = hold.judge(root, ident)
+    if isinstance(found, str):
+        warn(f"[K5] the holds are not read ({found}): who holds {ident} is not judged here.")
+        return
+    if found is None:
+        return
+    logins, sessions, _ = authorship
+    if ({session.casefold() for session in found.sessions} & sessions
+            or any(hold.same(found.person, someone) for someone in [*logins, *people])):
+        return
+    fail("K5", f"{ident} is {hold.said(found)}: this pull request comes from none of its sessions "
+               f"and not from its person.\n      Action: the holder gives it back (nstack unclaim {ident}), "
+               f"or once stale nstack claim {ident} --take-over. The holder working from another session "
+               f"names it on the hold first: nstack claim {ident} --session <it>.")
 
 
 def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
@@ -490,6 +526,7 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head))
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
+        check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))

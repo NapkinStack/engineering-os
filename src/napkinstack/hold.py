@@ -50,8 +50,12 @@ class Hold:
         return self.event not in (None, "release")
 
 
-def _git(root: Path, *args: str, check: bool = False, stdin: str | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=check, input=stdin)
+def _git(root: Path, *args: str, check: bool = False, stdin: str | None = None,
+         timeout: int | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=check, input=stdin,
+                          timeout=timeout,
+                          # A remote asking for a password is unreachable, not a wait.
+                          env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
 
 
 def remote(root: Path) -> str | None:
@@ -67,10 +71,14 @@ def fetch(root: Path, again: bool = False) -> str | None:
     the remote's name. `again`: the read after a refused push, which must see the hold that won."""
     name = remote(root)
     if name is not None:
-        got = _git(root, "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
-                   f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*")
+        try:
+            got = _git(root, "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
+                       f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*",
+                       timeout=60)
+        except subprocess.TimeoutExpired:
+            raise Unreachable(f"no answer from {name} within a minute") from None
         if got.returncode != 0:
-            raise Unreachable(got.stderr.strip())
+            raise Unreachable(got.stderr.strip().splitlines()[0] if got.stderr.strip() else f"{name} refused the fetch")
     return name
 
 
@@ -82,12 +90,18 @@ def _work_refs(root: Path, ident: str) -> str:
     return f"{MIRROR}/work/{ident.lower()}-*" if remote(root) else f"refs/heads/{ident.lower()}-*"
 
 
+NOREPLY = re.compile(r"(?:\d+\+)?(?P<login>[^@]+)@users\.noreply\.github\.com", re.I)
+
+
 def _names(person: str) -> set[str]:
-    """What a person is called: a handle without its @, or a git identity's name, email and
-    email's local part."""
+    """What names a person: a handle without its @, or a git identity's email and its local
+    part — a GitHub noreply address naming its account. Never a display name: anyone may carry it."""
     found = re.fullmatch(r"\s*(.*?)\s*<([^>]*)>\s*", person)
-    names = {found[1], found[2], found[2].split("@")[0]} if found else {person.strip().lstrip("@")}
-    return {name.lower() for name in names if name}
+    if not found:
+        return {person.strip().lstrip("@").lower()} - {""}
+    email = found[2].strip().lower()
+    noreply = NOREPLY.fullmatch(email)
+    return {email, noreply["login"] if noreply else email.split("@")[0]} - {""}
 
 
 def same(one: str, other: str) -> bool:
@@ -319,3 +333,52 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         return 1
     print(f"{ident} released by {person}; {where}. Its branches are kept.")
     return 0
+
+
+def show(root: Path) -> int:
+    """Who holds what in the accepted cycle, for `nstack plan`: said, never a failure."""
+    cycle = plan.accepted_cycle(root)
+    if cycle is None:
+        return 0
+    path, data = cycle
+    days = limit(root)
+    try:
+        name = fetch(root)
+    except Unreachable as error:
+        print(f"\nHolds in {path.stem}: holds not read — the remote cannot be read.\n      {error}")
+        return 0
+    lines = []
+    for item in data.get("deliverables") or []:
+        if not isinstance(item, dict):
+            continue
+        ident, state = str(item.get("id")), item.get("state")
+        found = read(root, path.stem, ident)
+        if not found.held and state not in TAKEABLE:
+            continue
+        if not found.held:
+            lines.append(f"  {ident}  free")
+        elif state not in TAKEABLE:
+            lines.append(f"  {ident}  ended — {state}; was {said(found)}")
+        elif time.time() >= found.worked + days * DAY:
+            lines.append(f"  {ident}  STALE — {said(found)}: its holder renews (nstack claim {ident}); "
+                         f"anyone else may nstack claim {ident} --take-over")
+        else:
+            lines.append(f"  {ident}  {said(found)}")
+    where = f"from {name}" if name else "local only: no remote"
+    print(f"\nHolds in {path.stem} ({where}; stale after {days} days without work):")
+    print("\n".join(lines) or "  no ready deliverable")
+    return 0
+
+
+def judge(root: Path, ident: str) -> Hold | str | None:
+    """The hold of a deliverable of the accepted cycle for `pr-check`: None when nobody holds
+    it, the reason when it cannot be read."""
+    cycle = plan.accepted_cycle(root)
+    if cycle is None:
+        return None
+    try:
+        fetch(root)
+    except Unreachable as error:
+        return str(error)
+    found = read(root, cycle[0].stem, ident)
+    return found if found.held else None
