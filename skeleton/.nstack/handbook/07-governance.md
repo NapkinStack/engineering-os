@@ -300,6 +300,13 @@ requires a complete, passed record of the head (A1, A2). Where the answer is `fo
 information, and on a guarded repository the forge's required checks stay the barrier — a
 decider who wants the record to gate a protected branch requires its name at the forge.
 
+The record names who ran it, as git would sign a commit made in that checkout, and travels to the
+remote with the notes: it never publishes an address the project's history does not already show.
+A checkout whose identity is unknown there — a fresh clone falls back on the workstation's own,
+often personal — is refused before any check runs; set the checkout's identity, or, for a first
+record of a new contributor, `nstack attest --accept-identity`. A forge's noreply address is always
+accepted, and enough.
+
 ### Agents and approval
 
 A pull request's author cannot approve it. An agent working with a human's credentials

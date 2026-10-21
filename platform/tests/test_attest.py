@@ -254,3 +254,37 @@ def test_attest_judges_the_pull_request_rules_without_asking_for_the_record_it_i
     assert attest.run(tmp_path, base, None, "") == 0, capsys.readouterr().out
     code, out = judged(tmp_path, base, monkeypatch, capsys)
     assert code == 0 and "attested on a workstation" in out
+
+
+# --- #235: a record never publishes an identity the project does not already show ------------
+
+def stranger(monkeypatch, email="someone@personal.example"):
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "Someone")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", email)
+
+
+def test_an_identity_the_project_s_history_does_not_show_is_refused_before_any_check(tmp_path, monkeypatch, capsys):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    stranger(monkeypatch)
+    assert attest.run(tmp_path, "HEAD", None, "") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [attest]" in out and "someone@personal.example" in out and "--accept-identity" in out
+    assert "ok   [attest]" not in out  # nothing ran
+    shown = subprocess.run(["git", "notes", "--ref=nstack/checks", "show", "HEAD"], cwd=tmp_path, capture_output=True)
+    assert shown.returncode != 0  # no record written
+
+
+def test_a_noreply_address_is_always_accepted(tmp_path, monkeypatch):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    stranger(monkeypatch, "12345+someone@users.noreply.github.com")
+    assert attest.run(tmp_path, "HEAD", None, "") == 0
+
+
+def test_a_new_contributor_records_once_they_accept_their_identity(tmp_path, monkeypatch):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    stranger(monkeypatch)
+    assert attest.run(tmp_path, "HEAD", None, "", accept_identity=True) == 0
+    assert records(tmp_path, git(tmp_path, "rev-parse", "HEAD"))[-1]["by"] == "Someone <someone@personal.example>"
