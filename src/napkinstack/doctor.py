@@ -30,7 +30,7 @@ Rules:
   L7  the template source reachable by anyone: a repository, not a path on one machine
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. No other command opens a connection
-  G1-G19  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+  G1-G20  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
           or option required
 
@@ -126,13 +126,17 @@ CHECKLIST = [  # (rule, setting, action)
     # another one triggers none of them, and its record of commits on main never runs.
     ("G19", "Default branch `main`: the branch every workflow and ruleset here watches",
      "Settings → General → Default branch: rename it main"),
+    # G20: a hold of a deliverable is refused twice by the remote, unless forced (ADR-0007): its
+    # branches are rewritten or deleted by nobody.
+    ("G20", "Hold branches `nstack/hold/**` cannot be force-pushed nor deleted",
+     "Settings → Rules → Rulesets, branches nstack/hold/**: block force pushes and restrict deletions"),
 ]
 
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -182,6 +186,15 @@ class GitHub:
 
 def _rule(client: GitHub, kind: str) -> dict | None:
     return next((rule for rule in client.get("/rules/branches/main") if rule.get("type") == kind), None)
+
+
+HOLD_PROBE = "nstack/hold/probe"  # any name under the prefix: GitHub answers for a branch that need not exist
+
+
+def _holds_kept(client: GitHub) -> bool:
+    """G20: the rules applying to a hold's branch refuse a forced push and a deletion."""
+    kinds = {rule.get("type") for rule in client.get(f"/rules/branches/{HOLD_PROBE}")}
+    return {"non_fast_forward", "deletion"} <= kinds
 
 
 def _parameters(client: GitHub, kind: str) -> dict:
@@ -277,6 +290,7 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G17": lambda c: _rule(c, "deletion") is not None,
     "G18": lambda c: _rule(c, "non_fast_forward") is not None,
     "G19": lambda c: _merges(c, "default_branch").get("default_branch") == "main",
+    "G20": _holds_kept,
 }
 
 

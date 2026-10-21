@@ -691,3 +691,43 @@ def test_the_kernel_says_where_the_person_comes_from_and_agrees_with_the_engine(
     kernel = (SKELETON / "AGENTS.md").read_text(encoding="utf-8")
     assert "asked once" in kernel and "never git's user" in kernel
     assert "take another ready deliverable" in kernel
+
+
+# --- part 2c: the forge refuses a forced push on a hold (G20) ----------------------------
+
+class Rules:
+    """A forge answering the rules that apply to a branch, as doctor reads them."""
+
+    def __init__(self, on_holds):
+        self.on_holds = on_holds
+
+    def get(self, path, missing=False):
+        assert path == f"/rules/branches/{hold.PREFIX}/probe", path
+        return [{"type": kind, "ruleset_id": 9} for kind in self.on_holds]
+
+
+@pytest.mark.parametrize("kinds, kept", [(["non_fast_forward", "deletion"], True), (["non_fast_forward"], False),
+                                         (["deletion"], False), ([], False)])
+def test_g20_reads_forced_pushes_and_deletion_refused_on_the_holds(kinds, kept):
+    from napkinstack import doctor
+
+    assert doctor.CHECKS["G20"](Rules(kinds)) is kept
+
+
+def test_g20_is_planned_as_a_ruleset_of_its_own_on_the_holds():
+    from napkinstack import settings
+
+    calls, _ = settings.plan(None, {"G20"})
+    assert [(closed, method, path) for closed, method, path, _ in calls] == [("G20", "POST", "/rulesets")]
+    body = calls[0][3]
+    assert body["conditions"]["ref_name"]["include"] == [f"refs/heads/{hold.PREFIX}/**"]
+    assert {rule["type"] for rule in body["rules"]} == {"non_fast_forward", "deletion"}
+    assert body["bypass_actors"] == [] and body["enforcement"] == "active"
+
+
+def test_g20_is_out_of_reach_where_rulesets_are_and_said_in_the_manual():
+    from napkinstack import doctor
+
+    assert "G20" in doctor.PRIVATE_PLAN
+    setting = next(setting for rule, setting, _ in doctor.CHECKLIST if rule == "G20")
+    assert f"- [ ] {setting}" in (SKELETON / ".nstack/handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
