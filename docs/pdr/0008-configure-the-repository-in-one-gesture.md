@@ -1,8 +1,9 @@
 # PDR-0008 — Configure the repository in one gesture, without handing over the keys
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31). **Half built**: the checklist's additions (M11f: G14 to G16) and the
-  command's print mode with five of the eight criteria (**M11k, 2026-10-12**). The apply mode
+  before 2027-03-31). **Built**: the checklist's additions (M11f: G14 to G16), the command's
+  print mode with five of the eight criteria (**M11k, 2026-10-12**), and the apply mode run by
+  the person (**D151, 2026-10-24**), the last three. Until then: the apply mode
   — criteria 2, 3 and 7 — waits for a probe against the real forge: see *As built, and what
   is not*. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
   check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
@@ -174,10 +175,12 @@ if it carries the power to write code.
 
 - [x] Given a repository and no credential, when the command runs, then it prints the calls
       that would close the distance to the checklist, and changes nothing.
-- [ ] Given a credential that can administer and can also push, when the command is asked to
-      apply, then it refuses before any call, and names what to change.
-- [ ] Given a credential that can administer and cannot push, when the command is asked to
-      apply, then the repository's settings reach the checklist, and the diagnosis says so.
+- [x] Given a credential that is not a person's — an App's installation token, or a run in
+      CI — when the command is asked to apply, then it refuses before any call, and names what
+      to change. *(Clarified 2026-10-24, D150: the forge has no credential that administers and
+      cannot push, so the refusal is drawn where the forge can draw it.)*
+- [x] Given the person's own credential, when the command is asked to apply, then the
+      repository's settings reach the checklist, and the diagnosis says so.
 - [x] Given a repository already compliant, when the command runs, then it makes no call and
       reports that nothing was needed.
 - [x] Given a repository whose ruleset is stricter than the checklist, when the command runs,
@@ -185,7 +188,7 @@ if it carries the power to write code.
 - [x] Given a private repository on a plan that enforces nothing, when the command runs, then
       it applies what the plan allows, names the rest as out of reach with its cost, and never
       reports the repository as guarded.
-- [ ] Given a run that applied changes, when it ends, then it prints each change made and
+- [x] Given a run that applied changes, when it ends, then it prints each change made and
       reminds the person to revoke the credential.
 - [x] Given any run, then no credential appears in its output or in any file it writes.
 
