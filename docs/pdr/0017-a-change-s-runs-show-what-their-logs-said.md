@@ -4,7 +4,10 @@
   ADR-0009. Asked by the third project's decider, watching its
   end-to-end runs: *I sometimes see errors written in red on the interface … are the logs in
   place? do you analyse the logs during each test?* (#224). Reshaped by an independent review
-  (#230) before its acceptance
+  (#230) before its acceptance. Clarified 2026-10-24 (D144), before any version judged: a
+  provoked line is declared even when its scenario asserts it (#245); a run that declares lines
+  and wrote no log where they are read fails when judged, and a run that cannot run here says so
+  (#246)
 - **Date**: 2026-10-21
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (`nstack e2e`, `nstack attest`, `nstack manifests`), the
@@ -108,8 +111,10 @@ the run's screenshots attached to it.
 6. **Look.** The verification playbook asks the verifier of a change to a visible surface to read
    the run's screenshots and logs, and to cite what they saw — never "rendering not seen" on a
    scenario passed.
-7. **One place for an expectation.** A line a scenario expects to see is asserted by the scenario;
-   a warning or an error a scenario provokes is declared in the manifest — never both.
+7. **One place the audit reads.** A warning or an error a scenario provokes is declared in the
+   manifest, the one place the audit reads; the scenario that expects it may assert it too.
+   *Clarified 2026-10-24: this rule said "never both", which left the audit red on a line its
+   scenario asserted (#245).*
 
 ---
 
@@ -141,7 +146,11 @@ with its time, as a declaration would read; from the next, the run fails on it.
 the declaration matched nothing. The run crashes in scenario S5: its output, the traceback with it,
 is in the folder. A module that logs in a form the engine cannot classify: the run says its logs
 were not read and how to declare their form — it passes. A module whose run cannot start here (no
-desktop) and writes no log: it passes, as today, and says nothing was read.
+desktop) says so — exit 77, as a skipped test says it to Automake and Meson: it is recorded *not
+run here*, and passes. A run that declares provoked lines and wrote no log where they are read —
+its logs written elsewhere — checked them against nothing: reported in the first version, it
+fails when judged. A run that declares nothing and writes no log passes, and says nothing was
+read. *Clarified 2026-10-24 (#246).*
 
 **Business rules.** The manifest is the one place a provoked warning or error is declared. An
 error is never declared away silently: each declaration names its scenario.

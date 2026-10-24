@@ -391,6 +391,9 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             code, held = evidence.run(command, known[target], {**os.environ, "NSTACK_EVIDENCE": str(folder.resolve())},
                                       folder)
             passed = evidence.finish(root, target, known[target], folder, code, held)
+            if code == evidence.NOT_RUN:
+                print(f"-> {target}: e2e not run here: its output says why, in {folder.relative_to(root)}/output.txt.")
+                continue
             if code:
                 print(f"FAIL [{verb}] module '{target}': `{command}` exited with {code}.")
                 return code

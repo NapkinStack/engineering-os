@@ -28,6 +28,7 @@ KEPT = ("output.txt", "audit.json", ".running")
 WIDTH = 64 * 1024  # a line read up to its first 64 KiB
 DRAIN = 2.0  # seconds a pipe is drained after the command exits
 STRICT = {"high", "critical"}  # where an undeclared warning fails
+NOT_RUN = 77  # the run's own "not run here", as Automake and Meson read a test's exit code
 SHOWN = 10
 
 WORDS = {"warn": "warning", "warning": "warning",
@@ -176,14 +177,16 @@ def audit(folder: Path, declared: list[dict], criticality: str | None, step: str
         (read if classified else not_read).append(relative)
     strict = criticality not in {"prototype", "standard"}  # undeclared or unknown: judged as critical
     failing = [item for item in undeclared if item["level"] == "error" or strict]
-    if step == "judge" and failing:
+    # Lines declared, and no log here the audit could read: they were checked against nothing.
+    silent = bool(declared) and not read
+    if step == "judge" and (failing or silent):
         verdict = "failed"
-    elif undeclared:
+    elif undeclared or silent:
         verdict = "reported"
     else:
         verdict = "passed"
     return {"step": step, "verdict": verdict, "read": [name for name in read if name not in not_read],
-            "not_read": not_read, "undeclared": undeclared,
+            "not_read": not_read, "undeclared": undeclared, "silent": silent,
             "stale": [item["pattern"] for item in declared if item["pattern"] not in matched]}
 
 
@@ -319,8 +322,10 @@ def declarations(manifest: Path) -> tuple[list[dict], str | None, str | None]:
 def say(root: Path, name: str, folder: Path, found: dict) -> list[str]:
     """The audit in a few lines."""
     where = folder.relative_to(root).as_posix()
-    head = {"passed": "nothing undeclared", "reported": f"{len(found['undeclared'])} undeclared line(s), reported",
-            "failed": f"{len(found['undeclared'])} undeclared line(s)"}[found["verdict"]]
+    count = (f"{len(found['undeclared'])} undeclared line(s)" if found["undeclared"] or not found["silent"]
+             else f"no log read for {len(found['stale'])} declared line(s)")
+    head = {"passed": "nothing undeclared", "reported": f"{count}, reported", "failed": count,
+            "not run": f"not run here (exit {NOT_RUN}), nothing judged"}[found["verdict"]]
     lines = [f"Evidence of {name}: {where} — {head} ({found['step']}; read: {', '.join(found['read']) or 'no log file'})"]
     for item in found["undeclared"][:SHOWN]:
         lines.append(f"  {item['level'].upper():8} {item['file']}:{item['line']}: {item['text'][:200]}")
@@ -331,11 +336,15 @@ def say(root: Path, name: str, folder: Path, found: dict) -> list[str]:
     for name_ in found["not_read"]:
         lines.append(f"  not read: {name_} — no line says its level in a form the engine knows; declare "
                      "evidence.levels, an expression with a group named level")
-    for pattern in found["stale"]:
+    if found["silent"] and found["verdict"] != "not run":
+        lines.append(f"  the run wrote no log where nstack reads them ($NSTACK_EVIDENCE, {' or '.join(READ)}): "
+                     f"{len(found['stale'])} declared line(s) checked against nothing")
+    for pattern in [] if found["silent"] or found["verdict"] == "not run" else found["stale"]:  # nothing was read to match
         lines.append(f"  declared, matched nothing: {json.dumps(pattern)} — the failure it stood for did not happen")
-    if found["step"] == "report" and found["undeclared"]:
+    if found["step"] == "report" and found["verdict"] == "reported":
         lines.append("  Reported, not judged: this project's next minor version of NapkinStack fails on what is "
-                     "undeclared then (an error at any criticality, a warning from high).")
+                     "undeclared then (an error at any criticality, a warning from high), and on declared lines "
+                     "no log here was read for.")
     return lines
 
 
@@ -347,6 +356,8 @@ def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: s
         commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
         try:
             found = audit(folder, declared, criticality, step(root), levels)
+            if code == NOT_RUN:  # the run said it cannot run here: what it wrote is shown, never judged
+                found["verdict"] = "not run"
         except (re.error, TypeError) as error:
             (folder / "audit.json").write_text(json.dumps({"commit": commit, "module": name, "exit": code,
                                                            "verdict": "unread", "error": str(error)}), encoding="utf-8")
@@ -356,6 +367,12 @@ def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: s
         (folder / "audit.json").write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
         for line in say(root, name, folder, found) + ([f"  {held}"] if held else []):
             print(line, flush=True)
+        if found["verdict"] == "failed" and not found["undeclared"]:
+            print(f"FAIL [e2e] module '{name}': it declares lines its scenarios provoke, and its run wrote no log "
+                  "where nstack reads them — see above.\n"
+                  "      Action: write the module's logs into $NSTACK_EVIDENCE (.nstack/playbooks/tests.md §1); "
+                  f"a run that cannot run here says so with exit {NOT_RUN}.")
+            return False
         if found["verdict"] == "failed":
             print(f"FAIL [e2e] module '{name}': its run logged what it does not declare — see above.\n"
                   "      Action: fix the cause, or declare the line in evidence.provoked with the scenario that provokes it.")
