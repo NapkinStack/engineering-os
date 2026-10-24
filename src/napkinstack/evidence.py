@@ -22,6 +22,7 @@ from pathlib import Path
 import yaml
 
 FIRST = (0, 14)  # the first version carrying the audit: a project recording it reports, the next minor judges
+SILENT = (0, 15)  # the first carrying the judgement of a run read nothing of (D144): reported there, judged next
 FOLDER = Path(".evidence") / "e2e"
 READ = (".log", ".jsonl")
 KEPT = ("output.txt", "audit.json", ".running")
@@ -150,8 +151,9 @@ def _lines(path: Path):
 
 
 def audit(folder: Path, declared: list[dict], criticality: str | None, step: str,
-          levels: str | None = None) -> dict:
-    """The audit of a run's folder: what was read, what nobody declared, the verdict."""
+          levels: str | None = None, silent_step: str | None = None) -> dict:
+    """The audit of a run's folder: what was read, what nobody declared, the verdict. A silent run
+    has its own step, `silent_step` — the step itself when not given."""
     own = compile_levels(levels)
     patterns = [(item, re.compile(item["pattern"])) for item in declared]
     matched: set[str] = set()
@@ -179,7 +181,7 @@ def audit(folder: Path, declared: list[dict], criticality: str | None, step: str
     failing = [item for item in undeclared if item["level"] == "error" or strict]
     # Lines declared, and no log here the audit could read: they were checked against nothing.
     silent = bool(declared) and not read
-    if step == "judge" and (failing or silent):
+    if (step == "judge" and failing) or (silent and (silent_step or step) == "judge"):
         verdict = "failed"
     elif undeclared or silent:
         verdict = "reported"
@@ -204,7 +206,7 @@ def _minor(text: str) -> tuple[int, int] | None:
     return (int(found[1]), int(found[2])) if found else None
 
 
-def step(root: Path) -> str:
+def step(root: Path, first: tuple[int, int] | None = None) -> str:
     """`judge` once the project's own history recorded a version carrying the audit at a minor below
     the one it is at; `report` otherwise — and without that history."""
     answers = root / ".copier-answers.yml"
@@ -217,7 +219,7 @@ def step(root: Path) -> str:
         shown = subprocess.run(["git", "show", f"{commit}:.copier-answers.yml"], cwd=root,
                                capture_output=True, text=True)
         past = _minor(shown.stdout) if shown.returncode == 0 else None
-        if past is not None and FIRST <= past < current:
+        if past is not None and (first or FIRST) <= past < current:
             return "judge"
     return "report"
 
@@ -341,7 +343,7 @@ def say(root: Path, name: str, folder: Path, found: dict) -> list[str]:
                      f"{len(found['stale'])} declared line(s) checked against nothing")
     for pattern in [] if found["silent"] or found["verdict"] == "not run" else found["stale"]:  # nothing was read to match
         lines.append(f"  declared, matched nothing: {json.dumps(pattern)} — the failure it stood for did not happen")
-    if found["step"] == "report" and found["verdict"] == "reported":
+    if found["verdict"] == "reported" and (found["step"] == "report" or found["silent"]):
         lines.append("  Reported, not judged: this project's next minor version of NapkinStack fails on what is "
                      "undeclared then (an error at any criticality, a warning from high), and on declared lines "
                      "no log here was read for.")
@@ -355,7 +357,7 @@ def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: s
         declared, levels, criticality = declarations(module / "MANIFEST.yaml")
         commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
         try:
-            found = audit(folder, declared, criticality, step(root), levels)
+            found = audit(folder, declared, criticality, step(root), levels, step(root, SILENT))
             if code == NOT_RUN:  # the run said it cannot run here: what it wrote is shown, never judged
                 found["verdict"] = "not run"
         except (re.error, TypeError) as error:
@@ -368,6 +370,8 @@ def finish(root: Path, name: str, module: Path, folder: Path, code: int, held: s
         for line in say(root, name, folder, found) + ([f"  {held}"] if held else []):
             print(line, flush=True)
         if found["verdict"] == "failed" and not found["undeclared"]:
+            if code:
+                return False  # the command failed: its exit code is the cause, said after
             print(f"FAIL [e2e] module '{name}': it declares lines its scenarios provoke, and its run wrote no log "
                   "where nstack reads them — see above.\n"
                   "      Action: write the module's logs into $NSTACK_EVIDENCE (.nstack/playbooks/tests.md §1); "

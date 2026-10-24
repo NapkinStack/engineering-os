@@ -110,11 +110,14 @@ shape and its check; how "report first, judge next" is carried; how an attested 
 5. **The audit.** It runs whatever the command's exit code; the run fails if either fails. Every
    warning- or error-level line is matched against the declarations of its level; an unmatched one
    is *undeclared*. A declaration no line matched is said, never failed — unless no file of the
-folder was read at all: a module that declares lines and whose run left no log the audit reads
-is *silent*, reported in the first version and failed when judged, its action naming
-`$NSTACK_EVIDENCE`. Exit code 77 is the run's own *not run here* (Automake's and Meson's skip):
-the audit is written with the verdict `not run`, nothing is judged, and `nstack e2e` passes,
-pointing at the output that says why. The verdict, by
+   folder was read at all: a module that declares lines and whose run left no log the audit reads
+   is *silent*. Silence has its own first version, the one that brings its judgement (v0.15.0,
+   `SILENT` beside `FIRST`), and the same step as §6: reported there, failed from the next minor,
+   its action naming `$NSTACK_EVIDENCE`; a command that failed is blamed for its exit code, not
+   for its logs. Exit code 77 is the run's own *not run here* (Automake's and Meson's skip): the
+   audit is written with the verdict `not run`, what the run logged is shown and nothing judged,
+   and `nstack e2e` passes, pointing at the output that says why — unless the audit itself could
+   not be read. The verdict, by
    PDR-0017's severity: an undeclared error fails; an undeclared warning fails from criticality
    `high` — a criticality undeclared or unknown is judged as `critical`, as the module checks do —
    and is reported below.

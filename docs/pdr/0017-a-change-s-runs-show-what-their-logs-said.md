@@ -148,8 +148,8 @@ is in the folder. A module that logs in a form the engine cannot classify: the r
 were not read and how to declare their form — it passes. A module whose run cannot start here (no
 desktop) says so — exit 77, as a skipped test says it to Automake and Meson: it is recorded *not
 run here*, and passes. A run that declares provoked lines and wrote no log where they are read —
-its logs written elsewhere — checked them against nothing: reported in the first version, it
-fails when judged. A run that declares nothing and writes no log passes, and says nothing was
+its logs written elsewhere — checked them against nothing: reported in the version that brings
+that judgement, it fails from the next minor, as §4 says of every new judgement. A run that declares nothing and writes no log passes, and says nothing was
 read. *Clarified 2026-10-24 (#246).*
 
 **Business rules.** The manifest is the one place a provoked warning or error is declared. An

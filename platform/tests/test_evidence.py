@@ -199,8 +199,9 @@ def test_links_output_and_other_files_are_not_read(tmp_path):
 
 # --- the run: folder, output, audit, record (§1, §2, §7) --------------------------------------
 
-def e2e_project(tmp_path, script: str, criticality="standard", section=None):
-    root = project(tmp_path, "v0.13.0", "v0.14.0", "v0.15.0")
+def e2e_project(tmp_path, script: str, criticality="standard", section=None,
+                versions=("v0.13.0", "v0.14.0", "v0.15.0")):
+    root = project(tmp_path, *versions)
     (tmp_path / "e2e.py").write_text(script, encoding="utf-8")
     module(root, criticality=criticality, evidence_section=section, e2e=f"{sys.executable} ../../e2e.py")
     subprocess.run(["git", "add", "-A"], cwd=root, check=True)
@@ -377,9 +378,8 @@ def test_a_run_that_declares_nothing_and_wrote_no_log_passes_and_says_so(tmp_pat
 
 
 def test_the_run_that_logged_elsewhere_fails_and_says_where_nstack_reads(tmp_path, judging, capsys):
-    root = e2e_project(tmp_path, "import pathlib, tempfile\n"
-                                 "pathlib.Path(tempfile.gettempdir(), 'd144-elsewhere.log').write_text('WARNING key refused\\n')\n",
-                       section={"provoked": DECLARED})
+    root = e2e_project(tmp_path, "print('logged elsewhere')\n", section={"provoked": DECLARED},
+                       versions=("v0.14.0", "v0.15.0", "v0.16.0"))
     assert modules.run_verb(root, "e2e", "capture") == 1
     out = capsys.readouterr().out
     assert "wrote no log where nstack reads them" in out and "$NSTACK_EVIDENCE" in out and "exit 77" in out
@@ -407,9 +407,24 @@ def test_the_tests_playbook_says_an_asserted_provoked_line_is_declared_too():
     assert "asserts it too" in declare and "exits 77" in declare, "tests.md: how a run says it did not run (D144)"
 
 
-def test_in_the_reporting_version_a_silent_run_is_said_and_passes(tmp_path, capsys, monkeypatch):
-    monkeypatch.setattr(evidence, "FIRST", (0, 15))  # the project's v0.15.0 is the reporting version
+def test_in_the_version_that_brings_it_a_silent_run_is_reported_though_undeclared_lines_are_judged(
+        tmp_path, judging, capsys):
+    # v0.14 judged undeclared lines from v0.15; silence is new in v0.15: reported there, judged from v0.16.
     root = e2e_project(tmp_path, "print('ran, logged elsewhere')\n", section={"provoked": DECLARED})
-    assert modules.run_verb(root, "e2e", "capture") == 0
+    assert modules.run_verb(root, "e2e", "capture") == 0, "a silent run reported for one minor first (#250)"
     out = capsys.readouterr().out
     assert "1 declared line(s) checked against nothing" in out and "no log here was read for" in out
+
+
+def test_a_run_that_says_not_run_still_fails_when_its_audit_cannot_be_read(tmp_path, judging):
+    root = e2e_project(tmp_path, "raise SystemExit(77)\n",
+                       section={"provoked": [{"pattern": "(", "level": "error", "scenario": "S1"}]})
+    assert modules.run_verb(root, "e2e", "capture") == 1
+
+
+def test_a_command_that_crashed_is_blamed_for_its_exit_never_for_its_logs(tmp_path, judging, capsys):
+    root = e2e_project(tmp_path, "raise SystemExit(3)\n", section={"provoked": DECLARED},
+                       versions=("v0.14.0", "v0.15.0", "v0.16.0"))
+    assert modules.run_verb(root, "e2e", "capture") == 3
+    out = capsys.readouterr().out
+    assert "exited with 3" in out and "wrote no log where nstack reads them —" not in out

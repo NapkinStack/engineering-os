@@ -62,7 +62,9 @@ reads the log files the run wrote there:
   were checked against nothing.
 - **Not run here.** A run that cannot run on this machine — no desktop, no sound server — says
   why on its output and exits 77, the code Automake and Meson read as a skipped test: the run is
-  recorded *not run here*, nothing is judged, and it passes. Exit 0 means it ran.
+  recorded *not run here*, what it logged is shown and nothing judged, and it passes. Exit 0 means
+  it ran; 77 for any other reason — some tools use it for a refused permission — reads as *not
+  run*, so a run that fails exits with another code.
 
 ```yaml
 evidence:
