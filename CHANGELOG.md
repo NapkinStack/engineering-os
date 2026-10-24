@@ -22,6 +22,38 @@ a patch.
 
 ---
 
+## v0.15.1 — 2026-10-24
+
+Four workstreams, D146 to D149, all found by the third project.
+
+This is a patch version: it turns no green project red.
+
+**In the engine**
+
+- **`attest` and `pr-check` take a pull request's labels the same way** (D147, #244).
+  - **`--labels`** now works on both commands.
+  - **`PR_LABELS`** is read by both when the option is not given, so v0.13.0's `PR_LABELS=out-of-cycle nstack attest` works again: v0.14.0 recorded it 4 of 5.
+  - **A failed `attest` step says why.** It prints its `FAIL` lines and the action under each. A step that prints no `FAIL` line shows its last eight lines.
+- **`nstack claim` makes no second work branch** (D149, #232).
+  - **Any existing `d<n>-…` branch is the work**, the way the hold already counts it. The claim takes the one checked out, else the remote's, else this checkout's.
+  - **A branch that exists here only** is said, with the push that keeps the hold fresh.
+
+**In your project** — 5 files, for a project on GitHub
+
+- **`.github/workflows/pull-request.yml`** (D146, #248): a later event of a pull request cancels the earlier event's run (`concurrency`). The verdict shown is therefore the last event's, never a stale one that finished last.
+- **`.nstack/playbooks/verification.md`** (D148, #243): a new *Mutants* section.
+  - The language's tool first: `cargo-mutants`, `mutmut`, Stryker or PIT.
+  - By hand, each run under `timeout`; a timeout counts as killed.
+  - The source restored on every exit.
+  - The counts reported: killed, survived, timed out.
+- **`.nstack/handbook/INSTALL.md`**: `pr-check` and `attest` are shown with `--labels`.
+- **`.nstack/handbook/project.md`**: `claim` makes the work branch *unless one exists*.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**: nothing to do. A cancelled run of *Test sheet and cycle* shows as *cancelled*; the run of the later event gives the verdict.
+
+---
+
 ## v0.15.0 — 2026-10-24
 
 Five workstreams:
