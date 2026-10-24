@@ -236,9 +236,19 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
     """The deliverable's first work branch, from the default branch, unless it exists: what is
     said, and the branch when it was made and pushed."""
     branch = f"{ident.lower()}-{slug(title)}"
-    if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0 or (
-            name and _git(root, "rev-parse", "--verify", "--quiet", f"{MIRROR}/work/{branch}").returncode == 0):
-        return f"work continues on {branch}, which exists: nothing of it is touched", None
+    # Any d<n>-… branch is the deliverable's work, as the hold's freshness reads it: the one checked
+    # out first, then the remote's, then this checkout's — never a second one beside it (#232).
+    current = _git(root, "branch", "--show-current").stdout.strip()
+    pattern = f"{ident.lower()}-*"
+    shared = _git(root, "for-each-ref", "--format=%(refname:lstrip=3)", f"{MIRROR}/work/{pattern}").stdout.split() if name else []
+    local = _git(root, "for-each-ref", "--format=%(refname:short)", f"refs/heads/{pattern}").stdout.split()
+    existing = [current] if current in local else shared + [one for one in local if one not in shared]
+    if existing:
+        found = existing[0]
+        if name and found not in shared:
+            return (f"work continues on {found}, which exists here only: no other branch is made.\n"
+                    f"      Next: git push -u {name} {found} — the hold stays fresh with the remote's work"), None
+        return f"work continues on {found}, which exists: no other branch is made", None
     base = f"{MIRROR}/base" if name else "refs/heads/main"
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode != 0:
         return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself.", None
