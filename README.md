@@ -5,7 +5,7 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.14.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
+> **Status: v0.15.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
 > What each version changes, engine and project apart: [`CHANGELOG.md`](CHANGELOG.md).
 > What is open: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
@@ -14,7 +14,7 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 ```mermaid
 flowchart LR
     I["Install<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
-    N --> G["Publish on GitHub<br/>apply the checklist"]:::human
+    N --> G["Publish on its forge<br/>on GitHub: apply the checklist"]:::human
     G --> D["nstack doctor<br/>read-only"]:::cmd
     D --> M["nstack new-module"]:::cmd
     M --> W["Work in pull requests<br/>the team and its agent"]:::human
@@ -69,8 +69,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.14.0" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.14.0"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.15.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.15.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
@@ -89,8 +89,8 @@ Each project then pins its version and changes it through `nstack update`.
 
 | Command | Role |
 |---|---|
-| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, GitHub checklist |
-| `nstack doctor` | Checks the workstation and the GitHub settings, read-only; names a newer published version |
+| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default) |
+| `nstack doctor` | Checks the workstation and, on GitHub, its settings, read-only; off GitHub says what it cannot verify; names a newer published version |
 | `nstack settings` | Prints the calls that would bring the GitHub settings to the checklist; changes nothing |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
@@ -107,12 +107,14 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks` |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
-| `nstack update [--session <id>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer |
+| `nstack update [--session <id>] [--forge <name>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer; `--forge` moves the project to another forge, its own lines kept |
 
 **Prerequisites**: uv and git. The guardrails really block on a public GitHub repository,
 or on a private one under the Team or Pro plan; on a private repository on the Free plan
 CI informs without blocking
 ([a clarification of PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md)).
+Off GitHub (GitLab, Forgejo, Gitea, another forge or none), the checks are attested on the
+workstation and every command says what it cannot verify ([PDR-0018](docs/pdr/0018-git-is-required-the-forge-is-the-project-s-choice.md)).
 
 **AI**: NapkinStack embeds none. The team's agent (Claude Code, Codex, Copilot…) reads the
 kernel and the playbooks, runs the commands, and CI accepts or refuses its proposals
