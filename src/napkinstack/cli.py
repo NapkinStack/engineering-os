@@ -162,9 +162,10 @@ def build_parser() -> argparse.ArgumentParser:
     nc.add_argument("name", help="the contract's name, kebab-case")
     nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
     pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5, K1-K5)",
-              lambda a: pull_request.run(a.root, a.base, a.body_file))
+              lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
+    pc.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS)")
     ld = _add(sub, "landed", "what reached this branch outside a pull request, recorded (W1)",
               lambda a: landed.run(a.root, a.span, landed.from_environment(a.root)))
     ld.add_argument("--span", default="HEAD~1..HEAD",
@@ -173,7 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity))
     at.add_argument("--base", default="origin/main")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
-    at.add_argument("--labels", default="", help="the pull request's labels, comma-separated")
+    at.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS)")
     at.add_argument("--accept-identity", action="store_true",
                     help="record under an identity the project's history does not show yet — a first record of yours")
     cl = _add(sub, "claim", "takes a ready deliverable for a session, before its first change; "

@@ -188,7 +188,26 @@ def _shown(root: Path, base: str) -> set[str]:
     return {line.strip().lower() for line in log.stdout.splitlines() if line.strip()}
 
 
-def run(root: Path, base: str, body_file: Path | None, labels: str, accept_identity: bool = False) -> int:
+REASON = 8  # lines of a failed step shown when it says no FAIL line of its own
+
+
+def why(output: str) -> list[str]:
+    """A failed step's reason: its FAIL lines and the indented lines under each (the action), or,
+    when it says none, its last lines — a check that failed says why without its whole output (#244)."""
+    lines = output.splitlines()
+    said, under = [], False
+    for line in lines:
+        if line.startswith("FAIL"):
+            said.append(line)
+            under = True
+        elif under and line.startswith(" "):
+            said.append(line)
+        else:
+            under = False
+    return said or [line for line in lines if line.strip()][-REASON:]
+
+
+def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
     who, address = _identity(root)
     remote = _remote(root)
@@ -214,7 +233,8 @@ def run(root: Path, base: str, body_file: Path | None, labels: str, accept_ident
         return 1
     commit = _git(root, "rev-parse", "HEAD").stdout.strip()
     engine, origin = provenance.engine()
-    env = dict(os.environ, PR_LABELS=labels)
+    # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147).
+    env = dict(os.environ, PR_LABELS=os.environ.get("PR_LABELS", "") if labels is None else labels)
     # The engine that runs this command runs the checks: its folder first on the path.
     env["PATH"] = os.pathsep.join([str(Path(sys.argv[0]).resolve().parent), env.get("PATH", "")])
     results = []
@@ -238,6 +258,9 @@ def run(root: Path, base: str, body_file: Path | None, labels: str, accept_ident
             results.append({"name": check.name, "passed": passed, "steps": steps})
             failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
             print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
+            for step in steps:
+                if step["exit"]:
+                    print("\n".join(f"       {line}" for line in why(step["output"])), flush=True)
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "published": origin is None, "by": who, "session": _session(root, commit),

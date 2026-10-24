@@ -26,8 +26,9 @@ beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24). A Na
 update or a documentation fix is neither delivery work nor a reason for a sheet.
 The out-of-cycle label lifts K1 to K3 and K5, visibly and countably (.nstack/handbook/10-measurement.md).
 
-Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE]
-In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event.
+Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b]
+In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event;
+         --labels, when given, takes the place of PR_LABELS, as for nstack attest.
 
 The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
 authors are the pull request's author, the GitHub accounts behind its commits' authors,
@@ -491,7 +492,7 @@ def check_attested(root: Path, head: str, fail) -> str:
     return f"attested on a workstation, by {record['by']}, at {record['at']}"
 
 
-def run(root: Path, base: str, body_file: Path | None = None) -> int:
+def run(root: Path, base: str, body_file: Path | None = None, labels_given: str | None = None) -> int:
     if body_file is not None:
         if not body_file.is_file():
             print(f"FAIL [pr-check] {body_file} not found: no description to read.\n"
@@ -511,7 +512,9 @@ def run(root: Path, base: str, body_file: Path | None = None) -> int:
     head = (os.environ.get("PR_HEAD_SHA") or _git(root, "rev-parse", "HEAD").stdout).strip().lower()
     fork = _git(root, "merge-base", base, "HEAD").stdout.strip() or base
     modules = touched_modules(root, fork, files)
-    labels = {label.strip() for label in os.environ.get("PR_LABELS", "").split(",") if label.strip()}
+    # The option, else PR_LABELS: one way for pr-check and attest alike (D147).
+    given = os.environ.get("PR_LABELS", "") if labels_given is None else labels_given
+    labels = {label.strip() for label in given.split(",") if label.strip()}
 
     failures: list[str] = []
     warnings = charter_without_pdr(root, base, files)
