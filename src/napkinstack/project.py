@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -284,6 +285,63 @@ def _default_branch(root: Path) -> str | None:
     return None
 
 
+def _elsewhere(root: Path, default: str | None) -> str | None:
+    """What is checked out, when an update would not start from the default branch's tip: a
+    feature branch carries its commits into the update's (D74). A HEAD detached exactly at that
+    tip — a worktree of its own, beside a checkout that holds the branch — carries none (#261)."""
+    current = _git(root, "branch", "--show-current").stdout.strip()
+    if not default or current == default:
+        return None
+    if not current:
+        head = _git(root, "rev-parse", "HEAD").stdout.strip()
+        tips = {_git(root, "rev-parse", "--verify", "--quiet", ref).stdout.strip()
+                for ref in (f"refs/heads/{default}", f"refs/remotes/origin/{default}")}
+        if head and head in tips:
+            return None
+    return current or "a detached HEAD"
+
+
+def _held(root: Path, command: str, default: str | None) -> str | None:
+    """Why the working tree cannot take an update, naming what holds it; None when it is clean.
+    Copier reads an untracked file as a change too, and `git stash` leaves one in place (#261)."""
+    lines = [line for line in _git(root, "status", "--porcelain", "--untracked-files=all").stdout.splitlines() if line]
+    if not lines:
+        return None
+    untracked = [line[3:] for line in lines if line.startswith("?? ")]
+    modified = [line[3:] for line in lines if not line.startswith("?? ")]
+
+    def named(paths: list[str]) -> str:
+        return ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+
+    worktree = (f"or update from a worktree at the default branch's tip: git worktree add --detach "
+                f"../{root.resolve().name}-update {default or 'main'}, then run nstack {command} there")
+    if modified:
+        also = f"; untracked: {named(untracked)}" if untracked else ""
+        return (f"FAIL [{command}] Working tree modified in {root}: {named(modified)}{also} — an update starts "
+                f"from a committed state.\n      Action: commit them, or set them aside with "
+                f"{'git stash -u' if untracked else 'git stash'} and run again, {worktree}.")
+    return (f"FAIL [{command}] Untracked file(s) in {root}: {named(untracked)} — the merge takes a clean "
+            f"tree, and would count them as the project's change.\n      Action: git stash -u, run again, "
+            f"then git stash pop — {worktree}.")
+
+
+def _merge(**update) -> None:
+    """Copier's update, without its "Make sure Git >= 2.24" line: it prints it when a diff option
+    newer gits reject fails, falls back, and merges all the same — not a broken workstation."""
+    import contextlib
+    import io
+
+    import copier
+
+    said = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(said):
+            copier.run_update(**update)
+    finally:
+        kept = [line for line in said.getvalue().splitlines(keepends=True) if "Make sure Git >= 2.24" not in line]
+        sys.stderr.write("".join(kept))
+
+
 # Where the framework's files went when they were gathered under one folder (PDR-0012). A
 # rename in a template is a deletion and an addition to the tool that merges it: what a project
 # had adapted in the old place is dropped with the old file, without a conflict and without a
@@ -450,18 +508,20 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
         print(f"FAIL [update] Branch {branch} already exists in {root}.\n"
               "      Action: merge it or delete it (git branch -D), then run again.")
         return 1
+    default = _default_branch(root)
+    if (held := _held(root, "update", default)) is not None:
+        print(held)
+        return 1
     # D74: the update branch is created where HEAD stands. From a feature branch it carries that
     # branch's commits, and the pull request that should hold the framework alone does not.
-    default, current_branch = _default_branch(root), _git(root, "branch", "--show-current").stdout.strip()
-    if default and current_branch != default:
-        where = current_branch or "a detached HEAD"
+    if (where := _elsewhere(root, default)) is not None:
         print(f"FAIL [update] {where} is checked out, not {default}: the update branch would "
               f"carry its commits.\n      Action: git switch {default}, then run again.")
         return 1
     base = _git(root, "rev-parse", "HEAD").stdout.strip()
     try:
-        copier.run_update(root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,
-                          conflict="inline", quiet=True, unsafe=False)
+        _merge(dst_path=root, vcs_ref=ref, overwrite=True, skip_answered=True, defaults=True,
+               conflict="inline", quiet=True, unsafe=False)
         carried, moved_conflicts = _carry(root, base, previous)
         # Only a project that crosses the move: one already in the new layout holds no file
         # in an old place, and its own files are not read.
@@ -656,9 +716,12 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
         print(f"FAIL [update] Branch {branch} already exists in {root}.\n"
               "      Action: merge it or delete it (git branch -D), then run again.")
         return 1
-    default, current_branch = _default_branch(root), _git(root, "branch", "--show-current").stdout.strip()
-    if default and current_branch != default:
-        print(f"FAIL [update] {current_branch or 'a detached HEAD'} is checked out, not {default}: the "
+    default = _default_branch(root)
+    if (held := _held(root, "update", default)) is not None:
+        print(held)
+        return 1
+    if (where := _elsewhere(root, default)) is not None:
+        print(f"FAIL [update] {where} is checked out, not {default}: the "
               f"change's branch would carry its commits.\n      Action: git switch {default}, then run again.")
         return 1
     version = str(answers.get("_commit"))
@@ -667,7 +730,7 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
              (OWNERSHIP[0] if new == "github" else OWNERSHIP[1]).as_posix()}
     moves = {before: after for before, after in moves.items() if before != after}
     try:
-        copier.run_update(root, vcs_ref=version, data=data, overwrite=True, skip_answered=True, defaults=True,
+        _merge(dst_path=root, vcs_ref=version, data=data, overwrite=True, skip_answered=True, defaults=True,
                           conflict="inline", quiet=True, unsafe=False)
         if _answers(root).get("forge") != new:
             # A version from before the question renders the answer away: nothing would move, and the
