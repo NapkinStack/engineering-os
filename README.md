@@ -91,7 +91,7 @@ Each project then pins its version and changes it through `nstack update`.
 |---|---|
 | `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default) |
 | `nstack doctor` | Checks the workstation and, on GitHub, its settings, read-only; off GitHub says what it cannot verify; names a newer published version |
-| `nstack settings` | Prints the calls that would bring the GitHub settings to the checklist; changes nothing |
+| `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential, then reads the result back — never an agent's, never in CI |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |

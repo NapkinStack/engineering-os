@@ -1,10 +1,9 @@
 # PDR-0008 — Configure the repository in one gesture, without handing over the keys
 
 - **Status**: Accepted (2026-09-22, by the maintainer; the success criterion is observed
-  before 2027-03-31). **Half built**: the checklist's additions (M11f: G14 to G16) and the
-  command's print mode with five of the eight criteria (**M11k, 2026-10-12**). The apply mode
-  — criteria 2, 3 and 7 — waits for a probe against the real forge: see *As built, and what
-  is not*. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
+  before 2027-03-31). **Built**: the checklist's additions (M11f: G14 to G16), the command's
+  print mode with five of the eight criteria (**M11k, 2026-10-12**), and the apply mode run by
+  the person (**D151, 2026-10-24**), the last three. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
   check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
   decider chose option 3 the same day**: the apply mode is run by the person, never delegated
 - **Date**: 2026-09-20
@@ -152,7 +151,9 @@ verifies the credential's shape, applies the difference, prints it, runs the dia
 reminds them to revoke. The agent never held a right to change code.
 
 **Edge cases and degraded states.** A credential that can also push: refused before anything is
-attempted, naming what to change. A credential that cannot administer: refused, naming the
+attempted, naming what to change *(as built, D151: a credential that is not a person's — an
+App's token, a run in CI — since the forge has none that administers and cannot push)*. A
+credential that cannot administer: refused, naming the
 permission. A setting the plan forbids: not attempted, named with its cost. A required check
 the forge refuses to name before it has run (D26): applied if the forge accepts it, and
 otherwise named as the one step that remains, with its reason. A repository already stricter
@@ -174,10 +175,12 @@ if it carries the power to write code.
 
 - [x] Given a repository and no credential, when the command runs, then it prints the calls
       that would close the distance to the checklist, and changes nothing.
-- [ ] Given a credential that can administer and can also push, when the command is asked to
-      apply, then it refuses before any call, and names what to change.
-- [ ] Given a credential that can administer and cannot push, when the command is asked to
-      apply, then the repository's settings reach the checklist, and the diagnosis says so.
+- [x] Given a credential that is not a person's — an App's installation token, or a run in
+      CI — when the command is asked to apply, then it refuses before any call, and names what
+      to change. *(Clarified 2026-10-24, D150: the forge has no credential that administers and
+      cannot push, so the refusal is drawn where the forge can draw it.)*
+- [x] Given the person's own credential, when the command is asked to apply, then the
+      repository's settings reach the checklist, and the diagnosis says so.
 - [x] Given a repository already compliant, when the command runs, then it makes no call and
       reports that nothing was needed.
 - [x] Given a repository whose ruleset is stricter than the checklist, when the command runs,
@@ -185,11 +188,16 @@ if it carries the power to write code.
 - [x] Given a private repository on a plan that enforces nothing, when the command runs, then
       it applies what the plan allows, names the rest as out of reach with its cost, and never
       reports the repository as guarded.
-- [ ] Given a run that applied changes, when it ends, then it prints each change made and
+- [x] Given a run that applied changes, when it ends, then it prints each change made and
       reminds the person to revoke the credential.
 - [x] Given any run, then no credential appears in its output or in any file it writes.
 
 ### As built, and what is not (M11k, 2026-10-12)
+
+*Kept as it was written on 2026-10-12. The apply mode it calls not built was built on
+2026-10-24 (D151), as the decider chose it after D150: run by the person, never delegated. A
+credential that cannot administer is not refused up front: the reads pass, and each write the
+forge refuses is named with its answer.*
 
 ```mermaid
 flowchart LR
@@ -296,8 +304,8 @@ What the method leaves to a person's hands on GitHub, as `INSTALL.md` lists it:
 | Step | Today | Could be | Why |
 |---|---|---|---|
 | Create the repository and push the first commit | By hand, after `nstack init` | Automatable by the person, with the forge's command line named in `init`'s next steps | The person's own account; nothing to decide |
-| The checklist, G1 to G20 | Printed by `nstack settings`, then pasted | One gesture of the person (option 2 or 3 above) | Administration is the person's (ADR-0004) |
-| D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be probed: the interface refuses a check it has never seen, but the rulesets API may accept it | One probe on a scratch repository |
+| The checklist, G1 to G20 | Printed by `nstack settings`, then pasted | One gesture of the person: `nstack settings --apply` (option 3, built in D151) | Administration is the person's (ADR-0004) |
+| D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be observed on the first real run of `--apply`: the interface refuses a check it has never seen, the rulesets API may accept it; if it refuses, `--apply` puts the ruleset in without them and names G4 as the one step left | The first run under a person's credential |
 | `owner_team`, the team `CODEOWNERS` names | By hand, in the organisation | Automatable by an organisation owner, in the same script | Who belongs to the team is a human decision |
 | The agents' GitHub App: created, installed, its key stored | By hand, through the forge's pages | Reduced to one confirmation by the App manifest flow, never fully automated | Creating an identity and holding its key is a person's act (ADR-0004) |
 | An approval on a pull request | By hand | **Necessarily human** | It is what the barrier is for (PDR-0003) |

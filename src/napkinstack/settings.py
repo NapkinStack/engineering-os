@@ -1,12 +1,19 @@
 """
-The forge's settings as one gesture (PDR-0008) — its first half: the plan, printed.
+The forge's settings as one gesture (PDR-0008): the plan, printed — or applied by the person.
 
 `nstack doctor` says what is missing. This command says how to close the distance: it reads
 the repository's settings with the same checks as doctor, and prints the smallest set of calls
-that brings it to the checklist, in a form a person runs with their own credential. It writes
-nothing, and sends nothing but reads.
+that brings it to the checklist, in a form a person runs with their own credential. By default
+it writes nothing, and sends nothing but reads.
 
-What it never prints, because it never does it:
+With `--apply`, the person who holds administration has it make those calls under their own
+credential, then reads the result back with `nstack doctor`. Never delegated: the forge allows
+no credential that administers and cannot commit (D150), so the mode refuses an App's
+installation token — an agent's identity, which holds no administration (ADR-0004) — and a run
+in CI. It stores nothing, prints each change and the forge's own error for each refusal, and
+ends by saying to revoke the credential.
+
+What it never plans, so never prints nor applies:
   - a call that rewrites or deletes a ruleset: the missing rules go in a ruleset of their own,
     and rulesets layer — the strictest one wins, so adding never lowers;
   - a call that lowers a setting already stricter than the checklist;
@@ -16,20 +23,20 @@ What it never prints, because it never does it:
 What the repository's plan cannot enforce is not planned and not reported as a fault: it is
 named, with its cost, in doctor's own words.
 
-The apply mode of PDR-0008 is not here. It rests on one check — that the credential which
-configures cannot commit — and the forge's own permissions rule it out: Administration: write
-also creates a deploy key that writes and a collaborator up to admin (D150). What replaces it
-is the decider's choice, written in PDR-0008.
-
-Usage :  nstack settings [--root ROOT]
+Usage :  nstack settings [--root ROOT] [--apply]
 Output:  0 with the plan printed, or nothing to change; 1 when the repository cannot be read
-         with the token given.
+         with the token given. With --apply: 1 when a call was refused or the mode is; else
+         nstack doctor's own exit code.
 """
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import yaml
@@ -92,6 +99,11 @@ def _actions(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call
                 selection = client.get("/actions/permissions/selected-actions") or {}
         except doctor.NotVerified:
             current, selection = {}, {}
+    if current.get("enabled") is False and missing & {"G7", "G8"}:
+        # Actions turned off is stricter still than "own actions only": never turned back on.
+        notes.append("G7, G8 left as they are: Actions are disabled on this repository, which is stricter than "
+                     "the checklist. The skeleton's workflows will not run until a person enables them.")
+        return calls, notes
     stricter = current.get("allowed_actions") == "local_only"
     if stricter and "G7" in missing:
         notes.append("G7  left as it is: this repository allows only its own actions, which is stricter than "
@@ -117,7 +129,8 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
     notes: list[str] = []
     in_ruleset = missing & set(IN_RULESET)
     if in_ruleset:
-        calls.append((", ".join(sorted(in_ruleset, key=_order)), "POST", "/rulesets", ruleset(in_ruleset)))
+        body = {**ruleset(in_ruleset), "name": _free(client, RULESET_NAME)}
+        calls.append((", ".join(sorted(in_ruleset, key=_order)), "POST", "/rulesets", body))
         if "G4" in in_ruleset:
             notes.append("G4  the forge may refuse a check it has never seen run. If it does, open a first "
                          "pull request, let the checks run, then run this call again.")
@@ -126,7 +139,7 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
                      "rewrites a ruleset it did not create.")
     if "G20" in missing:
         calls.append(("G20", "POST", "/rulesets", {
-            "name": HOLDS_RULESET, "target": "branch", "enforcement": "active",
+            "name": _free(client, HOLDS_RULESET), "target": "branch", "enforcement": "active",
             "conditions": {"ref_name": {"include": ["refs/heads/nstack/hold/**/*"], "exclude": []}},
             "bypass_actors": [], "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}]}))
     if "G5" in missing:
@@ -164,12 +177,25 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
                 current = str(client.get("").get("default_branch") or current)
             except doctor.NotVerified:
                 pass
-        calls.append(("G19", "POST", f"/branches/{current}/rename", {"new_name": "main"}))
+        calls.append(("G19", "POST", f"/branches/{urllib.parse.quote(current, safe='<> ')}/rename", {"new_name": "main"}))
     return calls, notes
 
 
 def _order(rule: str) -> int:
     return int(rule[1:])
+
+
+def _free(client: doctor.GitHub | None, name: str) -> str:
+    """A ruleset's name the repository does not use yet: the forge refuses a second ruleset of the
+    same name, and a ruleset of an earlier run, or one a person made, is never rewritten."""
+    if client is None:
+        return name
+    try:
+        taken = {str(found.get("name")) for found in client.get("/rulesets?per_page=100", missing=True) or []}
+    except doctor.NotVerified:
+        return name
+    return next(f"{name}-{n}" if n > 1 else name for n in range(1, len(taken) + 2)
+                if (f"{name}-{n}" if n > 1 else name) not in taken)
 
 
 def _absent(client: doctor.GitHub, label: str) -> bool:
@@ -189,7 +215,96 @@ def render(repo: str, call: Call) -> str:
     return f"{head} --input - <<'JSON'\n{json.dumps(body, indent=2)}\nJSON"
 
 
-def run(root: Path) -> int:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A write is never followed elsewhere: a redirect would turn it into a read, sent with the
+    credential to another place, and be reported done."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+class Forge(doctor.GitHub):
+    """doctor's reads, and the writes of the apply mode — the only place nstack writes to the
+    forge's settings, under the person's own credential (PDR-0008, D150)."""
+
+    def send(self, method: str, path: str, body: dict | None) -> tuple[bool, str]:
+        """(done, the forge's answer): its HTTP status, and its own message when it refused."""
+        request = urllib.request.Request(
+            f"{self.api}/repos/{self.repo}{path}", method=method,
+            data=None if body is None else json.dumps(body).encode("utf-8"), headers={
+                "Accept": "application/vnd.github+json", "Authorization": f"Bearer {self.token}",
+                "X-GitHub-Api-Version": doctor.API_VERSION, "User-Agent": "nstack settings",
+                **({} if body is None else {"Content-Type": "application/json"})})
+        self.cache.clear()  # what was read before this write may no longer be true
+        try:
+            with urllib.request.build_opener(_NoRedirect).open(request, timeout=20) as response:
+                if not 200 <= response.status < 300:
+                    return False, f"HTTP {response.status}"
+                return True, f"HTTP {response.status}"
+        except urllib.error.HTTPError as error:
+            try:
+                said = json.load(error).get("message") or ""
+            except (ValueError, AttributeError):
+                said = ""
+            return False, f"HTTP {error.code}" + (f": {said}" if said else "")
+        except (OSError, ValueError, http.client.HTTPException) as error:
+            return False, f"not sent ({error.__class__.__name__})"
+
+
+def _refused(token: str | None) -> str | None:
+    """Why the apply mode does not run here, or None. It is the person's gesture: never in CI,
+    never under an App's installation token — an agent's identity holds no administration."""
+    if os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("CI", "").lower() in ("true", "1"):
+        return ("--apply does not run in CI: administering the repository is a person's gesture, under their "
+                "own credential.\n      Action: run it on your workstation, or print the "
+                "plan without --apply.")
+    if not token:
+        return ("--apply needs your own credential in GH_TOKEN: a fine-grained token limited to this "
+                "repository, with Administration: write and Issues: write (the labels).\n"
+                "      Action: set GH_TOKEN for this one run, then revoke the token.")
+    if token.startswith(("ghs_", "ghu_")):
+        return ("the token is a GitHub App's — an agent's identity, which never holds administration.\n"
+                "      Action: run it yourself, under your own credential.")
+    return None
+
+
+def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str]) -> int:
+    print(f"\n{len(calls)} call(s) to close the distance to the checklist, under your credential:")
+    failed = 0
+    for closed, method, path, body in calls:
+        done, answer = client.send(method, path, body)
+        if not done and method == "POST" and path == "/rulesets" and body and any(
+                rule["type"] == "required_status_checks" for rule in body["rules"]):
+            # D26: the forge may refuse a check it has never seen run. The ruleset goes in without
+            # them, and G4 is the one step that remains.
+            rest = [rule for rule in body["rules"] if rule["type"] != "required_status_checks"]
+            if rest:
+                again, answer_again = client.send(method, path, {**body, "rules": rest})
+                if again:
+                    print(f"  applied  {closed.replace('G4, ', '').replace(', G4', '')}: {method} {path or '/'} "
+                          f"({answer_again}); G4 refused ({answer}): open a first pull request, let the checks "
+                          "run, then run nstack settings --apply again")
+                    failed += 1
+                    continue
+                answer = f"{answer}; without the required checks: {answer_again}"
+        print(f"  {'applied ' if done else 'REFUSED '} {closed}: {method} {path or '/'} ({answer})")
+        failed += not done
+    if notes:
+        print("\nLeft to do by hand:")
+        for note in notes:
+            print(f"  {note.replace('run this call again', 'run nstack settings --apply again')}")
+    print("\nThe result, read back by nstack doctor — not by this command's account of itself:\n")
+    code = doctor.run(root)
+    print("\nRevoke the credential you gave this run now: nothing kept it, and nothing asks for it again.")
+    if failed:
+        print(f"FAIL [settings] {failed} call(s) refused by the forge, named above with its answer.\n"
+              "      Action: fix what the forge said, then run nstack settings --apply again — what is in "
+              "place is not applied twice.")
+        return 1
+    return code
+
+
+def run(root: Path, apply: bool = False) -> int:
     if not (root / ANSWERS).is_file():
         print(f"FAIL [settings] {ANSWERS} not found in {root}: this folder is not a project "
               "created by nstack init.\n      Action: run the command at the project root, "
@@ -203,7 +318,10 @@ def run(root: Path) -> int:
         return 0
     repo = str(answers.get("github_repo"))
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    client = doctor.GitHub(repo, token, os.environ.get("GITHUB_API_URL") or "https://api.github.com") if token else None
+    if apply and (refusal := _refused(token)):
+        print(f"FAIL [settings] {refusal}")
+        return 1
+    client = Forge(repo, token, os.environ.get("GITHUB_API_URL") or "https://api.github.com") if token else None
 
     missing: set[str] = set()
     unread: list[str] = []
@@ -255,9 +373,19 @@ def run(root: Path) -> int:
         if set(doctor.BLOCKING) & {rule for rule, _ in out_of_reach}:
             print("  This repository stays UNGUARDED whatever is applied below: nothing here refuses a merge.\n"
                   "  Two exits: make it public, or move it to a plan that enforces rulesets.")
+    reach = {rule for rule, _ in out_of_reach}
+    if apply and (unread := [rule for rule in unread if rule not in reach]):
+        print("\nFAIL [settings] not read with this token: " + ", ".join(unread) + ". --apply never writes "
+              "what it could not read: it would add a ruleset or a label twice.\n      Action: give the token "
+              "Administration: write and Issues: write, then run again.")
+        return 1
     if unread:
         print("\nNot read with this token, planned as if missing: " + ", ".join(unread)
               + ". A call for a setting already in place changes nothing.")
+    if apply and calls:
+        return _apply(client, root, calls, notes)
+    if apply and notes:
+        print("\nNothing for --apply to make: what is left is by hand.")
     if not calls and not notes:
         if client is not None:
             print(f"Settings of {repo}: nothing to change"
