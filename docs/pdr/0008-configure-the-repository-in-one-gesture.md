@@ -5,8 +5,8 @@
   command's print mode with five of the eight criteria (**M11k, 2026-10-12**). The apply mode
   — criteria 2, 3 and 7 — waits for a probe against the real forge: see *As built, and what
   is not*. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
-  check the apply mode rests on cannot hold — *What the forge's permissions say*, below; the
-  apply mode stays unbuilt until the decider chooses among the options there
+  check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
+  decider chose option 3 the same day**: the apply mode is run by the person, never delegated
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and
@@ -274,6 +274,10 @@ The options left are the decider's to choose from:
 | **2. One script, run by the person.** `nstack settings` also writes the plan as one script, which the person runs under their own credential | The person's gesture, as for a tag: the agent never holds the credential | One command, under a short-lived token they then revoke |
 | **3. An apply mode run by the person.** `nstack settings --apply` reads the credential from the person's own environment and is refused in CI | The person's gesture, as in option 2. The diagnosis runs afterwards and each change is printed | One command |
 | 4. The apply mode delegated to the agent, as decided | Nothing: the check cannot hold | Not offered |
+
+**Chosen by the decider, 2026-10-24: option 3.** Criteria 2 and 3 read accordingly: the
+command refuses a credential that is not a person's (an App's installation token, a run in CI),
+and the person who runs it is the one who holds administration.
 
 Options 2 and 3 keep every other rule of the decision:
 
