@@ -15,6 +15,7 @@ import pytest
 from napkinstack import evidence, modules
 from napkinstack.fitness import manifests
 
+ROOT = Path(__file__).resolve().parents[2]
 IDENTITY = {"GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
             "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
 
@@ -198,8 +199,9 @@ def test_links_output_and_other_files_are_not_read(tmp_path):
 
 # --- the run: folder, output, audit, record (§1, §2, §7) --------------------------------------
 
-def e2e_project(tmp_path, script: str, criticality="standard", section=None):
-    root = project(tmp_path, "v0.13.0", "v0.14.0", "v0.15.0")
+def e2e_project(tmp_path, script: str, criticality="standard", section=None,
+                versions=("v0.13.0", "v0.14.0", "v0.15.0")):
+    root = project(tmp_path, *versions)
     (tmp_path / "e2e.py").write_text(script, encoding="utf-8")
     module(root, criticality=criticality, evidence_section=section, e2e=f"{sys.executable} ../../e2e.py")
     subprocess.run(["git", "add", "-A"], cwd=root, check=True)
@@ -355,3 +357,74 @@ def test_the_failure_says_whether_the_command_failed_or_its_logs(tmp_path, judgi
     modules.run_verb(root, "e2e", "capture")
     out = capsys.readouterr().out
     assert "exited with" not in out and "logged what it does not declare" in out
+
+
+# --- a run that wrote nothing where nstack reads, or did not run (D144, #246) -------------------
+
+@pytest.mark.parametrize("logs", [None, ("odd.log", "the shell started")], ids=["no log file", "no line classified"])
+def test_a_run_that_declares_lines_and_wrote_no_log_the_audit_reads_fails_when_judged(tmp_path, logs):
+    if logs:
+        write_logs(tmp_path, *logs)
+    tmp_path.mkdir(exist_ok=True)
+    judged = evidence.audit(tmp_path, DECLARED, "standard", "judge")
+    assert judged["verdict"] == "failed" and judged["silent"], (
+        "a module declaring provoked lines whose run wrote no log here was checked against nothing (D144)")
+    assert evidence.audit(tmp_path, DECLARED, "standard", "report")["verdict"] == "reported"
+
+
+def test_a_run_that_declares_nothing_and_wrote_no_log_passes_and_says_so(tmp_path):
+    found = evidence.audit(tmp_path, [], "critical", "judge")
+    assert found["verdict"] == "passed" and not found["silent"]
+
+
+def test_the_run_that_logged_elsewhere_fails_and_says_where_nstack_reads(tmp_path, judging, capsys):
+    root = e2e_project(tmp_path, "print('logged elsewhere')\n", section={"provoked": DECLARED},
+                       versions=("v0.14.0", "v0.15.0", "v0.16.0"))
+    assert modules.run_verb(root, "e2e", "capture") == 1
+    out = capsys.readouterr().out
+    assert "wrote no log where nstack reads them" in out and "$NSTACK_EVIDENCE" in out and "exit 77" in out
+    assert "0 undeclared" not in out, "the head says what failed: no log read, not zero lines (D144)"
+    assert "did not happen" not in out, "nothing was read: a declaration matched nothing for want of a log (D144)"
+
+
+@pytest.mark.parametrize("versions", [("v0.13.0", "v0.14.0", "v0.15.0"), ("v0.14.0",)], ids=["judge", "report"])
+def test_a_run_that_cannot_run_here_exits_77_and_is_said_not_run(tmp_path, judging, capsys, versions):
+    root = e2e_project(tmp_path, "print('e2e: NOT RUN — no sound server here')\nraise SystemExit(77)\n",
+                       section={"provoked": DECLARED})
+    if versions != ("v0.13.0", "v0.14.0", "v0.15.0"):
+        (root / ".copier-answers.yml").write_text(f"_commit: {versions[0]}\nproject_name: p\n", encoding="utf-8")
+    assert modules.run_verb(root, "e2e", "capture") == 0, "exit 77 is the run's own 'not run here' (D144)"
+    audit = json.loads((root / "modules/capture/.evidence/e2e/audit.json").read_text(encoding="utf-8"))
+    assert audit["verdict"] == "not run" and audit["exit"] == 77
+    out = capsys.readouterr().out
+    assert "not run here (exit 77)" in out and "did not happen" not in out
+
+
+def test_the_tests_playbook_says_an_asserted_provoked_line_is_declared_too():
+    text = (ROOT / "skeleton/.nstack/playbooks/tests.md").read_text(encoding="utf-8")
+    declare = " ".join(text.split("- **Declare**", 1)[1].split("\n\n", 1)[0].split())
+    assert "never both" not in declare, "tests.md: the audit reads only the manifest (D144, #245)"
+    assert "asserts it too" in declare and "exits 77" in declare, "tests.md: how a run says it did not run (D144)"
+
+
+def test_in_the_version_that_brings_it_a_silent_run_is_reported_though_undeclared_lines_are_judged(
+        tmp_path, judging, capsys):
+    # v0.14 judged undeclared lines from v0.15; silence is new in v0.15: reported there, judged from v0.16.
+    root = e2e_project(tmp_path, "print('ran, logged elsewhere')\n", section={"provoked": DECLARED})
+    assert modules.run_verb(root, "e2e", "capture") == 0, "a silent run reported for one minor first (#250)"
+    out = capsys.readouterr().out
+    assert "1 declared line(s) checked against nothing" in out and "no log here was read for" in out
+
+
+def test_a_run_that_says_not_run_still_fails_when_its_audit_cannot_be_read(tmp_path, judging):
+    root = e2e_project(tmp_path, "raise SystemExit(77)\n",
+                       section={"provoked": [{"pattern": "(", "level": "error", "scenario": "S1"}]})
+    assert modules.run_verb(root, "e2e", "capture") == 1
+
+
+def test_a_command_that_crashed_is_blamed_for_its_exit_never_for_its_logs(tmp_path, judging, capsys):
+    root = e2e_project(tmp_path, "raise SystemExit(3)\n", section={"provoked": DECLARED},
+                       versions=("v0.14.0", "v0.15.0", "v0.16.0"))
+    assert modules.run_verb(root, "e2e", "capture") == 3
+    out = capsys.readouterr().out
+    assert "exited with 3" in out and "wrote no log where nstack reads them —" not in out

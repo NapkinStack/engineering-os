@@ -55,7 +55,9 @@ You verify on someone's machine, beside work that goes on. Leave it as you found
    - *automated* — the module's `e2e` verb, or its `test` verb when it declares no `e2e`;
      the evidence is the CI run on the head commit, or its artefact — for a change to a
      visible surface, read the run's screenshots and logs (`.evidence/e2e/`, its `audit.json`)
-     and cite what they showed: never "rendering not seen" on a scenario passed;
+     and cite what they showed: never "rendering not seen" on a scenario passed. An audit
+     `not run` (exit 77) ran no scenario: each one it stood for is *not verified*, or run where
+     it can run;
    - *explored* — drive the interface yourself, in a browser, an emulator or on a device,
      with the tools of the tooling profile; capture the screen at the step that proves the
      result;

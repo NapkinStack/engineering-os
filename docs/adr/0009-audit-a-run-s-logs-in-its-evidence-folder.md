@@ -2,7 +2,9 @@
 
 - **Status**: Accepted (2026-10-21), after an independent review (#231) that reshaped §1–§8: the
   step read from the project's history, the audit in the attested record, the output's pipe bounded,
-  more log forms recognised and fewer misread, M12 stricter, suggestions that match again
+  more log forms recognised and fewer misread, M12 stricter, suggestions that match again.
+  Clarified 2026-10-24 (D144, PDR-0017 clarified): §5 judges a declaring run that wrote no log the
+  audit reads, and reads exit 77 as *not run here*; §8 drops "never both"
 - **Date**: 2026-10-21
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack e2e`, `nstack manifests`), the manifest, the
@@ -107,7 +109,15 @@ shape and its check; how "report first, judge next" is carried; how an attested 
    a known limit, PDR-0017's choice.
 5. **The audit.** It runs whatever the command's exit code; the run fails if either fails. Every
    warning- or error-level line is matched against the declarations of its level; an unmatched one
-   is *undeclared*. A declaration no line matched is said, never failed. The verdict, by
+   is *undeclared*. A declaration no line matched is said, never failed — unless no file of the
+   folder was read at all: a module that declares lines and whose run left no log the audit reads
+   is *silent*. Silence has its own first version, the one that brings its judgement (v0.15.0,
+   `SILENT` beside `FIRST`), and the same step as §6: reported there, failed from the next minor,
+   its action naming `$NSTACK_EVIDENCE`; a command that failed is blamed for its exit code, not
+   for its logs. Exit code 77 is the run's own *not run here* (Automake's and Meson's skip): the
+   audit is written with the verdict `not run`, what the run logged is shown and nothing judged,
+   and `nstack e2e` passes, pointing at the output that says why — unless the audit itself could
+   not be read. The verdict, by
    PDR-0017's severity: an undeclared error fails; an undeclared warning fails from criticality
    `high` — a criticality undeclared or unknown is judged as `critical`, as the module checks do —
    and is reported below.
@@ -133,8 +143,8 @@ shape and its check; how "report first, judge next" is carried; how an attested 
    data that are not logs (recordings, events) elsewhere; a page's uncaught errors logged by the
    page itself through the application, or collected by a script the scenario injects
    (`window.onerror`, `unhandledrejection`) and written there — a driver may expose no console;
-   assert expected lines in the scenario, declare provoked warnings and errors in the manifest,
-   never both. `verification.md`: for a visible change, read the screenshots and logs and cite
+   declare provoked warnings and errors in the manifest, the one place the audit reads, even when
+   the scenario asserts them too; a run that cannot run here exits 77. `verification.md`: for a visible change, read the screenshots and logs and cite
    them.
 
 - **Expected user value**: a defect that only logs is caught; red on screen is told from red meant.
