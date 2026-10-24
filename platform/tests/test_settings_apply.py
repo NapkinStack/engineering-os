@@ -34,13 +34,15 @@ class Forge(http.server.BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(length)) if length else None
         self.writes.append((self.command, self._path(), body))
         answer = self.answers.get((self.command, self._path()))
-        status, said = answer(body) if callable(answer) else (answer or (200, {}))
-        self._send(status, said)
+        status, said, *more = answer(body) if callable(answer) else (answer or (200, {}))
+        self._send(status, said, *more)
 
     do_POST = do_PUT = do_PATCH = _write
 
-    def _send(self, status, body):
+    def _send(self, status, body, headers=None):
         self.send_response(status)
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(body).encode())
@@ -51,7 +53,7 @@ class Forge(http.server.BaseHTTPRequestHandler):
 
 @pytest.fixture
 def forge(tmp_path, monkeypatch):
-    Forge.routes = {"": {"default_branch": "main", "visibility": "public"}, "/rulesets": []}
+    Forge.routes = {"": {"default_branch": "main", "visibility": "public"}, "/rulesets?per_page=100": []}
     Forge.answers, Forge.writes = {}, []
     server = http.server.HTTPServer(("127.0.0.1", 0), Forge)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -105,7 +107,8 @@ def test_it_refuses_an_app_s_installation_token(forge, monkeypatch, capsys):
     monkeypatch.setenv("GH_TOKEN", "ghs_an-installation-token")
     assert settings.run(root, apply=True) == 1
     out = capsys.readouterr().out
-    assert "installation token" in out and "never holds administration" in out and Forge.writes == []
+    assert "GitHub App's" in out and "never holds administration" in out and Forge.writes == []
+    assert "ghs_an-installation-token" not in out
 
 
 def test_it_needs_a_credential(forge, monkeypatch, capsys):
@@ -157,7 +160,7 @@ def test_a_check_the_forge_has_not_seen_leaves_g4_the_one_step_remaining(forge, 
 
 def test_a_ruleset_name_already_taken_is_never_rewritten(forge, monkeypatch, capsys):
     root, _ = forge
-    Forge.routes["/rulesets"] = [{"id": 7, "name": settings.RULESET_NAME}]
+    Forge.routes["/rulesets?per_page=100"] = [{"id": 7, "name": settings.RULESET_NAME}]
     missing(monkeypatch, "G4")
     assert settings.run(root, apply=True) == 0
     assert Forge.writes[0][:2] == ("POST", "/rulesets") and Forge.writes[0][2]["name"] == f"{settings.RULESET_NAME}-2"
@@ -168,3 +171,71 @@ def test_without_apply_nothing_is_written(forge, monkeypatch, capsys):
     missing(monkeypatch, "G1", "G5")
     assert settings.run(root) == 0
     assert Forge.writes == [] and read_back == [] and "Nothing was changed" in capsys.readouterr().out
+
+
+# --- what the independent verifier found -----------------------------------------------------
+
+@pytest.mark.parametrize(("variable", "token"), [("GITHUB_TOKEN", "ghs_from-actions"), ("GH_TOKEN", "ghu_user-to-server")])
+def test_every_app_token_is_refused_wherever_it_is_given(forge, monkeypatch, capsys, variable, token):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    monkeypatch.setenv(variable, token)
+    assert settings.run(root, apply=True) == 1
+    assert "GitHub App's" in capsys.readouterr().out and Forge.writes == []
+
+
+def test_a_private_repository_gets_what_its_plan_allows(forge, monkeypatch, capsys):
+    """The rules the plan cannot have are unreadable there (the forge's 403): out of reach, never a
+    reason to refuse the rest."""
+    root, _ = forge
+    Forge.routes[""] = {"default_branch": "main", "visibility": "private"}
+    missing(monkeypatch, "G10", unread=("G1", "G2", "G3", "G4"))
+    assert settings.run(root, apply=True) == 0, capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert [(m, p) for m, p, _ in Forge.writes] == [("PUT", "/actions/permissions/workflow")]
+    assert "never writes what it could not read" not in out
+
+
+def test_a_redirected_write_is_refused_never_reported_applied(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    Forge.answers[("POST", "/rulesets")] = (301, {}, {"Location": "/repositories/1/rulesets"})
+    assert settings.run(root, apply=True) == 1
+    out = capsys.readouterr().out
+    assert "REFUSED  G1: POST /rulesets (HTTP 301" in out and "applied  G1" not in out, out
+    assert [(m, p) for m, p, _ in Forge.writes] == [("POST", "/rulesets")], "the redirect was followed"
+
+
+def test_disabled_actions_are_never_turned_on(forge, monkeypatch, capsys):
+    root, _ = forge
+    Forge.routes["/actions/permissions"] = {"enabled": False}
+    missing(monkeypatch, "G7", "G8", "G10")
+    settings.run(root, apply=True)
+    out = capsys.readouterr().out
+    assert not [p for _, p, _ in Forge.writes if p.startswith("/actions/permissions") and p != "/actions/permissions/workflow"]
+    assert "Actions are disabled on this repository" in out
+
+
+def test_the_read_back_s_verdict_is_the_run_s(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G10")
+    monkeypatch.setattr(doctor, "run", lambda root: 2)
+    assert settings.run(root, apply=True) == 2
+
+
+def test_the_holds_ruleset_takes_a_free_name_too(forge, monkeypatch, capsys):
+    root, _ = forge
+    Forge.routes["/rulesets?per_page=100"] = [{"id": 8, "name": settings.HOLDS_RULESET}]
+    missing(monkeypatch, "G20")
+    settings.run(root, apply=True)
+    assert Forge.writes[0][2]["name"] == f"{settings.HOLDS_RULESET}-2"
+
+
+def test_a_ruleset_refused_with_and_without_its_checks_says_both_answers(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1", "G4")
+    Forge.answers[("POST", "/rulesets")] = (422, {"message": "Name must be unique"})
+    assert settings.run(root, apply=True) == 1
+    out = capsys.readouterr().out
+    assert "(HTTP 422: Name must be unique; without the required checks: HTTP 422: Name must be unique)" in out, out
