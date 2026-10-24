@@ -37,12 +37,34 @@ def _identity(monkeypatch):
         monkeypatch.setenv(name, value)
 
 
-def create(tmp_path: Path, forge: str, **more) -> Path:
+def create(tmp_path: Path, forge: str, source: Path = ROOT, **more) -> Path:
     answers = {"project_name": "Demo", "owner_team": "acme/platform", "forge": forge,
                **({"github_repo": "acme/demo"} if forge == "github" else {}),
                **({"repository": "acme/sub/demo"} if forge in ("gitlab", "forgejo", "gitea", "other") else {}), **more}
     destination = tmp_path / forge
-    assert project.init(destination, answers, str(ROOT), "HEAD") == 0
+    assert project.init(destination, answers, str(source), "HEAD") == 0
+    return destination
+
+
+@pytest.fixture(scope="module")
+def snapshot(tmp_path_factory) -> Path:
+    """The working tree, committed: a project made from a tree with changes records a commit
+    Copier made for the copy, which a later render at the project's own version cannot find."""
+    import shutil
+    import subprocess
+
+    destination = tmp_path_factory.mktemp("source") / "engineering-os"
+    subprocess.run(["git", "clone", "-q", str(ROOT), str(destination)], check=True)
+    listed = subprocess.run(["git", "ls-files", "-co", "--exclude-standard", "-z"], cwd=ROOT, check=True,
+                            capture_output=True, text=True).stdout.split("\0")
+    for name in filter(None, listed):
+        if (ROOT / name).is_file():
+            (destination / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / name, destination / name)
+        elif (destination / name).is_file():
+            (destination / name).unlink()
+    subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "the working tree"], cwd=destination, check=True)
     return destination
 
 
@@ -437,3 +459,229 @@ def test_the_no_carrier_line_names_the_description_s_file(tmp_path, capsys, monk
     _off(tmp_path, "none")
     check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
     assert "nstack attest --body-file" in capsys.readouterr().out
+# --- changing forge (ADR-0010 §3) ----------------------------------------------------------------
+
+def _git(root: Path, *args: str) -> str:
+    import subprocess
+
+    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def _adapted(root: Path) -> None:
+    """A project that lived: a module, its own ownership line, a line added to its form."""
+    from napkinstack import modules
+
+    assert modules.create(root, "billing", "acme/billing", "standard", False) == 0
+    owners = project.ownership(root)
+    owners.write_text(owners.read_text(encoding="utf-8") + "/docs/legal/  @acme/legal\n", encoding="utf-8")
+    form = next(path for path in (root / ".github/pull_request_template.md",
+                                  root / ".gitlab/merge_request_templates/Default.md") if path.is_file())
+    form.write_text(form.read_text(encoding="utf-8") + "\nOur own reminder: say the ticket.\n", encoding="utf-8")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "the project's own lines")
+
+
+def _answers(root: Path) -> dict:
+    return yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8"))
+
+
+def test_a_forge_change_moves_the_files_and_carries_the_project_s_lines(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "github", snapshot)
+    _adapted(root)
+    assert project.change_forge(root, "gitlab", repository="acme/sub/demo") == 0
+    out = capsys.readouterr().out
+    assert _git(root, "branch", "--show-current") == "nstack/forge-gitlab"
+    assert not _git(root, "status", "--porcelain"), "the change is committed on its branch"
+    assert not (root / ".github").exists()
+    owners = (root / "CODEOWNERS").read_text(encoding="utf-8")
+    assert "/modules/billing/" in owners and "/docs/legal/  @acme/legal" in owners and "<<<<<<<" not in owners
+    assert "Our own reminder" in (root / ".gitlab/merge_request_templates/Default.md").read_text(encoding="utf-8")
+    answers = _answers(root)
+    assert answers["forge"] == "gitlab" and answers["repository"] == "acme/sub/demo"
+    assert "github_repo" not in answers and answers["checks"] == "attested"
+    assert "checks: attested" in out and "nstack attest" in out
+
+
+def test_a_forge_change_back_to_github(tmp_path, snapshot):
+    root = create(tmp_path, "gitlab", snapshot)
+    _adapted(root)
+    assert project.change_forge(root, "github", github_repo="acme/demo") == 0
+    owners = (root / ".github/CODEOWNERS").read_text(encoding="utf-8")
+    assert "/modules/billing/" in owners and "/docs/legal/  @acme/legal" in owners
+    assert not (root / "CODEOWNERS").exists() and (root / ".github/workflows").is_dir()
+    assert "Our own reminder" in (root / ".github/pull_request_template.md").read_text(encoding="utf-8")
+    answers = _answers(root)
+    assert answers["github_repo"] == "acme/demo" and "repository" not in answers
+    assert answers["checks"] == "attested"  # the decider's answer: CI runs once they say so
+
+
+@pytest.mark.parametrize("forge, flags, said", [
+    ("gitlab", {}, "--repository"),
+    ("github", {}, "--github-repo"),
+    ("none", {"repository": "acme/demo"}, "--repository"),
+    ("gitlab", {"github_repo": "acme/demo"}, "github_repo"),
+])
+def test_a_forge_change_refuses_what_the_forge_does_not_take(tmp_path, capsys, forge, flags, said):
+    root = create(tmp_path, "github" if forge != "github" else "gitlab")  # a gitlab project knows no GitHub repository
+    assert project.change_forge(root, forge, **flags) == 1
+    assert said in capsys.readouterr().out
+    assert _git(root, "branch", "--show-current") == "main"
+
+
+def test_the_same_forge_is_no_change(tmp_path, capsys):
+    root = create(tmp_path, "gitlab")
+    assert project.change_forge(root, "gitlab") == 0
+    assert "already" in capsys.readouterr().out
+    assert _git(root, "branch", "--show-current") == "main"
+
+
+def _by_hand(root: Path, forge: str) -> None:
+    answers = root / ".copier-answers.yml"
+    text = answers.read_text(encoding="utf-8")
+    answers.write_text(text.replace("forge: github", f"forge: {forge}"), encoding="utf-8")
+    _git(root, "commit", "-qam", "forge changed by hand")
+
+
+def test_a_forge_changed_by_hand_is_said_with_the_command(tmp_path, capsys):
+    from napkinstack import doctor
+
+    root = create(tmp_path, "github")
+    _by_hand(root, "gitlab")
+    assert project.update(root, "v99.0.0") == 1
+    out = capsys.readouterr().out
+    assert "forge: github" in out and "nstack update --forge gitlab" in out
+    said = {rule: (status, detail) for rule, _, status, detail in doctor._workstation(root, _answers(root))}
+    assert said["L9"][0] == doctor.GAP and "nstack update --forge gitlab" in said["L9"][1]
+    assert project.change_forge(root, "forgejo", repository="acme/demo") == 1
+
+
+def test_l9_is_compliant_where_the_files_are_the_forge_s(created):
+    from napkinstack import doctor
+
+    for forge in EXPECTED:
+        said = {rule: status for rule, _, status, _ in doctor._workstation(created[forge], _answers(created[forge]))}
+        assert said["L9"] == doctor.OK, forge
+
+
+def test_a_remote_at_another_known_forge_is_said(tmp_path):
+    from napkinstack import doctor
+
+    root = create(tmp_path, "gitlab")
+    _remote(root, "git@github.com:acme/demo.git")
+    said = {rule: (status, detail) for rule, _, status, detail in doctor._workstation(root, _answers(root))}
+    assert said["L9"][0] == doctor.OK and "github.com" in said["L9"][1] and "nstack update --forge github" in said["L9"][1]
+    _remote(root, "https://gitlab.com/acme/sub/demo.git")
+    said = {rule: (status, detail) for rule, _, status, detail in doctor._workstation(root, _answers(root))}
+    assert said["L9"] == (doctor.OK, "")
+
+
+def test_the_contracts_line_is_kept_where_the_forge_reads_ownership(tmp_path):
+    from napkinstack import modules
+
+    root = create(tmp_path, "gitlab")
+    assert modules.create_contract(root, "orders", None) == 0
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "a contract")
+    base = _git(root, "rev-parse", "HEAD")
+    owners = root / "CODEOWNERS"
+    owners.write_text("".join(line for line in owners.read_text(encoding="utf-8").splitlines(keepends=True)
+                              if not line.startswith("/contracts/")), encoding="utf-8")
+    assert project._keep_contracts(root, base)
+    assert any(line.startswith("/contracts/") for line in owners.read_text(encoding="utf-8").splitlines())
+
+
+def test_update_takes_a_forge_on_the_command_line(tmp_path, monkeypatch):
+    from napkinstack import cli
+
+    seen = {}
+    monkeypatch.setattr(project, "change_forge", lambda root, forge, **flags: seen.update(forge=forge, **flags) or 0)
+    assert cli.main(["update", "--root", str(tmp_path), "--forge", "gitlab", "--repository", "acme/demo"]) == 0
+    assert seen == {"forge": "gitlab", "github_repo": None, "repository": "acme/demo", "session": None}
+
+
+# --- what the verifier of part 3 found -----------------------------------------------------------
+
+def test_a_version_that_does_not_know_the_forge_refuses_the_change_and_leaves_nothing(tmp_path, snapshot, capsys):
+    root = tmp_path / "old"
+    assert project.init(root, {"project_name": "Demo", "github_repo": "acme/demo", "owner_team": "acme/platform"},
+                        str(snapshot), "v0.14.0") == 0
+    head = _git(root, "rev-parse", "HEAD")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 1
+    out = capsys.readouterr().out
+    assert "v0.14.0" in out and "nstack update" in out
+    assert _git(root, "rev-parse", "HEAD") == head and not _git(root, "status", "--porcelain")
+    assert _git(root, "branch", "--show-current") == "main"
+
+
+def _conflicted(root: Path, path: str, old: str, new: str) -> None:
+    file = root / path
+    file.write_text(file.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+    _git(root, "commit", "-qam", f"the project's own {path}")
+
+
+@pytest.mark.parametrize("path, old, new", [
+    (".nstack/handbook/INSTALL.md", "- [ ] At least 1 approving review", "- [ ] At least 2 approving reviews"),
+    (".github/CODEOWNERS", "/.github/", "/.github/ @acme/infra #"),
+])
+def test_a_conflict_is_never_committed(tmp_path, snapshot, capsys, path, old, new):
+    root = create(tmp_path, "github", snapshot)
+    _conflicted(root, path, old, new)
+    head = _git(root, "rev-parse", "HEAD")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [update]" in out and "<<<<<<<" in out and "git add --all && git commit" in out
+    assert _git(root, "rev-parse", "HEAD") == head, "nothing committed"
+
+
+def test_a_contract_s_contact_follows_the_forge(tmp_path, snapshot, capsys):
+    from napkinstack import modules
+
+    root = create(tmp_path, "github", snapshot)
+    assert modules.create_contract(root, "orders", "acme/contracts") == 0
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "a contract")
+    assert project.change_forge(root, "gitlab", repository="acme/demo") == 0
+    manifest = (root / "contracts/MANIFEST.yaml").read_text(encoding="utf-8")
+    assert "github.com" not in manifest and "@acme/contracts" in manifest
+
+
+def test_the_same_form_does_not_hide_a_hand_edit(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "other", snapshot)
+    answers = root / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("forge: other", "forge: none"), encoding="utf-8")
+    _git(root, "commit", "-qam", "by hand")
+    assert project.written_for(root) == "other"
+    root = create(tmp_path, "none")
+    answers = root / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("forge: none", "forge: other"), encoding="utf-8")
+    assert project.written_for(root) == "none"
+
+
+def test_a_hand_edit_is_l9_alone_and_the_refusal_names_the_forge_asked(tmp_path, capsys):
+    from napkinstack import doctor
+
+    root = create(tmp_path, "github")
+    _by_hand(root, "gitlab")
+    said = {rule for rule, _, status, _ in doctor._workstation(root, _answers(root)) if status == doctor.GAP}
+    assert "L9" in said and "L8" not in said
+    assert project.change_forge(root, "forgejo", repository="acme/demo") == 1
+    assert "nstack update --forge forgejo" in capsys.readouterr().out
+
+
+def test_flags_are_judged_before_the_same_forge(tmp_path, capsys):
+    root = create(tmp_path, "github")
+    assert project.change_forge(root, "github", repository="acme/demo") == 1
+    assert "--repository" in capsys.readouterr().out
+
+
+def test_a_version_with_a_forge_change_is_refused(tmp_path, capsys):
+    from napkinstack import cli
+
+    assert cli.main(["update", "--root", str(tmp_path), "--forge", "gitlab", "--repository", "a/b", "--ref", "v1.0.0"]) == 1
+    assert "--ref" in capsys.readouterr().out
+
+
+def test_back_on_github_the_way_to_ci_is_said(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "gitlab", snapshot)
+    assert project.change_forge(root, "github", github_repo="acme/demo") == 0
+    assert "checks: forge" in capsys.readouterr().out

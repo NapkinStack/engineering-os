@@ -141,6 +141,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 | `L6` | Code owners that do not start with a default owner — and, where no forge reads the file, said | `07-governance.md` §7 |
 | `L7` | A project created from a path on one machine | `INSTALL.md` |
 | `L8` | Off GitHub, `checks: forge`: no CI is shipped there, so nothing would run the checks | `INSTALL.md` |
+| `L9` | A `forge` answer the project's files were not written for — changed by hand; `nstack update --forge` changes it. A remote on another known forge is said, never a gap | `INSTALL.md` |
 
 ## G — the forge's settings
 

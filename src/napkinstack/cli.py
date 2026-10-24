@@ -68,6 +68,17 @@ def _init(args: argparse.Namespace) -> int:
 def _update(args: argparse.Namespace) -> int:
     from napkinstack import project
 
+    if args.forge and args.ref:
+        print("FAIL [update] --forge changes the forge at the project's own version; --ref changes the version.\n"
+              "      Action: one at a time — nstack update --ref first, merged, then nstack update --forge.")
+        return 1
+    if args.forge:
+        return project.change_forge(args.root, args.forge, github_repo=args.github_repo,
+                                    repository=args.repository, session=args.session)
+    if args.github_repo or args.repository:
+        print("FAIL [update] --github-repo and --repository name the repository of a forge change.\n"
+              "      Action: give --forge with them.")
+        return 1
     return project.update(args.root, args.ref or project.default_ref(), args.session)
 
 
@@ -201,6 +212,10 @@ def build_parser() -> argparse.ArgumentParser:
               _update)
     up.add_argument("--ref", help="target version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
     up.add_argument("--session", help="the agent's session, written as the commit's Agent-Session trailer")
+    up.add_argument("--forge", choices=["github", "gitlab", "forgejo", "gitea", "other", "none"],
+                    help="moves the project to this forge, at its own version: its files, and the project's lines in them")
+    up.add_argument("--github-repo", help="with --forge github: the repository, organisation/name")
+    up.add_argument("--repository", help="with --forge at another forge: the repository's path, group/name")
     return parser
 
 
