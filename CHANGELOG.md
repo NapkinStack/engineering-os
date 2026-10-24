@@ -22,6 +22,68 @@ a patch.
 
 ---
 
+## v0.16.0 — 2026-10-24
+
+This version holds four workstreams:
+
+- **D150**: the forge allows no credential that administers a repository without being able to commit to it. PDR-0008 is clarified, and the decider chose that a person runs the apply mode.
+- **D151**: `nstack settings --apply`.
+- **D152**: `doctor` reads the rules of the default branch.
+- **D153**: `nstack update` names what holds its working tree.
+
+It also takes D144's second step: the e2e audit, which reported a run it read nothing of since v0.15.0, now judges it.
+
+It is a minor version because it adds a command option and can turn a green project red.
+
+**In the engine**
+
+- **`nstack settings --apply`** (D151, PDR-0008): the settings in one gesture of the person who holds administration, never delegated.
+  - **What it does.**
+    - It makes the calls the print mode shows, under the person's `GH_TOKEN` (else `GITHUB_TOKEN`).
+    - It prints each call with the forge's answer. A refusal is named, and the remaining calls are still made.
+    - When at least one call was made, `nstack doctor` then reads the result back and the person is told to revoke the credential. The exit code is 1 when a call was refused, otherwise `doctor`'s own (0, 1 or 2).
+    - With nothing to make, it says so and exits 0.
+  - **When it refuses.**
+    - Before any call: in CI, without a token, and when the token it would use is a GitHub App's (`ghs_`, `ghu_`).
+    - Before any write: when a rule within the plan's reach could not be read.
+  - **What it changes.** It adds and strengthens:
+    - it deletes or rewrites no ruleset: a ruleset name already taken gets a free one;
+    - it adds no bypass actor;
+    - it never turns on Actions that are disabled;
+    - it never follows a redirect on a write.
+
+    The one setting it changes rather than adds is G19: it renames the default branch to `main` when it is not, which moves open pull requests and clones' upstream to the new name.
+  - **When the forge refuses a ruleset** that holds the required checks, whatever the reason, it is tried again without them, and G4 is named as the step left. The forge may refuse a check it has never seen run (D26).
+- **`nstack settings`, print mode.** It now reads the rulesets in place and plans a free name. It no longer plans G7 and G8 when Actions are disabled, and says why.
+- **`nstack doctor` and `nstack settings` read the rules of the repository's default branch** (D152), where the checklist's ruleset applies. On a repository whose default branch is not yet `main`, that ruleset was never seen in place.
+- **`nstack update` says what holds its working tree, and starts from a worktree** (D153, #261).
+  - **The refusal names the files.** It names up to five of them and says whether each is *modified* or *untracked*. Its action works on what is there: commit, `git stash -u` then `git stash pop`, or a worktree at the default branch's tip, with the command given.
+  - **A worktree detached exactly at the default branch's tip is accepted,** local or remote-tracking. Any other detached HEAD, or a feature branch, is still refused. `update --forge` follows the same rules.
+  - **Copier's *Make sure Git >= 2.24* line is no longer shown.** On a recent git it misread as a broken workstation.
+- **The e2e audit judges a silent run** (D144).
+  - **Where it applies:** a module that declares `evidence.provoked`, whose command exits 0.
+  - **What makes a run silent:** it left in `$NSTACK_EVIDENCE` no `.log` or `.jsonl` file holding a line whose level the engine reads. The engine reads JSON level keys, a leading level word, GLib's `Domain-WARNING`, `level=`, or the module's own `evidence.levels`. Neither the command's output (`output.txt`) nor a link counts.
+  - **When it fails:** for a project whose history recorded v0.15.x and that is now at v0.16.x, starting with the update's own pull request.
+  - **When it is only reported:** for a project that jumps from v0.14 or earlier, or was made at v0.16. Such a project is judged from v0.17.
+  - **Unchanged:** a run that exits non-zero already failed, and a run that exits 77 is still recorded *not run*.
+
+**In your project** — 2 files
+
+- **`.nstack/handbook/INSTALL.md`**:
+  - on GitHub, the gesture: `nstack settings --apply` in your own terminal, never through your agent's session, the token read without echo (`read -rs GH_TOKEN`) and unset afterwards;
+  - on every forge, the command list names `--apply`.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **Before taking v0.16.0, for each module that declares `evidence.provoked`:**
+  - every path where the e2e cannot run on the machine ends with `exit 77`, not `exit 0`;
+  - a run that does run writes its logs into `$NSTACK_EVIDENCE` (subfolders included) as `.log` or `.jsonl`, in lines whose level the engine reads. A module that writes only to its output, or in a format of its own, declares `evidence.levels`. The v0.15 run already lists a file whose lines carry no level as *not read*;
+  - the e2e command never exits 77 on a real failure: a 77 passes `nstack e2e` whatever its logs say.
+- **`nstack settings --apply` is optional.** The printed calls and the checklist by hand stay valid.
+
+---
+
 ## v0.15.1 — 2026-10-24
 
 Four workstreams, D146 to D149, all found by the third project.
