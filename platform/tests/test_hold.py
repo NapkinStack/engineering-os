@@ -769,3 +769,36 @@ def test_plan_s_holds_say_how_many_are_held_and_stale(shared, monkeypatch, capsy
     capsys.readouterr()
     hold.show(clone(shared, "bob"))
     assert "Holds in 03-the-window: 1 held, of which 0 stale (" in capsys.readouterr().out
+
+
+# --- D149: a claim made from the work's own branch makes no second one (#232) ----------------
+
+def test_a_claim_from_a_deliverable_s_branch_makes_no_other(shared, capsys):
+    alice = clone(shared, "alice")
+    git(alice, "switch", "-q", "-c", "d1-log-audit", "origin/main")
+    git(alice, "commit", "-q", "--allow-empty", "-m", "the work")
+    git(alice, "push", "-q", "origin", "d1-log-audit")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "work continues on d1-log-audit" in out, out
+    assert "git switch" not in out, out
+    heads = git(shared, "for-each-ref", "--format=%(refname:short)", "refs/heads/d1-*").split()
+    assert heads == ["d1-log-audit"], f"a second work branch was made: {heads}"
+
+
+def test_a_deliverable_s_branch_not_pushed_is_taken_and_said_to_push(shared, capsys):
+    alice = clone(shared, "alice")
+    git(alice, "switch", "-q", "-c", "d1-log-audit", "origin/main")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "work continues on d1-log-audit" in out and "git push -u origin d1-log-audit" in out, out
+    assert not git(shared, "for-each-ref", "refs/heads/d1-*")
+
+
+def test_another_deliverable_s_branch_is_not_taken_for_this_one(shared, capsys):
+    alice = clone(shared, "alice")
+    git(alice, "switch", "-q", "-c", "d10-something-else", "origin/main")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert git(shared, "rev-parse", "--verify", "--quiet", "d1-resume-an-interrupted-recording")
