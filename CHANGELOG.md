@@ -24,11 +24,12 @@ a patch.
 
 ## v0.16.0 — 2026-10-24
 
-This version holds three workstreams:
+This version holds four workstreams:
 
 - **D150**: the forge allows no credential that administers a repository without being able to commit to it. PDR-0008 is clarified, and the decider chose that a person runs the apply mode.
 - **D151**: `nstack settings --apply`.
 - **D152**: `doctor` reads the rules of the default branch.
+- **D153**: `nstack update` names what holds its working tree.
 
 It also takes D144's second step: the e2e audit, which reported a run it read nothing of since v0.15.0, now judges it.
 
@@ -55,6 +56,10 @@ It is a minor version because it adds a command option and can turn a green proj
   - **When the forge refuses a ruleset** that holds the required checks, whatever the reason, it is tried again without them, and G4 is named as the step left. The forge may refuse a check it has never seen run (D26).
 - **`nstack settings`, print mode.** It now reads the rulesets in place and plans a free name. It no longer plans G7 and G8 when Actions are disabled, and says why.
 - **`nstack doctor` and `nstack settings` read the rules of the repository's default branch** (D152), where the checklist's ruleset applies. On a repository whose default branch is not yet `main`, that ruleset was never seen in place.
+- **`nstack update` says what holds its working tree, and starts from a worktree** (D153, #261).
+  - **The refusal names the files.** It names up to five of them and says whether each is *modified* or *untracked*. Its action works on what is there: commit, `git stash -u` then `git stash pop`, or a worktree at the default branch's tip, with the command given.
+  - **A worktree detached exactly at the default branch's tip is accepted,** local or remote-tracking. Any other detached HEAD, or a feature branch, is still refused. `update --forge` follows the same rules.
+  - **Copier's *Make sure Git >= 2.24* line is no longer shown.** On a recent git it misread as a broken workstation.
 - **The e2e audit judges a silent run** (D144).
   - **Where it applies:** a module that declares `evidence.provoked`, whose command exits 0.
   - **What makes a run silent:** it left in `$NSTACK_EVIDENCE` no `.log` or `.jsonl` file holding a line whose level the engine reads. The engine reads JSON level keys, a leading level word, GLib's `Domain-WARNING`, `level=`, or the module's own `evidence.levels`. Neither the command's output (`output.txt`) nor a link counts.
