@@ -502,6 +502,21 @@ def test_a_forge_change_moves_the_files_and_carries_the_project_s_lines(tmp_path
     assert "checks: attested" in out and "nstack attest" in out
 
 
+def test_a_forge_change_rewrites_the_security_policy_and_keeps_the_project_s_lines(tmp_path, snapshot, capsys):
+    root = create(tmp_path, "github", snapshot)
+    policy = root / "SECURITY.md"
+    policy.write_text(policy.read_text(encoding="utf-8") + "\nOur own: the on-call rota answers within a day.\n",
+                      encoding="utf-8")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "the project's own policy line")
+    assert project.change_forge(root, "gitlab", repository="acme/sub/demo") == 0
+    text = policy.read_text(encoding="utf-8")
+    assert "confidential issue" in text and "**Security** tab" not in text and ".github/" not in text, (
+        "SECURITY.md is a seat Copier never rewrites: the forge change must, or it names GitHub's tab (#249)")
+    assert "Our own: the on-call rota" in text and "<<<<<<<" not in text
+    assert "SECURITY.md" in capsys.readouterr().out
+
+
 def test_a_forge_change_back_to_github(tmp_path, snapshot):
     root = create(tmp_path, "gitlab", snapshot)
     _adapted(root)
@@ -722,9 +737,42 @@ def test_security_off_github_names_a_private_channel(created):
 def test_the_kernel_and_the_handbook_name_the_identity_and_the_ownership_file_of_any_forge():
     skeleton = ROOT / "skeleton"
     assert "your own GitHub identity" not in (skeleton / "AGENTS.md").read_text(encoding="utf-8")
-    for page in ("05-workflow.md", "07-governance.md", "09-platform.md", "README.md"):
-        text = (skeleton / ".nstack/handbook" / page).read_text(encoding="utf-8")
-        assert "`.github/CODEOWNERS`" not in text or "`CODEOWNERS`" in text.replace("`.github/CODEOWNERS`", ""), page
+    said = {"05-workflow.md": "elsewhere an issue of the forge", "07-governance.md": "**Off GitHub**",
+            "09-platform.md": "elsewhere CODEOWNERS at the root", "README.md": "elsewhere CODEOWNERS at the root"}
+    for page, words in said.items():
+        text = " ".join((skeleton / ".nstack/handbook" / page).read_text(encoding="utf-8").split())
+        assert words in text, f"{page}: says GitHub's place only, not where another forge keeps it"
+
+
+# Words true of GitHub alone: a page off GitHub saying one of them describes a CI or a stop it does not have.
+GITHUB_ONLY = {"CONTRIBUTING.md": ["CI 'Hooks and secrets'", "Merge impossible", "red: a stop.", "caught by CI"],
+               ".nstack/handbook/INSTALL.md": ["CI decides", "<br/>CI:", "as CI installs it", "validated by CI",
+                                               "hook and CI reject", "CI installs that commit", "(runs in CI)",
+                                               "fails CI", "checks stay in CI"]}
+
+
+@pytest.mark.parametrize("forge", OFF)
+def test_off_github_no_page_claims_a_ci_or_a_merge_refused(created, forge):
+    for page, words in GITHUB_ONLY.items():
+        text = (created[forge] / page).read_text(encoding="utf-8")
+        for said in words:
+            assert said not in text, f"{forge}: {page} says '{said}'"
+
+
+def test_on_github_the_ci_words_stay(created):
+    for page, words in GITHUB_ONLY.items():
+        text = (created["github"] / page).read_text(encoding="utf-8")
+        for said in words:
+            assert said in text, f"github: {page} lost '{said}'"
+
+
+def test_with_no_forge_the_pages_say_there_is_none(created):
+    contributing = (created["none"] / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "invites you on the forge" not in contributing and "The change, on its branch" in contributing
+    install = (created["none"] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
+    assert "No forge<br/>hooks and records" in install and "Work in branches" in install
+    assert "| `CODEOWNERS` | Who approves each path | People: no forge reads it |" in install
+    assert "git push -u origin nstack/update" not in install
 
 
 def test_the_glossary_defines_the_forge():

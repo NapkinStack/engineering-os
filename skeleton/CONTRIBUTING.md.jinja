@@ -39,7 +39,7 @@ flowchart LR
   `nstack skills` makes under `.claude/skills/` are one tool's shortcut to the same playbooks
   (`.nstack/playbooks/`). Give
   your agent its own identity and a session name (`.nstack/handbook/07-governance.md` §7).
-- **Joining.** The decider invites you on the forge; when you, or your team, own a
+- **Joining.** The decider {% if forge == "none" %}gives you access to the repository{% else %}invites you on the forge{% endif %}; when you, or your team, own a
   module, a pull request names the owner in its `MANIFEST.yaml` and `{% if forge == "github" %}.github/{% endif %}CODEOWNERS`; you install the
   engine (`.nstack/handbook/INSTALL.md`) and run `pre-commit install`. Then *Before you start*.
 - **Who checks whom.** The author never verifies nor approves their own work: a verifier
@@ -51,10 +51,10 @@ flowchart LR
 flowchart LR
     C["git commit"] --> H{"1 · pre-commit hook<br/>gitleaks + checks"}
     H -->|refused| X1["Commit blocked"]
-    H -->|ok| P["git push"] --> PP{"2 · {% if forge == "github" %}GitHub push<br/>protection{% else %}the forge's push<br/>protection, if set{% endif %}"}
+    H -->|ok| P["git push"] --> PP{"2 · {% if forge == "github" %}GitHub push<br/>protection{% elif forge == "none" %}the remote, if any:<br/>nothing set by a forge{% else %}the forge's push<br/>protection, if set{% endif %}"}
     PP -->|refused| X2["Push blocked"]
-    PP -->|ok| PR["Pull request"] --> CI{"3 · {% if forge == "github" %}CI 'Hooks and secrets'{% else %}nstack attest{% endif %}<br/>same hooks + full history"}
-    CI -->|red| X3["Merge impossible"]
+    PP -->|ok| PR["{% if forge == "none" %}The change, on its branch{% else %}Pull request{% endif %}"] --> CI{"3 · {% if forge == "github" %}CI 'Hooks and secrets'{% else %}nstack attest{% endif %}<br/>same hooks + full history"}
+    CI -->|red| X3["{% if forge == "github" %}Merge impossible{% else %}Not merged:<br/>the team's rule{% endif %}"]
     CI -->|green| M["main"]
 
     classDef local fill:#374151,color:#fff
@@ -65,9 +65,9 @@ flowchart LR
     class X1,X2,X3 stop
 ```
 
-**Legend** — grey: on the workstation, bypassable · green: {% if forge == "github" %}GitHub side{% else %}the forge's side, and the record of the checks{% endif %} · red: a stop.
+**Legend** — grey: on the workstation, bypassable · green: {% if forge == "github" %}GitHub side{% else %}{% if forge == "none" %}the record of the checks{% else %}the forge's side, and the record of the checks{% endif %}{% endif %} · red: {% if forge == "github" %}a stop{% else %}a stop — at barrier 3, by the team's rule: nothing refuses the merge{% endif %}.
 
-Only barriers 1 and 2 act **before** publication. A secret caught by CI is already
+Only barriers 1 and 2 act **before** publication. A secret caught by {% if forge == "github" %}CI{% else %}`nstack attest`{% endif %} is already
 public: that is an incident, and it is revoked immediately (`.nstack/playbooks/security.md`).
 
 ## While you work

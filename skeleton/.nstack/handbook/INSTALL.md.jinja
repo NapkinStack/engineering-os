@@ -1,4 +1,4 @@
-# Installing and updating the foundation
+{% set ci = "CI" if forge == "github" else "`nstack attest`" %}# Installing and updating the foundation
 
 > **This project was created by `nstack init`**, the command of the NapkinStack engineering
 > framework. This page is the manual for the foundation: what to install, what to set on the
@@ -73,7 +73,7 @@ fork would run its code on that machine — and hosted minutes are unlimited any
 ## Installation
 
 ```bash
-# 1. Tooling at the project's NapkinStack version, as CI installs it (prerequisite: uv)
+# 1. Tooling at the project's NapkinStack version, as {% if forge == "github" %}CI installs it{% else %}every check runs it{% endif %} (prerequisite: uv)
 bash .nstack/install-engine.sh
 
 # 2. Hooks, once per clone
@@ -96,7 +96,7 @@ repository, and every run then says an unpublished framework judges it.
 uv tool install "napkinstack==X.Y.Z" --with-executables-from pre-commit  # the version you want
 git switch main                          # an update starts from the default branch
 nstack update                            # branch nstack/update-vX.Y.Z, merged and committed
-git push -u origin nstack/update-vX.Y.Z  # then the PR, validated by CI
+{% if forge == "none" %}nstack attest                            # then merge it as the project merges its changes{% else %}git push -u origin nstack/update-vX.Y.Z  # then the PR, validated by {{ ci }}{% endif %}
 ```
 
 An agent passes its session — `nstack update --session <its identifier>` — and the commit
@@ -110,7 +110,7 @@ command above. Until then every `nstack` command says, before anything else, tha
 workstation is behind the project.
 
 The merge keeps the project's adaptations and never touches the modules' code. A conflict
-stays marked in the file, uncommitted: the team decides, and both the hook and CI reject
+stays marked in the file, uncommitted: the team decides, and both the hook and {{ ci }} reject
 any remaining marker.
 
 ## When the framework is wrong
@@ -141,7 +141,7 @@ uv run --project ../framework nstack fitness --root .  # this project, judged by
 
 Any command runs that way, with nothing installed. The rest is the framework's own page:
 its `CONTRIBUTING.md` says how a fix is tested, proposed and reviewed. While it is reviewed,
-`nstack update --ref <commit>` lets this project run on the fix: CI installs that commit, and
+`nstack update --ref <commit>` lets this project run on the fix: {% if forge == "github" %}CI installs{% else %}every check runs{% endif %} that commit, and
 every run says an unpublished framework judged it. Once it is merged, the pin moves — to the
 commit the framework's default branch received, which the squash made, or to the first release
 that carries it. `nstack doctor` says when the pinned commit is on no branch any more.
@@ -343,12 +343,12 @@ job rather than a kernel instruction.
 
 ```bash
 nstack skills           # generates .claude/skills/ from .nstack/playbooks/
-nstack skills --check   # checks they are in sync (runs in CI)
+nstack skills --check   # checks they are in sync (runs in {{ ci }})
 ```
 
 **`.nstack/playbooks/` stays the source of truth.** The skills are generated, gitignored, and
 never edited by hand — you change the playbook, then regenerate. A playbook with no entry
-in `.nstack/skills.yaml` fails CI; a generated skill that has drifted fails
+in `.nstack/skills.yaml` fails {{ ci }}; a generated skill that has drifted fails
 `nstack skills --check` locally.
 
 This indirection has a reason: a tool is an **adapter**, never a foundation
@@ -357,7 +357,7 @@ working with any other agent — and the trigger table of kernel §4 is there fo
 that case.
 
 Enforcement, on the other hand, **never moves down into a plugin**. An agent-side hook is
-fast feedback, not a guarantee: the blocking checks stay in CI
+fast feedback, not a guarantee: the blocking checks stay in {% if forge == "github" %}CI{% else %}`nstack attest`'s record{% endif %}
 (`.nstack/handbook/07-governance.md` §4).
 
 ---

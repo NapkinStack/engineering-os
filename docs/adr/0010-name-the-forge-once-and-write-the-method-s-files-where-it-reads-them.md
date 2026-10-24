@@ -86,7 +86,9 @@ says and how it exits off GitHub; what `pr-check`, `settings` and the displays s
    Copier as data — the old copy rendered with the forge its files were written for — and runs at
    the current version too; its branch is the decider's pull request. The ownership file and the
    pull request form are carried to their new place as `_carry` does: the project's lines kept, a
-   conflict marked. `--repository` is required off GitHub. A `forge` edited by hand is said by
+   conflict marked. `SECURITY.md`, a seat Copier never rewrites, is merged the same way into the
+   new forge's text (clarified 2026-10-24, from #249's verification). `--repository` is required
+   off GitHub. A `forge` edited by hand is said by
    `update` and `doctor`, which name the command.
 4. **The engine reads `forge`** from the answers file — a missing answer is `github` — through one
    function every command uses. The ownership file is the first of `.github/CODEOWNERS`,
