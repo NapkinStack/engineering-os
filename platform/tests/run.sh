@@ -1134,7 +1134,7 @@ inactive = {"status": "disabled"}
 bare = {
     "": {"security_and_analysis": {"secret_scanning": inactive, "secret_scanning_push_protection": inactive},
          **merges_default},
-    "/rules/branches/main": [],
+    "/rules/branches/master": [],  # its default branch, where a ruleset on ~DEFAULT_BRANCH applies (D152)
     "/rules/branches/nstack/hold/probe/probe": [],
     "/private-vulnerability-reporting": {"enabled": False},
     "/actions/permissions": {"enabled": True, "allowed_actions": "all", "sha_pinning_required": False},
