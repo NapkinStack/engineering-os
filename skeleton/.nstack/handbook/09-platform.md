@@ -143,9 +143,9 @@ project/
 │   ├── tooling-profile.md         # mapping capabilities → the tools of the moment
 │   └── skills.yaml                # playbooks exposed as skills
 │
-└── .github/
-    ├── ISSUE_TEMPLATE/
-    ├── workflows/
+└── .github/                       # on GitHub; elsewhere CODEOWNERS at the root, and the
+    ├── ISSUE_TEMPLATE/            #   pull request form where the forge reads it
+    ├── workflows/                 #   (.nstack/handbook/INSTALL.md)
     ├── CODEOWNERS
     └── pull_request_template.md
 ```

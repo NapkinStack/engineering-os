@@ -4,12 +4,14 @@
 
 **Never open a public issue for a vulnerability.**
 
-Use the forge's private reporting: the **Security** tab, then **Report a vulnerability**. The
+{% if forge == "github" %}Use the forge's private reporting: the **Security** tab, then **Report a vulnerability**. The
 report is visible only to the maintainers.
 
 That channel exists on a public repository only. On a private one, write to the owners named
 in `.github/CODEOWNERS`.
-
+{% else %}{% if forge == "gitlab" %}Open a **confidential issue**: only the project's members with enough rights see it.
+Or write{% else %}Write{% endif %} privately to the owners named in `CODEOWNERS`.
+{% endif %}
 Target time to first response: **7 days**.
 
 ## What happens next

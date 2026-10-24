@@ -563,6 +563,42 @@ def _contact(root: Path, old: str, new: str, answers: dict, github_repo: str | N
     return True
 
 
+SEATS = ("SECURITY.md",)  # a seat Copier never rewrites, whose words follow the forge
+
+
+def _reseat(root: Path, base: str) -> tuple[list[str], list[str]]:
+    """After a forge change: each seat in SEATS is merged — the project's text against what the
+    framework wrote there for the old forge — into what it writes for the new one, as `_carry`
+    merges a moved file. Returns what was rewritten and what conflicted."""
+    import copier
+
+    before_answers = yaml.safe_load(_git(root, "show", f"{base}:{ANSWERS}").stdout) or {}
+    after_answers = _answers(root)
+    rewritten: list[str] = []
+    conflicted: list[str] = []
+    with tempfile.TemporaryDirectory() as scratch:
+        renders = {}
+        for name, answers in (("before", before_answers), ("after", after_answers)):
+            renders[name] = Path(scratch) / name
+            copier.run_copy(str(answers.get("_src_path")), renders[name], vcs_ref=str(answers.get("_commit")),
+                            data={key: value for key, value in answers.items() if not key.startswith("_")},
+                            quiet=True, unsafe=False, defaults=True, exclude=["*", *(f"!{seat}" for seat in SEATS)])
+        for seat in SEATS:
+            mine, old, new = root / seat, renders["before"] / seat, renders["after"] / seat
+            if not (mine.is_file() and old.is_file() and new.is_file()):
+                continue
+            if old.read_bytes() == new.read_bytes() or mine.read_bytes() == new.read_bytes():
+                continue
+            merged = subprocess.run(["git", "merge-file", "-p", "-L", "the framework's text for the new forge",
+                                     "-L", "the framework's text for the old forge", "-L", "the project's text",
+                                     str(new), str(old), str(mine)], capture_output=True, text=True)
+            if merged.returncode < 0 or merged.returncode > 127:
+                continue  # the merge itself failed: the project's text is left as it is
+            mine.write_text(merged.stdout, encoding="utf-8")
+            (conflicted if merged.returncode else rewritten).append(seat)
+    return rewritten, conflicted
+
+
 def change_forge(root: Path, new: str, github_repo: str | None = None, repository: str | None = None,
                  session: str | None = None) -> int:
     """Moves the project to another forge at its own version (ADR-0010 §3): Copier renders the old
@@ -643,6 +679,7 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
                   "latest version first, merge it, then run this again.")
             return 1
         carried, moved_conflicts = _carry(root, base, version, moved=moves.get)
+        reseated, seat_conflicts = _reseat(root, base)
         contact = _contact(root, old, new, answers, data.get("github_repo"))
     except (CopierError, ValueError, OSError) as exc:
         print(_explain(exc, "update", root, str(answers.get("_src_path")), version))
@@ -654,7 +691,8 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
         return 1
     conflicts = [path for path in _git(root, "diff", "--name-only", "-z", "--diff-filter=U").stdout.split("\0") if path]
     marked = [path for path in _git(root, "grep", "-l", "-z", "--untracked", "-e", "^<<<<<<< ").stdout.split("\0") if path]
-    conflicts = sorted(set(conflicts) | set(marked) | {pair.split(" -> ")[1] for pair in moved_conflicts})
+    conflicts = sorted(set(conflicts) | set(marked) | set(seat_conflicts)
+                       | {pair.split(" -> ")[1] for pair in moved_conflicts})
     if conflicts:
         print(f"FAIL [update] forge {old} -> {new} laid on {branch}, with conflicts — the project had changed "
               "these files where the forge's version differs; <<<<<<< marks each one:")
@@ -676,6 +714,9 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
         print("What the project had written in the files that moved moved with them:")
         for pair in carried:
             print(f"  - {pair}")
+    for seat in reseated:
+        print(f"{seat}: the framework's text follows the forge, the project's own lines kept — to review in "
+              "the pull request.")
     if contact:
         print("contracts/MANIFEST.yaml: the contact follows the forge — "
               + ("the module's owner." if new != "github" else "the project's discussions on GitHub."))
