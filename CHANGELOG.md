@@ -42,15 +42,16 @@ A minor version, because it turns some green projects red:
 - **The forge is named once** (D141).
   - **The `forge` answer.**
     - `nstack init --forge github|gitlab|forgejo|gitea|other|none`, GitHub by default.
-    - `--github-repo` is asked only on GitHub, `--repository` elsewhere.
+    - `--github-repo` is asked only on GitHub, `--repository` at a named forge (not for `none`).
   - **What a project off GitHub gets:**
     - checks `attested` by default;
     - no GitHub workflow;
     - the ownership file at the root;
     - the pull request form where its forge reads it.
   - **Every command says what it cannot verify or show off GitHub:**
-    - `doctor` reads no G rule, lists the protections that hold on any forge, says the repository is unguarded and that the record of commits on main does not run;
-    - `settings`, the hold's display, `board` and the attested status say *not shown — forge <name>*;
+    - `doctor` reads no G rule, lists what the forge should refuse (read by no version yet), says the repository is unguarded and that the record of commits on main does not run, and exits on the workstation's rules alone;
+    - `settings` says it has nothing to apply — it writes GitHub's settings only;
+    - the hold's display, `board` and the attested status say *not shown — forge <name>*;
     - `pr-check` says how T2 compared the verifier;
     - `landed` does not run.
 
@@ -59,6 +60,7 @@ A minor version, because it turns some green projects red:
     - The ownership file, the pull request form and `SECURITY.md` are carried, the project's lines kept and a conflict marked.
     - Leaving GitHub turns `checks: forge` into `attested`.
     - A `forge` changed by hand is refused by `update` and reported as gap L9.
+    - `--forge` is refused with `--ref`, and `--github-repo` or `--repository` without `--forge`.
 - **`nstack attest` records only an identity the project already shows** (D142).
   - **Before any check**, the identity it would record is compared with the addresses in the project's history, up to its base.
   - **An unknown identity is refused**, naming it and the remote it would reach, unless `--accept-identity` is passed (a new contributor's first record).
@@ -69,29 +71,30 @@ A minor version, because it turns some green projects red:
   - **When.** A project whose history recorded v0.14.x and is now at v0.15.x is at the judging step.
   - **What fails:**
     - an undeclared error line;
-    - from criticality `high`, an undeclared warning line.
+    - from criticality `high`, an undeclared warning line — and for a module whose criticality is missing or unknown, judged as `critical`.
   - **A project from v0.13 or earlier** reports in this version and is judged from the next minor.
 - **A run the audit read nothing of** (D144).
   - **It is now said.** A module that declares `evidence.provoked` but whose run left no readable log in `$NSTACK_EVIDENCE` is *silent*.
   - **It is reported in this version and fails from the next minor.**
   - **Exit 77**, Automake's and Meson's skip code, is a run's own *not run here*: the audit records `not run`, nothing is judged, and `nstack e2e` passes, pointing at the output.
   - **Nothing read:** a declaration is no longer said to have *matched nothing* when no log was read.
-- **`nstack update` keeps a GitHub project's own lines under `.github/`** (D145) when the project was made before the `forge` question. The third project's `CODEOWNERS` came back in conflict without it.
 
 **In your project** — 12 files, for a project on GitHub
 
+- **The update itself** (D145, `copier.yml`): a project made before the `forge` question keeps the lines it added under `.github/`. Without it, the third project's `CODEOWNERS` came back in conflict.
 - **`.copier-answers.yml`**: `_commit`, and `forge: github` written for a project made before the question.
 - **`.gitignore`**: `secrets.*` becomes `secrets.env`, `.json`, `.yaml`, `.yml`, `.toml`, `.ini` and `.txt` (D143). Where git ignores case, as on macOS, the old pattern left `Secrets.swift` out of commits.
 - **`.nstack/playbooks/tests.md`**:
   - a provoked line is declared even when its scenario asserts it;
-  - a run that cannot run here exits 77.
+  - a run that cannot run here exits 77;
+  - a module that declares lines and whose run wrote no log the audit reads fails when judged.
 - **`.nstack/playbooks/verification.md`**: a `not run` audit verified nothing.
 - **`AGENTS.md`**, **`.nstack/handbook/README.md`**, `05-workflow.md` and `glossary.md` (*Forge*): forge-neutral wording.
 - **`.nstack/handbook/07-governance.md`**:
   - what being off GitHub means;
   - the identity `attest` records.
-- **`.nstack/handbook/RULES.md`**: the L rules off GitHub (L6, L8, L9).
-- **`.nstack/handbook/09-platform.md`**: the `e2e` row says exit 77.
+- **`.nstack/handbook/RULES.md`**: L6 where no forge reads the ownership file, L8 (`checks: forge` off GitHub), L9 (a `forge` answer the files were not written for); the G rules read on GitHub only.
+- **`.nstack/handbook/09-platform.md`**: the `e2e` row says exit 77; the layout says where the ownership file sits off GitHub.
 - **`.pre-commit-config.yaml`**: its comment says Dependabot is GitHub's and which hooks are skipped off GitHub.
 - **Unchanged on GitHub:** `CONTRIBUTING.md` and `INSTALL.md` are now templates but render as before, and `SECURITY.md` stays the project's own.
 
@@ -103,11 +106,15 @@ A minor version, because it turns some green projects red:
   - **Declare a provoked line even when the scenario asserts it.**
 - **A run that cannot run on a machine exits 77, not 0.**
   - **In this version**, a module that declares lines and leaves no log in `$NSTACK_EVIDENCE` is reported.
-  - **From the next minor it fails**, and so does a run that skips itself with exit 0.
+  - **From the next minor it fails**, and so does such a module's run that skips itself with exit 0.
+- **Exit 77 now passes `nstack e2e`**, locally and in CI, where v0.14 failed any non-zero exit. Check that your `e2e` command never exits 77 on a real failure — some tools use 77 for a refused permission.
 - **The `.gitignore`.** After the update, run `git status`:
   - **a source file named `secrets.*`** that was ignored now shows: commit it;
   - **a file of secrets in another format** (`.cfg`, `.conf`, `.properties`, `.tfvars`) is no longer ignored: add it to the project's own lines in `.gitignore`.
-- **A contributor's first `nstack attest`** under an address the history does not show is refused. Pass `--accept-identity` once, after checking that the address is the one meant to be public.
+- **`nstack attest` checks the identity first.**
+  - Under an address the base's history does not show, it is refused until a commit of that address is on the base: pass `--accept-identity` on each attest until your first change lands, after checking that the address is the one meant to be public.
+  - A base that cannot be found is now refused before any check, with no record written.
+- **A GitHub project keeps its pull request form at `.github/pull_request_template.md`.** The forge the files were written for is read from where that form is: a GitHub project holding it only elsewhere gets L9 from `doctor`, and `update` refuses.
 
 ---
 
