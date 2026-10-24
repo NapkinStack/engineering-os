@@ -4,7 +4,9 @@
   before 2027-03-31). **Half built**: the checklist's additions (M11f: G14 to G16) and the
   command's print mode with five of the eight criteria (**M11k, 2026-10-12**). The apply mode
   — criteria 2, 3 and 7 — waits for a probe against the real forge: see *As built, and what
-  is not*
+  is not*. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
+  check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
+  decider chose option 3 the same day**: the apply mode is run by the person, never delegated
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and
@@ -229,6 +231,79 @@ real administration-only token, shows what the forge answers — M11r.
   one it has never seen run.
 - The checklist gained two lines on the way (D78): the main branch cannot be deleted, and its
   history cannot be rewritten.
+
+### What the forge's permissions say (D150, 2026-10-24)
+
+The apply mode rests on one check: *the identity that configures the repository may never
+commit to it*. The forge's table of what a fine-grained token's permissions allow (*Permissions
+required for fine-grained personal access tokens*, read 2026-10-24) answers the question the
+probe was waiting for, before any probe. **Administration: write** — the permission every
+setting of the checklist needs — also allows two endpoints:
+
+- `POST /repos/{owner}/{repo}/keys` creates a deploy key, which can write when `read_only` is
+  false;
+- `PUT /repos/{owner}/{repo}/collaborators/{username}` adds a collaborator, with up to `push` or
+  `admin`.
+
+So an identity that can administer a repository can always give itself, or an account it
+holds, the right to push. Since it also holds the rulesets, it can then merge under rules it
+weakened. A credential "that can administer and cannot commit" does not exist on this forge:
+reading the token's own permissions would pass and prove nothing, and so would probing a write
+it cannot make. That is the removal condition of the apply mode, met before the mode was written.
+
+```mermaid
+flowchart LR
+    T["a token with<br/>Administration: write"]:::cred --> R["rulesets, settings<br/>(the checklist)"]:::ok
+    T --> K["a deploy key<br/>read_only: false"]:::no
+    T --> C["a collaborator<br/>push or admin"]:::no
+    K --> P["push to the repository"]:::no
+    C --> P
+    classDef cred fill:#1e3a8a,color:#fff
+    classDef ok fill:#065f46,color:#fff
+    classDef no fill:#7c2d12,color:#fff
+```
+
+**Legend** — blue: the credential the checklist needs · green: what it is for · red: what it
+also allows, which the decision's check was meant to rule out.
+
+The options left are the decider's to choose from:
+
+| Option | The safety then rests on | What the person does |
+|---|---|---|
+| **1. Print only.** The apply mode is removed, as its removal condition says | Nothing new: the person runs the printed calls | Pastes the calls, as today |
+| **2. One script, run by the person.** `nstack settings` also writes the plan as one script, which the person runs under their own credential | The person's gesture, as for a tag: the agent never holds the credential | One command, under a short-lived token they then revoke |
+| **3. An apply mode run by the person.** `nstack settings --apply` reads the credential from the person's own environment and is refused in CI | The person's gesture, as in option 2. The diagnosis runs afterwards and each change is printed | One command |
+| 4. The apply mode delegated to the agent, as decided | Nothing: the check cannot hold | Not offered |
+
+**Chosen by the decider, 2026-10-24: option 3.** Criteria 2 and 3 read accordingly: the
+command refuses a credential that is not a person's (an App's installation token, a run in CI),
+and the person who runs it is the one who holds administration.
+
+Options 2 and 3 keep every other rule of the decision:
+
+- add and strengthen only;
+- aware of the plan;
+- print by default;
+- nothing stored;
+- the end state established by `nstack doctor`.
+
+They drop only the delegation to an agent, which the forge offers no way to make safe.
+
+### Manual steps on the forge (D150, 2026-10-24)
+
+What the method leaves to a person's hands on GitHub, as `INSTALL.md` lists it:
+
+| Step | Today | Could be | Why |
+|---|---|---|---|
+| Create the repository and push the first commit | By hand, after `nstack init` | Automatable by the person, with the forge's command line named in `init`'s next steps | The person's own account; nothing to decide |
+| The checklist, G1 to G20 | Printed by `nstack settings`, then pasted | One gesture of the person (option 2 or 3 above) | Administration is the person's (ADR-0004) |
+| D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be probed: the interface refuses a check it has never seen, but the rulesets API may accept it | One probe on a scratch repository |
+| `owner_team`, the team `CODEOWNERS` names | By hand, in the organisation | Automatable by an organisation owner, in the same script | Who belongs to the team is a human decision |
+| The agents' GitHub App: created, installed, its key stored | By hand, through the forge's pages | Reduced to one confirmation by the App manifest flow, never fully automated | Creating an identity and holding its key is a person's act (ADR-0004) |
+| An approval on a pull request | By hand | **Necessarily human** | It is what the barrier is for (PDR-0003) |
+| A tag, and a deployment's approval | By hand | **Necessarily human** | The decider's word (PDR-0005) |
+| An acceptance issue answered | By hand | **Necessarily human** | A person tried it (PDR-0004) |
+| A setup credential revoked | By hand | Necessarily human; said at the end of the gesture | Only its owner can revoke it |
 
 ---
 
