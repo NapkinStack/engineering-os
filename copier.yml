@@ -9,6 +9,8 @@ _min_copier_version: "9.18"
 # What a project receives depends on its forge (PDR-0018, ADR-0010): GitHub's own files only on
 # GitHub; the method's ownership file and pull request form where the named forge reads them, each
 # one content included from its GitHub place. Copier's own exclusions are kept.
+# `forge | default('github')`: on an update, Copier also excludes these from the old copy it diffs
+# against, rendered with the old answers — a project made before the question has no `forge` (D145).
 _exclude:
   - copier.yaml
   - copier.yml
@@ -18,11 +20,11 @@ _exclude:
   - .git
   - .DS_Store
   - .svn
-  - "{% if forge != 'github' %}/.github{% endif %}"
-  - "{% if forge == 'github' %}/CODEOWNERS{% endif %}"
-  - "{% if forge != 'gitlab' %}/.gitlab{% endif %}"
-  - "{% if forge not in ['forgejo', 'gitea'] %}/.gitea{% endif %}"
-  - "{% if forge not in ['other', 'none'] %}/docs/pull_request_template.md{% endif %}"
+  - "{% if forge | default('github') != 'github' %}/.github{% endif %}"
+  - "{% if forge | default('github') == 'github' %}/CODEOWNERS{% endif %}"
+  - "{% if forge | default('github') != 'gitlab' %}/.gitlab{% endif %}"
+  - "{% if forge | default('github') not in ['forgejo', 'gitea'] %}/.gitea{% endif %}"
+  - "{% if forge | default('github') not in ['other', 'none'] %}/docs/pull_request_template.md{% endif %}"
 
 # The seats: files whose content is the project's (PDR-0010). Written once, as a form, when
 # the project is created; no update merges them again. The table of
