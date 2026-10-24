@@ -22,6 +22,62 @@ a patch.
 
 ---
 
+## v0.16.0 — 2026-10-24
+
+This version has three workstreams:
+
+- **D150**: the forge allows no credential that administers a repository and cannot commit to it. PDR-0008 is clarified, and the decider chose that a person runs the apply mode.
+- **D151**: `nstack settings --apply`.
+- **D152**: `doctor` reads the rules of the default branch.
+
+It is a minor version for two reasons:
+
+- it adds a command;
+- the e2e audit now judges a run it read nothing of. D144 brought this in v0.15.0, where it was only reported.
+
+**In the engine**
+
+- **`nstack settings --apply`** (D151, PDR-0008) applies the settings in one gesture of the person who holds administration, never delegated.
+  - It makes the calls the print mode shows, under the person's `GH_TOKEN`, and prints each with the forge's answer. A refusal is named and the remaining calls are still made.
+  - `nstack doctor` then reads the result, and the person is told to revoke the credential.
+  - It is refused before any call:
+    - in CI;
+    - under a GitHub App's token (`ghs_`, `ghu_`), in whichever variable it is;
+    - without a token;
+    - when a rule within the plan's reach could not be read.
+  - It only adds and strengthens:
+    - no ruleset is deleted or rewritten;
+    - a ruleset name already taken gets a free one;
+    - no bypass actor is added;
+    - disabled Actions are never turned on;
+    - a write is never redirected.
+  - When the forge refuses a ruleset because of its required checks (D26), the ruleset goes in without them, and G4 is named as the one step left.
+  - The exit code is 1 when a call was refused; otherwise it is `doctor`'s.
+- **`nstack doctor` reads the rules of the repository's default branch** (D152), which is where the checklist's ruleset applies. On a repository whose default branch is not yet `main`, the ruleset was never seen in place before.
+- **The e2e audit judges a silent run** (D144, its second step). This is a run whose module declares `evidence.provoked` but which left no log the audit reads in `$NSTACK_EVIDENCE`.
+  - It now fails for a project whose history recorded v0.15.x and that is now at v0.16.x.
+  - A project that jumps from v0.14 or earlier only reports it.
+
+**In your project** — 2 files, for a project on GitHub
+
+- **`.nstack/handbook/INSTALL.md`**: the gesture.
+  - `nstack settings --apply`, in your own terminal, never through your agent's session.
+  - The token is read without echo (`read -rs GH_TOKEN`) and unset afterwards.
+  - The command line list names `--apply`.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **An e2e run that cannot run on a machine must exit 77, not 0.** This concerns modules that declare `evidence.provoked`.
+  - From this version, such a module's run that writes no log `nstack e2e` reads fails, and `nstack attest` with it.
+  - Before taking v0.16.0, check:
+    - every "not run here" path ends with `exit 77`;
+    - a run that does run writes its logs (`.log`, `.jsonl`) into `$NSTACK_EVIDENCE`, subfolders included;
+    - the e2e command never exits 77 on a real failure.
+- **`nstack settings --apply` is optional.** The printed calls and the checklist by hand stay valid.
+
+---
+
 ## v0.15.1 — 2026-10-24
 
 Four workstreams, D146 to D149, all found by the third project.
