@@ -17,8 +17,9 @@ What the repository's plan cannot enforce is not planned and not reported as a f
 named, with its cost, in doctor's own words.
 
 The apply mode of PDR-0008 is not here. It rests on one check — that the credential which
-configures cannot commit — and the forge offers no documented way to read that from a token;
-it is built once that check is proven against the real forge, not before.
+configures cannot commit — and the forge's own permissions rule it out: Administration: write
+also creates a deploy key that writes and a collaborator up to admin (D150). What replaces it
+is the decider's choice, written in PDR-0008.
 
 Usage :  nstack settings [--root ROOT]
 Output:  0 with the plan printed, or nothing to change; 1 when the repository cannot be read
