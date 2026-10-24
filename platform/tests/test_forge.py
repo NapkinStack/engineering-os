@@ -155,6 +155,25 @@ def test_a_github_project_s_update_writes_forge_github_and_changes_nothing_else(
     assert after == before, f"files added or removed: {sorted(after ^ before)}"
 
 
+def test_a_github_project_s_update_keeps_its_own_lines_in_the_github_folder(tmp_path, capsys):
+    """Copier excludes, from the copy it diffs against, what the new template's `_exclude` names,
+    rendered with the old answers: with no `forge` there, `/.github` left that copy and every line
+    a project had added under it came back as a conflict. Found rehearsing v0.15.0 on the third
+    project, whose CODEOWNERS lists its modules."""
+    import subprocess
+
+    old = tmp_path / "old"
+    answers = {"project_name": "Demo", "github_repo": "acme/demo", "owner_team": "acme/platform"}
+    assert project.init(old, answers, str(ROOT), "v0.14.0") == 0
+    owners = old / ".github" / "CODEOWNERS"
+    owners.write_text(owners.read_text(encoding="utf-8") + "/modules/billing/              @acme/platform\n",
+                      encoding="utf-8")
+    subprocess.run(["git", "commit", "-q", "-am", "a module"], cwd=old, check=True)
+    assert project.update(old, "HEAD") == 0, capsys.readouterr().out
+    text = owners.read_text(encoding="utf-8")
+    assert "<<<<<<<" not in text and "/modules/billing/" in text
+
+
 # --- what the verifier of part 1 found --------------------------------------------------------
 
 def test_a_forge_chosen_interactively_still_gets_attested_checks(tmp_path):
