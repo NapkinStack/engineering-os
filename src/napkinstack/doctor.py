@@ -61,6 +61,7 @@ import re
 import shutil
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -207,8 +208,19 @@ class GitHub:
                           "the Administration: read permission")
 
 
+def _rules(client: GitHub) -> list[dict]:
+    """The rules that apply to the default branch, where the checklist's ruleset applies
+    (`~DEFAULT_BRANCH`): on a repository whose default branch is not yet main (G19), the rules of
+    a branch named main are none (D152). An unread default branch is read as main."""
+    try:
+        default = str(client.get("").get("default_branch") or "main")
+    except NotVerified:
+        default = "main"
+    return client.get(f"/rules/branches/{urllib.parse.quote(default, safe='')}")
+
+
 def _rule(client: GitHub, kind: str) -> dict | None:
-    return next((rule for rule in client.get("/rules/branches/main") if rule.get("type") == kind), None)
+    return next((rule for rule in _rules(client) if rule.get("type") == kind), None)
 
 
 # A name at a hold's depth, nstack/hold/<cycle>/<id>: GitHub answers for a branch that need not
@@ -264,7 +276,7 @@ def _workflows(client: GitHub) -> bool:
 
 def _no_bypass(client: GitHub) -> bool:
     """G12: every ruleset applying to main has an empty bypass list (ADR-0004)."""
-    rulesets = {rule["ruleset_id"] for rule in client.get("/rules/branches/main") if rule.get("ruleset_id")}
+    rulesets = {rule["ruleset_id"] for rule in _rules(client) if rule.get("ruleset_id")}
     if not rulesets:
         raise Gap(f"no ruleset applies to main, so there is no bypass list to empty. {RULESET}: "
                   "create the ruleset first (G1)")
