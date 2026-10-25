@@ -22,6 +22,68 @@ a patch.
 
 ---
 
+## v0.17.0 — 2026-10-25
+
+This version holds four workstreams, asked by the maintainer or found by the independent verifier:
+
+- **D155**: `nstack plan` says the project across its cycles.
+- **D157**: the cycle form, copied as it comes, is readable by the plan's check again.
+- **D158**: a front matter nobody can read is refused as C1, never a traceback (#268).
+- **D159**: the charter's success criteria are recorded where a cycle closes (PDR-0019).
+
+D154 and D156 change only this repository: the register's rows, and PDR-0019 proposed.
+
+It is a minor version because `nstack plan` says more, and the cycle's front matter takes an optional key that C6 checks.
+
+**In the engine**
+
+- **`nstack plan` says the project across its cycles** (D155). The view comes after the cycle in progress and before who holds what. It is read from `docs/project/` and kept nowhere:
+
+  ```
+  Project: 0 of 3 success criteria met · criterion 1 observed since 2026-11-08 · 3 cycles: 1 accepted, 1 closed, 1 stopped
+    01-first-meeting  stopped (reframed) on 2026-10-13 · 1 of 7 accepted · 6 deferred
+    02-the-audio      closed (completed) on 2026-10-17 · 9 of 9 accepted
+    03-the-window     in progress, ends 2026-11-07 · 18 of 20 accepted · 2 in progress
+    Later in 03-the-window, for the next framing: 9 candidates
+  ```
+
+  - **Each cycle is counted as its own line counts it.** Deliverables are never added up across cycles: one that a cycle deferred is often framed again in the next, and a total would count it twice.
+  - ***Later*** is the running cycle's. Between two cycles, it is the last ended cycle's. A list is counted one item each, and prose is said as prose.
+  - **A status or a date the plan's rules refuse is said as unknown,** never printed raw.
+  - **`nstack fitness`, CI and the forge are unchanged.** The view is a display and never fails.
+- **The project's success is recorded where a cycle closes** (D159, PDR-0019).
+  - **Where it is recorded.** A closed or stopped cycle's front matter may carry `success:`: for each charter criterion the closure moved, its number in the charter's list (from 1), its state (`met` or `observing`), and for `observing` the day observation started (`since`).
+  - **How a criterion's state is read.** It is the latest record, in the order of the cycles. A criterion never recorded is not yet met. A criterion still holding the form's words is listed but never counted. The charter is unchanged (C9).
+  - **When every criterion is met,** the line says the charter's goal is reached and that the decider says whether the project is finished. The tool never closes the project.
+  - **What C6 refuses:**
+    - a record in a cycle that is not closed or stopped;
+    - a value that is not a list of mappings;
+    - the same criterion twice in one closure;
+    - a number the charter does not fill;
+    - an unknown state;
+    - `observing` with no day.
+- **A front matter that cannot be read is refused as C1** (D158, #268). This covers a file that is not UTF-8 and a date that does not exist, such as `2026-02-30`. Each is named with its file and an action. Until now, `nstack plan` and `nstack fitness` stopped on a traceback.
+
+**In your project**: 8 files
+
+- **`.nstack/forms/cycle.md`**:
+  - D157: the glossary's line leaves the front matter for the heading. Inside, it opened a YAML folded scalar, so a cycle copied from the form failed C1 before a word of it was written. Cycles already written are untouched.
+  - D159: a commented `# success:` block, after `# ended_on`.
+- **`.nstack/handbook/project.md`**: the section *The project across its cycles*.
+- **`.nstack/playbooks/framing.md`** §5: where a closure records `success:`, and what to present when the goal is reached. Run `nstack skills` afterwards so that the framing skill says it too.
+- **`.nstack/handbook/RULES.md`**: C6's row names the success records.
+- **`.nstack/handbook/glossary.md`**: the row *met · observing*.
+- **`.nstack/handbook/INSTALL.md`**: `nstack plan`'s line in the command list.
+- **`.pre-commit-config.yaml`**: zizmor v1.31.1.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **None is required.** `success:` is optional, and a cycle without it is read as before.
+- **The e2e audit, announced in v0.16.0, now judges a silent run** for a project whose history recorded v0.16.x: one made at v0.16, or one that jumped to it from v0.14 or earlier. Before taking v0.17.0, apply v0.16.0's migration to each module that declares `evidence.provoked`.
+
+---
+
 ## v0.16.0 — 2026-10-24
 
 This version holds four workstreams:
