@@ -12,7 +12,8 @@ Rules:
   C3  cycle: a goal, a known status, appetite_weeks, start and end, end = start + appetite
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
-  C6  a closed or stopped cycle records its outcome and the date it ended
+  C6  a closed or stopped cycle records its outcome and the date it ended, and may record the
+      charter's success criteria it moved: each by its number, met or observing since a day
   C7  discovery: a known decision, its decider and date once decided, a challenger for a go;
       a charter follows a go
   C8  a seat is written when its moment comes: README.md holds its sentence once the
@@ -59,6 +60,7 @@ CYCLE_STATUSES = {"proposed", "accepted", "closed", "stopped"}
 DELIVERABLE_STATES = {"proposed", "ready", "in-progress", "accepted", "deferred", "dropped"}
 WITHOUT_CRITERIA = {"proposed", "deferred", "dropped"}  # acceptance criteria not required yet
 OUTCOMES = {"closed": {"completed", "shipped"}, "stopped": {"reframed", "stopped"}}
+SUCCESS_STATES = {"met", "observing"}  # a criterion never recorded is not yet (PDR-0019)
 DELIVERABLE_ID = re.compile(r"D[1-9][0-9]*")
 FRONT_MATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 DECIDER = re.compile(rf"@?{HANDLE}")  # one person, the way GitHub names people
@@ -235,6 +237,50 @@ def _later(path: Path) -> str | None:
     return f"Later in {path.stem}, for the next framing: {held}"
 
 
+def criteria(root: Path) -> list[int] | None:
+    """The numbers of the charter's success criteria, from 1 in the order it lists them, that
+    are filled in — the template's example left among them is listed and never counted, so the
+    charter's goal can be reached without declaring it met; None when no charter can be read."""
+    path = root / CHARTER
+    data = read_front_matter(path)[0] if path.is_file() else None
+    listed = data.get("success_criteria") if data else None
+    return [n for n, c in enumerate(listed, start=1) if not unfilled(c)] if isinstance(listed, list) else None
+
+
+def _record(record) -> tuple[int, str, datetime.date | None] | None:
+    """One success record as the view reads it and C6 accepts it: a mapping, its criterion a
+    number from 1, its state known, a day when it is observed. None otherwise."""
+    if not isinstance(record, dict):
+        return None
+    number, state, since = record.get("criterion"), record.get("state"), as_date(record.get("since"))
+    if isinstance(number, bool) or not isinstance(number, int) or number < 1 or state not in SUCCESS_STATES:
+        return None
+    return None if state == "observing" and since is None else (number, state, since)
+
+
+def success(read: list[tuple[Path, dict | None]]) -> dict[int, tuple[str, datetime.date | None]]:
+    """Each criterion's state: its latest record, in the order of the cycles — a later closure
+    may record a criterion met again as observing (PDR-0019). Only closures record."""
+    states: dict[int, tuple[str, datetime.date | None]] = {}
+    for _, data in read:
+        records = data.get("success") if data and data.get("status") in OUTCOMES else None
+        for found in map(_record, records if isinstance(records, list) else []):
+            if found:
+                states[found[0]] = found[1:]
+    return states
+
+
+def _success_said(numbers: list[int], states: dict[int, tuple[str, datetime.date | None]]) -> str:
+    """The project's own progress: the criteria met, then each one observed and since when."""
+    met = sum(1 for number in numbers if states.get(number, ("",))[0] == "met")
+    said = f"{met} of {len(numbers)} success criteri{'on' if len(numbers) == 1 else 'a'} met"
+    if numbers and met == len(numbers):
+        return said + " — the charter's goal is reached: the decider says whether the project is finished"
+    observed = [f"criterion {number} observed since {states[number][1]}"
+                for number in numbers if states.get(number, ("",))[0] == "observing"]
+    return " · ".join([said, *observed]) if observed or states else said + ", recorded at each cycle's closure"
+
+
 def project(root: Path) -> list[str]:
     """The project across its cycles, for `nstack plan`: the charter's success criteria counted,
     every cycle in one line, and what the latest cycle left for the next framing — read from the
@@ -245,16 +291,13 @@ def project(root: Path) -> list[str]:
     if stage(root) is None or (not charter.is_file() and not cycles):
         return []
     data = read_front_matter(charter)[0] if charter.is_file() else None
-    criteria = data.get("success_criteria") if data else None
-    filled = [c for c in criteria if not unfilled(c)] if isinstance(criteria, list) else []
+    read = [(path, read_front_matter(path)[0]) for path in cycles]
     if data is None:
         head = "no charter readable" if charter.is_file() else "no charter"
     elif data.get("status") == "accepted":
-        head = (f"{len(filled)} success criteri{'on' if len(filled) == 1 else 'a'} in the charter, "
-                "read at each cycle's closure")
+        head = _success_said(criteria(root) or [], success(read))
     else:
         head = "the charter is proposed" if data.get("status") == "proposed" else "the charter's status unknown (C2)"
-    read = [(path, read_front_matter(path)[0]) for path in cycles]
     statuses = [data.get("status") if data else None for _, data in read]
     known = ("accepted", "proposed", "closed", "stopped")
     tally = [f"{statuses.count(s)} {s}" for s in known if statuses.count(s)]
@@ -376,7 +419,47 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
                              "proof.")
 
 
-def _check_cycle(path: Path, fail) -> str | None:
+def _check_success(path: Path, data: dict, status, numbers: list[int] | None, fail) -> None:
+    """C6: the criteria a closure moved, each by its number in the charter's list (PDR-0019)."""
+    records = data.get("success")
+    if records is None:
+        return
+    action = ("Action: name each criterion by its number in docs/project/charter.md, from 1, as met, or as "
+              "observing with since: YYYY-MM-DD, the day observation started (.nstack/playbooks/framing.md, "
+              "the end of a cycle)")
+    if status not in OUTCOMES:
+        fail("C6", path, f"success: recorded by a cycle that is {status or 'of no known status'}, not closed "
+                         "or stopped — a criterion moves at a closure, when the decider says so. Action: "
+                         "record it in the closure's pull request, with status and outcome")
+        return
+    if not isinstance(records, list):
+        fail("C6", path, f"success: a list of records, one per criterion moved. {action}")
+        return
+    seen: set[int] = set()
+    for index, record in enumerate(records, start=1):
+        where = f"success record no. {index}"
+        if not isinstance(record, dict):
+            fail("C6", path, f"{where}: expected a mapping (criterion, state, since). {action}")
+            continue
+        number, state = record.get("criterion"), record.get("state")
+        if isinstance(number, bool) or not isinstance(number, int) or number < 1:
+            fail("C6", path, f"{where}: criterion '{number}', expected a number from 1. {action}")
+        elif number in seen:
+            fail("C6", path, f"{where}: criterion {number} recorded twice in this closure — keep the one "
+                             "the decider said")
+        elif numbers is not None and number not in numbers:
+            fail("C6", path, f"{where}: criterion {number}, and the charter's filled criteria are numbered "
+                             f"{', '.join(map(str, numbers)) or 'nothing'}. If a decision changed the charter's "
+                             "list, renumber this record to match it, or remove it, with that decision")
+        if isinstance(number, int):
+            seen.add(number)
+        if state not in SUCCESS_STATES:
+            fail("C6", path, f"{where}: state '{state}', expected one of {sorted(SUCCESS_STATES)}. {action}")
+        elif state == "observing" and as_date(record.get("since")) is None:
+            fail("C6", path, f"{where}: observing since when? {action}")
+
+
+def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | None:
     data, reason = read_front_matter(path)
     if data is None:
         fail("C1", path, reason)
@@ -402,6 +485,7 @@ def _check_cycle(path: Path, fail) -> str | None:
             fail("C6", path, f"a {status} cycle records its outcome: one of {sorted(OUTCOMES[status])}")
         if as_date(data.get("ended_on")) is None:
             fail("C6", path, f"a {status} cycle records ended_on, the date it ended")
+    _check_success(path, data, status, numbers, fail)
     return status if isinstance(status, str) else None
 
 
@@ -445,7 +529,8 @@ def run(root: Path) -> int:
     if accepted_charter and discovery.is_file() and decision != "go":
         fail("C7", charter, f"the charter is accepted, but the discovery's decision is '{decision}': "
                             "a charter follows a go (docs/project/discovery.md)")
-    accepted = [path for path in cycles if _check_cycle(path, fail) == "accepted"]
+    numbers = criteria(root)
+    accepted = [path for path in cycles if _check_cycle(path, fail, numbers) == "accepted"]
     if len(accepted) > 1:
         names = ", ".join(path.name for path in accepted)
         fail("C5", root / CYCLES, f"{len(accepted)} accepted cycles ({names}): one cycle at a time — "
