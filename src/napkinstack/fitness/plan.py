@@ -110,6 +110,12 @@ def as_date(value) -> datetime.date | None:
         return None
 
 
+def one_of(value, choices) -> bool:
+    """A front matter's value among the words a rule knows. A list or a mapping is none of them,
+    and never a traceback: `in` alone fails on a value it cannot hash."""
+    return isinstance(value, str) and value in choices
+
+
 def cycle_files(root: Path) -> list[Path]:
     folder = root / CYCLES
     return sorted(p for p in folder.glob("*.md") if not p.name.startswith("_")) if folder.is_dir() else []
@@ -211,11 +217,12 @@ def _cycle_said(path: Path, data: dict | None) -> str:
     if data is None:
         return "front matter unreadable (C1)"
     status, counts = data.get("status"), progress_of(path, data, appetite=False).split(": ", 1)[1]
-    if not isinstance(status, str) or status not in CYCLE_STATUSES:
+    if not one_of(status, CYCLE_STATUSES):
         return f"status unknown (C3) · {counts}"
     if status in OUTCOMES:
         ended = as_date(data.get("ended_on"))
-        return f"{status} ({data.get('outcome') or 'no outcome'})" + (f" on {ended}" if ended else "") + f" · {counts}"
+        outcome = data.get("outcome") if one_of(data.get("outcome"), OUTCOMES[status]) else "outcome unknown (C6)"
+        return f"{status} ({outcome})" + (f" on {ended}" if ended else "") + f" · {counts}"
     key, said = ("end", "in progress, ends") if status == "accepted" else ("start", "proposed, starts")
     date = as_date(data.get(key))
     return (f"{said} {date}" if date else said.split(",")[0]) + f" · {counts}"
@@ -253,7 +260,7 @@ def _record(record) -> tuple[int, str, datetime.date | None] | None:
     if not isinstance(record, dict):
         return None
     number, state, since = record.get("criterion"), record.get("state"), as_date(record.get("since"))
-    if isinstance(number, bool) or not isinstance(number, int) or number < 1 or state not in SUCCESS_STATES:
+    if isinstance(number, bool) or not isinstance(number, int) or number < 1 or not one_of(state, SUCCESS_STATES):
         return None
     return None if state == "observing" and since is None else (number, state, since)
 
@@ -263,7 +270,7 @@ def success(read: list[tuple[Path, dict | None]]) -> dict[int, tuple[str, dateti
     may record a criterion met again as observing (PDR-0019). Only closures record."""
     states: dict[int, tuple[str, datetime.date | None]] = {}
     for _, data in read:
-        records = data.get("success") if data and data.get("status") in OUTCOMES else None
+        records = data.get("success") if data and one_of(data.get("status"), OUTCOMES) else None
         for found in map(_record, records if isinstance(records, list) else []):
             if found:
                 states[found[0]] = found[1:]
@@ -308,7 +315,7 @@ def project(root: Path) -> list[str]:
     width = max(len(path.stem) for path in cycles) if cycles else 0
     lines += [f"  {path.stem.ljust(width)}  {_cycle_said(path, data)}" for path, data in read]
     # The cycle running, else the last one ended — where the next framing starts —, else the last.
-    ended = [path for path, data in read if data and data.get("status") in OUTCOMES]
+    ended = [path for path, data in read if data and one_of(data.get("status"), OUTCOMES)]
     latest = next((path for path, data in read if data and data.get("status") == "accepted"),
                   ended[-1] if ended else (cycles[-1] if cycles else None))
     if latest and (later := _later(latest)):
@@ -366,7 +373,7 @@ def _check_charter(path: Path, fail) -> bool:
     if data is None:
         fail("C1", path, reason)
         return False
-    if data.get("status") not in CHARTER_STATUSES:
+    if not one_of(data.get("status"), CHARTER_STATUSES):
         fail("C2", path, f"status '{data.get('status')}': expected one of {sorted(CHARTER_STATUSES)}")
     check_decider("C2", path, data.get("decider"), fail)
     criteria = data.get("success_criteria")
@@ -395,11 +402,11 @@ def _check_deliverables(path: Path, deliverables, fail) -> None:
         if unfilled(item.get("title")):
             fail("C4", path, f"deliverable {where}: title missing, or still the template's")
         state = item.get("state")
-        if state not in DELIVERABLE_STATES:
+        if not one_of(state, DELIVERABLE_STATES):
             fail("C4", path, f"deliverable {where}: state '{state}', expected one of {sorted(DELIVERABLE_STATES)}")
         criteria = item.get("acceptance")
         filled = isinstance(criteria, list) and [c for c in criteria if not unfilled(c)]
-        if state in DELIVERABLE_STATES - WITHOUT_CRITERIA and not filled:
+        if one_of(state, DELIVERABLE_STATES - WITHOUT_CRITERIA) and not filled:
             # The criteria are right, and the refusal names the door the framework already had.
             # Work whose product is knowledge is a SPIKE: its criteria name what will be recorded
             # and the threshold it is read against, and a refuted result is a delivered one. The
@@ -427,7 +434,7 @@ def _check_success(path: Path, data: dict, status, numbers: list[int] | None, fa
     action = ("Action: name each criterion by its number in docs/project/charter.md, from 1, as met, or as "
               "observing with since: YYYY-MM-DD, the day observation started (.nstack/playbooks/framing.md, "
               "the end of a cycle)")
-    if status not in OUTCOMES:
+    if not one_of(status, OUTCOMES):
         fail("C6", path, f"success: recorded by a cycle that is {status or 'of no known status'}, not closed "
                          "or stopped — a criterion moves at a closure, when the decider says so. Action: "
                          "record it in the closure's pull request, with status and outcome")
@@ -453,7 +460,7 @@ def _check_success(path: Path, data: dict, status, numbers: list[int] | None, fa
                              "list, renumber this record to match it, or remove it, with that decision")
         if isinstance(number, int):
             seen.add(number)
-        if state not in SUCCESS_STATES:
+        if not one_of(state, SUCCESS_STATES):
             fail("C6", path, f"{where}: state '{state}', expected one of {sorted(SUCCESS_STATES)}. {action}")
         elif state == "observing" and as_date(record.get("since")) is None:
             fail("C6", path, f"{where}: observing since when? {action}")
@@ -467,7 +474,7 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
     if not str(data.get("goal") or "").strip():
         fail("C3", path, "goal missing: one sentence")
     status = data.get("status")
-    if status not in CYCLE_STATUSES:
+    if not one_of(status, CYCLE_STATUSES):
         fail("C3", path, f"status '{status}': expected one of {sorted(CYCLE_STATUSES)}")
     weeks = data.get("appetite_weeks")
     if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks < 1:
@@ -480,8 +487,8 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
         fail("C3", path, f"end {end}: the appetite sets it, start + {weeks} week(s) = "
                          f"{start + datetime.timedelta(weeks=weeks)}")
     _check_deliverables(path, data.get("deliverables"), fail)
-    if status in OUTCOMES:
-        if data.get("outcome") not in OUTCOMES[status]:
+    if one_of(status, OUTCOMES):
+        if not one_of(data.get("outcome"), OUTCOMES[status]):
             fail("C6", path, f"a {status} cycle records its outcome: one of {sorted(OUTCOMES[status])}")
         if as_date(data.get("ended_on")) is None:
             fail("C6", path, f"a {status} cycle records ended_on, the date it ended")
@@ -495,7 +502,7 @@ def _check_discovery(path: Path, fail) -> str | None:
         fail("C1", path, reason)
         return None
     decision = data.get("decision")
-    if decision not in DECISIONS:
+    if not one_of(decision, DECISIONS):
         fail("C7", path, f"decision '{decision}': expected one of {sorted(DECISIONS)}")
     elif decision != "proposed":
         check_decider("C7", path, data.get("decider"), fail)

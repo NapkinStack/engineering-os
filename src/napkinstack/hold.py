@@ -179,7 +179,7 @@ def _deliverable(root: Path, ident: str) -> tuple[str, str] | str:
     if ident not in items:
         return (f"{ident} is not in {path.stem}.\n      Action: name one of {', '.join(items) or 'its deliverables'}.")
     state = items[ident].get("state")
-    if state not in TAKEABLE:
+    if not plan.one_of(state, TAKEABLE):
         return (f"{ident} is '{state}': work starts on a ready deliverable (definition of ready).\n"
                 "      Action: take a ready one — nstack plan lists them.")
     return path.stem, str(items[ident].get("title") or ident)
@@ -500,7 +500,7 @@ def show(root: Path) -> int:
             continue
         ident, state = str(item.get("id")), item.get("state")
         found = read(root, path.stem, ident)
-        if not found.held and state not in TAKEABLE:
+        if not found.held and not plan.one_of(state, TAKEABLE):
             continue
         if not found.held:
             lines.append(f"  {ident}  free")
