@@ -393,7 +393,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     elif match[1] not in states:
         fail("K3", f"deliverable {match[1]} is not in {path.name}.\n      Action: name one of "
                    f"{', '.join(states) or 'its deliverables'}, or re-frame the cycle with the decider.")
-    elif states[match[1]] not in {"ready", "in-progress"}:
+    elif not plan.one_of(states[match[1]], {"ready", "in-progress"}):
         fail("K3", f"deliverable {match[1]} is '{states[match[1]]}': work starts on a ready "
                    "deliverable (definition of ready).")
     elif states[match[1]] == "ready":

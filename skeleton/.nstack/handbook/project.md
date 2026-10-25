@@ -104,7 +104,7 @@ read from this folder and kept nowhere else — the charter's success criteria, 
 line, and what the latest cycle left for the next framing:
 
 ```
-Project: 0 of 3 success criteria met · criterion 1 observed since 2026-11-08 · 3 cycles: 1 accepted, 1 closed, 1 stopped
+Project: 0 of 3 success criteria met · criterion 1 observed since 2026-10-17 · 3 cycles: 1 accepted, 1 closed, 1 stopped
   01-first-meeting  stopped (reframed) on 2026-10-13 · 1 of 7 accepted · 6 deferred
   02-the-audio      closed (completed) on 2026-10-17 · 9 of 9 accepted
   03-the-window     in progress, ends 2026-11-07 · 18 of 20 accepted · 2 in progress
@@ -119,7 +119,7 @@ decision:
 success:
   - criterion: 1          # its number in the charter's list, from 1
     state: observing      # met | observing
-    since: 2026-11-08     # observing: the day observation started
+    since: 2026-10-17     # observing: the day observation started
 ```
 
 A criterion's state is its latest record, in the order of the cycles; one never recorded is not
@@ -133,7 +133,8 @@ Each cycle is counted as its own line above counts it. Deliverables are never ad
 cycles: one deferred by a cycle is often framed again in the next, and a total would count it
 twice. *Later* is the running cycle's, or between two cycles the last one ended — where the next
 framing starts; its candidates are counted when the section is a list, one item each, and prose is
-said as prose. A status or a date the plan's rules refuse is said as unknown, never printed raw. The view is `nstack plan`'s alone — `nstack fitness` and CI keep to the cycle in progress.
+said as prose. A status or an outcome the plan's rules refuse is said as unknown, and a date they refuse is left
+out: none is printed raw. The view is `nstack plan`'s alone — `nstack fitness` and CI keep to the cycle in progress.
 
 ## Who holds a deliverable
 

@@ -80,7 +80,7 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
     for path in plan.cycle_files(root):
         data = plan.read_front_matter(path)[0]
         found = NUMBER.match(path.stem)
-        if data and data.get("status") in SHOWN and found:
+        if data and plan.one_of(data.get("status"), SHOWN) and found:
             cycles.setdefault(found[1], []).append((path, data))
     said = [f"cycle {number} not shown: {len(files)} cycle files carry its number "
             f"({', '.join(path.name for path, _ in files)})" for number, files in cycles.items() if len(files) > 1]

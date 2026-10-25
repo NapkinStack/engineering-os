@@ -527,3 +527,36 @@ def test_what_c6_refuses_the_view_never_counts(tmp_path, capsys):
     assert plan.run(tmp_path) == 1
     assert "criterion 1 recorded twice in this closure" in capsys.readouterr().out
     assert plan.project(tmp_path)[0].startswith("Project: 1 of 3 success criteria met")
+
+
+# --- D160: a value of the wrong kind is refused, never a traceback --------------------------
+
+WRONG_KIND = {
+    "charter status": (lambda r: framed(r, {**CHARTER, "status": ["accepted"]}), "C2"),
+    "cycle status": (lambda r: framed(r, cycles={"01-first.md": cycle(status={"a": 1})}), "C3"),
+    "deliverable state": (lambda r: framed(r, cycles={"01-first.md": cycle(deliverables=[deliverable(state=["ready"])])}), "C4"),
+    "outcome": (lambda r: framed(r, cycles={"01-first.md": closed(outcome=["completed"])}), "C6"),
+    "success state": (lambda r: framed(r, cycles={"01-first.md": closed({"criterion": 1, "state": ["met"]})}), "C6"),
+    "discovery decision": (lambda r: write(r, "discovery.md", {"decision": ["go"]}), "C7"),
+}
+
+
+@pytest.mark.parametrize("prepare, rule", WRONG_KIND.values(), ids=WRONG_KIND.keys())
+def test_a_value_of_the_wrong_kind_is_refused_never_a_traceback(tmp_path, capsys, prepare, rule):
+    from napkinstack import board, cli
+    prepare(tmp_path)
+    assert plan.run(tmp_path) == 1
+    assert f"[{rule}] docs/project/" in capsys.readouterr().out
+    cli.main(["plan", "--root", str(tmp_path)])
+    board.desired(tmp_path)
+    said = "\n".join(plan.project(tmp_path))
+    assert "['" not in said and "{'" not in said, said
+
+
+def test_a_deliverable_state_of_the_wrong_kind_is_not_taken_nor_delivered(tmp_path):
+    from napkinstack import hold, pull_request
+    framed(tmp_path, cycles={"01-first.md": cycle(deliverables=[deliverable(state=["ready"])])})
+    assert "is '['ready']': work starts on a ready deliverable" in hold._deliverable(tmp_path, "D1")
+    failed = []
+    pull_request.check_cycle(tmp_path, "Deliverable: D1", set(), TODAY, lambda rule, message: failed.append(rule))
+    assert "K3" in failed
