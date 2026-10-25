@@ -198,10 +198,8 @@ the maintainer's credentials (ADR-0004).
 ```mermaid
 flowchart LR
     F["NapkinStack<br/>the published version"]:::fw --> T["tool-library<br/>the validation project"]:::pr
-    F --> P["flet<br/>the pilot"]:::pr
     F --> S["summit<br/>a real product"]:::pr
     T -.->|"what it finds"| R["The register,<br/>then the next version"]:::rec
-    P -.-> R
     S -.-> R
     R --> F
 
@@ -216,7 +214,7 @@ findings land. Solid line: a version; dotted: a finding.
 | Project | What it is for | How it is run |
 |---|---|---|
 | `tool-library`, public | An invented subject, to rehearse a team's cycle and attack the barriers | By this repository's sessions |
-| `flet`, public | The pilot: a real subject, updates taken at its own cycle boundaries | By a session that knows nothing of this repository — observed, never coached |
+| `flet`, public | The pilot: a real subject, run by a session that knew nothing of this repository. **Set aside by the maintainer on 2026-10-15**; what it found stays in the register, its row *Pilot* | No longer run |
 | `summit`, private | A real product, framed with the maintainer as decider | Beside the framework: a defect it meets is fixed here and proven there |
 
 **Open**: the table of open work in
