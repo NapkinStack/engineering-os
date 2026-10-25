@@ -336,3 +336,102 @@ def test_the_handbook_s_example_is_one_the_engine_prints():
     import re
     day, length, left = map(int, re.search(r"day (\d+) of (\d+), (\d+) left", example).groups())
     assert day - 1 + left == length, example
+
+
+# --- D155: the project across its cycles ------------------------------------------------------
+
+def history(root, later: str = "") -> None:
+    """Three cycles as a project lives them: one stopped and reframed, one closed, one running."""
+    framed(root, charter={**CHARTER, "success_criteria": CHARTER["success_criteria"] * 3}, cycles={})
+    write(root, "cycles/01-first.md", progress_cycle(TODAY - datetime.timedelta(weeks=6), states=(
+        "accepted", "deferred", "deferred"), ) | {"status": "stopped", "outcome": "reframed", "ended_on": "2026-10-13"})
+    write(root, "cycles/02-second.md", progress_cycle(TODAY - datetime.timedelta(weeks=3), states=(
+        "accepted", "accepted")) | {"status": "closed", "outcome": "completed", "ended_on": "2026-10-17"})
+    write(root, "cycles/03-third.md", progress_cycle(TODAY - datetime.timedelta(days=3)),
+          body="\n# Cycle 03\n\n## Later\n\n" + later + "\n## Open questions\n")
+
+
+def test_the_project_is_said_across_its_cycles(tmp_path):
+    history(tmp_path, later="- Windows\n- macOS,\n  with the colleagues\n1. export\n")
+    end = (TODAY - datetime.timedelta(days=3) + datetime.timedelta(weeks=3)).isoformat()
+    assert plan.project(tmp_path) == [
+        "Project: 3 success criteria in the charter, read at each cycle's closure · 3 cycles: "
+        "1 accepted, 1 closed, 1 stopped",
+        "  01-first   stopped (reframed) on 2026-10-13 · 1 of 3 accepted · 2 deferred",
+        "  02-second  closed (completed) on 2026-10-17 · 2 of 2 accepted",
+        f"  03-third   in progress, ends {end} · 2 of 4 accepted · 1 in progress · 1 ready",
+        "  Later in 03-third, for the next framing: 3 candidates",
+    ]
+
+
+@pytest.mark.parametrize("later, said", [
+    ("", None),
+    (plan.LATER_FORM[:60] + "\n" + plan.LATER_FORM[60:] + "\n", None),
+    ("Export, and the other systems, once the window holds.\n", "candidates written as prose"),
+    ("Candidates: export; the other systems.\n\n- the tray, added on the decider's word\n",
+     "1 candidate listed, and prose"),
+], ids=["absent", "the form's words", "prose", "prose and a list"])
+def test_later_is_counted_said_or_left_out(tmp_path, later, said):
+    history(tmp_path, later=later)
+    lines = [line for line in plan.project(tmp_path) if "Later in" in line]
+    assert lines == ([f"  Later in 03-third, for the next framing: {said}"] if said else [])
+
+
+def test_the_later_form_is_the_cycle_form_s():
+    form = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/forms/cycle.md").read_text(encoding="utf-8")
+    assert " ".join(form.split("## Later", 1)[1].split("## Open questions", 1)[0].split()) == plan.LATER_FORM
+
+
+def test_between_two_cycles_the_ended_one_s_later_is_said_not_the_next_proposal_s(tmp_path):
+    history(tmp_path)
+    (tmp_path / "docs/project/cycles/03-third.md").unlink()
+    write(tmp_path, "cycles/02-second.md", progress_cycle(TODAY - datetime.timedelta(weeks=3), states=("accepted",))
+          | {"status": "closed", "outcome": "completed", "ended_on": "2026-10-17"}, body="\n## Later\n\n- the window\n")
+    write(tmp_path, "cycles/03-third.md", cycle(status="proposed"), body="\n## Later\n\n" + plan.LATER_FORM + "\n")
+    assert plan.project(tmp_path)[-1] == "  Later in 02-second, for the next framing: 1 candidate"
+
+
+def test_what_the_rules_refuse_is_said_plainly_never_printed_raw(tmp_path):
+    framed(tmp_path, charter={**CHARTER, "status": "draft"}, cycles={
+        "01-a.md": cycle(status=None), "02-b.md": cycle(status="done"), "03-c.md": cycle(end=None),
+        "04-d.md": {key: value for key, value in cycle(status="proposed").items() if key != "start"}})
+    lines = plan.project(tmp_path)
+    assert "None" not in "\n".join(lines), lines
+    assert lines[0] == "Project: the charter's status unknown (C2) · 4 cycles: 1 accepted, 1 proposed, 2 other"
+    assert [line.split("  ")[-1].split(" · ")[0] for line in lines[1:]] == [
+        "status unknown (C3)", "status unknown (C3)", "in progress", "proposed"]
+
+
+def test_an_unreadable_cycle_or_charter_is_said_never_a_crash(tmp_path):
+    write(tmp_path, "charter.md", "# no front matter")
+    write(tmp_path, "cycles/01-first.md", "# no front matter either")
+    assert plan.project(tmp_path) == ["Project: no charter readable · 1 cycle: 1 other",
+                                      "  01-first  front matter unreadable (C1)"]
+
+
+def test_a_proposed_charter_and_cycle_are_said_as_proposals(tmp_path):
+    framed(tmp_path, charter={**CHARTER, "status": "proposed"}, cycles={"01-first.md": cycle(status="proposed")})
+    lines = plan.project(tmp_path)
+    assert lines[0] == "Project: the charter is proposed · 1 cycle: 1 proposed"
+    assert lines[1].startswith("  01-first  proposed, starts ")
+
+
+def test_no_project_says_nothing(tmp_path, capsys):
+    assert plan.project(tmp_path) == []
+    (tmp_path / ".copier-answers.yml").write_text("_commit: v0.16.0\n", encoding="utf-8")
+    assert plan.show(tmp_path) == 0 and capsys.readouterr().out == ""
+
+
+def test_nstack_plan_says_the_project_and_fitness_does_not(tmp_path, capsys):
+    from napkinstack import cli
+    history(tmp_path)
+    cli.main(["plan", "--root", str(tmp_path)])
+    assert "\nProject: 3 success criteria" in capsys.readouterr().out
+    cli.main(["fitness", "--root", str(tmp_path)])
+    assert "Project:" not in capsys.readouterr().out
+
+
+def test_the_handbook_says_where_the_project_is_read():
+    page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/project.md").read_text(encoding="utf-8")
+    assert "## The project across its cycles" in page
+    assert "nstack plan" in page.split("## The project across its cycles", 1)[1].split("\n## ", 1)[0]

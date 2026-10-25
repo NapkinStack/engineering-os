@@ -100,8 +100,8 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph, release artefacts included (B1-B9)",
          lambda a: boundaries.run(a.root))
-    _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8), and who holds what",
-         lambda a: plan.run(a.root) | hold.show(a.root))
+    _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8), the project across its cycles, "
+         "and who holds what", lambda a: plan.run(a.root) | plan.show(a.root) | hold.show(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
