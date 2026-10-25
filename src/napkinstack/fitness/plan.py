@@ -77,14 +77,21 @@ def check_decider(rule: str, path: Path, value, fail) -> None:
 
 
 def read_front_matter(path: Path) -> tuple[dict | None, str]:
-    """The front matter as a mapping, or None and the reason it cannot be read (C1)."""
-    match = FRONT_MATTER.match(path.read_text(encoding="utf-8"))
+    """The front matter as a mapping, or None and the reason it cannot be read (C1). A file that
+    is not UTF-8, or a date no calendar holds — YAML builds it and Python refuses it — is a reason
+    like the others, never a traceback (#268)."""
+    try:
+        match = FRONT_MATTER.match(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as exc:
+        return None, f"not UTF-8 text: {exc.reason} at byte {exc.start}; save the file as UTF-8"
     if not match:
         return None, "no front matter: the file must start with a YAML block between two --- lines"
     try:
         data = yaml.safe_load(match[1])
     except yaml.YAMLError as exc:
         return None, f"front matter unreadable: {exc}"
+    except ValueError as exc:
+        return None, f"front matter unreadable: a date that does not exist ({exc}); dates are YYYY-MM-DD"
     if not isinstance(data, dict):
         return None, "front matter must be a YAML mapping"
     return data, ""

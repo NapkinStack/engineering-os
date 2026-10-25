@@ -435,3 +435,17 @@ def test_the_handbook_says_where_the_project_is_read():
     page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/project.md").read_text(encoding="utf-8")
     assert "## The project across its cycles" in page
     assert "nstack plan" in page.split("## The project across its cycles", 1)[1].split("\n## ", 1)[0]
+
+
+# --- D158: what cannot be read is refused, never a traceback (#268) ---------------------------
+
+@pytest.mark.parametrize("content, said", [
+    ("---\nstart: 2026-13-45\n---\n".encode(), "a date that does not exist"),
+    (b"---\ngoal: caf\xe9\n---\n", "not UTF-8 text"),
+], ids=["impossible date", "not UTF-8"])
+def test_a_front_matter_that_cannot_be_read_is_refused_as_c1(tmp_path, capsys, content, said):
+    framed(tmp_path)
+    (tmp_path / "docs/project/cycles/02-second.md").write_bytes(content)
+    assert plan.run(tmp_path) == 1
+    out = capsys.readouterr().out
+    assert "[C1] docs/project/cycles/02-second.md" in out and said in out, out
