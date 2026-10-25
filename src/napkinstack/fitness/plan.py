@@ -19,7 +19,8 @@ Rules:
       discovery's decision is go, and none of its form's words once the charter is accepted;
       modules/README.md none of its own once a module holds more than its description
 
-Templates, whose file name starts with "_", are not checked.
+Templates, whose file name starts with "_", are not checked. `nstack plan` then says the project
+across its cycles (`project`), a display that never fails.
 
 Usage :  nstack plan [--root ROOT]
 Output:  0 when the charter and the cycles are valid, or absent; 1 otherwise.
@@ -186,6 +187,91 @@ def progress_of(path: Path, data: dict, today: datetime.date | None = None, appe
         else:
             said.append(f"day {(today - start).days + 1} of {(end - start).days}, {(end - today).days} left (ends {end})")
     return f"Cycle {path.stem}: " + " · ".join(said)
+
+
+LATER = re.compile(r"^## Later[ \t]*\n(.*?)(?=^## |\Z)", re.S | re.M)
+# The words the cycle form writes under *Later* (.nstack/forms/cycle.md; a test binds the two).
+LATER_FORM = "<Candidates for the next framing: what framing left out, and ideas that came up during the cycle.>"
+ITEM = re.compile(r"^(?:[-*+]|\d+[.)])\s", re.M)  # a top-level item: one candidate each
+
+
+def _cycle_said(path: Path, data: dict | None) -> str:
+    """One cycle of the project's history: its status, the date that matters for it, and its
+    deliverables as `progress_of` counts them — one figure, wherever it is said. What its own
+    rules refuse (C3, C6) is said plainly, never as a value printed raw."""
+    if data is None:
+        return "front matter unreadable (C1)"
+    status, counts = data.get("status"), progress_of(path, data, appetite=False).split(": ", 1)[1]
+    if not isinstance(status, str) or status not in CYCLE_STATUSES:
+        return f"status unknown (C3) · {counts}"
+    if status in OUTCOMES:
+        ended = as_date(data.get("ended_on"))
+        return f"{status} ({data.get('outcome') or 'no outcome'})" + (f" on {ended}" if ended else "") + f" · {counts}"
+    key, said = ("end", "in progress, ends") if status == "accepted" else ("start", "proposed, starts")
+    date = as_date(data.get(key))
+    return (f"{said} {date}" if date else said.split(",")[0]) + f" · {counts}"
+
+
+def _later(path: Path) -> str | None:
+    """What the cycle's *Later* holds for the next framing: its candidates counted when the
+    section is a list — an item each, its wrapped lines with it —, said as prose otherwise,
+    nothing when the section is absent or still the form's."""
+    match = LATER.search(path.read_text(encoding="utf-8", errors="replace"))
+    text = " ".join(match[1].split()) if match else ""  # the form wraps its line
+    if not text or text == LATER_FORM:
+        return None
+    lines = [line for line in match[1].splitlines() if line.strip()]
+    count = len(ITEM.findall(match[1]))
+    prose = any(not ITEM.match(line) and not line[:1].isspace() for line in lines)
+    held = f"{count} candidate" + ("" if count == 1 else "s")
+    held = (f"{held} listed, and prose" if count else "candidates written as prose") if prose else held
+    return f"Later in {path.stem}, for the next framing: {held}"
+
+
+def project(root: Path) -> list[str]:
+    """The project across its cycles, for `nstack plan`: the charter's success criteria counted,
+    every cycle in one line, and what the latest cycle left for the next framing — read from the
+    files, never written down. Deliverables are not summed across cycles: a deliverable deferred
+    by one cycle is often framed again in the next, and a total would count it twice. Nothing
+    outside a project, or before a charter or a cycle exists."""
+    charter, cycles = root / CHARTER, cycle_files(root)
+    if stage(root) is None or (not charter.is_file() and not cycles):
+        return []
+    data = read_front_matter(charter)[0] if charter.is_file() else None
+    criteria = data.get("success_criteria") if data else None
+    filled = [c for c in criteria if not unfilled(c)] if isinstance(criteria, list) else []
+    if data is None:
+        head = "no charter readable" if charter.is_file() else "no charter"
+    elif data.get("status") == "accepted":
+        head = (f"{len(filled)} success criteri{'on' if len(filled) == 1 else 'a'} in the charter, "
+                "read at each cycle's closure")
+    else:
+        head = "the charter is proposed" if data.get("status") == "proposed" else "the charter's status unknown (C2)"
+    read = [(path, read_front_matter(path)[0]) for path in cycles]
+    statuses = [data.get("status") if data else None for _, data in read]
+    known = ("accepted", "proposed", "closed", "stopped")
+    tally = [f"{statuses.count(s)} {s}" for s in known if statuses.count(s)]
+    other = len(statuses) - sum(statuses.count(s) for s in known)
+    tally += [f"{other} other"] if other else []
+    lines = [f"Project: {head} · {len(read)} cycle{'' if len(read) == 1 else 's'}"
+             + (f": {', '.join(tally)}" if tally else "")]
+    width = max(len(path.stem) for path in cycles) if cycles else 0
+    lines += [f"  {path.stem.ljust(width)}  {_cycle_said(path, data)}" for path, data in read]
+    # The cycle running, else the last one ended — where the next framing starts —, else the last.
+    ended = [path for path, data in read if data and data.get("status") in OUTCOMES]
+    latest = next((path for path, data in read if data and data.get("status") == "accepted"),
+                  ended[-1] if ended else (cycles[-1] if cycles else None))
+    if latest and (later := _later(latest)):
+        lines.append(f"  {later}")
+    return lines
+
+
+def show(root: Path) -> int:
+    """`nstack plan`'s view of the project: said, never a failure of its own — a file the plan's
+    checks cannot read stops them first."""
+    if lines := project(root):
+        print("\n" + "\n".join(lines))
+    return 0
 
 
 def _left(path: Path, form: tuple[str, ...]) -> list[str]:

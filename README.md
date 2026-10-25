@@ -96,7 +96,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
-| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures |
+| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures; then the project across its cycles, and who holds what |
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene — each also runs alone: `manifests`, `boundaries`, `skills`, `plan`, `hygiene` |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
