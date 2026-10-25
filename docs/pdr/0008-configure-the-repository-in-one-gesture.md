@@ -229,7 +229,9 @@ at the forge's documentation on 2026-10-12: the repository object's `permissions
 not described as the token's, the settings endpoints name no fine-grained permission, and no
 endpoint describes a fine-grained token's own permissions. A check that cannot be shown to
 hold is the removal condition of this very mode. So it is not written until a probe, with a
-real administration-only token, shows what the forge answers — M11r.
+real administration-only token, shows what the forge answers — M11r. *The forge's own permission
+table answered it, with no probe: [What the forge's permissions say](#what-the-forges-permissions-say-d150-2026-10-24),
+below (D150).*
 
 **Three things the decision did not foresee:**
 
