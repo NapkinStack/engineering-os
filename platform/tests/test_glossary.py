@@ -11,7 +11,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from napkinstack import doctor
+from napkinstack.fitness import plan
 
 ROOT = Path(__file__).resolve().parents[2]
 SKELETON = ROOT / "skeleton"
@@ -88,3 +91,11 @@ def test_a_judging_command_that_fails_says_where_its_codes_and_words_are_explain
     code = cli.main(["pr-check", "--root", str(tmp_path), "--base", "no-such-base", "--body-file", str(tmp_path / "body.md")])
     out = capsys.readouterr().out
     assert code == 1 and ".nstack/handbook/RULES.md" in out and ".nstack/handbook/glossary.md" in out, out
+
+
+@pytest.mark.parametrize("name", ["charter.md", "cycle.md", "discovery.md"])
+def test_a_form_copied_as_it_comes_keeps_a_readable_front_matter(name):
+    """D157: the glossary's line went inside the cycle form's front matter, which then no longer
+    parsed — a cycle copied from it failed C1 before a word of it was written."""
+    data, reason = plan.read_front_matter(SKELETON / ".nstack/forms" / name)
+    assert data is not None, f"{name}: {reason}"

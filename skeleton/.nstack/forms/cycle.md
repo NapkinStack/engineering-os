@@ -12,12 +12,12 @@ deliverables:
     acceptance:           # given · when · then, required from ready on: the test sheet starts here
       - "Given <context>, when <action>, then <observable result>"
 # outcome: completed      # closed: completed | shipped — stopped: reframed | stopped
-
-> The framework's words: `.nstack/handbook/glossary.md`.
 # ended_on: YYYY-MM-DD
 ---
 
 # Cycle NN — <title>
+
+> The framework's words: `.nstack/handbook/glossary.md`.
 
 > Copied to `docs/project/cycles/NN-<slug>.md` at framing (`.nstack/playbooks/framing.md`). One accepted cycle at a
 > time; no automatic extension.
