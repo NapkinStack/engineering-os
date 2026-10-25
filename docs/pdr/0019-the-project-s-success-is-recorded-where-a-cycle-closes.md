@@ -1,7 +1,8 @@
 # PDR-0019 — The project's success is recorded where a cycle closes
 
-- **Status**: Proposed (2026-10-25). Asked by the maintainer: *a synthesised view of the whole
-  breakdown, in progress, waiting, closed, and the project's overall progress*; the view across
+- **Status**: Accepted (2026-10-25, by the agent the maintainer delegated the decision to:
+  *you are a professional, analyse and decide*), built as D159; proposed the same day (D156).
+  Asked by the maintainer: *a synthesised view of the whole breakdown, in progress, waiting, closed, and the project's overall progress*; the view across
   cycles was built as D155, and this record is its second step
 - **Date**: 2026-10-25
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
@@ -66,12 +67,12 @@ the repository, kept nowhere else.
 |---|---|---|---|
 | Do nothing | The criteria counted (D155); their state in a closure's prose | 0 | No |
 | A. A state on each criterion, in the charter | One place — but the founding text rewritten at every closure, and C9 warns each time | Low, and against C9 | No |
-| **B. The closure records the criteria it moved, in the cycle's front matter** | The latest record of each criterion is its state; `nstack plan` says *N of M met*, and which are observed since when | Low | **Proposed** |
+| **B. The closure records the criteria it moved, in the cycle's front matter** | The latest record of each criterion is its state; `nstack plan` says *N of M met*, and which are observed since when | Low | **Yes** |
 | C. A status file of the project | One more file, kept by hand | Low, and a second truth | No |
 
 ## Decision
 
-**Option B**, proposed.
+**Option B.**
 
 1. **A closed or stopped cycle may record the criteria it moved**: each by its number in the
    charter's list, as `met` or `observing`, with the day observation started for the latter.
@@ -81,8 +82,15 @@ the repository, kept nowhere else.
    when, in the project's line.
 4. **Checked like the rest of the plan**: a number outside the charter's list, or an unknown
    state, is refused with its place and its fix. A cycle that records nothing is valid.
-5. **When every criterion is met**, the view says the project is finished — what the framing
-   playbook already asks the closure to tell the decider.
+5. **When every criterion is met**, the view says the charter's goal is reached and that the
+   decider says whether the project is finished — what the framing playbook already asks the
+   closure to tell the decider. *(Clarified at acceptance: the view states the criteria, the
+   decider ends the project.)*
+6. **Only a closure records** *(clarified at acceptance)*: a record in a cycle that is neither
+   closed nor stopped is refused, as a criterion moves at a closure.
+7. **The form's example is never a criterion** *(clarified at acceptance)*: numbers follow the
+   charter's list, and a criterion still holding the template's words is listed but not counted
+   — the goal is reached without declaring the example met.
 
 ---
 
@@ -90,7 +98,7 @@ the repository, kept nowhere else.
 
 **Nominal journey.** Cycle 03 closes; the decider has installed the product on their Fedora on
 2026-11-08. The closure records criterion 1 as `observing` since 2026-11-08. `nstack plan` reads
-*0 of 3 success criteria met · 1 observed since 2026-11-08*. At cycle 04's closure, the two weeks
+*0 of 3 success criteria met · criterion 1 observed since 2026-11-08*. At cycle 04's closure, the two weeks
 held: criterion 1 is recorded `met`; the line reads *1 of 3 met*.
 
 **Edge cases.** The charter changes through a PDR and loses a criterion: a record naming a number
@@ -100,13 +108,13 @@ latest record wins.
 
 **Acceptance criteria** *(testable)*:
 
-- [ ] Given a closed cycle recording criterion 1 as met, then `nstack plan` says *1 of N met*.
-- [ ] Given two closures recording the same criterion, then the later one is its state.
-- [ ] Given a criterion recorded as observing with its day, then the line names it and the day.
-- [ ] Given a record naming a criterion outside the charter's list, or an unknown state, then the
+- [x] Given a closed cycle recording criterion 1 as met, then `nstack plan` says *1 of N met*.
+- [x] Given two closures recording the same criterion, then the later one is its state.
+- [x] Given a criterion recorded as observing with its day, then the line names it and the day.
+- [x] Given a record naming a criterion outside the charter's list, or an unknown state, then the
       plan check fails, naming the cycle file, the record and the fix.
-- [ ] Given no cycle recording anything, then the view says *0 of N met* and every check passes.
-- [ ] Given every criterion met, then the view says the project's criteria are all met.
+- [x] Given no cycle recording anything, then the view says *0 of N met* and every check passes.
+- [x] Given every criterion met, then the view says the charter's goal is reached.
 
 ---
 

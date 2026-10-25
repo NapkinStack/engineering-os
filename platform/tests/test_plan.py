@@ -355,7 +355,7 @@ def test_the_project_is_said_across_its_cycles(tmp_path):
     history(tmp_path, later="- Windows\n- macOS,\n  with the colleagues\n1. export\n")
     end = (TODAY - datetime.timedelta(days=3) + datetime.timedelta(weeks=3)).isoformat()
     assert plan.project(tmp_path) == [
-        "Project: 3 success criteria in the charter, read at each cycle's closure · 3 cycles: "
+        "Project: 0 of 3 success criteria met, recorded at each cycle's closure · 3 cycles: "
         "1 accepted, 1 closed, 1 stopped",
         "  01-first   stopped (reframed) on 2026-10-13 · 1 of 3 accepted · 2 deferred",
         "  02-second  closed (completed) on 2026-10-17 · 2 of 2 accepted",
@@ -426,7 +426,7 @@ def test_nstack_plan_says_the_project_and_fitness_does_not(tmp_path, capsys):
     from napkinstack import cli
     history(tmp_path)
     cli.main(["plan", "--root", str(tmp_path)])
-    assert "\nProject: 3 success criteria" in capsys.readouterr().out
+    assert "\nProject: 0 of 3 success criteria met" in capsys.readouterr().out
     cli.main(["fitness", "--root", str(tmp_path)])
     assert "Project:" not in capsys.readouterr().out
 
@@ -449,3 +449,81 @@ def test_a_front_matter_that_cannot_be_read_is_refused_as_c1(tmp_path, capsys, c
     assert plan.run(tmp_path) == 1
     out = capsys.readouterr().out
     assert "[C1] docs/project/cycles/02-second.md" in out and said in out, out
+
+
+# --- D159: the project's success, recorded where a cycle closes (PDR-0019) --------------------
+
+def closed(*records, status="closed", outcome="completed") -> dict:
+    data = progress_cycle(TODAY - datetime.timedelta(weeks=3), states=("accepted",)) | {
+        "status": status, "outcome": outcome, "ended_on": "2026-10-17"}
+    return data | ({"success": list(records)} if records else {})
+
+
+def test_the_latest_closure_s_record_is_a_criterion_s_state(tmp_path):
+    history(tmp_path)
+    write(tmp_path, "cycles/01-first.md", closed({"criterion": 1, "state": "met"},
+                                                 {"criterion": 2, "state": "observing", "since": "2026-10-01"},
+                                                 status="stopped", outcome="reframed"))
+    write(tmp_path, "cycles/02-second.md", closed({"criterion": 1, "state": "observing", "since": "2026-10-15"},
+                                                  {"criterion": 2, "state": "met"}))
+    assert plan.run(tmp_path) == 0
+    assert plan.project(tmp_path)[0].startswith(
+        "Project: 1 of 3 success criteria met · criterion 1 observed since 2026-10-15 · 3 cycles:")
+
+
+def test_every_criterion_met_says_the_goal_is_reached(tmp_path):
+    history(tmp_path)
+    write(tmp_path, "cycles/02-second.md", closed(*({"criterion": n, "state": "met"} for n in (1, 2, 3))))
+    assert plan.project(tmp_path)[0].startswith(
+        "Project: 3 of 3 success criteria met — the charter's goal is reached: the decider says whether")
+
+
+def test_a_record_only_a_closure_makes(tmp_path, capsys):
+    history(tmp_path)
+    write(tmp_path, "cycles/03-third.md", progress_cycle(TODAY - datetime.timedelta(days=3))
+          | {"success": [{"criterion": 1, "state": "met"}]})
+    assert plan.run(tmp_path) == 1
+    assert "[C6] docs/project/cycles/03-third.md" in capsys.readouterr().out
+    assert plan.project(tmp_path)[0].startswith("Project: 0 of 3 success criteria met")
+
+
+@pytest.mark.parametrize("record, said", [
+    ({"criterion": 4, "state": "met"}, "criterion 4, and the charter's filled criteria are numbered 1, 2, 3"),
+    ("met", "expected a mapping (criterion, state, since)"),
+    ({"criterion": "first", "state": "met"}, "criterion 'first', expected a number from 1"),
+    ({"criterion": 1, "state": "done"}, "state 'done', expected one of ['met', 'observing']"),
+    ({"criterion": 1, "state": "observing"}, "observing since when?"),
+], ids=["outside the charter", "not a mapping", "not a number", "unknown state", "observing with no day"])
+def test_a_record_the_charter_cannot_hold_is_refused_as_c6(tmp_path, capsys, record, said):
+    history(tmp_path)
+    write(tmp_path, "cycles/02-second.md", closed(record))
+    assert plan.run(tmp_path) == 1
+    out = capsys.readouterr().out
+    assert "[C6] docs/project/cycles/02-second.md" in out and said in out, out
+
+
+def test_the_cycle_form_shows_the_record_commented():
+    form = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/forms/cycle.md").read_text(encoding="utf-8")
+    front = form.split("---", 2)[1]
+    assert "# success:" in front and "observing" in front
+    assert "success" not in (plan.read_front_matter(
+        Path(__file__).resolve().parents[2] / "skeleton/.nstack/forms/cycle.md")[0] or {})
+
+
+def test_the_form_s_example_left_in_the_charter_is_listed_never_counted(tmp_path, capsys):
+    history(tmp_path)
+    write(tmp_path, "charter.md", {**CHARTER, "success_criteria": [
+        "First", "<An observable result, and when it is observed>", "Third"]})
+    write(tmp_path, "cycles/02-second.md", closed({"criterion": 1, "state": "met"}, {"criterion": 3, "state": "met"}))
+    assert plan.project(tmp_path)[0].startswith("Project: 2 of 2 success criteria met — the charter's goal is reached")
+    write(tmp_path, "cycles/02-second.md", closed({"criterion": 2, "state": "met"}))
+    assert plan.run(tmp_path) == 1
+    assert "criterion 2, and the charter's filled criteria are numbered 1, 3" in capsys.readouterr().out
+
+
+def test_what_c6_refuses_the_view_never_counts(tmp_path, capsys):
+    history(tmp_path)
+    write(tmp_path, "cycles/02-second.md", closed(*({"criterion": n, "state": "met"} for n in (True, -1, 0, 1, 1))))
+    assert plan.run(tmp_path) == 1
+    assert "criterion 1 recorded twice in this closure" in capsys.readouterr().out
+    assert plan.project(tmp_path)[0].startswith("Project: 1 of 3 success criteria met")

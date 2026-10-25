@@ -13,6 +13,10 @@ deliverables:
       - "Given <context>, when <action>, then <observable result>"
 # outcome: completed      # closed: completed | shipped — stopped: reframed | stopped
 # ended_on: YYYY-MM-DD
+# success:                # at the closure, the charter's success criteria this cycle moved, if any
+#   - criterion: 1        # its number in the charter's list, from 1
+#     state: observing    # met | observing — the latest closure's record is its state
+#     since: YYYY-MM-DD   # observing: the day observation started
 ---
 
 # Cycle NN — <title>
