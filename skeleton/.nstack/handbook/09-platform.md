@@ -82,7 +82,9 @@ release` with no module runs each after what it assembles, and fails on a module
 none only when that module is named. One target for every module — a platform, an
 architecture — is set in the environment they all inherit (`TARGET=… nstack release`); a module
 needing several targets of another's makes them all in that one's release, since each release
-empties its folder. Reading another module's artefacts without declaring it fails (`B9`), as a
+empties its folder and names what it removed. So does a project shipping one package per system from one
+checkout — a `.deb` and an `.rpm`: one release makes both, or the first is moved out of `dist/` before
+the second is made. Reading another module's artefacts without declaring it fails (`B9`), as a
 path into its folder does (`B2`); `assembles` names modules by their folder, as the verbs do.
 
 **A job leaves nothing behind.** GitHub's hosted runners are thrown away after each job; a
