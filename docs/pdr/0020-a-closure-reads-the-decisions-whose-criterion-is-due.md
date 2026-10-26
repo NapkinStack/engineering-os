@@ -1,6 +1,8 @@
 # PDR-0020 — A closure reads the decisions whose criterion is due
 
-- **Status**: Proposed (2026-10-26, D167), from #279. For the maintainer to accept or reject
+- **Status**: Accepted (2026-10-26, by the agent the maintainer delegated the decision to:
+  *you can decide as an expert*), option A with points 5 to 8 clarified at acceptance; proposed
+  the same day (D167), from #279
 - **Date**: 2026-10-26
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (the plan's checks), the decision forms, the framing
@@ -53,6 +55,10 @@ what was found.
 | [AWS Prescriptive Guidance — the ADR process](https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html) | Records are reviewed at set points and their status updated | **A decision is read again at a set moment**, and its record says it |
 | OKRs (John Doerr, *Measure What Matters*) | Key results scored when the period ends | **A criterion is scored when its period ends**, by the person who owns it |
 | Fitness functions (Ford, Parsons, Kua, *Building Evolutionary Architectures*) | An architectural decision checked by an automated function | **What can be checked is checked**: here, that the reading happened, never its verdict |
+| GOV.UK Tech Docs Template — page expiry (`last_reviewed_on`, `review_in`) | A page past its review date shows a banner, computed at build | **Computed, never remembered** — but on a calendar of its own, and a date bumped without reading clears it: here the moment is the closure, and the line carries a verdict |
+| MADR 4 — *Confirmation* | The record says how compliance with the decision will be confirmed | Kept as it is: the criterion says *what*; nothing in MADR says *when* it is read, which is this gap |
+| adr-tools, Log4brains | Statuses and supersession; no reading is asked | **A record is never rewritten**: a decision that no longer holds is superseded by a new one |
+| Agents reviewing stale records (skills that audit a register for drift) | A model reads the register on request | Refused as the barrier: not deterministic, and asked only by who remembers to |
 
 **The convention the user already knows:** a review date on a decision, and its outcome written
 beside it.
@@ -70,7 +76,7 @@ beside it.
 
 ## Decision
 
-To be taken by the maintainer. **Recommended: option A.**
+**Option A.**
 
 1. **A reading is due** for an accepted decision record of the project (`docs/pdr/`, `docs/adr/`)
    when a cycle is closed or stopped and the record's success criterion names that cycle, or a
@@ -83,6 +89,17 @@ To be taken by the maintainer. **Recommended: option A.**
    decision of its own, taken on what the warning found.
 4. **The forms show the line**, commented, under the success criterion. The framing playbook's
    closure points to the warning instead of asking the agent to remember.
+5. **The warning is a rule of the plan, C10** *(clarified at acceptance)*: shown with the plan's
+   checks, so `nstack fitness` and CI show it on the closure's pull request, as C9's warning is —
+   not only in `nstack plan`'s view.
+6. **What is read is exact** *(clarified at acceptance)*: the success criterion section only; a date
+   written `YYYY-MM-DD`; a cycle named by its file (`03-the-window`) or as *cycle 03*. A date written
+   otherwise is not read, and the forms say so. Nothing is inferred from prose.
+7. **A reading answers what was due at its closure** *(clarified at acceptance)*: a criterion naming
+   a later date is due again at the closure that passes it.
+8. **A record is never rewritten** *(clarified at acceptance)*: the reading line is its one
+   addition. A *missed* criterion is presented to the decider, whose answer is a decision of its
+   own — a new record superseding it, or the removal condition applied.
 
 ---
 
