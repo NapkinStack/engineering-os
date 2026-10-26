@@ -313,6 +313,13 @@ often personal — is refused before any check runs; set the checkout's identity
 record of a new contributor, `nstack attest --accept-identity`. GitHub's noreply address is always
 accepted, and enough. A repository with no remote is never refused: nothing travels.
 
+**A record is published with the repository**: the notes are pushed, and every step's output
+travels in them. `nstack attest` writes the checkout's root as `<root>` and the home folder as `~`,
+so that no path names the machine that ran it; anything else a step prints — a host name, a
+token a test echoes — travels as printed, and is the step's to keep out. A record an earlier
+version pushed keeps its paths: notes are history, and rewriting them rewrites the evidence
+`pr-check` reads.
+
 ### Agents and approval
 
 A pull request's author cannot approve it. An agent working with a human's credentials

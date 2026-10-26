@@ -88,6 +88,22 @@ def capped(text: str) -> str:
             + data[-half:].decode("utf-8", "ignore"))
 
 
+def unplaced(value, root: Path):
+    """What a record keeps, said nowhere on the machine that attested: the checkout's root as
+    `<root>`, the home folder as `~` (#277). The notes are pushed, and public with the repository;
+    a path names a person and their folders. Strings inside lists and mappings too."""
+    if isinstance(value, str):
+        for folder, said in ((root.resolve(), "<root>"), (root.absolute(), "<root>"), (Path.home(), "~")):
+            if str(folder) not in ("", "/"):
+                value = re.sub(re.escape(str(folder)) + r"(?![\w.-])", said, value)
+        return value
+    if isinstance(value, list):
+        return [unplaced(item, root) for item in value]
+    if isinstance(value, dict):
+        return {key: unplaced(item, root) for key, item in value.items()}
+    return value
+
+
 def latest(root: Path, commit: str) -> dict | None:
     """The record of a commit: the latest run its note holds, or None."""
     shown = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False)
@@ -268,7 +284,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     remote = fetch(root)
     before = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False)
     lines = (before.stdout.rstrip("\n") + "\n" if before.returncode == 0 and before.stdout.strip() else "")
-    lines += json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n"
+    lines += json.dumps(unplaced(record, root), separators=(",", ":"), ensure_ascii=False) + "\n"
     subprocess.run(["git", "notes", f"--ref={NOTES}", "add", "--force", "--file=-", commit], cwd=root,
                    input=lines, text=True, capture_output=True, check=True)
     passed = sum(1 for result in results if result["passed"])
