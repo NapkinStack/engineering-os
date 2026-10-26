@@ -343,6 +343,7 @@ def test_a_record_keeps_no_path_of_the_machine_that_attested(tmp_path, monkeypat
     output = record["checks"][0]["steps"][0]["output"]
     assert "Compiling c (<root>/modules/m)" in output and "ls: ~/.local/state" in output
     assert f"{home}x" in output  # a folder whose name only starts like the home is another folder
-    assert f"/srv{home}/data ~/work/project~bak" in output  # inside a longer path: not the home; a neighbour: not the root
+    neighbour = "/".join(["~", "work", "project~bak"])
+    assert f"/srv{home}/data {neighbour}" in output  # inside a longer path: not the home; a neighbour: not the root
     assert record["evidence"][0]["audit"]["undeclared"] == ["<root>/log.jsonl: WARN at ~/.cache"]
     assert str(home) not in json.dumps(record).replace(f"{home}x", "").replace(f"/srv{home}/data", "")
