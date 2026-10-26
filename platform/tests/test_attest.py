@@ -321,3 +321,29 @@ def test_a_personal_address_dressed_as_noreply_is_refused(tmp_path, monkeypatch,
     monkeypatch.setattr(attest, "CHECKS", PASSING)
     stranger(monkeypatch, address)
     assert attest.run(tmp_path, "HEAD", None, "") == 1
+
+
+# --- D162: a record keeps no path of the machine that attested (#277) ------------------------
+
+def test_a_record_keeps_no_path_of_the_machine_that_attested(tmp_path, monkeypatch):
+    home = tmp_path / "home" / "someone"
+    root = home / "work" / "project"
+    root.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    (root / ".gitignore").write_text(".evidence/\n", encoding="utf-8")
+    head = project(root)
+    (root / ".evidence/e2e").mkdir(parents=True)
+    (root / ".evidence/e2e/audit.json").write_text(json.dumps(
+        {"commit": head, "module": "m", "undeclared": [f"{root}/log.jsonl: WARN at {home}/.cache"]}), encoding="utf-8")
+    monkeypatch.setattr(attest, "CHECKS", (attest.Check("Paths", (attest.Step(
+        "echo", "say paths", f'echo "Compiling c ($PWD/modules/m)"; echo "ls: {home}/.local/state"; echo "{home}x"; '
+        f'echo "/srv{home}/data {root}~bak"'),)),))
+    attest.run(root, "HEAD", None, "")
+    [record] = records(root, head)
+    output = record["checks"][0]["steps"][0]["output"]
+    assert "Compiling c (<root>/modules/m)" in output and "ls: ~/.local/state" in output
+    assert f"{home}x" in output  # a folder whose name only starts like the home is another folder
+    neighbour = "/".join(["~", "work", "project~bak"])
+    assert f"/srv{home}/data {neighbour}" in output  # inside a longer path: not the home; a neighbour: not the root
+    assert record["evidence"][0]["audit"]["undeclared"] == ["<root>/log.jsonl: WARN at ~/.cache"]
+    assert str(home) not in json.dumps(record).replace(f"{home}x", "").replace(f"/srv{home}/data", "")
