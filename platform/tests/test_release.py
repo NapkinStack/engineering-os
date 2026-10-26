@@ -64,3 +64,21 @@ def test_an_artefacts_folder_that_is_a_link_is_refused_never_followed(tmp_path, 
     said = capsys.readouterr().out
     assert "FAIL [release]" in said and "Action:" in said, said
     assert (elsewhere / "keep").read_text() == "kept"
+
+
+# --- D163: what a release empties is said (#276) ---------------------------------------------
+
+def test_what_a_release_empties_is_said_by_name(tmp_path, capsys):
+    module(tmp_path, "install", release='printf deb > "$NSTACK_DIST/app.deb"')
+    (tmp_path / "dist" / "install" / "more").mkdir(parents=True)
+    for name in ("app.rpm", "more/a", "more/b", "more/c", "more/d", "more/e"):
+        (tmp_path / "dist" / "install" / name).write_text("old", encoding="utf-8")
+    assert cli.main(["release", "install", "--root", str(tmp_path)]) == 0
+    said = capsys.readouterr().out
+    assert ("-> install: dist/install emptied first, 6 files: app.rpm, more/a, more/b, more/c, more/d, and 1 more"
+            in said), said
+    assert cli.main(["release", "install", "--root", str(tmp_path)]) == 0
+    assert "dist/install emptied first, 1 file: app.deb" in capsys.readouterr().out
+    (tmp_path / "dist" / "install" / "app.deb").unlink()
+    assert cli.main(["release", "install", "--root", str(tmp_path)]) == 0
+    assert "emptied" not in capsys.readouterr().out

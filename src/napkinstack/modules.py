@@ -376,6 +376,11 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
                 print(f"FAIL [release] {odd.relative_to(root)} is a link or a file, not a folder of the project's own: "
                       "nothing is emptied through it.\n      Action: remove it, then release again.")
                 return 1
+            left = sorted(path.relative_to(dist).as_posix() for path in dist.rglob("*") if not path.is_dir()) if dist.is_dir() else []
+            if left:  # never silent: another target's package may be among them (#276)
+                named = ", ".join(left[:5]) + (f", and {len(left) - 5} more" if len(left) > 5 else "")
+                print(f"-> {target}: {dist.relative_to(root).as_posix()} emptied first, "
+                      f"{len(left)} file{'s' if len(left) > 1 else ''}: {named}", flush=True)
             shutil.rmtree(dist, ignore_errors=True)
             dist.mkdir(parents=True)
             environment = {**os.environ, "NSTACK_DIST": str(dist.resolve())}
