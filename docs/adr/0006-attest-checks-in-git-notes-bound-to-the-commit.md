@@ -1,6 +1,8 @@
 # ADR-0006 — Attest checks in git notes, bound to the commit
 
-- **Status**: Accepted (2026-10-20, by the maintainer, approving #196); built in D129
+- **Status**: Accepted (2026-10-20, by the maintainer, approving #196); built in D129.
+  **Clarified 2026-10-26 (D166, #275)**: a passed module check is kept for the same commit, base
+  and engine — decisions 2 and 3
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier
@@ -62,13 +64,19 @@ the workflows, and without a forge being required.
    job or a command in one and not the other fails it, as D105's test binds the runners.
 2. **The command, `nstack attest`.** At the root, on a clean tree — any uncommitted or untracked
    change refused, nothing written. It runs each check of the list in order, all of them even after
-   a failure, and exits non-zero when one failed.
+   a failure, and exits non-zero when one failed. *Clarified (D166)*: `Module checks` reads the tree
+   and the base, never the description; when the commit's record passed it with the same base commit,
+   the same engine — published, or named by a commit with no change of its own, tracked or not — and
+   the same person, it is kept with that run's evidence, not run again, so a sheet filled after a
+   first attest costs no second end-to-end run. Ignored files, the environment and the tools outside
+   the tree are not compared. `--again` runs it.
 3. **The record.** One JSON line per run, appended to the note of `HEAD` under
    `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, the engine's
-   version and whether it is published, who ran it as git names them, the `Agent-Session` of the
+   version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the
    head's commit when there is one, and per check its name, commands, exit codes and output —
    each output capped at 64 KiB, head and tail kept and the cut said, with the SHA-256 of the
-   whole. The latest line for a commit is its record.
+   whole. A check kept from an earlier run carries `kept_from`, that run's time. The latest line for
+   a commit is its record.
 4. **Its travel.** `nstack attest` pushes the notes ref to the branch's remote when there is one,
    fetching and merging it first with `cat_sort_uniq`; no remote, it says the record is local.
    `pr-check` fetches the ref before reading it.
