@@ -391,3 +391,47 @@ def test_a_module_check_runs_again_when_anything_it_read_may_differ(tmp_path, mo
     attest.run(root, "HEAD~1", None, "")
     attest.run(root, "HEAD" if change == "the base" else "HEAD~1", None, "")
     assert runs(root) == 2
+
+
+@pytest.mark.parametrize("origin", ["an archive, not the registry", "a local checkout at an unknown commit"])
+def test_an_engine_no_commit_names_never_keeps_a_check(tmp_path, monkeypatch, origin):
+    root = tmp_path / "p"
+    root.mkdir()
+    project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", origin))
+    attest.run(root, "HEAD", None, "")
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 2
+
+
+def test_a_check_another_person_passed_is_run_again_and_its_evidence_kept_with_a_kept_check(tmp_path, monkeypatch):
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", "a local checkout at v0.17.0-1-g792e41a"))
+    (root / ".git/info/exclude").write_text(".evidence/\n", encoding="utf-8")
+    (root / ".evidence/e2e").mkdir(parents=True)
+    audit = root / ".evidence/e2e/audit.json"
+    audit.write_text(json.dumps({"commit": head, "module": "m", "verdict": "passed"}), encoding="utf-8")
+    attest.run(root, "HEAD", None, "")
+    audit.unlink()
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 1 and records(root, head)[-1]["evidence"][0]["module"] == "m"
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "other")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "other@example.invalid")
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 2
+
+
+def test_a_malformed_record_is_never_kept_from(tmp_path, monkeypatch):
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    attest.run(root, "HEAD", None, "")
+    bad = {**records(root, head)[-1], "checks": 7, "at": "9999"}
+    git(root, "notes", f"--ref={attest.NOTES}", "append", "-m", json.dumps(bad), head)
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 2

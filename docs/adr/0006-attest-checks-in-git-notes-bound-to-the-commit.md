@@ -65,9 +65,11 @@ the workflows, and without a forge being required.
 2. **The command, `nstack attest`.** At the root, on a clean tree — any uncommitted or untracked
    change refused, nothing written. It runs each check of the list in order, all of them even after
    a failure, and exits non-zero when one failed. *Clarified (D166)*: `Module checks` reads the tree
-   and the base, never the description; when the commit's record passed it with the same base commit
-   and the same engine — published, or a checkout with no change of its own — it is kept, not run
-   again, so a sheet filled after a first attest costs no second end-to-end run. `--again` runs it.
+   and the base, never the description; when the commit's record passed it with the same base commit,
+   the same engine — published, or named by a commit with no change of its own, tracked or not — and
+   the same person, it is kept with that run's evidence, not run again, so a sheet filled after a
+   first attest costs no second end-to-end run. Ignored files, the environment and the tools outside
+   the tree are not compared. `--again` runs it.
 3. **The record.** One JSON line per run, appended to the note of `HEAD` under
    `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, the engine's
    version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the

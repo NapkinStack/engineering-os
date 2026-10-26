@@ -62,6 +62,10 @@ def engine() -> tuple[str, str | None]:
     path = Path(url2pathname(urlparse(data.get("url", "")).path))
     commit = subprocess.run(["git", "describe", "--always", "--dirty"], cwd=path,
                             capture_output=True, text=True).stdout.strip() if path.is_dir() else ""
+    if commit and not commit.endswith("-dirty") and subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=normal"], cwd=path,
+            capture_output=True, text=True).stdout.strip():
+        commit += "-dirty"  # a file git does not track yet runs as surely as one it does
     return version(), f"a local checkout at {commit or 'an unknown commit'}"
 
 

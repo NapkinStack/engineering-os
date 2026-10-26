@@ -304,9 +304,10 @@ as `nstack / local checks`, a name no CI job has. Such a change is **attested**,
 answer `checks: attested` in `.copier-answers.yml`, changed in a pull request; `pr-check` then
 requires a complete, passed record of the head (A1, A2). Attesting again once the test sheet is filled keeps the
 module checks the commit's record passed — they read the tree and the base, never the description —
-when the base commit and the engine are the same, and the engine is published or a checkout with no
-change of its own; the record says which run they come from (`kept_from`), and `nstack attest --again` runs
-them. Where the answer is `forge`, a record is
+when the base commit, the engine and the person are the same, and the engine is published or named
+by a commit with no change of its own — tracked or not. The record says which run they come from
+(`kept_from`), with that run's evidence; what the tree's ignored files, the environment or the tools
+outside it hold is not compared: `nstack attest --again` runs them. Where the answer is `forge`, a record is
 information, and on a guarded repository the forge's required checks stay the barrier — a
 decider who wants the record to gate a protected branch requires its name at the forge.
 
