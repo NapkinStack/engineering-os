@@ -321,10 +321,13 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             # declared, so it is re-run. One that was explored by hand costs a round: its evidence keeps the commit
             # it was produced on, and the verifier confirms at the head, naming what moved since.
             # At `critical` nothing stands in for a re-run: that is what the top value buys.
-            confirmed = row.get(CONFIRMED, "").strip().split(" ", 1)[0].strip("`").lower()
+            # Each clause of the cell starts with the commit it confirms: a later confirmation
+            # joins an earlier one after a `;`, never replacing it (#288).
+            confirmed = [clause.strip().split(" ", 1)[0].strip("`").lower()
+                         for clause in row.get(CONFIRMED, "").split(";")]
             if kind.lower() == "automated" or strict:
                 rerun.append(ident)
-            elif not (SHA.fullmatch(confirmed) and head.startswith(confirmed)):
+            elif not any(SHA.fullmatch(commit) and head.startswith(commit) for commit in confirmed):
                 unconfirmed.append(ident)
         if result == "failed":
             fail("T5", f"scenario {ident}: failed.\n      Action: fix the change, or have the decider "
@@ -346,8 +349,9 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
         fail("T4", f"scenarios explored before the head {head[:7]} and not confirmed on it: "
                    f"{', '.join(unconfirmed)}.\n      Action: re-read what changed since, then "
                    f"add the head commit in a Confirmed column: `{head[:7]} — <what moved, and why "
-                   "it leaves this scenario's result standing>`.\n      Running the whole sheet "
-                   "again is the other way, and it is not required: a confirmation is not a round "
+                   "it leaves this scenario's result standing>`, after a `;` when the cell holds an "
+                   "earlier one.\n      Running the whole sheet again is the other way, and it is not "
+                   "required: a confirmation is not a round "
                    "(.nstack/handbook/05-workflow.md §7).")
     return human_only
 
