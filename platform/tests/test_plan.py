@@ -560,3 +560,77 @@ def test_a_deliverable_state_of_the_wrong_kind_is_not_taken_nor_delivered(tmp_pa
     failed = []
     pull_request.check_cycle(tmp_path, "Deliverable: D1", set(), TODAY, lambda rule, message: failed.append(rule))
     assert "K3" in failed
+
+
+
+# --- D168: a closure reads the decisions whose criterion is due (PDR-0020) -------------------
+
+def decision(root, name: str, criterion: str, status: str = "Accepted", date: str = "2026-09-01") -> None:
+    """A record whose other sections name dates the closure reached: only its criterion is read."""
+    path = root / "docs" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"# {path.stem}\n\n- **Status**: {status}\n- **Date**: {date}\n\n---\n\n## Decision\n\n"
+                    f"Shipped by 2026-09-15.\n\n## Success criterion\n\n{criterion}\n\n## Removal condition\n\n"
+                    "Removed if unused by 2026-09-30.\n", encoding="utf-8")
+
+
+def judged(root) -> str:
+    """What `nstack plan` and `nstack fitness` say, both passing."""
+    import contextlib
+    import io
+
+    from napkinstack import cli
+    said = io.StringIO()
+    with contextlib.redirect_stdout(said):
+        assert plan.run(root) == 0
+        assert cli.main(["fitness", "--root", str(root)]) == 0
+    return said.getvalue()
+
+
+BEFORE = "Observed before 2026-10-01."
+DUE_CASES = {
+    "a date the closure reached": ("adr/0003-x.md", "Observed before **2026-10-01**.", {}, True),
+    "the closure's own day": ("pdr/0001-x.md", "Observed before 2026-10-17.", {}, True),
+    "the cycle named by its file": ("adr/0003-x.md", "Observed by the end of 03-the-window.", {}, True),
+    "the cycle named by its number": ("adr/0003-x.md", "Observed in cycle 3.", {}, True),
+    "read at the closure": ("adr/0003-x.md", f"{BEFORE}\n\nRead at 03-the-window's closure, 2026-10-18: met", {}, False),
+    "read at the closure, the cycle by its number": (
+        "adr/0003-x.md", f"{BEFORE}\n\nRead at cycle 03's closure, 2026-10-26: missed", {}, False),
+    "a reading dated before the closure": (
+        "adr/0003-x.md", f"{BEFORE}\n\nRead at 03-the-window's closure, 2026-10-16: met", {}, True),
+    "a reading of another closure": ("adr/0003-x.md", f"{BEFORE}\n\nRead at 02-other's closure, 2026-10-18: met", {}, True),
+    "a date no closure reached yet": ("adr/0003-x.md", "Observed before 2026-10-18.", {}, False),
+    "no date and no cycle": ("adr/0003-x.md", "Observed when users say so.", {}, False),
+    "a date written otherwise": ("adr/0003-x.md", "Observed before 1 October 2026.", {}, False),
+    "a date only in a comment": ("adr/0003-x.md", "<!-- Observed before 2026-01-01 -->", {}, False),
+    "a superseded record": ("adr/0003-x.md", BEFORE, {"status": "Superseded by ADR-0004"}, False),
+    "a proposed record": ("pdr/0001-x.md", BEFORE, {"status": "Proposed"}, False),
+    "a record dated after the closure": ("adr/0003-x.md", BEFORE, {"date": "2026-10-20"}, False),
+}
+
+
+@pytest.mark.parametrize(("name", "criterion", "header", "warned"), DUE_CASES.values(), ids=DUE_CASES.keys())
+def test_a_closure_is_told_which_decisions_are_due_and_nothing_fails(tmp_path, name, criterion, header, warned):
+    framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": cycle()})
+    decision(tmp_path, name, criterion, **header)
+    said = judged(tmp_path)
+    assert said.count("WARNING [C10]") == (2 if warned else 0), said  # once by plan, once by fitness
+    if warned:
+        assert f"[C10] docs/{name}\n      its success criterion is due at 03-the-window's closure (2026-10-17)" in said
+        assert "\"Read at 03-the-window's closure, <YYYY-MM-DD>: met | missed | superseded\"" in said
+
+
+def test_a_later_date_is_due_again_at_the_closure_that_reaches_it(tmp_path):
+    framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": closed() | {"ended_on": "2026-11-07"}})
+    decision(tmp_path, "adr/0003-x.md", "First by 2026-10-01, then by 2026-11-01.\n\n"
+                                        "Read at 03-the-window's closure, 2026-10-18: met")
+    said = judged(tmp_path)
+    assert "due at 04-next's closure (2026-11-07)" in said and "due at 03-the-window's" not in said, said
+
+
+def test_the_forms_show_the_reading_line_the_rule_reads():
+    root = Path(__file__).resolve().parents[2] / "skeleton" / ".nstack" / "forms"
+    for form in ("pdr.md", "adr.md"):
+        section = plan.CRITERION.search((root / form).read_text(encoding="utf-8"))[1]
+        assert "Read at <cycle>'s closure, <YYYY-MM-DD>: met | missed | superseded" in section, form
+        assert not plan.DAY.search(section), form  # the form itself is never due

@@ -1,8 +1,8 @@
 # PDR-0020 — A closure reads the decisions whose criterion is due
 
 - **Status**: Accepted (2026-10-26, by the agent the maintainer delegated the decision to:
-  *you can decide as an expert*), option A with points 5 to 8 clarified at acceptance; proposed
-  the same day (D167), from #279
+  *you can decide as an expert*), option A with points 5 to 8 clarified at acceptance, built as
+  D168; proposed the same day (D167), from #279
 - **Date**: 2026-10-26
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (the plan's checks), the decision forms, the framing
