@@ -93,9 +93,10 @@ def unplaced(value, root: Path):
     `<root>`, the home folder as `~` (#277). The notes are pushed, and public with the repository;
     a path names a person and their folders. Strings inside lists and mappings too."""
     if isinstance(value, str):
-        for folder, said in ((root.resolve(), "<root>"), (root.absolute(), "<root>"), (Path.home(), "~")):
-            if str(folder) not in ("", "/"):
-                value = re.sub(re.escape(str(folder)) + r"(?![\w.-])", said, value)
+        for folder, said in ((root.resolve(), "<root>"), (root.absolute(), "<root>"),
+                             (Path.home().resolve(), "~"), (Path.home(), "~")):
+            if str(folder) not in ("", "/"):  # a whole folder only: never a neighbour, never inside a longer path
+                value = re.sub(r"(?<![\w.-])" + re.escape(str(folder)) + r"(?=$|[/\s'\"`)\]}>:,;])", said, value)
         return value
     if isinstance(value, list):
         return [unplaced(item, root) for item in value]

@@ -315,8 +315,10 @@ accepted, and enough. A repository with no remote is never refused: nothing trav
 
 **A record is published with the repository**: the notes are pushed, and every step's output
 travels in them. `nstack attest` writes the checkout's root as `<root>` and the home folder as `~`,
-so that no path names the machine that ran it; anything else a step prints — a host name, a
-token a test echoes — travels as printed, and is the step's to keep out. A record an earlier
+whole folders only. Anything else a step prints travels as printed, and is the step's to keep out:
+a host name, a token a test echoes, a user name in a path outside the home — `/tmp/pytest-of-<user>/`
+in a failed test's output. The SHA-256 of each step is of its output as it ran, so it is not
+recomputed from the record. A record an earlier
 version pushed keeps its paths: notes are history, and rewriting them rewrites the evidence
 `pr-check` reads.
 

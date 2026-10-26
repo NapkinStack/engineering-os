@@ -336,11 +336,13 @@ def test_a_record_keeps_no_path_of_the_machine_that_attested(tmp_path, monkeypat
     (root / ".evidence/e2e/audit.json").write_text(json.dumps(
         {"commit": head, "module": "m", "undeclared": [f"{root}/log.jsonl: WARN at {home}/.cache"]}), encoding="utf-8")
     monkeypatch.setattr(attest, "CHECKS", (attest.Check("Paths", (attest.Step(
-        "echo", "say paths", f'echo "Compiling c ($PWD/modules/m)"; echo "ls: {home}/.local/state"; echo "{home}x"'),)),))
+        "echo", "say paths", f'echo "Compiling c ($PWD/modules/m)"; echo "ls: {home}/.local/state"; echo "{home}x"; '
+        f'echo "/srv{home}/data {root}~bak"'),)),))
     attest.run(root, "HEAD", None, "")
     [record] = records(root, head)
     output = record["checks"][0]["steps"][0]["output"]
     assert "Compiling c (<root>/modules/m)" in output and "ls: ~/.local/state" in output
     assert f"{home}x" in output  # a folder whose name only starts like the home is another folder
+    assert f"/srv{home}/data ~/work/project~bak" in output  # inside a longer path: not the home; a neighbour: not the root
     assert record["evidence"][0]["audit"]["undeclared"] == ["<root>/log.jsonl: WARN at ~/.cache"]
-    assert str(home) not in json.dumps(record).replace(f"{home}x", "")
+    assert str(home) not in json.dumps(record).replace(f"{home}x", "").replace(f"/srv{home}/data", "")
