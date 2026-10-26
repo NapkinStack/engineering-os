@@ -596,9 +596,12 @@ DUE_CASES = {
     "read at the closure": ("adr/0003-x.md", f"{BEFORE}\n\nRead at 03-the-window's closure, 2026-10-18: met", {}, False),
     "read at the closure, the cycle by its number": (
         "adr/0003-x.md", f"{BEFORE}\n\nRead at cycle 03's closure, 2026-10-26: missed", {}, False),
+    "read, the cycle in backticks and words after": (
+        "adr/0003-x.md", f"{BEFORE}\n\nRead at `03-the-window`'s closure, 2026-10-18: met; see 04-next", {}, False),
     "a reading dated before the closure": (
-        "adr/0003-x.md", f"{BEFORE}\n\nRead at 03-the-window's closure, 2026-10-16: met", {}, True),
-    "a reading of another closure": ("adr/0003-x.md", f"{BEFORE}\n\nRead at 02-other's closure, 2026-10-18: met", {}, True),
+        "adr/0003-x.md", "Observed before 2026-10-17.\n\nRead at 03-the-window's closure, 2026-10-16: met", {}, True),
+    "a reading of another closure": ("adr/0003-x.md", "By the end of 03-the-window.\n\n"
+                                                      "Read at 02-other's closure, 2026-10-18: met", {}, True),
     "a date no closure reached yet": ("adr/0003-x.md", "Observed before 2026-10-18.", {}, False),
     "no date and no cycle": ("adr/0003-x.md", "Observed when users say so.", {}, False),
     "a date written otherwise": ("adr/0003-x.md", "Observed before 1 October 2026.", {}, False),
@@ -634,3 +637,21 @@ def test_the_forms_show_the_reading_line_the_rule_reads():
         section = plan.CRITERION.search((root / form).read_text(encoding="utf-8"))[1]
         assert "Read at <cycle>'s closure, <YYYY-MM-DD>: met | missed | superseded" in section, form
         assert not plan.DAY.search(section), form  # the form itself is never due
+
+
+def test_a_reading_after_a_date_answers_it_though_the_cycle_named_stopped_before(tmp_path):
+    """A criterion dated by the end its cycle planned, the cycle stopped earlier: read once the date
+    passed, it is never due again — and a record's folder holding what is not a file stops nothing."""
+    framed(tmp_path, cycles={"01-first.md": closed(status="stopped", outcome="reframed") | {"ended_on": "2026-10-13"},
+                             "02-second.md": closed() | {"ended_on": "2026-11-07"}})
+    decision(tmp_path, "adr/0002-x.md", "By the end of cycle 01 (2026-10-27).\n\n"
+                                        "Read at cycle 01's closure, 2026-10-27: missed")
+    (tmp_path / "docs" / "adr" / "0009-folder.md").mkdir()
+    (tmp_path / "docs" / "adr" / "0010-gone.md").symlink_to(tmp_path / "nowhere")
+    assert "WARNING [C10]" not in judged(tmp_path)
+
+
+def test_a_cycle_whose_file_name_holds_a_space_can_be_read(tmp_path):
+    framed(tmp_path, cycles={"03 the window.md": closed()})
+    decision(tmp_path, "adr/0003-x.md", "By the end of 03 the window.\n\nRead at 03 the window's closure, 2026-10-18: met")
+    assert "WARNING [C10]" not in judged(tmp_path)

@@ -519,7 +519,7 @@ def _check_discovery(path: Path, fail) -> str | None:
 
 RECORDS = (Path("docs") / "pdr", Path("docs") / "adr")
 CRITERION = re.compile(r"^## Success criterion[^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
-READING = re.compile(r"Read at (cycle\s+\d+|[\w.-]+)'s closure, (\d{4}-\d{2}-\d{2}): (?:met|missed|superseded)\b", re.I)
+READING = re.compile(r"Read at `?(.+?)`?'s closure, (\d{4}-\d{2}-\d{2}): (?:met|missed|superseded)\b", re.I)
 DAY = re.compile(r"(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d-])")
 NUMBERED = re.compile(r"\bcycle\s+0*(\d+)\b", re.I)
 HEADER = re.compile(r"^[-*\s]*\**(Status|Date)\**\s*:\**\s*(\S+)", re.M | re.I)
@@ -536,8 +536,9 @@ def _due(root: Path, read: list[tuple[Path, dict | None]]) -> list[str]:
     """C10: each accepted decision record whose success criterion is due at a closure and says no
     reading of it (PDR-0020). Only the criterion section is read: a cycle named by its file or as
     *cycle NN*, a date written YYYY-MM-DD. A named cycle is due at its closure; a date at the first
-    closure that reaches it — read once, a later date waits for a later closure. A closure before the
-    record's own date is not one it could be read at. Said, never refused."""
+    closure that reaches it — read once, a later date waits for a later closure, and a reading on or
+    after a date answers it, even at a cycle that stopped before it. A closure before the record's own
+    date is not one it could be read at. Said, never refused."""
     closures = sorted(((ended, path.stem) for path, data in read
                        if data and one_of(data.get("status"), OUTCOMES)
                        and (ended := as_date(data.get("ended_on")))))
@@ -545,23 +546,26 @@ def _due(root: Path, read: list[tuple[Path, dict | None]]) -> list[str]:
         return []
     said = []
     for path in sorted(p for folder in RECORDS if (root / folder).is_dir()
-                       for p in (root / folder).glob("*.md") if p.name != "README.md" and not p.name.startswith("_")):
+                       for p in (root / folder).glob("*.md")
+                       if p.is_file() and p.name != "README.md" and not p.name.startswith("_")):
         text = path.read_text(encoding="utf-8", errors="replace")
         header = {key.lower(): value.strip("*,.") for key, value in HEADER.findall(text.split("\n## ", 1)[0])}
         section = CRITERION.search(text)
         if header.get("status", "").lower() != "accepted" or not section:
             continue
         criterion = re.sub(r"<!--.*?-->", "", section[1], flags=re.S)
-        readings = set(READING.findall(criterion))
-        criterion = READING.sub("", criterion)
+        readings = [(name, day) for name, on in READING.findall(criterion) if (day := as_date(on))]
+        criterion = "\n".join(line for line in criterion.splitlines() if not READING.search(line))
         since = as_date(header.get("date", ""))
         open_ = [(ended, stem) for ended, stem in closures if since is None or ended >= since]
         due = {closure for closure in open_ if _names(criterion, closure[1])}
         for day in filter(None, map(as_date, DAY.findall(criterion))):
-            if reached := next((closure for closure in open_ if closure[0] >= day), None):
+            # A reading on or after the date has seen it pass, at whichever closure it was written.
+            reached = next((closure for closure in open_ if closure[0] >= day), None)
+            if reached and not any(on >= day for _, on in readings):
                 due.add(reached)
         for ended, stem in sorted(due):
-            if not any(_names(name, stem) and (on := as_date(day)) and on >= ended for name, day in readings):
+            if not any(_names(name, stem) and on >= ended for name, on in readings):
                 said.append(f"[C10] {path.relative_to(root)}\n      its success criterion is due at {stem}'s "
                             f"closure ({ended}), and holds no line saying it was read.\n      Action: read it, and "
                             f"write in its success criterion: \"Read at {stem}'s closure, <YYYY-MM-DD>: met | "
