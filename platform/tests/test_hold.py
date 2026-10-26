@@ -802,3 +802,25 @@ def test_another_deliverable_s_branch_is_not_taken_for_this_one(shared, capsys):
     git(alice, "switch", "-q", "-c", "d10-something-else", "origin/main")
     assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
     assert git(shared, "rev-parse", "--verify", "--quiet", "d1-resume-an-interrupted-recording")
+
+
+# --- D165: a hold lasts its cycle (#280) -------------------------------------------------------
+
+@pytest.mark.parametrize("after", ["between two cycles", "under the next cycle"])
+def test_a_hold_ends_with_its_cycle_and_unclaim_says_so(shared, capsys, after):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    cycle = alice / "docs/project/cycles/03-the-window.md"
+    cycle.write_text(CYCLE.replace("status: accepted", "status: closed\noutcome: completed\nended_on: 2026-11-07")
+                     .replace("state: ready", "state: accepted"), encoding="utf-8")
+    if after == "under the next cycle":
+        (alice / "docs/project/cycles/04-next.md").write_text(
+            CYCLE.replace("2026-10-17", "2026-11-08").replace("2026-11-07", "2026-11-29"), encoding="utf-8")
+    git(alice, "add", "-A")
+    git(alice, "commit", "-q", "-m", "closure")
+    capsys.readouterr()
+    assert hold.release(alice, "D1", person="@bob") == 0
+    out = capsys.readouterr().out
+    assert "D1's hold ended with 03-the-window (closed): a hold lasts its cycle, nothing to release" in out, out
+    assert "nstack/hold/03-the-window/D1 is kept, the hold's record" in out, out
+    assert remote_events(shared) == ["claim"]

@@ -445,12 +445,20 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     return 0
 
 
+def _ended(root: Path, ident: str, current: str | None) -> str | None:
+    """Where a hold of an ended cycle is still open: a hold lasts its cycle (#280). Nothing it
+    guarded can be delivered any more, and a new cycle's hold is a branch of its own."""
+    for path in plan.cycle_files(root):
+        status = (plan.read_front_matter(path)[0] or {}).get("status")
+        if path.stem != current and plan.one_of(status, plan.OUTCOMES) and read(root, path.stem, ident).held:
+            return (f"{ident}'s hold ended with {path.stem} ({status}): a hold lasts its cycle, nothing to release. "
+                    f"Its branch {PREFIX}/{path.stem}/{ident} is kept, the hold's record.")
+    return None
+
+
 def release(root: Path, ident: str, session: str | None = None, person: str | None = None) -> int:
     cycle = plan.accepted_cycle(root)
-    if cycle is None:
-        print("FAIL [hold] no accepted cycle: there is no hold to release.")
-        return 1
-    stem = cycle[0].stem
+    stem = cycle[0].stem if cycle else None
     person = _person(root, person)
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character.\n"
@@ -461,9 +469,14 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
     except Unreachable as error:
         print(f"FAIL [hold] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
         return 1
-    current = read(root, stem, ident)
+    current = read(root, stem, ident) if stem else Hold()
     if not current.held:
-        print(f"FAIL [hold] {ident} is not held: nothing to release.")
+        ended = _ended(root, ident, stem)
+        if ended:
+            print(ended)
+            return 0
+        print(f"FAIL [hold] {ident} is not held: nothing to release." if stem else
+              "FAIL [hold] no accepted cycle: there is no hold to release.")
         return 1
     charter = plan.read_front_matter(root / plan.CHARTER)[0] if (root / plan.CHARTER).is_file() else None
     decider = str((charter or {}).get("decider") or "")
@@ -504,7 +517,7 @@ def show(root: Path) -> int:
             continue
         if not found.held:
             lines.append(f"  {ident}  free")
-        elif state not in TAKEABLE:
+        elif not plan.one_of(state, TAKEABLE):
             lines.append(f"  {ident}  ended — {state}; was {said(found)}")
         elif time.time() >= found.worked + days * DAY:
             held, stale = held + 1, stale + 1
