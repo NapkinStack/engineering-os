@@ -435,3 +435,16 @@ def test_a_malformed_record_is_never_kept_from(tmp_path, monkeypatch):
     bad = {**records(root, head)[-1], "checks": 7, "at": "9999"}
     git(root, "notes", f"--ref={attest.NOTES}", "append", "-m", json.dumps(bad), head)
     assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 2
+
+
+def test_an_engine_installed_from_a_path_under_the_home_keeps_its_check(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    root = home / "p"
+    root.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", f"file://{home}/engine@0123456789ab"))
+    attest.run(root, "HEAD", None, "")
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 1

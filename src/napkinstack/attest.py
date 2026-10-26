@@ -230,15 +230,16 @@ NAMED = re.compile(r".* \(commit [0-9a-f]{7,}\)|.*@[0-9a-f]{7,}|a local checkout
 
 
 def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, base_commit: str | None,
-          who: str) -> dict | None:
+          who: str, said: str | None = None) -> dict | None:
     """The check as the commit's record last passed it, when what it reads is the same: the commit,
     the base commit, the engine — published, or one whose commit names its code — and the person who
     ran it. A sheet filled in between changes the description, which this check never reads (#275).
     Not compared: what the tree's ignored files, the environment or the tools outside it hold."""
+    said = origin if said is None else said  # the origin as the record wrote it, its paths unplaced (D162)
     if not check.kept or previous is None or base_commit is None or not (origin is None or NAMED.fullmatch(origin)):
         return None
     if (previous.get("engine"), previous.get("origin"), previous.get("published"), previous.get("base_commit"),
-            previous.get("by")) != (engine, origin, origin is None, base_commit, who):
+            previous.get("by")) != (engine, said, origin is None, base_commit, who):
         return None
     checks = previous.get("checks") if isinstance(previous.get("checks"), list) else []
     found = next((c for c in checks if isinstance(c, dict) and c.get("name") == check.name), None)
@@ -290,7 +291,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
                    NSTACK_ATTESTING=commit)
         for check in CHECKS:
-            kept = _kept(previous, check, engine, origin, base_commit, who)
+            kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root))
             if kept is not None:
                 results.append(kept)
                 print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
