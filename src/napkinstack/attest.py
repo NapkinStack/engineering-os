@@ -46,6 +46,7 @@ class Step:
 class Check:
     name: str  # the CI job's name
     steps: tuple[Step, ...]
+    kept: bool = False  # reads only the tree and the base: a pass on the same commit, base and engine stands (#275)
 
 
 # The project's CI, job by job, as a workstation runs it (skeleton/.github/workflows/). A job or a
@@ -69,7 +70,7 @@ CHECKS: tuple[Check, ...] = (
              'nstack pr-check --root . --base "$NSTACK_BASE" --body-file "$NSTACK_BODY"'),)),
     Check("Module checks", (
         Step("bash .nstack/check-modules.sh", "Every changed module",
-             'BASE="$NSTACK_BASE" bash .nstack/check-modules.sh'),)),
+             'BASE="$NSTACK_BASE" bash .nstack/check-modules.sh'),), kept=True),
 )
 
 
@@ -224,7 +225,21 @@ def why(output: str) -> list[str]:
     return said or [line for line in lines if line.strip()][-REASON:]
 
 
-def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False) -> int:
+def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, base_commit: str | None) -> dict | None:
+    """The check as the commit's record last passed it, when nothing it read can differ: the same
+    commit, the same base commit, the same engine — published, or a checkout with no change of its
+    own. A sheet filled in between changes the description, which this check never reads (#275)."""
+    if not check.kept or previous is None or base_commit is None or "-dirty" in (origin or ""):
+        return None
+    if (previous.get("engine"), previous.get("origin"), previous.get("published"), previous.get("base_commit")) != (
+            engine, origin, origin is None, base_commit):
+        return None
+    found = next((c for c in previous.get("checks") or [] if isinstance(c, dict) and c.get("name") == check.name), None)
+    return {**found, "kept_from": found.get("kept_from") or previous.get("at")} if found and found.get("passed") is True else None
+
+
+def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
+        again: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
     who, address = _identity(root)
     remote = _remote(root)
@@ -250,6 +265,8 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         return 1
     commit = _git(root, "rev-parse", "HEAD").stdout.strip()
     engine, origin = provenance.engine()
+    base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False).stdout.strip() or None
+    previous = None if again else latest(root, commit)
     # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147).
     env = dict(os.environ, PR_LABELS=os.environ.get("PR_LABELS", "") if labels is None else labels)
     # The engine that runs this command runs the checks: its folder first on the path.
@@ -264,6 +281,12 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
                    NSTACK_ATTESTING=commit)
         for check in CHECKS:
+            kept = _kept(previous, check, engine, origin, base_commit)
+            if kept is not None:
+                results.append(kept)
+                print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
+                      "and engine (nstack attest --again runs it)", flush=True)
+                continue
             steps = []
             for step in check.steps:
                 done = subprocess.run(["bash", "-c", step.command], cwd=root, env=env,
@@ -280,8 +303,8 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
                     print("\n".join(f"       {line}" for line in why(step["output"])), flush=True)
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
-              "engine": engine, "published": origin is None, "by": who, "session": _session(root, commit),
-              "base": base, "checks": results, "evidence": evidence_of(root, commit)}
+              "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),
+              "base": base, "base_commit": base_commit, "checks": results, "evidence": evidence_of(root, commit)}
     remote = fetch(root)
     before = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False)
     lines = (before.stdout.rstrip("\n") + "\n" if before.returncode == 0 and before.stdout.strip() else "")

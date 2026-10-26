@@ -347,3 +347,47 @@ def test_a_record_keeps_no_path_of_the_machine_that_attested(tmp_path, monkeypat
     assert f"/srv{home}/data {neighbour}" in output  # inside a longer path: not the home; a neighbour: not the root
     assert record["evidence"][0]["audit"]["undeclared"] == ["<root>/log.jsonl: WARN at ~/.cache"]
     assert str(home) not in json.dumps(record).replace(f"{home}x", "").replace(f"/srv{home}/data", "")
+# --- D166: a passed module check is kept for the same commit, base and engine (#275) ----------
+
+def counted(root: Path) -> tuple[attest.Check, ...]:
+    return (attest.Check("Passes", (attest.Step("echo", "say it", "echo all good"),)),
+            attest.Check("Module checks", (attest.Step("count", "count runs", f"echo run >> {root}/../runs"),), kept=True))
+
+
+def runs(root: Path) -> int:
+    return (root.parent / "runs").read_text().count("run") if (root.parent / "runs").exists() else 0
+
+
+def test_a_passed_module_check_is_kept_for_the_same_commit_base_and_engine(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 1
+    first = records(root, head)[0]["at"]
+    capsys.readouterr()
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 1
+    kept = records(root, head)[-1]["checks"][1]
+    assert kept["passed"] and kept["kept_from"] == first, kept
+    assert f"ok   [attest] Module checks: kept from the record of {first}" in capsys.readouterr().out
+    assert attest.run(root, "HEAD", None, "", again=True) == 0 and runs(root) == 2
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.1", None))
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 3
+
+
+@pytest.mark.parametrize("change", ["the base", "a failure", "an engine from a dirty checkout"])
+def test_a_module_check_runs_again_when_anything_it_read_may_differ(tmp_path, monkeypatch, change):
+    root = tmp_path / "p"
+    root.mkdir()
+    project(root)
+    git(root, "commit", "-q", "--allow-empty", "-m", "second\n\nAgent-Session: a-session")
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    origin = "a local checkout at v0.17.0-dirty" if change.startswith("an engine") else None
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", origin))
+    if change == "a failure":
+        monkeypatch.setattr(attest, "CHECKS", (attest.Check("Module checks", (attest.Step(
+            "count", "count runs", f"echo run >> {root}/../runs; false"),), kept=True),))
+    attest.run(root, "HEAD~1", None, "")
+    attest.run(root, "HEAD" if change == "the base" else "HEAD~1", None, "")
+    assert runs(root) == 2
