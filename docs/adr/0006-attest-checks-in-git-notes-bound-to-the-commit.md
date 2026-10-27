@@ -2,7 +2,8 @@
 
 - **Status**: Accepted (2026-10-20, by the maintainer, approving #196); built in D129.
   **Clarified 2026-10-26 (D166, #275)**: a passed module check is kept for the same commit, base
-  and engine — decisions 2 and 3
+  and engine — decisions 2 and 3. **Clarified 2026-10-27 (D173, #295)**: an output over the cap
+  is cut log group by log group, so that each module keeps its own results — decision 3
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier
@@ -75,7 +76,9 @@ the workflows, and without a forge being required.
    version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the
    head's commit when there is one, and per check its name, commands, exit codes and output —
    each output capped at 64 KiB, head and tail kept and the cut said, with the SHA-256 of the
-   whole. A check kept from an earlier run carries `kept_from`, that run's time. The latest line for
+   whole. *Clarified (D173)*: an output with log groups — `Module checks` prints one per module —
+   is cut within each group, a quarter from its head and the rest from its tail, the room a small
+   group leaves going to the others; one cut across the whole hid the middle module's results. A check kept from an earlier run carries `kept_from`, that run's time. The latest line for
    a commit is its record.
 4. **Its travel.** `nstack attest` pushes the notes ref to the branch's remote when there is one,
    fetching and merging it first with `cat_sort_uniq`; no remote, it says the record is local.

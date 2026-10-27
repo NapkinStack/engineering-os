@@ -78,15 +78,35 @@ def _git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProc
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=check)
 
 
+MARK = 48  # bytes a cut's mark may take: `[… N bytes cut …]` and its newlines
+
+
+def _cut(data: bytes, room: int) -> str:
+    """Whole up to room bytes, else a quarter of it from the head, the rest from the tail."""
+    if len(data) <= room:
+        return data.decode("utf-8", "ignore")
+    head = max(room - MARK, 0) // 4
+    tail = max(room - MARK, 0) - head
+    return (data[:head].decode("utf-8", "ignore") + f"\n[… {len(data) - head - tail} bytes cut …]\n"
+            + (data[-tail:].decode("utf-8", "ignore") if tail else ""))
+
+
 def capped(text: str) -> str:
-    """A step's output as the record keeps it: whole up to KEPT bytes, else its head and its tail."""
+    """A step's output as the record keeps it: whole up to KEPT bytes, else cut log group by log
+    group — one per module in Module checks — so that each keeps its commands and its results,
+    the room a small one leaves going to the others (#295). No group: one head and one tail."""
     data = text.encode("utf-8", "replace")
     if len(data) <= KEPT:
         return text
-    half = KEPT // 2
-    cut = len(data) - KEPT
-    return (data[:half].decode("utf-8", "ignore") + f"\n[… {cut} bytes cut …]\n"
-            + data[-half:].decode("utf-8", "ignore"))
+    starts = [found.start() for found in re.finditer(rb"^::group::", data, re.M)]
+    bounds = [0, *(start for start in starts if start), len(data)]
+    parts = [data[start:end] for start, end in zip(bounds, bounds[1:])]
+    room, given = KEPT, {}
+    for index in sorted(range(len(parts)), key=lambda index: len(parts[index])):
+        share = room // (len(parts) - len(given))
+        given[index] = min(len(parts[index]), share)
+        room -= given[index]
+    return "".join(_cut(part, given[index]) for index, part in enumerate(parts))
 
 
 def unplaced(value, root: Path):
