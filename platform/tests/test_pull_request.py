@@ -105,6 +105,13 @@ SHEET_CASES = {
     "T4 an explored scenario confirmed at the head passes": (
         USER_FACING, sheet((*EXPLORED_OLD, "{head} — only modules/login/src/page.txt changed since"),
                            confirmed=True), "Pull request rules: compliant.", 0),
+    # A second confirmation joins the first: each clause of the cell starts with its commit (#288).
+    "T4 the head confirmed after an earlier confirmation passes": (
+        USER_FACING, sheet((*EXPLORED_OLD, f"{OLD} — the first fix; {{head}} — the default branch merged in"),
+                           confirmed=True), "Pull request rules: compliant.", 0),
+    "T4 the head named inside a clause is no confirmation": (
+        USER_FACING, sheet((*EXPLORED_OLD, f"{OLD} — read again at {{head}}"), confirmed=True),
+        "not confirmed on it: S2", 1),
     "T4 an explored scenario with no confirmation is refused": (
         USER_FACING, sheet(EXPLORED_OLD), "add the head commit in a Confirmed column", 1),
     # At `critical` nothing stands in for a re-run. That is the rerun_at_head row of the matrix,
