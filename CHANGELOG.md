@@ -37,7 +37,7 @@ This version holds eight workstreams, each from an issue the third project raise
 
 D161 and D167 change only this repository: the register's open table, and PDR-0020 accepted.
 
-It is a minor version because the engine does more: a new rule, C10, that only warns; `attest --again`; the e2e lock. Nothing that passed under v0.17.0 fails under it.
+It is a minor version because the engine does more: a new rule, C10, that only warns; `attest --again`; the e2e lock. Its own changes turn nothing red; the e2e audit's judgement, announced by v0.17.0, reaches the projects it named (see Migration).
 
 **In the engine**
 
@@ -92,7 +92,11 @@ It is a minor version because the engine does more: a new rule, C10, that only w
 **Migration**
 
 - **Records a closure left unread now show a C10 warning,** one per record and closure. Read each, then write its line under the criterion. Nothing turns red. A reading written elsewhere in the record, or in another shape, is not read: the line is the record's one addition (PDR-0020).
-- **The e2e audit now judges a silent run** for a project made at v0.17, and for one that jumped to v0.17 from v0.14 or earlier, as v0.17.0 announced. Apply v0.16.0's migration to each module that declares `evidence.provoked` before taking it.
+- **The e2e audit now judges** a project made at v0.17, and one that jumped to v0.17 from v0.14 or earlier, as v0.17.0 announced, starting with the update's own pull request. Both of its judgements apply there:
+  - **the audit itself:** an undeclared error in a run's logs fails it, and an undeclared warning too from criticality `high`;
+  - **a silent run:** a run the audit read no log of fails it.
+
+  Before taking v0.18.0, run `nstack e2e` on v0.17.0 and read what its audit reports. Declare in `evidence.provoked` each line a scenario provokes on purpose, and apply v0.16.0's migration to each module that declares it.
 
 ---
 
