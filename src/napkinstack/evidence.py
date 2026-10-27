@@ -9,6 +9,8 @@ version that brings the audit only reports; the project's next minor version jud
 
 from __future__ import annotations
 
+import contextlib
+import datetime
 import json
 import os
 import re
@@ -16,6 +18,7 @@ import select
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -260,6 +263,53 @@ def prepare(root: Path, module: Path) -> Path | str:
             return f"{path.relative_to(root)} cannot be removed ({error.strerror}).\n      Action: remove it, then run again."
     (folder / ".running").write_text(str(os.getpid()), encoding="utf-8")
     return folder
+
+
+HELD = "NSTACK_E2E_HELD"  # set for what the run starts: an e2e inside an e2e waits for nothing
+
+
+@contextlib.contextmanager
+def one_at_a_time(root: Path, target: str):
+    """One e2e at a time on this machine, for this user, whichever project or command starts it —
+    `nstack e2e`, or `nstack attest` through it: what an end-to-end run drives (a sound server, a
+    display, a port) is the machine's, and two runs reading it see each other's (#287). An advisory
+    lock, `flock(2)`, released by the system when the holder exits however it exits; the one that
+    waits says for whom."""
+    try:
+        import fcntl
+    except ImportError:  # no flock on this system: the runs are not kept apart
+        yield
+        return
+    if os.environ.get(HELD):
+        yield
+        return
+    folder = os.environ.get("XDG_RUNTIME_DIR")
+    path = Path(folder) / "nstack-e2e.lock" if folder else Path(tempfile.gettempdir()) / f"nstack-e2e-{os.getuid()}.lock"
+    try:  # never through a link: in a shared temporary folder, another user could have placed one
+        descriptor = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    except OSError as error:
+        print(f"-> {target}: not kept apart from another end-to-end run: {path} cannot be opened ({error.strerror})",
+              flush=True)
+        yield
+        return
+    with open(descriptor, "r+", encoding="utf-8") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            handle.seek(0)
+            holder = handle.read().strip() or "another run"
+            print(f"-> {target}: waits for the end-to-end run already on this machine — {holder}", flush=True)
+            fcntl.flock(handle, fcntl.LOCK_EX)
+        handle.seek(0)
+        handle.truncate()
+        started = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+        handle.write(f"{target}, in {root.resolve()}, process {os.getpid()}, since {started}\n")
+        handle.flush()
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            handle.truncate()
 
 
 def run(command: str, cwd: Path, environment: dict, folder: Path) -> tuple[int, str | None]:

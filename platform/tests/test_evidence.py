@@ -428,3 +428,62 @@ def test_a_command_that_crashed_is_blamed_for_its_exit_never_for_its_logs(tmp_pa
     assert modules.run_verb(root, "e2e", "capture") == 3
     out = capsys.readouterr().out
     assert "exited with 3" in out and "wrote no log where nstack reads them —" not in out
+
+
+# --- one end-to-end run at a time on a machine (#287) ----------------------------------------
+
+def test_a_second_e2e_waits_for_the_first_and_says_for_whom(tmp_path, monkeypatch, judging, capsys):
+    """Another run holds the machine's lock — another project, another session: this one waits, says
+    so, and starts once it ends. What the run starts inherits the lock instead of waiting on it."""
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "import os, pathlib, time\n"
+                                 "print('held by', os.environ.get('NSTACK_E2E_HELD'), 'at', time.time(), flush=True)\n")
+    holder = subprocess.Popen([sys.executable, "-c",
+                               "import fcntl, sys, time\n"
+                               "lock = open(sys.argv[1], 'a+')\n"
+                               "fcntl.flock(lock, fcntl.LOCK_EX)\n"
+                               "lock.write('shell, in /elsewhere, process 1, since then\\n'); lock.flush()\n"
+                               "print('held', flush=True)\n"
+                               "time.sleep(1.5)\n"
+                               "print(time.time(), flush=True)\n",
+                               str(runtime / "nstack-e2e.lock")], stdout=subprocess.PIPE, text=True)
+    assert holder.stdout.readline().strip() == "held"
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    released = float(holder.stdout.readline())
+    holder.wait()
+    said = capsys.readouterr().out
+    assert ("-> capture: waits for the end-to-end run already on this machine — "
+            "shell, in /elsewhere, process 1, since then") in said, said
+    started = float(said.split("held by 1 at ", 1)[1].split()[0])
+    assert started >= released, said
+    assert (runtime / "nstack-e2e.lock").read_text(encoding="utf-8") == ""  # nobody holds it now
+
+
+def test_an_e2e_started_by_an_e2e_does_not_wait_for_its_parent(tmp_path, monkeypatch, judging, capsys):
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.setenv(evidence.HELD, "1")
+    root = e2e_project(tmp_path, "print('ok')\n")
+    import fcntl
+    with open(runtime / "nstack-e2e.lock", "a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        assert modules.run_verb(root, "e2e", "capture") == 0
+    assert "waits for" not in capsys.readouterr().out
+
+
+def test_the_lock_is_never_opened_through_a_link(tmp_path, monkeypatch, judging, capsys):
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    victim = tmp_path / "victim.txt"
+    victim.write_text("kept\n", encoding="utf-8")
+    (runtime / "nstack-e2e.lock").symlink_to(victim)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "print('ok')\n")
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    assert victim.read_text(encoding="utf-8") == "kept\n"
+    assert "not kept apart from another end-to-end run" in capsys.readouterr().out
