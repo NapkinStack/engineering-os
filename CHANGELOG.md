@@ -22,6 +22,37 @@ a patch.
 
 ---
 
+## v0.18.1 — 2026-10-27
+
+Three workstreams, D171 to D173; D173 was found by the third project.
+
+This is a patch version: it turns no green project red.
+
+**In the engine**
+
+- **An attested record keeps each module's results** (D173, #295). `nstack attest` keeps 64 KiB of a step's output, and `Module checks` is one step for every module: one cut across the whole fell inside the middle module, its build and its `test result:` lines with it.
+  - An output over the cap is now cut within each log group the module script prints, one per module: a quarter from the group's head, its commands, and the rest from its tail, its results.
+  - The room a small group leaves goes to the others; a small module is kept whole.
+  - The cap, the hash of the whole and the record's format are unchanged. An output with no group keeps its head and tail, the tail now the larger part.
+- **The command help** names what v0.18.0 added (D171): `manifests` M1-M12, `pr-check` A1-A2 and C9, `release` empties `dist/<module>` first, `unclaim` on a closed cycle's hold.
+
+D172 changes only this repository: a test fails when a rule of the rules' page is named by no test.
+
+**In your project** — 9 files, the docs read against the code after v0.18.0 (D171)
+
+- **`.nstack/handbook/06-decisions.md`**: an overdue review is warned of at each cycle's closure (C10), not at a quarterly ritual; the review's diagram says *Met* and *Missed*.
+- **`.nstack/handbook/10-measurement.md`**: the decision review is at each cycle's closure, as C10 names them, read in one line: *met · missed · superseded*.
+- **`.nstack/handbook/RULES.md`**: the pull request's rules in the diagram include A and C9.
+- **`.nstack/handbook/project.md`**: the pull request check row names C9.
+- **`.nstack/handbook/glossary.md`**: a new row, *Reading · met · missed · superseded*; a hold lasts its cycle.
+- **`.nstack/handbook/INSTALL.md`**: `nstack plan` shows the decisions due at a closure; `nstack e2e` runs one at a time on a machine.
+- **`.github/pull_request_template.md`**, **`.nstack/playbooks/verification.md`**: a second confirmation goes after a `;`.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**: nothing to do.
+
+---
+
 ## v0.18.0 — 2026-10-27
 
 This version holds eight workstreams, each from an issue the third project raised or a decision taken on one:
