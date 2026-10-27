@@ -107,3 +107,15 @@ def test_every_page_a_message_or_a_file_names_exists() -> None:
     stale = [f"{path.relative_to(ROOT)}" for path, text in texts if path.name != "project.py"
              and re.search(r"(?<![\w./-])docs/os/|(?<![\w./-])playbooks/[a-z-]+\.md|_TEMPLATE\.md", text)]
     assert not stale, f"old addresses still written in: {sorted(set(stale))}"
+
+
+def test_every_rule_is_named_by_a_test() -> None:
+    """P5, every check has a test that proves it fails, kept from drifting: a rule added to the
+    page and the engine with no test naming it fails here (D172). Naming is the floor, not the
+    proof — the test that names it is where the failure is seen."""
+    defined = set(re.findall(rf"^\| `({CODE})` \|", RULES.read_text(encoding="utf-8"), re.M))
+    tests = [path for path in sorted((ROOT / "platform/tests").iterdir())
+             if path.suffix in {".py", ".sh"} and path.name != Path(__file__).name]
+    text = "\n".join(path.read_text(encoding="utf-8") for path in tests)
+    unnamed = sorted(code for code in defined if not re.search(rf"\b{code}\b", text))
+    assert not unnamed, f"rules no test names: {unnamed}"
