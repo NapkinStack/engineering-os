@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nstack", description="NapkinStack engine.")
     parser.add_argument("--version", action=_Version, nargs=0, help="the engine's version, and where it came from")
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
-    _add(sub, "manifests", "manifests, lifecycles, deprecations, what a release assembles (M1-M11)",
+    _add(sub, "manifests", "manifests, lifecycles, deprecations, what a release assembles, evidence (M1-M12)",
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph, release artefacts included (B1-B9)",
          lambda a: boundaries.run(a.root))
@@ -143,7 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: compat.run(a.root, a.module, a.base))
     cp.add_argument("module", nargs="?", help="module holding the contracts (default: all)")
     cp.add_argument("--base", default="origin/main")
-    rl = _add(sub, "release", "makes one module's artefacts, or all of them, each into dist/<module> "
+    rl = _add(sub, "release", "makes one module's artefacts, or all of them, each into dist/<module>, emptied first "
                               "(commands.release), with what follows a named module passed to it",
               lambda a: _release(a))
     rl.add_argument("module", nargs="?", help="module name (default: all, each after what it assembles)")
@@ -165,7 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: modules.create_contract(a.root, a.name, a.owner))
     nc.add_argument("name", help="the contract's name, kebab-case")
     nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
-    pc = _add(sub, "pr-check", "test sheet and cycle, read from the pull request description (T1-T5, K1-K5)",
+    pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C9)",
               lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
@@ -191,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
                     help="take a hold nobody has worked on for hold_days — recorded, with its previous holder")
-    rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale",
+    rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale; a closed cycle's hold has ended",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
     rs.add_argument("--session", help="the agent's session, written on the release")
