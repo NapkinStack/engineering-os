@@ -285,7 +285,14 @@ def one_at_a_time(root: Path, target: str):
         return
     folder = os.environ.get("XDG_RUNTIME_DIR")
     path = Path(folder) / "nstack-e2e.lock" if folder else Path(tempfile.gettempdir()) / f"nstack-e2e-{os.getuid()}.lock"
-    with open(path, "a+", encoding="utf-8") as handle:
+    try:  # never through a link: in a shared temporary folder, another user could have placed one
+        descriptor = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    except OSError as error:
+        print(f"-> {target}: not kept apart from another end-to-end run: {path} cannot be opened ({error.strerror})",
+              flush=True)
+        yield
+        return
+    with open(descriptor, "r+", encoding="utf-8") as handle:
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:

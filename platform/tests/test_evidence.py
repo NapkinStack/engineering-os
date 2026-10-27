@@ -473,3 +473,17 @@ def test_an_e2e_started_by_an_e2e_does_not_wait_for_its_parent(tmp_path, monkeyp
         fcntl.flock(lock, fcntl.LOCK_EX)
         assert modules.run_verb(root, "e2e", "capture") == 0
     assert "waits for" not in capsys.readouterr().out
+
+
+def test_the_lock_is_never_opened_through_a_link(tmp_path, monkeypatch, judging, capsys):
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    victim = tmp_path / "victim.txt"
+    victim.write_text("kept\n", encoding="utf-8")
+    (runtime / "nstack-e2e.lock").symlink_to(victim)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "print('ok')\n")
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    assert victim.read_text(encoding="utf-8") == "kept\n"
+    assert "not kept apart from another end-to-end run" in capsys.readouterr().out
