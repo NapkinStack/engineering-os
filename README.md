@@ -96,16 +96,16 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
-| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures; then the project across its cycles, and who holds what |
+| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures, and the decisions due at a closure; then the project across its cycles, and who holds what |
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene — each also runs alone: `manifests`, `boundaries`, `skills`, `plan`, `hygiene` |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
-| `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared |
+| `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared — one run at a time on a machine |
 | `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
 | `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
-| `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks` |
+| `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks`; attesting the same commit again keeps the module checks it passed (`--again` runs them) |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
 | `nstack update [--session <id>] [--forge <name>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer; `--forge` moves the project to another forge, its own lines kept |
 
