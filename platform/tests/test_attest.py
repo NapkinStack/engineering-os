@@ -153,6 +153,37 @@ def test_the_output_kept_is_capped_and_its_whole_is_hashed():
     assert kept.startswith("x") and kept.endswith("x")
 
 
+def module(name: str, noise: int, result: str) -> str:
+    """A module's log group as check-modules.sh prints it: its commands, the build's noise, its results."""
+    return (f"::group::{name}\nCriticality: standard\n-> {name}: cargo test --locked\n"
+            + "   Compiling some-crate v1.0.0\n" * noise + f"test result: {result}\ne2e: passed\n::endgroup::\n")
+
+
+def test_each_module_keeps_its_own_results_when_the_output_is_cut():
+    # The third project's record of a contract change: one cut across the whole lost the middle module's results (#295).
+    names = ("capture", "platform", "shell", "transcription", "contracts")
+    noise = (700, 30, 2000, 700, 60)
+    text = "".join(module(name, n, f"ok. {name} passed") for name, n in zip(names, noise))
+    text += "Every changed module passed.\n"
+    assert len(text.encode()) > attest.KEPT * 1.5
+    kept = attest.capped(text)
+    assert len(kept.encode()) <= attest.KEPT
+    for name in names:
+        assert f"::group::{name}\n" in kept and f"-> {name}: cargo test" in kept
+        assert f"test result: ok. {name} passed\ne2e: passed\n::endgroup::" in kept
+    assert kept.endswith("Every changed module passed.\n")
+    assert module("platform", 30, "ok. platform passed") in kept  # a small module, whole
+    assert kept.count("bytes cut") == 3
+
+
+def test_one_large_module_leaves_the_others_whole():
+    text = module("small", 10, "ok. small") + module("large", 20000, "ok. large") + module("tiny", 1, "ok. tiny")
+    kept = attest.capped(text)
+    assert len(kept.encode()) <= attest.KEPT
+    assert module("small", 10, "ok. small") in kept and module("tiny", 1, "ok. tiny") in kept
+    assert "test result: ok. large" in kept and kept.count("bytes cut") == 1
+
+
 # --- the decider's word, read by pr-check (rules A1, A2) ------------------------------------
 
 from napkinstack import pull_request  # noqa: E402
