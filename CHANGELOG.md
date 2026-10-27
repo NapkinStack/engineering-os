@@ -22,6 +22,84 @@ a patch.
 
 ---
 
+## v0.18.0 — 2026-10-27
+
+This version holds eight workstreams, each from an issue the third project raised or a decision taken on one:
+
+- **D162**: an attested record names no path of the machine that ran it (#277).
+- **D163**: `nstack release` says what it empties (#276).
+- **D164**: where approval is waived, the decider's word quoted stands for it (#278).
+- **D165**: a hold lasts its cycle, and `unclaim` says so (#280).
+- **D166**: `attest` keeps a passed module check for the same commit, base and engine (#275).
+- **D168**: a closure is told which decisions are due, rule C10 (PDR-0020, #279).
+- **D169**: T4 reads every confirmation in a Confirmed cell (#288).
+- **D170**: one end-to-end run at a time on a machine (#287).
+
+D161 and D167 change only this repository: the register's open table, and PDR-0020 accepted.
+
+It is a minor version because the engine does more: a new rule, C10, that only warns; `attest --again`; the e2e lock. Its own changes turn nothing red; the e2e audit's judgement, announced by v0.17.0, reaches the projects it named (see Migration).
+
+**In the engine**
+
+- **A closure is told which decisions are due** (D168, PDR-0020). Rule C10 is a warning of the plan, shown by `nstack plan`, `nstack fitness` and CI, and it never fails anything.
+  - **When a record is due.** An accepted record of `docs/pdr/` or `docs/adr/` is due at a closed or stopped cycle's closure when its success criterion section names the cycle (by its file, `03-the-window`, or as *cycle 03*), or names a `YYYY-MM-DD` date that the cycle's `ended_on` reached.
+  - **Which closure.** A date is due at the first closure that reaches it. A reading dated on or after a date answers it. A closure before the record's own date is not one it could be read at.
+  - **What clears it.** One line under the criterion, dated on or after the closure:
+
+    ```
+    Read at 03-the-window's closure, 2026-10-27: met
+    ```
+
+    Only the criterion section is read. Comments and the reading lines themselves are not read for dates.
+- **`nstack attest` keeps a passed module check** (D166, #275). It keeps it when it attests the same commit again, typically after the verifier filled the sheet, with the same base commit, the same person, and the same engine — published, or named by a commit with no change of its own.
+  - A kept check says where it comes from (`kept_from`) and carries that run's evidence.
+  - `nstack attest --again` runs every check.
+  - An untracked file now marks a local engine `-dirty`, in every judging command's first line too.
+- **A record names no path of the machine that ran it** (D162, #277). Every string of an attested record is written with the checkout's root as `<root>` and the home folder as `~`, whole folders only. Records already pushed keep their paths.
+- **`nstack release` says what it empties** (D163, #276). Before emptying `dist/<module>`, it names the files it removes:
+
+  ```
+  -> install: dist/install emptied first, 6 files: a, b, c, d, e, and 1 more
+  ```
+
+- **`nstack unclaim` on a hold of an ended cycle** (D165, #280) says that the hold ended with its cycle, and exits 0. It writes no event, and the branch is kept as the hold's record.
+- **T4 reads every confirmation** (D169, #288). Each clause of a Confirmed cell, separated by `;`, starts with the commit it confirms. The head at the start of any clause confirms the scenario.
+- **One end-to-end run at a time on a machine** (D170, #287). `nstack e2e`, and `nstack attest` through it, take an advisory lock, `flock(2)`, in `$XDG_RUNTIME_DIR`, else in the temporary folder, per user.
+  - A second run waits, and says which module, folder and process holds the lock.
+  - One lock per machine and user, whichever project started the run: what an e2e drives is the machine's.
+
+**In your project** — 11 files
+
+- **`.nstack/forms/pdr.md`, `.nstack/forms/adr.md`**: the reading line, commented, under the success criterion (D168).
+- **`.nstack/playbooks/framing.md`**:
+  - §3: where the project's rules waive approval, the decider's word quoted in the page it accepts stands for it (D164).
+  - *Decisions*: the closure reads what C10 names (D168).
+
+  Run `nstack skills` afterwards so that the framing skill says it too.
+- **`.nstack/handbook/06-decisions.md`** §6: the decision loop's review happens at each closure (D168).
+- **`.nstack/handbook/05-workflow.md`** §7: a later confirmation joins an earlier one, after a `;` (D169).
+- **`.nstack/handbook/07-governance.md`**:
+  - a record is published with the repository, and what `attest` replaces in it (D162);
+  - what `attest` keeps, and `--again` (D166).
+- **`.nstack/handbook/09-platform.md`**:
+  - what `release` empties, and one release for two packages from one checkout (D163);
+  - one e2e at a time (D170).
+- **`.nstack/handbook/project.md`**: *A hold lasts its cycle* (D165), and C10 in the plan's row (D168).
+- **`.nstack/handbook/RULES.md`**: C10's row.
+- **`.nstack/handbook/INSTALL.md`**: the holds ruleset keeps a hold's branch (D165), and `attest` keeps a passed check (D166).
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **Records a closure left unread now show a C10 warning,** one per record and closure. Read each, then write its line under the criterion. Nothing turns red. A reading written elsewhere in the record, or in another shape, is not read: the line is the record's one addition (PDR-0020).
+- **The e2e audit now judges** a project made at v0.17, and one that jumped to v0.17 from v0.14 or earlier, as v0.17.0 announced, starting with the update's own pull request. Both of its judgements apply there:
+  - **the audit itself:** an undeclared error in a run's logs fails it, and an undeclared warning too from criticality `high`;
+  - **a silent run:** a run the audit read no log of fails it.
+
+  Before taking v0.18.0, run `nstack e2e` on v0.17.0 and read what its audit reports. Declare in `evidence.provoked` each line a scenario provokes on purpose, and apply v0.16.0's migration to each module that declares it.
+
+---
+
 ## v0.17.0 — 2026-10-25
 
 This version holds five workstreams, asked by the maintainer or found by an independent verifier:
