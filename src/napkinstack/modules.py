@@ -388,14 +388,15 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             # Its evidence: a folder of its own, its output kept, its logs read after (ADR-0009).
             from napkinstack import evidence
 
-            folder = evidence.prepare(root, known[target])
-            if isinstance(folder, str):
-                print(f"FAIL [e2e] module '{target}': {folder}")
-                return 1
-            print(f"-> {target}: {command}", flush=True)
-            code, held = evidence.run(command, known[target], {**os.environ, "NSTACK_EVIDENCE": str(folder.resolve())},
-                                      folder)
-            passed = evidence.finish(root, target, known[target], folder, code, held)
+            with evidence.one_at_a_time(root, target):
+                folder = evidence.prepare(root, known[target])
+                if isinstance(folder, str):
+                    print(f"FAIL [e2e] module '{target}': {folder}")
+                    return 1
+                print(f"-> {target}: {command}", flush=True)
+                code, held = evidence.run(command, known[target], {**os.environ, evidence.HELD: "1",
+                                                                   "NSTACK_EVIDENCE": str(folder.resolve())}, folder)
+                passed = evidence.finish(root, target, known[target], folder, code, held)
             if code == evidence.NOT_RUN and passed:
                 print(f"-> {target}: e2e not run here: its output says why, in {folder.relative_to(root)}/output.txt.")
                 continue
