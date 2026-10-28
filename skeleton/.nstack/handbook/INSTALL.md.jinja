@@ -99,6 +99,10 @@ nstack update                            # branch nstack/update-vX.Y.Z, merged a
 {% if forge == "none" %}nstack attest                            # then merge it as the project merges its changes{% else %}git push -u origin nstack/update-vX.Y.Z  # then the PR, validated by {{ ci }}{% endif %}
 ```
 
+A version published minutes ago may not be served yet: PyPI's CDN can list the previous ones for a
+few minutes, and `--refresh-package` clears only uv's own cache. *No version of napkinstack==X.Y.Z*
+right after a release means wait a few minutes, then run the same command again.
+
 An agent passes its session — `nstack update --session <its identifier>` — and the commit
 carries the trailer every commit of an agent carries (`AGENTS.md`, *Identity*).
 
