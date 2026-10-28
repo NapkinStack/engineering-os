@@ -370,6 +370,10 @@ The forge does the sorting, path by path:
   a second contributor's agent works under an identity of its own; `doctor` says so while the
   history shows a single agent identity.
 
+**Where the forge cannot guard** — a private repository on a plan that enforces no ruleset —
+neither answer is enforced: the code owners file only asks for reviews, and `doctor` says
+*unguarded*. Who approves is then the team's rule, kept by the people, as every rule there is.
+
 Whether the answer holds is read on what escapes: a defect found within 30 days of a merge,
 which the bug form ties to its pull request (`10-measurement.md`). GitHub counts an App's approval
 toward the required ones once the App may write contents, never on a pull request it opened — as
