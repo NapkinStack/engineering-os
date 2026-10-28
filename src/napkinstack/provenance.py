@@ -135,4 +135,4 @@ def behind(root: Path) -> str | None:
         return None
     return (f"This workstation runs nstack {version}; the project is on {project}. A command it names "
             "may not exist here, and a verdict given here is not CI's.\n"
-            f'      Action: uv tool install "napkinstack=={wanted}" --with-executables-from pre-commit')
+            f'      Action: uv tool install "napkinstack=={wanted}" --refresh-package napkinstack --with-executables-from pre-commit')
