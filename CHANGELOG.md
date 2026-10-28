@@ -22,6 +22,29 @@ a patch.
 
 ---
 
+## v0.19.3 — 2026-10-28
+
+One workstream, D180: a review of the whole after v0.19.2 found pages written before `approval: agent` that still said a human always approves.
+
+This is a patch version: it changes no behaviour, and turns no green project red.
+
+**In the engine**: nothing.
+
+**In your project** — 6 files, text only
+
+- **`AGENTS.md`**: on `approval: agent`, an agent approves another contributor's change to a `prototype` or `standard` module as its verifier — or, where no sheet is owed, its reviewer — saying in the approval its session and what it is expert in. It named the verifier alone.
+- **`.nstack/handbook/07-governance.md`**:
+  - the table's agent identity and default code owner rows, and §7's point 2, are qualified by the answer;
+  - §7 lists every path kept for a human on `agent`, as `doctor` reads them: `CONTRIBUTING.md`, `SECURITY.md`, the code owners file and the hooks' configuration were missing.
+- **`.nstack/handbook/05-workflow.md`**: who approves is a human code owner — or, on `agent`, another contributor's agent for a `prototype` or `standard` module. It said *the same for every project*.
+- **`.nstack/handbook/09-platform.md`**, **`.nstack/tooling-profile.md`**: changes arrive *behind the approval the project asks for*, not *a human approval*.
+- **`.nstack/handbook/RULES.md`**: GitHub's checklist has twenty-one lines, G21 among them.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**: nothing to do.
+
+---
+
 ## v0.19.2 — 2026-10-28
 
 Three workstreams, D177 to D179, from the third project's first day on v0.19, before its colleagues' agents join it.
