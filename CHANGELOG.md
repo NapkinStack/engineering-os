@@ -22,6 +22,43 @@ a patch.
 
 ---
 
+## v0.19.2 — 2026-10-28
+
+Three workstreams, D177 to D179, from the third project's first day on v0.19, before its colleagues' agents join it.
+
+This is a patch version: it turns no green project red.
+
+**In the engine**
+
+- **`nstack doctor` says when no second agent identity can approve** (D178, #304). On `approval: agent`, L6 says, as information, how many agent identities the recent history shows when there are fewer than two. Until another contributor's agent works under an identity of its own, every change waits for a human: an identity never approves what it pushed.
+
+**In your project** — 5 files on `approval: human`; on `agent`, the code owners file's comment too
+
+- **`CONTRIBUTING.md`**: a new first section, *Joining the project* (D179). Its seven steps point to where each is said in full:
+  1. access;
+  2. the engine at the project's version, and the hooks;
+  3. the agent's identity — whose act it is, the session's name, one per contributor on `agent`;
+  4. `doctor`, its forge part the decider's;
+  5. `plan`;
+  6. who approves;
+  7. a friction reported, a private project kept out of the framework's public tracker.
+
+  `claim` is shown with `--person` and `--session`.
+- **`AGENTS.md`**: an agent approves a pull request only on `approval: agent`, as the verifier of another contributor's change to a `prototype` or `standard` module (D179). It said *never*.
+- **`.nstack/handbook/07-governance.md`** §7 (D178, D179):
+  - on `agent`, a change to a `prototype` or `standard` module is approved by a human **or** another contributor's agent;
+  - the answer changes nothing until a second agent identity exists;
+  - where the forge cannot guard, neither answer is enforced.
+- **`.nstack/handbook/INSTALL.md`** (D177, D179):
+  - a version published minutes ago may not be served yet by PyPI's CDN: wait, then run the command again;
+  - the agents' App checklist asks for one App per contributor's agent on `agent`.
+- **`.copier-answers.yml`**: `_commit`.
+- **`.github/CODEOWNERS`**, on `agent` only: its comment says a human or another contributor's agent approves the paths it does not name.
+
+**Migration**: nothing to do.
+
+---
+
 ## v0.19.1 — 2026-10-28
 
 One workstream, D176, found by the third project the day v0.19.0 came out.
