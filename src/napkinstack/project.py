@@ -85,7 +85,7 @@ def _explain(exc: Exception, command: str, where: Path, source: str, ref: str) -
         # version is not moved by `uv tool upgrade`, which is what a reader tries first.
         return (f"FAIL [{command}] Target version {match[2]} older than the project version ({match[1]}): "
                 f"no going back.\n{action}move this workstation forward first — "
-                'uv tool install "napkinstack@latest" --with-executables-from pre-commit — '
+                'uv tool install "napkinstack@latest" --refresh-package napkinstack --with-executables-from pre-commit — '
                 f"or pin the version you want, {match[1]} or newer.")
     if text.startswith("Updating is only supported in git-tracked subprojects"):
         return (f"FAIL [{command}] {where} is not a git repository: the merge relies on "

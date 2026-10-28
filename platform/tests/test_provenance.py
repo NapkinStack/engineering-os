@@ -124,7 +124,7 @@ def test_an_engine_behind_its_project_says_so_before_refusing_an_unknown_command
         cli.main(["a-command-of-the-next-version", "--root", str(tmp_path)])
     said = capsys.readouterr().err
     assert said.index("nstack 0.4.0; the project is on v0.5.0") < said.index("invalid choice"), said
-    assert 'uv tool install "napkinstack==0.5.0" --with-executables-from pre-commit' in said
+    assert 'uv tool install "napkinstack==0.5.0" --refresh-package napkinstack --with-executables-from pre-commit' in said
 
 
 def test_an_engine_behind_its_project_says_so_on_a_command_that_runs(tmp_path, monkeypatch, capsys):
@@ -168,7 +168,7 @@ def test_doctor_names_a_newer_published_version_with_its_notes_and_the_way_to_ta
     _, output = doctor_says(tmp_path, monkeypatch, capsys, "0.5.1")
     assert "NEWER VERSION  v0.5.1 is published; the project is on v0.4.0 — information, not a gap" in output, output
     assert "blob/v0.5.1/CHANGELOG.md — every section above v0.4.0" in output, output
-    assert 'uv tool install "napkinstack==0.5.1" --with-executables-from pre-commit, then nstack update' in output
+    assert 'uv tool install "napkinstack==0.5.1" --refresh-package napkinstack --with-executables-from pre-commit, then nstack update' in output
 
 
 def test_a_newer_version_changes_no_verdict(tmp_path, monkeypatch, capsys):

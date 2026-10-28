@@ -440,7 +440,7 @@ def _left_behind(answers: dict) -> str | None:
 def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     commit = str(answers.get("_commit") or "")
     project = commit.removeprefix("v")
-    install = (f'uv tool install "napkinstack=={project}" --with-executables-from pre-commit'
+    install = (f'uv tool install "napkinstack=={project}" --refresh-package napkinstack --with-executables-from pre-commit'
                if PUBLISHED.fullmatch(commit) else "bash .nstack/install-engine.sh")
     results = []
 
@@ -563,7 +563,7 @@ def _newer(answers: dict) -> None:
     print(f"  NEWER VERSION  v{latest} is published; the project is on {commit} — information, not a gap\n"
           f"                 What it changes: {release_notes(str(answers.get('_src_path') or ''), commit, f'v{latest}')}\n"
           f"                 To take it, at a cycle's boundary: uv tool install \"napkinstack=={latest}\" "
-          "--with-executables-from pre-commit, then nstack update")
+          "--refresh-package napkinstack --with-executables-from pre-commit, then nstack update")
 
 
 def _private(client: GitHub) -> bool:
