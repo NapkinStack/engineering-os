@@ -373,7 +373,7 @@ def _default_owner(root: Path) -> tuple[str, str]:
     rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
              if line.strip() and not line.lstrip().startswith("#")]
     if agent:
-        return _kept_for_a_human(root, shown, rules)
+        return _kept_for_a_human(root, shown, path.read_text(encoding="utf-8"))
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
         name = forge(root)
         if name in UNREAD_OWNERSHIP:
@@ -386,39 +386,25 @@ def _default_owner(root: Path) -> tuple[str, str]:
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
 
 
-# What a human approves whatever the project answers (PDR-0021): its rules, its records, its answers.
-KEPT_FOR_A_HUMAN = ("/AGENTS.md", "/.nstack/", "/.copier-answers.yml", "/docs/")
-FORGE_FOLDER = {"github": "/.github/", "gitlab": "/.gitlab/", "forgejo": "/.gitea/", "gitea": "/.gitea/"}
+def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
+    """L6 on `approval: agent`: no default owner, and every path a human must approve ends on a
+    rule with an owner (`owners.py`; in CI, rule M13)."""
+    from napkinstack import owners
+    from napkinstack.project import forge
 
-
-def _kept_for_a_human(root: Path, shown: str, rules: list[list[str]]) -> tuple[str, str]:
-    """L6 on `approval: agent`: every path a human must approve is named with an owner — the
-    project's rules, the code owners file itself, and each module neither `prototype` nor
-    `standard`."""
-    from napkinstack.fitness.manifests import find_manifests
-    from napkinstack.project import forge, ownership
-
-    if any(rule[0] == "*" for rule in rules):
+    default, missing = owners.unowned(root, text)
+    if default:
         return GAP, (f"{shown} names a default owner: on approval agent, it leaves no change another "
                      "contributor's agent may approve.\nAction: remove the `*` rule; name a human for what "
                      "one must approve (.nstack/handbook/07-governance.md §7).")
-    folder = FORGE_FOLDER.get(forge(root))
-    wanted = [*KEPT_FOR_A_HUMAN, folder or "/" + ownership(root).relative_to(root).as_posix()]
-    for manifest in find_manifests(root):
-        try:
-            data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-        except yaml.YAMLError:
-            continue  # reported by nstack manifests (M2)
-        module = data.get("module") if isinstance(data, dict) else None
-        # A value the engine does not know is judged as critical, as the module checks judge it.
-        if not isinstance(module, dict) or module.get("criticality") not in ("prototype", "standard"):
-            wanted.append("/" + manifest.parent.relative_to(root).as_posix() + "/")
-    named = {rule[0] for rule in rules if len(rule) > 1}
-    missing = [path for path in wanted if path not in named]
     if missing:
         return GAP, (f"{shown} names no owner for " + ", ".join(f"`{path}`" for path in missing)
-                     + ": on approval agent, a human approves them.\nAction: add a line `<path>  @<owner>` "
-                     "for each, the owner a team of people (.nstack/handbook/07-governance.md §7).")
+                     + ": on approval agent, a human approves them.\nAction: end each on a line "
+                     "`/<path>  @<owner>`, the owner a team of people (.nstack/handbook/07-governance.md §7).")
+    name = forge(root)
+    if name in UNREAD_OWNERSHIP or name == "none":
+        return OK, ("No forge reads it here: who approves what is for people to read, and nothing refuses "
+                    "an agent's approval of the rest.")
     return OK, ""
 
 
@@ -600,6 +586,7 @@ def _state(results: list[tuple[str, str, str, str]]) -> None:
     be read (PDR-0006)."""
     status_of = {rule: status for rule, _, status, _ in results}
     blocking = [status_of.get(rule, UNKNOWN) for rule in BLOCKING]
+    blocking = [status for status in blocking if status != NOT_APPLICABLE]  # G21 off `approval: agent`
     if any(status == UNKNOWN for status in blocking):
         print("\nThis repository: not verified — what cannot be read is never reported as guarded.")
         return

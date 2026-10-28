@@ -13,7 +13,8 @@ import yaml
 
 from napkinstack import doctor, modules, settings
 
-HUMAN_LINES = ("/AGENTS.md", "/.nstack/", "/.github/", "/.copier-answers.yml", "/docs/")
+HUMAN_LINES = ("/AGENTS.md", "/CONTRIBUTING.md", "/.nstack/", "/.github/", "/.copier-answers.yml", "/docs/", "/.pre-commit-config.yaml",
+               "/.yamllint.yaml", "/SECURITY.md")
 
 
 def project(tmp_path: Path, approval: str | None, owners: str, criticalities: dict[str, str] = {}) -> Path:
@@ -37,7 +38,7 @@ def owners(*paths: str, default: bool = False) -> str:
 
 
 def test_on_human_the_code_owners_file_still_starts_with_a_default_owner(tmp_path):
-    assert doctor._default_owner(project(tmp_path, None, owners(*HUMAN_LINES, default=True)))[0] == doctor.OK
+    assert doctor._default_owner(project(tmp_path / "a", None, owners(*HUMAN_LINES, default=True)))[0] == doctor.OK
     assert doctor._default_owner(project(tmp_path / "b", "human", owners(*HUMAN_LINES)))[0] == doctor.GAP
 
 
@@ -48,7 +49,7 @@ def test_on_agent_a_human_owns_the_project_s_rules_and_every_high_or_critical_mo
     for missing in (*HUMAN_LINES, "/modules/billing/", "/contracts/"):
         lines = owners(*(path for path in (*HUMAN_LINES, "/modules/billing/", "/contracts/") if path != missing))
         status, detail = doctor._default_owner(project(tmp_path / missing.strip("/"), "agent", lines, criticalities))
-        assert status == doctor.GAP and missing in detail, missing
+        assert status == doctor.GAP and f"`{missing.lstrip('/')}`" in detail, missing
 
 
 def test_on_agent_a_default_owner_leaves_no_change_an_agent_may_approve(tmp_path):
@@ -116,3 +117,67 @@ def test_a_project_made_on_agent_starts_with_code_owners_doctor_accepts(tmp_path
     assert ("*" in rules) is (approval is None) and ("/docs/" in rules) is (approval == "agent")
     assert yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8"))["approval"] == (approval or "human")
     assert doctor._default_owner(root) == (doctor.OK, "")
+
+
+@pytest.mark.parametrize("text, kept", [
+    ("/docs/ @acme/core\n/docs/adr/\n", "docs/"),            # the last match names nobody
+    ("/docs/ # @acme/core\n", "docs/"),                       # a comment is no owner
+    ("/modules/billing @acme/core\n", None),                  # a folder named without its slash
+    ("modules/billing/ @acme/core\n", None),                  # unanchored, it still covers it
+    ("/modules/billing/** @acme/core\n", None)])
+def test_a_path_is_kept_for_a_human_by_the_last_rule_matching_it(tmp_path, text, kept):
+    from napkinstack import owners as who
+
+    root = project(tmp_path, "agent", "", {"billing": "critical"})
+    (root / "docs" / "adr").mkdir(parents=True)
+    (root / "docs" / "adr" / "0001-x.md").write_text("x", encoding="utf-8")
+    rest = owners(*(path for path in HUMAN_LINES if path != "/docs/"))
+    case = ("/modules/billing/ @acme/core\n" + text) if kept == "docs/" else ("/docs/ @acme/core\n" + text)
+    default, missing = who.unowned(root, rest + case)
+    assert not default
+    assert missing == ([kept] if kept else []), missing
+
+
+@pytest.mark.parametrize("default", ["*", "/**", "**"])
+def test_every_spelling_of_a_default_owner_is_one(tmp_path, default):
+    from napkinstack import owners as who
+
+    assert who.unowned(project(tmp_path, "agent", ""), f"{default} @acme/core\n" + owners(*HUMAN_LINES))[0]
+
+
+def test_a_manifest_the_engine_cannot_read_is_kept_for_a_human(tmp_path):
+    from napkinstack import owners as who
+
+    root = project(tmp_path, "agent", owners(*HUMAN_LINES))
+    (root / "modules" / "odd").mkdir(parents=True)
+    (root / "modules" / "odd" / "MANIFEST.yaml").write_text("module: [unclosed\n", encoding="utf-8")
+    assert "modules/odd/" in who.wanted(root)
+
+
+def test_in_ci_a_raised_criticality_without_its_owner_line_is_refused(tmp_path, capsys):
+    from napkinstack.fitness import manifests
+
+    root = project(tmp_path, "agent", owners(*HUMAN_LINES), {"billing": "critical"})
+    assert manifests.run(root) == 1
+    assert "[M13] code owners" in capsys.readouterr().out
+    (root / ".github" / "CODEOWNERS").write_text(owners(*HUMAN_LINES, "/modules/billing/"), encoding="utf-8")
+    manifests.run(root)
+    assert "M13" not in capsys.readouterr().out
+    human = project(tmp_path / "human", "human", owners(*HUMAN_LINES), {"billing": "critical"})
+    manifests.run(human)
+    assert "M13" not in capsys.readouterr().out
+
+
+def test_a_human_project_compliant_reads_guarded_with_g21_not_applicable(capsys):
+    results = [(rule, "", doctor.OK, "") for rule in doctor.BLOCKING if rule != "G21"]
+    doctor._state(results + [("G21", "", doctor.NOT_APPLICABLE, "")])
+    assert "This repository: guarded" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("approval, planned", [(None, False), ("agent", True)])
+def test_settings_plans_g21_on_agent_alone_without_a_token(tmp_path, monkeypatch, capsys, approval, planned):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    root = project(tmp_path, approval, owners(*HUMAN_LINES))
+    settings.run(root)
+    assert ("require_last_push_approval\": true" in capsys.readouterr().out.replace("'", '"')) is planned

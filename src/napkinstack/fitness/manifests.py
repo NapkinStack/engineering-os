@@ -21,6 +21,9 @@ Rules:
       (.nstack/handbook/09-platform.md §2, D127)
   M12 evidence declares what the module's end-to-end scenarios provoke: patterns that compile and
       check something, a level, a scenario (ADR-0009)
+  M13 on `approval: agent`, the code owners file names a human for every module neither
+      `prototype` nor `standard`, and for the project's rules, with no default owner (PDR-0021) —
+      in the same pull request that raises a module's criticality
 
 Usage :  nstack manifests [--root ROOT]
 Output:  0 if everything passes, 1 otherwise. Every failure explains the rule broken.
@@ -467,13 +470,39 @@ def assembled(manifests: list[Path], root: Path) -> None:
                               "      Action: one of them stops assembling the other.", places[name])
 
 
+def kept_for_a_human(root: Path) -> None:
+    """M13: where another contributor's agent approves, what a human must approve is named in the
+    code owners file. The forge reads that file from the base branch, so a pull request raising a
+    module's criticality without its line would be approved by an agent: refused here, in CI."""
+    from napkinstack import owners
+    from napkinstack.project import answer, ownership
+
+    if answer(root, "approval") != "agent":
+        return
+    path = ownership(root)
+    shown = path.relative_to(root).as_posix()
+    action = ("Action: end each on a line `/<path>  @<owner>`, the owner a team of people, in this pull request "
+              "(.nstack/handbook/07-governance.md §7).")
+    if not path.is_file():
+        fail("code owners", "M13", f"{shown} missing: on approval agent, nothing keeps a change for a human.\n      {action}")
+        return
+    default, missing = owners.unowned(root, path.read_text(encoding="utf-8"))
+    if default:
+        fail("code owners", "M13", f"{shown} names a default owner: on approval agent, no change is left "
+                                   "for another contributor's agent.\n      Action: remove the `*` rule.")
+    for kept in missing:
+        fail("code owners", "M13", f"{shown} ends `{kept}` on no owner: on approval agent, a human "
+                                   f"approves it.\n      {action}")
+
+
 def run(root: Path) -> int:
     failures.clear()
     warnings.clear()
     today = datetime.date.today()
     manifests = find_manifests(root)
     orphans = find_orphans(root)
-    if not manifests and not orphans:
+    kept_for_a_human(root)
+    if not manifests and not orphans and not failures:
         print("No MANIFEST.yaml found. Nothing to validate.")
         return 0
     for orphan in orphans:
