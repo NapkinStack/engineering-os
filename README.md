@@ -111,8 +111,8 @@ Each project then pins its version and changes it through `nstack update`.
 
 **Prerequisites**: uv and git. The guardrails really block on a public GitHub repository,
 or on a private one under the Team or Pro plan; on a private repository on the Free plan
-CI informs without blocking
-([a clarification of PDR-0001](docs/pdr/0001-create-a-project-and-receive-updates.md)).
+CI informs without blocking, and `doctor` says the repository *unguarded*
+([PDR-0006](docs/pdr/0006-work-where-the-forge-cannot-guard.md)).
 Off GitHub (GitLab, Forgejo, Gitea, another forge or none), the checks are attested on the
 workstation and every command says what it cannot verify ([PDR-0018](docs/pdr/0018-git-is-required-the-forge-is-the-project-s-choice.md)).
 
