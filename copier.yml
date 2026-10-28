@@ -101,4 +101,4 @@ approval:
   type: str
   choices: [human, agent]
   default: human
-  help: Who approves a change to a prototype or standard module — human, or another contributor's agent
+  help: Who approves a prototype or standard module — a human code owner, or also another contributor's agent

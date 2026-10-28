@@ -405,7 +405,21 @@ def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
     if name in UNREAD_OWNERSHIP or name == "none":
         return OK, ("No forge reads it here: who approves what is for people to read, and nothing refuses "
                     "an agent's approval of the rest.")
+    agents = _agent_identities(root)
+    if len(agents) < 2:
+        return OK, (f"The history shows {len(agents) or 'no'} agent identit{'y' if len(agents) == 1 else 'ies'}"
+                    + (f" ({agents[0]})" if agents else "") + ": an agent never approves what its own identity "
+                    "pushed, so until another contributor's agent works under an identity of its own, every "
+                    "change waits for a human, as on approval human.")
     return OK, ""
+
+
+def _agent_identities(root: Path) -> list[str]:
+    """The bot identities the recent history's commits name, as GitHub's noreply addresses say them."""
+    shown = subprocess.run(["git", "log", "-n", "500", "--format=%ae%n%ce"], cwd=root, capture_output=True, text=True)
+    found = [address.lower() for address in shown.stdout.split()
+             if address.lower().endswith("[bot]@users.noreply.github.com")]
+    return list(dict.fromkeys(found))
 
 
 def _forge(path: str) -> dict | None:

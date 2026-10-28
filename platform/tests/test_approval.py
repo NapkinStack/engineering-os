@@ -45,7 +45,7 @@ def test_on_human_the_code_owners_file_still_starts_with_a_default_owner(tmp_pat
 def test_on_agent_a_human_owns_the_project_s_rules_and_every_high_or_critical_module(tmp_path):
     criticalities = {"capture": "standard", "billing": "critical", "contracts": "high"}
     whole = owners(*HUMAN_LINES, "/modules/billing/", "/contracts/")
-    assert doctor._default_owner(project(tmp_path / "a", "agent", whole, criticalities)) == (doctor.OK, "")
+    assert doctor._default_owner(project(tmp_path / "a", "agent", whole, criticalities))[0] == doctor.OK
     for missing in (*HUMAN_LINES, "/modules/billing/", "/contracts/"):
         lines = owners(*(path for path in (*HUMAN_LINES, "/modules/billing/", "/contracts/") if path != missing))
         status, detail = doctor._default_owner(project(tmp_path / missing.strip("/"), "agent", lines, criticalities))
@@ -116,7 +116,7 @@ def test_a_project_made_on_agent_starts_with_code_owners_doctor_accepts(tmp_path
              if line.strip() and not line.startswith("#")]
     assert ("*" in rules) is (approval is None) and ("/docs/" in rules) is (approval == "agent")
     assert yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8"))["approval"] == (approval or "human")
-    assert doctor._default_owner(root) == (doctor.OK, "")
+    assert doctor._default_owner(root)[0] == doctor.OK
 
 
 @pytest.mark.parametrize("text, kept", [
@@ -181,3 +181,25 @@ def test_settings_plans_g21_on_agent_alone_without_a_token(tmp_path, monkeypatch
     root = project(tmp_path, approval, owners(*HUMAN_LINES))
     settings.run(root)
     assert ("require_last_push_approval\": true" in capsys.readouterr().out.replace("'", '"')) is planned
+
+
+def committed(root: Path, *authors: str) -> None:
+    import subprocess
+
+    subprocess.run(["git", "init", "-q", "--initial-branch=main"], cwd=root, check=True)
+    for index, author in enumerate(authors):
+        (root / f"f{index}").write_text(str(index), encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+        subprocess.run(["git", "-c", f"user.name={author}", "-c", f"user.email={author}@users.noreply.github.com",
+                        "commit", "-q", "-m", str(index)], cwd=root, check=True)
+
+
+@pytest.mark.parametrize("authors, said", [
+    (("1+a-agent[bot]", "1+a-agent[bot]", "alice"), True),   # one agent identity: nobody else's agent
+    (("1+a-agent[bot]", "2+b-agent[bot]"), False),            # two: another contributor's agent may approve
+    (("alice",), True)])
+def test_on_agent_doctor_says_when_no_second_agent_identity_can_approve(tmp_path, authors, said):
+    root = project(tmp_path, "agent", owners(*HUMAN_LINES))
+    committed(root, *authors)
+    status, detail = doctor._default_owner(root)
+    assert status == doctor.OK and ("identity of its own" in detail) is said, detail
