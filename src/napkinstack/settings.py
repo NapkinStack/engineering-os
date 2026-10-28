@@ -46,8 +46,8 @@ from napkinstack.project import ANSWERS
 
 RULESET_NAME = "nstack-checklist"
 HOLDS_RULESET = "nstack-holds"  # the holds of deliverables: never forced, never deleted (G20)
-IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18")
-PULL_REQUEST = ("G1", "G2", "G3", "G13")
+IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18", "G21")
+PULL_REQUEST = ("G1", "G2", "G3", "G13", "G21")
 LABEL_COLOURS = {"cross-module": "d93f0b", "over-budget": "fbca04", "out-of-cycle": "5319e7",
                  "request": "0e8a16", "bug": "d73a4a", "architecture": "1d76db", "debt": "c5def5",
                  "acceptance": "bfdadc"}
@@ -74,7 +74,7 @@ def ruleset(missing: set[str]) -> dict:
     if missing & set(PULL_REQUEST):
         rules.append({"type": "pull_request", "parameters": {
             "required_approving_review_count": 1, "require_code_owner_review": True,
-            "dismiss_stale_reviews_on_push": True, "require_last_push_approval": False,
+            "dismiss_stale_reviews_on_push": True, "require_last_push_approval": "G21" in missing,
             "required_review_thread_resolution": False}})
     if "G4" in missing:
         rules.append({"type": "required_status_checks", "parameters": {
@@ -329,7 +329,7 @@ def run(root: Path, apply: bool = False) -> int:
     if client is None:
         # G12 is not planned blind: the ruleset planned below has nobody on its bypass list, and
         # an older one that has is a step by hand, which only a read can find.
-        missing = {rule for rule, _, _ in doctor.CHECKLIST} - {"G12"}
+        missing = {rule for rule, _, _ in doctor.CHECKLIST if not doctor.unasked(rule, answers)} - {"G12"}
         print(f"Settings of {repo}: not read — no token (GH_TOKEN or GITHUB_TOKEN). The whole checklist is "
               "planned below; a call for a setting already in place changes nothing, except a ruleset's: "
               f"skip it if a ruleset named {RULESET_NAME} exists, and the G20 one if {HOLDS_RULESET} does.\n"
@@ -346,7 +346,7 @@ def run(root: Path, apply: bool = False) -> int:
                   "a token to print the whole checklist.")
             return 1
         for rule, _, _ in doctor.CHECKLIST:
-            if private and rule in doctor.PUBLIC_ONLY:
+            if private and rule in doctor.PUBLIC_ONLY or doctor.unasked(rule, answers):
                 continue
             try:
                 compliant = doctor.CHECKS[rule](client)

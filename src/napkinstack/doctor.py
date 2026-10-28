@@ -37,9 +37,9 @@ Rules:
       known public forge is said, never judged: a mirror is a choice
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. No other command opens a connection
-  G1-G20  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
-          repository, and on a private one G1-G5, G12, G13, G17 and G18 name the GitHub plan
-          or option required
+  G1-G21  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+          repository, G21 outside `approval: agent`, and on a private one G1-G5, G12, G13, G17,
+          G18, G20 and G21 name the GitHub plan or option required
 
 Off GitHub (the project's `forge` answer, ADR-0010) no G rule is read: the forge-neutral
 PROTECTIONS are said as information — the same list as INSTALL.md's, bound by a test — and the
@@ -77,7 +77,7 @@ SOURCES = "SOURCES"  # a contributor's checkout holding the project's version: s
 OUT_OF_REACH = "OUT OF REACH"      # the plan forbids it: a state, not a fault (PDR-0006)
 # The settings that make the forge refuse a merge. A repository is guarded when they are
 # all in force; the others matter and none of them stops a merge.
-BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13")
+BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13", "G21")
 API_VERSION = "2026-03-10"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", "Test sheet and cycle",
         "Module checks")
@@ -154,13 +154,29 @@ CHECKLIST = [  # (rule, setting, action)
     ("G20", "Hold branches `nstack/hold/**/*` cannot be force-pushed nor deleted",
      "Settings → Rules → Rulesets, a ruleset on the branches nstack/hold/**/* — not nstack/hold/**, "
      "which stops at a slash — with nobody on its bypass list: block force pushes and restrict deletions"),
+    # G21: where another contributor's agent approves (PDR-0021), the one who pushed last never
+    # approves what they pushed — the author's own fix included.
+    ("G21", "The most recent push approved by someone other than its pusher (approval: agent)",
+     f"{RULESET}: require approval of the most recent reviewable push"),
 ]
+
+# Asked of a project only on one of its answers: elsewhere not applicable, and said why.
+ANSWERED = {"G21": ("approval", "agent", "the project's approval is human: a code owner approves every change")}
+
+
+def unasked(rule: str, answers: dict) -> str | None:
+    """Why a rule is not asked of this project, or None when it is."""
+    if rule not in ANSWERED:
+        return None
+    key, value, reason = ANSWERED[rule]
+    return None if answers.get(key) == value else reason
+
 
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20", "G21"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -339,19 +355,25 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G18": lambda c: _rule(c, "non_fast_forward") is not None,
     "G19": lambda c: _merges(c, "default_branch").get("default_branch") == "main",
     "G20": _holds_kept,
+    "G21": lambda c: _parameters(c, "pull_request").get("require_last_push_approval") is True,
 }
 
 
 def _default_owner(root: Path) -> tuple[str, str]:
-    """L6: `*` first, so that the code owner review covers every path (ADR-0004)."""
-    from napkinstack.project import forge, ownership
+    """L6: `*` first, so that the code owner review covers every path (ADR-0004) — or, where
+    another contributor's agent approves (PDR-0021), a human named for what one must approve and
+    no default owner, so that the rest is the agents'."""
+    from napkinstack.project import answer, forge, ownership
 
     path = ownership(root)  # where the project's forge reads it (ADR-0010)
     shown = path.relative_to(root).as_posix()
+    agent = answer(root, "approval") == "agent"
     if not path.is_file():
-        return GAP, f"{shown} missing.\nAction: create it, starting with `*  @<owner>`."
+        return GAP, f"{shown} missing.\nAction: create it" + ("." if agent else ", starting with `*  @<owner>`.")
     rules = [line.split() for line in path.read_text(encoding="utf-8").splitlines()
              if line.strip() and not line.lstrip().startswith("#")]
+    if agent:
+        return _kept_for_a_human(root, shown, path.read_text(encoding="utf-8"))
     if rules and rules[0][0] == "*" and len(rules[0]) > 1:
         name = forge(root)
         if name in UNREAD_OWNERSHIP:
@@ -362,6 +384,28 @@ def _default_owner(root: Path) -> tuple[str, str]:
         return OK, ""
     return GAP, (f"The first rule of {shown} is not a default owner.\nAction: make `*  @<owner>` "
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
+
+
+def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
+    """L6 on `approval: agent`: no default owner, and every path a human must approve ends on a
+    rule with an owner (`owners.py`; in CI, rule M13)."""
+    from napkinstack import owners
+    from napkinstack.project import forge
+
+    default, missing = owners.unowned(root, text)
+    if default:
+        return GAP, (f"{shown} names a default owner: on approval agent, it leaves no change another "
+                     "contributor's agent may approve.\nAction: remove the `*` rule; name a human for what "
+                     "one must approve (.nstack/handbook/07-governance.md §7).")
+    if missing:
+        return GAP, (f"{shown} names no owner for " + ", ".join(f"`{path}`" for path in missing)
+                     + ": on approval agent, a human approves them.\nAction: end each on a line "
+                     "`/<path>  @<owner>`, the owner a team of people (.nstack/handbook/07-governance.md §7).")
+    name = forge(root)
+    if name in UNREAD_OWNERSHIP or name == "none":
+        return OK, ("No forge reads it here: who approves what is for people to read, and nothing refuses "
+                    "an agent's approval of the rest.")
+    return OK, ""
 
 
 def _forge(path: str) -> dict | None:
@@ -448,7 +492,9 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
         l3 = (OK, "") if installed else (GAP, "Action: pre-commit install")
     results.append(("L3", "pre-commit hooks installed", *l3))
 
-    results.append(("L6", "CODEOWNERS starts with a default owner", *_default_owner(root)))
+    results.append(("L6", "CODEOWNERS names a human where one approves (approval: agent)"
+                     if answers.get("approval") == "agent" else "CODEOWNERS starts with a default owner",
+                     *_default_owner(root)))
 
     source = str(answers.get("_src_path") or "")
     local = not REMOTE.match(source)
@@ -540,6 +586,7 @@ def _state(results: list[tuple[str, str, str, str]]) -> None:
     be read (PDR-0006)."""
     status_of = {rule: status for rule, _, status, _ in results}
     blocking = [status_of.get(rule, UNKNOWN) for rule in BLOCKING]
+    blocking = [status for status in blocking if status != NOT_APPLICABLE]  # G21 off `approval: agent`
     if any(status == UNKNOWN for status in blocking):
         print("\nThis repository: not verified — what cannot be read is never reported as guarded.")
         return
@@ -629,7 +676,9 @@ def run(root: Path) -> int:
               "Administration: read permission, then run again.")
     private = client is not None and _private(client)
     for rule, setting, action in CHECKLIST:
-        if client is None:
+        if unasked(rule, answers):
+            status, detail = NOT_APPLICABLE, f"Reason: {unasked(rule, answers)}."
+        elif client is None:
             status, detail = UNKNOWN, ""
         elif private and rule in PUBLIC_ONLY:
             status, detail = NOT_APPLICABLE, f"Reason: {PUBLIC_ONLY[rule]}."

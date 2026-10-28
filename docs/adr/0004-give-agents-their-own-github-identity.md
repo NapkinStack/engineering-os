@@ -2,7 +2,10 @@
 
 - **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in
   the pilot project); clarified on 2026-09-19 (who verified, D32; an approval covers what it
-  read, D31) and on 2026-09-20 (two powers, never in the same hand, PDR-0008)
+  read, D31) and on 2026-09-20 (two powers, never in the same hand, PDR-0008). **Clarified
+  2026-10-28 (D175)**: the deferred decision is taken by PDR-0021, within its bound — on a project
+  answering `approval: agent`, another contributor's agent approves `prototype` and `standard`
+  modules; elsewhere this record stands as written
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project (the skeleton, `nstack doctor`, and this repository)

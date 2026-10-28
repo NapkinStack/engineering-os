@@ -41,14 +41,14 @@ runbook, tests and configuration.
 
 | Command | Rules |
 |---|---|
-| `nstack manifests` | M1-M12: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles, the e2e evidence declared |
+| `nstack manifests` | M1-M13: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles, the e2e evidence declared |
 | `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment; C10, a warning: the decisions due at a closure and not yet read; then the project across its cycles, and who holds each deliverable, said and never failed |
 | `nstack pr-check` | T1-T5, K1-K5, A1-A2, C9: the test sheet, the cycle, who holds the deliverable and the attested checks, read from the pull request description; an accepted charter changed with no decision record, warned |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
-| `nstack doctor` | L1-L3, L6, L7 and G1-G20: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
+| `nstack doctor` | L1-L3, L6, L7 and G1-G21: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
 
 ```bash
 uv run nstack fitness                      # manifests + boundaries + skills + plan + hygiene

@@ -201,7 +201,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     import copier
     from copier.errors import CopierError
 
-    from napkinstack.doctor import CHECKLIST
+    from napkinstack.doctor import CHECKLIST, unasked
 
     destination = destination.resolve()
     if destination.exists() and not destination.is_dir():
@@ -235,6 +235,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     # was asked by Copier itself.
     data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
+    data.setdefault("approval", "human")  # a code owner approves, until the decider says otherwise (PDR-0021)
     try:
         copier.run_copy(source, destination, data=data, vcs_ref=ref, quiet=True, unsafe=False)
     except (CopierError, ValueError, OSError) as exc:
@@ -261,8 +262,9 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     if named == "github":
         print(f"  2. Create the GitHub repository {created.get('github_repo')}, push main to it, then apply "
               "these settings:")
-        for _, setting, _ in CHECKLIST:
-            print(f"     - [ ] {setting}")
+        for rule, setting, _ in CHECKLIST:
+            if not unasked(rule, created):  # G21 on `approval: agent` alone
+                print(f"     - [ ] {setting}")
         print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
         return 0
     where = (f"Create the repository {created.get('repository')} at {named}, push main to it"

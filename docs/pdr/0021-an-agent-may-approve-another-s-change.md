@@ -1,7 +1,8 @@
 # PDR-0021 — An agent may approve another's change, where the project says so
 
-- **Status**: Proposed (2026-10-28, D174), from the maintainer's reading of the third project
-  before a second contributor joins it
+- **Status**: Accepted (2026-10-28, by the maintainer, approving #298), as proposed; built as
+  D175. Proposed the same day (D174), from the maintainer's reading of the third project before
+  a second contributor joins it
 - **Date**: 2026-10-28
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (`doctor`, the settings it prints), the project's answers, the
@@ -153,7 +154,7 @@ human without one.
 ## Impacts
 
 - **The engine**: `doctor` and the settings it prints read the answer.
-- **The skeleton**: the answer, asked at `nstack init`; the code owners file on `agent`; the
+- **The skeleton**: the answer — not asked at `nstack init`, as `checks` is not *(clarified when built)*; the code owners file on `agent`; the
   pull request template's approver line; the bug form's pull request field; the governance
   handbook (§7, the verifier's place in §3), the measurement handbook and the contributing guide.
 - **Projects**: nothing on `human`, the default. On `agent`, one identity per contributor's

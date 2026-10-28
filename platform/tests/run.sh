@@ -1376,7 +1376,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
+echo "$OUT" | grep -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
