@@ -365,7 +365,9 @@ The forge does the sorting, path by path:
   for the module. Where the module asks for a test sheet, it is the verifier who ran it; where
   it asks none, it reviews the change on its oracle and its checks.
 - **A contributor alone** has nobody else's agent: their changes wait for a human. A second
-  identity of their own would be the author approving itself.
+  identity of their own would be the author approving itself. So the answer changes nothing until
+  a second contributor's agent works under an identity of its own; `doctor` says so while the
+  history shows a single agent identity.
 
 Whether the answer holds is read on what escapes: a defect found within 30 days of a merge,
 which the bug form ties to its pull request (`10-measurement.md`). GitHub counts an App's approval
