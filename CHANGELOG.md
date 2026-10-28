@@ -22,6 +22,34 @@ a patch.
 
 ---
 
+## v0.19.1 — 2026-10-28
+
+One workstream, D176, found by the third project the day v0.19.0 came out.
+
+This is a patch version: it turns no green project red.
+
+**In the engine**
+
+- **Every install nstack prints reads the index afresh** (D176, #301). An hour after v0.19.0 was published, `uv` answered from its cached index that the version did not exist. The commands nstack prints now carry `--refresh-package napkinstack`:
+  - `doctor`'s workstation line and its newer-version line;
+  - the engine provenance's action, when the project needs another version;
+  - `update`'s refusal to go back.
+
+  CI's `.nstack/install-engine.sh` already did.
+
+**In your project** — 2 files
+
+- **`.nstack/handbook/INSTALL.md`**: *Receiving a new version* installs with `--refresh-package napkinstack`.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**: nothing to do. To take this version the day it comes out:
+
+```
+uv tool install "napkinstack==0.19.1" --refresh-package napkinstack --with-executables-from pre-commit
+```
+
+---
+
 ## v0.19.0 — 2026-10-28
 
 Two workstreams, D174 and D175: who approves a change becomes the project's answer (PDR-0021), raised by the third project before a second contributor joins it.
