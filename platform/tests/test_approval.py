@@ -184,14 +184,17 @@ def test_settings_plans_g21_on_agent_alone_without_a_token(tmp_path, monkeypatch
 
 
 def committed(root: Path, *authors: str) -> None:
+    import os
     import subprocess
 
+    # The identity is each commit's own: an identity another test left in the environment wins over `-c`.
+    env = {key: value for key, value in os.environ.items() if not key.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))}
     subprocess.run(["git", "init", "-q", "--initial-branch=main"], cwd=root, check=True)
     for index, author in enumerate(authors):
         (root / f"f{index}").write_text(str(index), encoding="utf-8")
         subprocess.run(["git", "add", "-A"], cwd=root, check=True)
         subprocess.run(["git", "-c", f"user.name={author}", "-c", f"user.email={author}@users.noreply.github.com",
-                        "commit", "-q", "-m", str(index)], cwd=root, check=True)
+                        "commit", "-q", "-m", str(index)], cwd=root, check=True, env=env)
 
 
 @pytest.mark.parametrize("authors, said", [
