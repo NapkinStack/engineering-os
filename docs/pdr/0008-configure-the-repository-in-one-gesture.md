@@ -5,7 +5,8 @@
   print mode with five of the eight criteria (**M11k, 2026-10-12**), and the apply mode run by
   the person (**D151, 2026-10-24**), the last three. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
   check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
-  decider chose option 3 the same day**: the apply mode is run by the person, never delegated
+  decider chose option 3 the same day**: the apply mode is run by the person, never delegated. **Clarified 2026-10-28 (D175)**: an approval stays necessarily human except, on
+  `approval: agent`, another contributor's agent for a `prototype` or `standard` module (PDR-0021)
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and

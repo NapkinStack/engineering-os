@@ -128,14 +128,14 @@ her changes wait for a human.
 
 **Acceptance criteria** *(testable)*:
 
-- [ ] Given `approval: agent`, then `doctor` asks for one required approval, the code owners
+- [x] Given `approval: agent`, then `doctor` asks for one required approval, the code owners
       review, dismissal on push, the last push's approval, no bypass, and a code owners file
       naming a human for every `high` and `critical` module, the framework's files, the answers
       and `docs/`, with no default owner; and names each that is missing.
-- [ ] Given `approval: human`, or no answer, then `doctor` asks what it asks today.
-- [ ] Given a project created with `agent`, then its code owners file is as point 2 says.
-- [ ] Given the bug form, then it asks for the pull request that brought the defect, or unknown.
-- [ ] Given the pull request template, then the approver's line asks for its session and profile.
+- [x] Given `approval: human`, or no answer, then `doctor` asks what it asks today.
+- [x] Given a project created with `agent`, then its code owners file is as point 2 says.
+- [x] Given the bug form, then it asks for the pull request that brought the defect, or unknown.
+- [x] Given the pull request template, then the approver's line asks for its session and profile.
 
 ---
 

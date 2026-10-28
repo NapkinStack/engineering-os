@@ -272,7 +272,8 @@ Observed in M9: an approval survived a force-push, and only the agent's own
 `--match-head-commit` stood between it and content its approver had never read. The
 ruleset of `main` dismisses stale approvals when new commits are pushed: checklist
 rule G13, checked by `nstack doctor`. The last pusher's own approval needs no rule of
-its own — the agent never approves, and a human's approval is dismissed by the next push.
+its own — the agent never approves, and a human's approval is dismissed by the next push. On
+`approval: agent`, where an agent approves, it gets one: G21 (PDR-0021).
 
 ## Clarification of 2026-09-20 — two powers, never in the same hand (PDR-0008)
 
