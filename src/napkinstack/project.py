@@ -235,6 +235,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     # was asked by Copier itself.
     data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
+    data.setdefault("approval", "human")  # a code owner approves, until the decider says otherwise (PDR-0021)
     try:
         copier.run_copy(source, destination, data=data, vcs_ref=ref, quiet=True, unsafe=False)
     except (CopierError, ValueError, OSError) as exc:

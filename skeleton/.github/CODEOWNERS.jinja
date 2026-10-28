@@ -1,10 +1,14 @@
 # Ties every change to an owner (.nstack/handbook/07-governance.md §7).
 # Updated automatically by nstack new-module.
 
-# Default owner: every path the rules below do not name. With the code owner review
+{% if approval | default('human') == 'agent' %}# No default owner (approval: agent): a path named below waits for a human's
+# approval; any other is approved by another contributor's agent. A module of criticality
+# high or critical is named; prototype and standard are not (.nstack/handbook/07-governance.md §7).
+/docs/                         @{{ owner_team }}
+{% else %}# Default owner: every path the rules below do not name. With the code owner review
 # required, a human approval covers every file (.nstack/handbook/07-governance.md §7).
 *                              @{{ owner_team }}
-
+{% endif %}
 # Foundation: any change to the OS itself goes through an ADR.
 /AGENTS.md                     @{{ owner_team }}
 /.nstack/                      @{{ owner_team }}

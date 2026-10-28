@@ -1,7 +1,9 @@
 # PDR-0003 — Approve a change on evidence of its behaviour
 
 - **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); clarified on 2026-09-17 (what changes a module); measured on the pilot, recorded
-  2026-09-24 — the rule unchanged
+  2026-09-24 — the rule unchanged. **Clarified 2026-10-28 (D175)**: the measurement of what the
+  human found beyond the verifier is replaced by escaped defects (PDR-0021) — nothing gave the
+  approver a place to write it, and on the third project nobody reviewed beyond the sheet
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, pull request

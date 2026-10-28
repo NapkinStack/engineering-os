@@ -139,7 +139,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 | `L1` | An engine that is not the project's version, or is not a published one — and a pinned commit the framework's default branch no longer holds | `INSTALL.md` |
 | `L2` | git or the hook runner missing | `INSTALL.md` |
 | `L3` | Hooks not installed in this clone | `INSTALL.md` |
-| `L6` | Code owners that do not start with a default owner — and, where no forge reads the file, said | `07-governance.md` §7 |
+| `L6` | Code owners that do not start with a default owner — on `approval: agent`, that name no human for the project's rules and each module neither `prototype` nor `standard` — and, where no forge reads the file, said | `07-governance.md` §7 |
 | `L7` | A project created from a path on one machine | `INSTALL.md` |
 | `L8` | Off GitHub, `checks: forge`: no CI is shipped there, so nothing would run the checks | `INSTALL.md` |
 | `L9` | A `forge` answer the project's files were not written for — changed by hand; `nstack update --forge` changes it. A remote on another known forge is said, never a gap | `INSTALL.md` |
@@ -172,3 +172,4 @@ repository *unguarded*; `W1` does not run.
 | `G18` | The main branch's history can be rewritten by a force push | `07-governance.md` §7 |
 | `G19` | A default branch other than `main`, which no workflow watches | `07-governance.md` §7 |
 | `G20` | A hold of a deliverable that can be force-pushed or deleted: the one way past its refusal | `project.md`, *Who holds a deliverable* |
+| `G21` | Where another contributor's agent approves, the one who pushed last approving what they pushed | `07-governance.md` §7 |

@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack import assurance
-from napkinstack.project import forge, ownership
+from napkinstack.project import answer, forge, ownership
 from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
                                            module_content)
 
@@ -102,7 +102,11 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
 
     codeowners = ownership(root)
     line = f"/modules/{name}/"
-    if codeowners.is_file():
+    if answer(root, "approval") == "agent" and criticality in ("prototype", "standard"):
+        # Another contributor's agent approves it (PDR-0021): no code owner, whose review a human's alone satisfies.
+        print(f"No code owner line for {line}: on approval agent, another contributor's agent approves a "
+              f"{criticality} module.")
+    elif codeowners.is_file():
         content = codeowners.read_text(encoding="utf-8")
         if not any(existing.split()[:1] == [line] for existing in content.splitlines()):
             codeowners.write_text(content.rstrip("\n") + f"\n{line:<31}@{owner}\n", encoding="utf-8")
