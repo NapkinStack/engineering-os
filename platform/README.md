@@ -41,7 +41,7 @@ runbook, tests and configuration.
 
 | Command | Rules |
 |---|---|
-| `nstack manifests` | M1-M12: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles, the e2e evidence declared |
+| `nstack manifests` | M1-M13: fields, lifecycles, deprecation dates, runbook, envelope, user-facing, what a release assembles, the e2e evidence declared |
 | `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment; C10, a warning: the decisions due at a closure and not yet read; then the project across its cycles, and who holds each deliverable, said and never failed |
