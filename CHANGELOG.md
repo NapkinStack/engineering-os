@@ -22,6 +22,47 @@ a patch.
 
 ---
 
+## v0.19.0 — 2026-10-28
+
+Two workstreams, D174 and D175: who approves a change becomes the project's answer (PDR-0021), raised by the third project before a second contributor joins it.
+
+It is a minor version because the engine does more: a new answer, `approval`, a new rule of the manifests, M13, and a new setting, G21. A project that answers nothing approves as today, and turns nothing red.
+
+**In the engine**
+
+- **The project answers who approves a change to a `prototype` or `standard` module** (D175, PDR-0021): `approval: human`, the default and today's behaviour, or `agent`. The answer is not asked at `nstack init`; the decider changes it in `.copier-answers.yml`, in a pull request a human approves.
+- **On `agent`, the code owners file keeps a human where one must approve.**
+  - It names an owner for the project's rules (`AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.nstack/`, the forge's folder, the code owners file), its records (`docs/`), its answers, its hooks' and lint's configuration, and every module neither `prototype` nor `standard`. It names no default owner: what it does not name is approved by another contributor's agent.
+  - The file is read as the forge reads it: gitignore patterns, the last rule matching a path deciding it.
+  - **`nstack doctor` L6** names each path left without an owner, and a default owner if one is there.
+  - **Rule M13**, run by `nstack fitness` and CI, refuses the same. The forge reads the code owners file from the base branch, so a pull request raising a module's criticality brings its line.
+  - **`nstack new-module`** writes no code owner line for a `prototype` or `standard` module.
+- **G21**: the most recent push approved by someone other than its pusher. `nstack doctor` asks it on `agent` alone, where it blocks; `nstack settings` plans it; elsewhere it is *not applicable*, and `init` does not print it.
+- **A compliant repository on `human`** reads *compliant, 1 not applicable*, and guarded.
+- `pathspec`, already installed through Copier, is now a declared dependency.
+
+**In your project** — 9 files on `human`; on `agent`, the code owners file too
+
+- **`.github/ISSUE_TEMPLATE/02-bug.yml`**: the bug form asks for the pull request that brought the defect, or *unknown*. Escaped defects replace the approver's findings beyond the verifier, a measurement no project could take.
+- **`.github/pull_request_template.md`**: the verifier line asks what it is expert in, for the module, on `approval: agent`.
+- **`.nstack/handbook/07-governance.md`** §7: *Where another contributor's agent approves*: the answer, the code owners file, G21, what the approving agent says, a contributor alone.
+- **`.nstack/handbook/05-workflow.md`**: the approver of a `prototype` or `standard` module may be the verifier, another contributor's agent; the postures' table says so.
+- **`.nstack/handbook/10-measurement.md`**: *Escaped defects* replaces *Findings beyond the verifier*.
+- **`.nstack/handbook/RULES.md`**: M13 and G21; L6 on `agent`.
+- **`.nstack/handbook/INSTALL.md`**: G21 in the checklist.
+- **`CONTRIBUTING.md`**: who approves, on either answer.
+- **`.copier-answers.yml`**: `approval: human`, and `_commit`.
+- **`.github/CODEOWNERS`**, on `agent` only: no default owner; `docs/`, `CONTRIBUTING.md`, `SECURITY.md`, the hooks' and lint's configuration named. On `human` it is unchanged.
+
+**Migration**: nothing to do on `human`. To move to `agent`, in one pull request a human approves:
+
+1. Set `approval: agent` in `.copier-answers.yml`.
+2. Remove the `*` rule from the code owners file, and name an owner for each path `nstack doctor` lists under L6 (`nstack fitness` says the same, as M13).
+3. On GitHub, require the approval of the most recent push (G21) beside the rules already in place: `nstack settings` prints the call.
+4. Give each contributor's agent an identity of its own; on GitHub, an App that may write contents. Whether GitHub counts an App's approval toward the required ones is reported in practice, not documented: the first cross-approved pull request is its proof.
+
+---
+
 ## v0.18.1 — 2026-10-27
 
 Three workstreams, D171 to D173; D173 was found by the third project.
