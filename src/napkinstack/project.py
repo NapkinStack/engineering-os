@@ -201,7 +201,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     import copier
     from copier.errors import CopierError
 
-    from napkinstack.doctor import CHECKLIST
+    from napkinstack.doctor import CHECKLIST, unasked
 
     destination = destination.resolve()
     if destination.exists() and not destination.is_dir():
@@ -262,8 +262,9 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     if named == "github":
         print(f"  2. Create the GitHub repository {created.get('github_repo')}, push main to it, then apply "
               "these settings:")
-        for _, setting, _ in CHECKLIST:
-            print(f"     - [ ] {setting}")
+        for rule, setting, _ in CHECKLIST:
+            if not unasked(rule, created):  # G21 on `approval: agent` alone
+                print(f"     - [ ] {setting}")
         print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
         return 0
     where = (f"Create the repository {created.get('repository')} at {named}, push main to it"
