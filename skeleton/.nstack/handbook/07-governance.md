@@ -349,8 +349,9 @@ adds "require approval of the most recent reviewable push", or a second reviewer
 
 **Where another contributor's agent approves.** A project of several contributors, each with
 an agent under an identity of its own, may answer `approval: agent` in `.copier-answers.yml` — the
-decider's word, changed in a pull request a human approves. Another contributor's agent then
-approves a change to a `prototype` or `standard` module; a human still approves everything else.
+decider's word, changed in a pull request a human approves. A change to a `prototype` or `standard`
+module is then approved by a human **or** by another contributor's agent — whoever is neither its
+author nor its last pusher; everything else still waits for a human code owner.
 The forge does the sorting, path by path:
 
 - **The code owners file names a human** for the project's rules (`AGENTS.md`, `.nstack/`, the
