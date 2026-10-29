@@ -400,10 +400,20 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     elif not plan.one_of(states[match[1]], {"ready", "in-progress"}):
         fail("K3", f"deliverable {match[1]} is '{states[match[1]]}': work starts on a ready "
                    "deliverable (definition of ready).")
-    elif states[match[1]] == "ready":
-        # Said, not refused: the state is the decider's record, and this pull request knows (PDR-0002).
-        warn(f"[K3] deliverable {match[1]} is still 'ready' while this pull request delivers it.\n"
-             f"      Action: set its state: in-progress in {path.name}, in this pull request.")
+    elif states[match[1]] == "ready" and not _held(root, match[1]):
+        # Said, not refused. The hold says the work started; the cycle file stays the decider's
+        # record, never changed by a delivery — under `docs/`, a human would have to approve it.
+        warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it while this pull request "
+             f"delivers it.\n      Action: nstack claim {match[1]} — the hold says it is in progress; "
+             f"{path.name} changes in the plan's own pull requests, never in a delivery's.")
+
+
+def _held(root: Path, ident: str) -> bool:
+    """Whether someone holds the deliverable; holds that cannot be read count as none (K5 says so)."""
+    from napkinstack import hold
+
+    found = hold.judge(root, ident)
+    return found is not None and not isinstance(found, str)
 
 
 def identities(root: Path, base: str, head: str) -> set[str]:

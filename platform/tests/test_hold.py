@@ -826,3 +826,19 @@ def test_a_hold_ends_with_its_cycle_and_unclaim_says_so(shared, capsys, after):
     assert "D1's hold ended with 03-the-window (closed): a hold lasts its cycle, nothing to release" in out, out
     assert "nstack/hold/03-the-window/D1 is kept, the hold's record" in out, out
     assert remote_events(shared) == ["claim"]
+
+
+def test_a_delivery_of_a_held_ready_deliverable_is_never_told_to_edit_the_cycle_file(shared):
+    # D183: the cycle file is under `docs/`, which a human approves on approval agent; the hold
+    # already says the work started, so a delivery is asked nothing of the plan's file.
+    from napkinstack import pull_request
+
+    alice = clone(shared, "alice")
+    today = datetime.date(2026, 10, 20)  # inside the cycle, whatever the day the test runs
+    said: list[str] = []
+    pull_request.check_cycle(alice, "Deliverable: D1", set(), today, lambda *a: None, said.append)
+    assert len(said) == 1 and "nstack claim D1" in said[0] and "never in a delivery's" in said[0], said
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    said.clear()
+    pull_request.check_cycle(alice, "Deliverable: D1", set(), today, lambda *a: None, said.append)
+    assert said == []

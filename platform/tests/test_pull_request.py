@@ -534,9 +534,9 @@ def test_c9_an_accepted_charter_changed_without_a_pdr_is_said(tmp_path, capsys, 
 
 def test_k3_tells_a_ready_deliverable_to_move(tmp_path, capsys, monkeypatch):
     """Measured on 2026-10-15: a deliverable stayed `ready` after seven pull requests had merged in
-    its name. The first delivery pull request is told to set it in progress; a warning, the state
-    being the decider's record."""
+    its name. A delivery pull request nobody holds is told to claim it — the hold says it is in
+    progress (D183) —, never to change the cycle file; a warning, the state being the decider's record."""
     base, head = change(tmp_path)
     assert check(tmp_path, base, head, "A change.", monkeypatch) == 0
     output = capsys.readouterr().out
-    assert "WARNING [K3]" in output and "in-progress" in output and "01-first.md" in output, output
+    assert "WARNING [K3]" in output and "nstack claim" in output and "01-first.md" in output, output
