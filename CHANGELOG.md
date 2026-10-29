@@ -22,6 +22,31 @@ a patch.
 
 ---
 
+## v0.19.4 — 2026-10-29
+
+Three workstreams, D181 to D183, from the third project's first day with a second agent approving.
+
+This is a patch version: it turns no green project red — a warning says less, nothing refuses more.
+
+**In the engine**
+
+- **`pr-check` no longer tells a delivery to edit the cycle file** (D183). On a deliverable still `ready`, K3 said *set its state: in-progress in the cycle file, in this pull request*: on `approval: agent` that file is under `docs/`, which a human approves, so no agent could approve such a delivery. Now K3 says nothing when someone holds the deliverable — the hold records that work started — and, when nobody does, its action is `nstack claim`. The cycle file changes in the plan's own pull requests, never in a delivery's.
+- **Messages say *another agent***, not *another contributor's agent* (D181): `doctor`'s L6 and M13, `nstack new-module`'s note.
+
+**In your project** — 9 files, text only
+
+- **`.nstack/handbook/07-governance.md`** §7:
+  - **independence is the identity's, not the person's** (D181): two agents one contributor runs, each under its own App, approve each other's changes; what no agent may approve — what a human must, what it pushed — is unchanged;
+  - **two agents never loop** (D182): the reviewing agent approves or comments, never *request changes*, never pushes to the change it reviews; one round, then it approves or hands the change to a human.
+- **`AGENTS.md`**: an agent approves another agent's change — one round, never pushing to it, never *request changes*.
+- **`.nstack/playbooks/framing.md`**: `in-progress` is said by the hold; the cycle file follows in the plan's own pull requests, never in a delivery's (D183).
+- **`CONTRIBUTING.md`**, **`.nstack/handbook/INSTALL.md`** (*one App per agent*), **`.nstack/handbook/05-workflow.md`**, **`.nstack/handbook/RULES.md`** (G21), **`.github/CODEOWNERS`**'s comment on `agent`: *another agent*.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**: nothing to do. A delivery pull request no longer needs to change the cycle file's state.
+
+---
+
 ## v0.19.3 — 2026-10-28
 
 One workstream, D180: a review of the whole after v0.19.2 found pages written before `approval: agent` that still said a human always approves.
