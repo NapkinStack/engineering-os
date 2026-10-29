@@ -154,7 +154,7 @@ CHECKLIST = [  # (rule, setting, action)
     ("G20", "Hold branches `nstack/hold/**/*` cannot be force-pushed nor deleted",
      "Settings → Rules → Rulesets, a ruleset on the branches nstack/hold/**/* — not nstack/hold/**, "
      "which stops at a slash — with nobody on its bypass list: block force pushes and restrict deletions"),
-    # G21: where another contributor's agent approves (PDR-0021), the one who pushed last never
+    # G21: where another agent approves (PDR-0021), the one who pushed last never
     # approves what they pushed — the author's own fix included.
     ("G21", "The most recent push approved by someone other than its pusher (approval: agent)",
      f"{RULESET}: require approval of the most recent reviewable push"),
@@ -361,7 +361,7 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
 
 def _default_owner(root: Path) -> tuple[str, str]:
     """L6: `*` first, so that the code owner review covers every path (ADR-0004) — or, where
-    another contributor's agent approves (PDR-0021), a human named for what one must approve and
+    another agent approves (PDR-0021), a human named for what one must approve and
     no default owner, so that the rest is the agents'."""
     from napkinstack.project import answer, forge, ownership
 
@@ -395,7 +395,7 @@ def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
     default, missing = owners.unowned(root, text)
     if default:
         return GAP, (f"{shown} names a default owner: on approval agent, it leaves no change another "
-                     "contributor's agent may approve.\nAction: remove the `*` rule; name a human for what "
+                     "agent may approve.\nAction: remove the `*` rule; name a human for what "
                      "one must approve (.nstack/handbook/07-governance.md §7).")
     if missing:
         return GAP, (f"{shown} names no owner for " + ", ".join(f"`{path}`" for path in missing)
@@ -409,7 +409,7 @@ def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
     if len(agents) < 2:
         return OK, (f"The history shows {len(agents) or 'no'} agent identit{'y' if len(agents) == 1 else 'ies'}"
                     + (f" ({agents[0]})" if agents else "") + ": an agent never approves what its own identity "
-                    "pushed, so until another contributor's agent works under an identity of its own, every "
+                    "pushed, so until another agent works under an identity of its own, every "
                     "change waits for a human, as on approval human.")
     return OK, ""
 

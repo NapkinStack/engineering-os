@@ -95,10 +95,10 @@ hold_days:
   help: Days without work before a hold of a deliverable is stale
 
 # Who approves a change to a prototype or standard module (PDR-0021): a code owner, human, or
-# another contributor's agent — the decider's word, changed in a pull request a human approves.
+# another agent — the decider's word, changed in a pull request a human approves.
 # Not asked at init. On agent, the code owners file keeps a human for the rest.
 approval:
   type: str
   choices: [human, agent]
   default: human
-  help: Who approves a prototype or standard module — a human code owner, or also another contributor's agent
+  help: Who approves a prototype or standard module — a human code owner, or also another agent

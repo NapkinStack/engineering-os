@@ -471,7 +471,7 @@ def assembled(manifests: list[Path], root: Path) -> None:
 
 
 def kept_for_a_human(root: Path) -> None:
-    """M13: where another contributor's agent approves, what a human must approve is named in the
+    """M13: where another agent approves, what a human must approve is named in the
     code owners file. The forge reads that file from the base branch, so a pull request raising a
     module's criticality without its line would be approved by an agent: refused here, in CI."""
     from napkinstack import owners
@@ -489,7 +489,7 @@ def kept_for_a_human(root: Path) -> None:
     default, missing = owners.unowned(root, path.read_text(encoding="utf-8"))
     if default:
         fail("code owners", "M13", f"{shown} names a default owner: on approval agent, no change is left "
-                                   "for another contributor's agent.\n      Action: remove the `*` rule.")
+                                   "for another agent.\n      Action: remove the `*` rule.")
     for kept in missing:
         fail("code owners", "M13", f"{shown} ends `{kept}` on no owner: on approval agent, a human "
                                    f"approves it.\n      {action}")

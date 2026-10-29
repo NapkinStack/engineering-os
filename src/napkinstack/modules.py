@@ -103,8 +103,8 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
     codeowners = ownership(root)
     line = f"/modules/{name}/"
     if answer(root, "approval") == "agent" and criticality in ("prototype", "standard"):
-        # Another contributor's agent approves it (PDR-0021): no code owner, whose review a human's alone satisfies.
-        print(f"No code owner line for {line}: on approval agent, another contributor's agent approves a "
+        # Another agent approves it (PDR-0021): no code owner, whose review a human's alone satisfies.
+        print(f"No code owner line for {line}: on approval agent, another agent approves a "
               f"{criticality} module.")
     elif codeowners.is_file():
         content = codeowners.read_text(encoding="utf-8")

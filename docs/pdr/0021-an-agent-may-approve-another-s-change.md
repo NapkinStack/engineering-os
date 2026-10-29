@@ -2,7 +2,9 @@
 
 - **Status**: Accepted (2026-10-28, by the maintainer, approving #298), as proposed; built as
   D175. Proposed the same day (D174), from the maintainer's reading of the third project before
-  a second contributor joins it
+  a second contributor joins it. **Clarified 2026-10-29 (D181)**: independence is the
+  identity's, not the person's — two agents one contributor runs approve each other's changes;
+  *Clarification of 2026-10-29*, below
 - **Date**: 2026-10-28
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (`doctor`, the settings it prints), the project's answers, the
@@ -49,7 +51,8 @@ measured on what escapes, not on reviews nobody makes.
   files and the project's answers — this one included — keep a human approver: an agent never
   approves the change that would let agents approve more.
 - **An author approving its own work**, through any identity (`05-workflow.md` §10). A
-  contributor alone has nobody else's agent: their changes wait for a human.
+  contributor alone has nobody else's agent: their changes wait for a human *(superseded on
+  2026-10-29: two agents of one contributor, each under its own identity, approve each other's)*.
 - **Merging.** Approving and merging stay two acts; auto-merge joins them (`07-governance.md` §7).
 - **Judging whether an approver is expert.** The approval declares its profile; whether the
   profile fits the module is the project's to judge.
@@ -123,8 +126,8 @@ test tools*. The forge counts it; the pull request merges on green.
 **Edge cases.** Bob's agent pushing a fix to Alice's change, then approving it: the approval does
 not count, the last push is its own. A change to the contracts module (`high`) waits for its human
 owner, whatever the agents said. A change to the code owners file or the project's answers waits
-for a human. A project answering `human` sees no change. Alice alone, with no other contributor:
-her changes wait for a human.
+for a human. A project answering `human` sees no change. Alice alone, with one agent under one identity:
+her changes wait for a human — with a second agent under its own, they do not *(clarified 2026-10-29)*.
 
 **Acceptance criteria** *(testable)*:
 
@@ -161,3 +164,19 @@ human without one.
   agent, the code owners file, and the forge's settings `doctor` names.
 - **Records**: ADR-0004's deferred decision, PDR-0003's measurement and PDR-0008's *necessarily
   human* point here, each with a clarification when this record is accepted.
+
+## Clarification of 2026-10-29 — the identity's independence, not the person's
+
+The decider, wiring a second agent of their own on the third project to test the protocol:
+independence was asked of the **person** behind the approving agent, and that asked more than
+the barrier gives. On `human`, the human who drove the agent already approves its pull request
+(ADR-0004): no second person was ever required. What the approval adds is a second reader the
+author cannot be — another identity, in another session, best on another model — and that holds
+whoever runs it. What a person alone could do with two agents, they can already do as the
+decider; what keeps the rest for a human is the code owners file, unchanged.
+
+So, on `agent`: an approval counts from any agent under an identity no author of the change
+holds, and not its last pusher (G21), whoever runs it; *another contributor's agent* reads
+*another agent*. The success criterion counts pull requests approved by an agent under another
+identity than their author's. Who may hold such an identity stays the decider's: an App acts on a
+repository only once an owner installs it there.
