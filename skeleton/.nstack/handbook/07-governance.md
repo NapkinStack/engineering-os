@@ -372,6 +372,11 @@ The forge does the sorting, path by path:
   changes as two contributors' agents would. What a second agent cannot do, nobody's can: approve
   what a human must, or what it pushed. So the answer changes nothing until a second agent works
   under an identity of its own; `doctor` says so while the history shows a single one.
+- **Two agents never loop.** The reviewing agent approves or comments — never *request
+  changes*, a block only it can lift — and never pushes to the change it reviews: it names what
+  is wrong, the author fixes. One round (`05-workflow.md`): its findings once; then it confirms
+  the fixes and approves, or, still disagreeing, hands the change to a human. A second pass
+  raises nothing new but what the fixes broke.
 
 **Where the forge cannot guard** — a private repository on a plan that enforces no ruleset —
 neither answer is enforced: the code owners file only asks for reviews, and `doctor` says
