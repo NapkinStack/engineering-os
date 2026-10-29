@@ -6,7 +6,7 @@
   the person (**D151, 2026-10-24**), the last three. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
   check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
   decider chose option 3 the same day**: the apply mode is run by the person, never delegated. **Clarified 2026-10-28 (D175)**: an approval stays necessarily human except, on
-  `approval: agent`, another contributor's agent for a `prototype` or `standard` module (PDR-0021)
+  `approval: agent`, another agent for a `prototype` or `standard` module (PDR-0021)
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and
@@ -311,7 +311,7 @@ What the method leaves to a person's hands on GitHub, as `INSTALL.md` lists it:
 | D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be observed on the first real run of `--apply`: the interface refuses a check it has never seen, the rulesets API may accept it; if it refuses, `--apply` puts the ruleset in without them and names G4 as the one step left | The first run under a person's credential |
 | `owner_team`, the team `CODEOWNERS` names | By hand, in the organisation | Automatable by an organisation owner, in the same script | Who belongs to the team is a human decision |
 | The agents' GitHub App: created, installed, its key stored | By hand, through the forge's pages | Reduced to one confirmation by the App manifest flow, never fully automated | Creating an identity and holding its key is a person's act (ADR-0004) |
-| An approval on a pull request | By hand | **Necessarily human** — except, on `approval: agent`, another contributor's agent for a `prototype` or `standard` module (PDR-0021, clarified 2026-10-28) | It is what the barrier is for (PDR-0003) |
+| An approval on a pull request | By hand | **Necessarily human** — except, on `approval: agent`, another agent for a `prototype` or `standard` module (PDR-0021, clarified 2026-10-28) | It is what the barrier is for (PDR-0003) |
 | A tag, and a deployment's approval | By hand | **Necessarily human** | The decider's word (PDR-0005) |
 | An acceptance issue answered | By hand | **Necessarily human** | A person tried it (PDR-0004) |
 | A setup credential revoked | By hand | Necessarily human; said at the end of the gesture | Only its owner can revoke it |

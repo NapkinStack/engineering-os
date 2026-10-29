@@ -2,7 +2,7 @@
 # Updated automatically by nstack new-module.
 
 {% if approval | default('human') == 'agent' %}# No default owner (approval: agent): a path named below waits for a human's
-# approval; any other by a human or by another contributor's agent. A module of criticality
+# approval; any other by a human or by another agent. A module of criticality
 # high or critical is named; prototype and standard are not (.nstack/handbook/07-governance.md §7).
 /docs/                         @{{ owner_team }}
 /CONTRIBUTING.md               @{{ owner_team }}

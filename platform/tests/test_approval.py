@@ -199,7 +199,7 @@ def committed(root: Path, *authors: str) -> None:
 
 @pytest.mark.parametrize("authors, said", [
     (("1+a-agent[bot]", "1+a-agent[bot]", "alice"), True),   # one agent identity: nobody else's agent
-    (("1+a-agent[bot]", "2+b-agent[bot]"), False),            # two: another contributor's agent may approve
+    (("1+a-agent[bot]", "2+b-agent[bot]"), False),            # two: another agent may approve
     (("alice",), True)])
 def test_on_agent_doctor_says_when_no_second_agent_identity_can_approve(tmp_path, authors, said):
     root = project(tmp_path, "agent", owners(*HUMAN_LINES))

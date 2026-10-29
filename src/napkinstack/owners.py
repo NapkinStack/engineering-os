@@ -1,7 +1,7 @@
 """
 Who must approve a change, read from the code owners file as the forge reads it (PDR-0021).
 
-On `approval: agent`, another contributor's agent approves what the code owners file names no
+On `approval: agent`, another agent approves what the code owners file names no
 owner for; a human, what it names. So every path a human must approve — the project's rules,
 its records, its answers, the code owners file itself, every module neither `prototype` nor
 `standard` — must end on a rule with an owner. A pattern is read as a gitignore pattern, the
