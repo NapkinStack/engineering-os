@@ -194,12 +194,28 @@ def committed(root: Path, *authors: str) -> None:
         (root / f"f{index}").write_text(str(index), encoding="utf-8")
         subprocess.run(["git", "add", "-A"], cwd=root, check=True)
         subprocess.run(["git", "-c", f"user.name={author}", "-c", f"user.email={author}@users.noreply.github.com",
-                        "commit", "-q", "-m", str(index)], cwd=root, check=True, env=env)
+                        "commit", "-q", "-m", f"{index}\n\nAgent-Session: s{index}" if "[bot]" in author and "dependabot" not in author else str(index)], cwd=root, check=True, env=env)
+
+
+def test_a_squash_keeps_its_session_above_the_co_authors_and_a_committer_counts(tmp_path):
+    import os
+    import subprocess
+
+    env = {key: value for key, value in os.environ.items() if not key.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))}
+    subprocess.run(["git", "init", "-q", "--initial-branch=main"], cwd=tmp_path, check=True)
+    for index, (author, committer, message) in enumerate([
+            ("1+a[bot]", "1+a[bot]", "T (#1)\n\n* one\n\nAgent-Session: s1\n\n---------\n\nCo-authored-by: x <x@y.z>"),
+            ("alice", "2+b[bot]", "U\n\nagent-session: s2")]):  # a trailer's key has no case
+        subprocess.run(["git", "-c", f"user.name={author}", "-c", f"user.email={author}@users.noreply.github.com",
+                        "commit", "-q", "--allow-empty", "-m", message], cwd=tmp_path, check=True,
+                       env={**env, "GIT_COMMITTER_NAME": committer, "GIT_COMMITTER_EMAIL": f"{committer}@users.noreply.github.com"})
+    assert doctor._agent_identities(tmp_path) == ["2+b[bot]@users.noreply.github.com", "1+a[bot]@users.noreply.github.com"]
 
 
 @pytest.mark.parametrize("authors, said", [
     (("1+a-agent[bot]", "1+a-agent[bot]", "alice"), True),   # one agent identity: nobody else's agent
     (("1+a-agent[bot]", "2+b-agent[bot]"), False),            # two: another agent may approve
+    (("1+a-agent[bot]", "2+dependabot[bot]"), True),          # no session: the forge's bot, no one's agent (#310)
     (("alice",), True)])
 def test_on_agent_doctor_says_when_no_second_agent_identity_can_approve(tmp_path, authors, said):
     root = project(tmp_path, "agent", owners(*HUMAN_LINES))
