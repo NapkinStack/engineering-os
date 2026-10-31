@@ -551,7 +551,64 @@ def show(root: Path) -> int:
     where = f"from {name}" if name else "local only: no remote"
     print(f"\nHolds in {path.stem}: {held} held, of which {stale} stale ({where}; stale after {days} days without work):")
     print("\n".join(lines) or "  no ready deliverable")
+    left = _empty_starts(root, name, items if isinstance(items, list) else [])
+    if left:
+        print("\nEmpty start branches left — one empty commit each, nothing to lose, and git branch -d refuses them:")
+        print("\n".join(left))
     return 0
+
+
+def _empty_starts(root: Path, name: str | None, items: list) -> list[str]:
+    """What to run for each branch `claim` started that its deliverable no longer needs (#316): its
+    state moved on, or its work landed from other branches — the default branch names it since —
+    or it belongs to another cycle. An id no cycle here knows may be newer than this checkout, and
+    is left alone. Only such a branch: the claim's own subject, one empty commit on the default
+    branch, here or on the remote."""
+    states = {str(item.get("id")).lower(): item.get("state") for item in items if isinstance(item, dict)}
+    known = set()
+    for path in plan.cycle_files(root):
+        listed = (plan.read_front_matter(path)[0] or {}).get("deliverables")
+        known |= {str(item.get("id")).lower() for item in (listed if isinstance(listed, list) else []) if isinstance(item, dict)}
+    base = f"{MIRROR}/base" if name else "refs/heads/main"
+    branches: dict[str, set[str]] = {}
+    for where, prefix, strip in (("remote", f"{MIRROR}/work", 3), ("local", "refs/heads", 2)):
+        if where == "remote" and not name:
+            continue
+        shown = _git(root, "for-each-ref", f"--format=%(refname:lstrip={strip})%09%(refname)%09%(subject)", f"{prefix}/d*").stdout
+        for line in shown.splitlines():
+            branch, ref, subject = (line.split("\t", 2) + ["", ""])[:3]
+            ident = branch.split("-")[0]
+            if (ident not in known or not subject.startswith(f"Start {ident.upper()} — ")
+                    or _git(root, "rev-list", "--count", f"{base}..{ref}").stdout.strip() != "1"
+                    or _git(root, "rev-parse", f"{ref}^{{tree}}").stdout != _git(root, "rev-parse", f"{ref}~1^{{tree}}").stdout):
+                continue
+            if ident in states and plan.one_of(states[ident], TAKEABLE) and not _landed(root, ident, ref, base):
+                continue
+            if ident not in states and _held_in_a_live_cycle(root, ident.upper()):
+                continue
+            branches.setdefault(branch, set()).add(where)
+    return [f"  {branch}  " + "; ".join(([f"git push {name} --delete {branch}"] if "remote" in places else [])
+                                        + ([f"git branch -D {branch}"] if "local" in places else []))
+            for branch, places in sorted(branches.items())]
+
+
+def _landed(root: Path, ident: str, ref: str, base: str) -> bool:
+    """The default branch records the deliverable's delivery since the start branch left it: the
+    `Deliverable:` line of a pull request, or its id in parentheses or opening a subject — a commit
+    merely speaking of it is no delivery, and a live hold's branch is not named for it."""
+    name = ident.upper()
+    pattern = rf"\({name}\)|^Deliverable:[ \t]*{name}([^0-9]|$)|^{name} [—–-]"
+    return bool(_git(root, "log", "-1", "--format=%H", "--extended-regexp", f"--grep={pattern}", f"{ref}~1..{base}").stdout.strip())
+
+
+def _held_in_a_live_cycle(root: Path, ident: str) -> bool:
+    """A hold on the remote this checkout's cycle files do not explain: its id moved on a commit not
+    pulled here. A hold of a closed cycle ended with it."""
+    prefix = f"{MIRROR}/hold" if remote(root) else f"refs/heads/{PREFIX}"
+    closed = {path.stem for path in plan.cycle_files(root)
+              if plan.one_of((plan.read_front_matter(path)[0] or {}).get("status"), plan.OUTCOMES)}
+    cycles = _git(root, "for-each-ref", "--format=%(refname)", f"{prefix}/*/{ident}").stdout.split()
+    return any(ref.split("/")[-2] not in closed and read(root, ref.split("/")[-2], ident).held for ref in cycles)
 
 
 def judge(root: Path, ident: str) -> Hold | str | None:
