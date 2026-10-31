@@ -130,7 +130,8 @@ def unfilled(value) -> bool:
 def is_description(path: str) -> bool:
     """A module's description — its manifest, AGENTS.md, README.md, docs/ — or an empty
     placeholder, `path` relative to the module's folder. Changing it changes no behaviour
-    (D24); a module holding nothing else has nothing to check yet (D33)."""
+    (D24); a module holding nothing else has nothing to check yet (D33). The one exception is read
+    from the manifests' values, not their path: pull_request.touched_modules (D184)."""
     # A page at any depth describes; it runs nothing. A contract's own page —
     # contracts/<name>/v1/README.md — is the case that asked: the module that holds it must
     # stay green until the contract gains a schema or a test (PDR-0012). Once a module consumes
