@@ -268,6 +268,62 @@ def test_a_short_row_is_a_finding_not_a_crash(tmp_path, capsys, monkeypatch):
     assert "FAIL [T3] scenario S1: passed without evidence" in capsys.readouterr().out
 
 
+SHEET = "## Test sheet\n\nVerifier: @dana\n\n| # | Given · when · then | Kind | Result | Evidence | Commit |\n" \
+        "|---|---|---|---|---|---|\n"
+
+
+def test_a_pipe_in_a_cell_is_said_not_read_as_missing_evidence(tmp_path, capsys, monkeypatch):
+    """#317: GitHub splits a cell at a bare | even in a code span, and so does the check; the extra
+    cell is named, never mistaken for evidence that is not there."""
+    base, head = change(tmp_path, USER_FACING)
+    body = SHEET + f"| S1 | Given x, when y, then z | automated | passed | `ab|cd` | `{head[:7]}` |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 1
+    out = capsys.readouterr().out
+    assert "FAIL [T2] scenario S1: a | splits its row (7 cells, the header 6)" in out and r"\|" in out
+    assert "T3" not in out
+
+
+SEVEN = SHEET.replace("| Commit |", "| Commit | Confirmed |").replace("|---|---|---|---|---|---|", "|---|---|---|---|---|---|---|")
+
+
+@pytest.mark.parametrize("cells", ["`ab|cd` | `{head}`", "ab | cd | `{head}`"], ids=["in a code span", "bare"])
+def test_a_pipe_is_said_under_the_template_s_seven_columns_too(tmp_path, capsys, monkeypatch, cells):
+    """A short row plus one pipe has as many cells as the header."""
+    base, head = change(tmp_path, USER_FACING)
+    body = SEVEN + "| S1 | Given x, when y, then z | automated | passed | " + cells.format(head=head[:7]) + " |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 1
+    out = capsys.readouterr().out
+    assert "a | splits its row" in out and "T3" not in out
+
+
+@pytest.mark.parametrize("tail", ["|", " ok by me |"], ids=["an empty cell", "a remark"])
+def test_cells_beyond_the_header_on_a_readable_row_stay_ignored(tmp_path, capsys, monkeypatch, tail):
+    base, head = change(tmp_path, USER_FACING)
+    body = SHEET + f"| S1 | Given x, when y, then z | automated | passed | a log | `{head[:7]}` |{tail}\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("evidence", ["log says `foo", "``a`b``", "`` ` `` is the quote"])
+def test_a_backtick_with_no_pipe_splits_nothing(tmp_path, capsys, monkeypatch, evidence):
+    base, head = change(tmp_path, USER_FACING)
+    body = SEVEN + f"| S1 | Given x, when y, then z | explored | passed | {evidence} | `{head[:7]}` | — |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("sheet, cells", [
+    (SHEET, "— | — | remark"), (SEVEN, "— |  | `abcdef1`")], ids=["a remark beyond the header", "a hash in Confirmed"])
+def test_a_human_only_row_owes_no_commit_and_reads_well(tmp_path, capsys, monkeypatch, sheet, cells):
+    base, head = change(tmp_path, USER_FACING)
+    body = sheet + f"| S1 | Given x, when y, then z | human only — a real call | not verified | {cells} |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+
+
+def test_a_pipe_written_as_the_table_asks_is_a_cell_s_text(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, USER_FACING)
+    body = SHEET + f"| S1 | Given x, when y, then z | automated | passed | `ab\\|cd` | `{head[:7]}` |\n"
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+
+
 def test_pr_check_on_an_unknown_base(tmp_path, capsys, monkeypatch):
     base, head = change(tmp_path, USER_FACING)
     assert check(tmp_path, "nope", head, "", monkeypatch) == 1
