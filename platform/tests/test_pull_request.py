@@ -251,6 +251,14 @@ def test_a_file_moved_out_of_a_user_facing_module(tmp_path, capsys, monkeypatch)
     assert "modules/login (criticality standard, user-facing)" in capsys.readouterr().out
 
 
+def test_a_criticality_moved_in_a_framed_project_is_delivery_work(tmp_path, capsys, monkeypatch):
+    """D184: the decider's call, so it names its deliverable or says out of cycle, as any change does."""
+    framed(tmp_path)
+    base, head = revise(tmp_path, {"MANIFEST.yaml": yaml.safe_dump(degrade(VALID, module__criticality="prototype"))})
+    assert check(tmp_path, base, head, "", monkeypatch, deliverable_line=None) == 1
+    assert "FAIL [K" in capsys.readouterr().out
+
+
 def test_a_short_row_is_a_finding_not_a_crash(tmp_path, capsys, monkeypatch):
     """D40: a row missing its last cells is read as empty ones."""
     base, head = change(tmp_path, USER_FACING)
@@ -314,13 +322,20 @@ MODULE_CASES = {
     "the stricter of base and head": (USER_FACING, {"MANIFEST.yaml": yaml.safe_dump(VALID), "src/page.txt": "new\n"},
                                       "modules/login (criticality standard, user-facing)", 1),
     "a deleted module: a change": (USER_FACING, {".": None}, "FAIL [T1] Test sheet missing", 1),
+    "a criticality raised: a change": (VALID, {"MANIFEST.yaml": yaml.safe_dump(degrade(VALID, module__criticality="critical"))},
+                                       "modules/login (criticality critical", 1),
+    "a criticality lowered: a change": (HIGH, {"MANIFEST.yaml": yaml.safe_dump(degrade(HIGH, module__criticality="prototype"))},
+                                        "modules/login (criticality high", 1),
+    "user-facing withdrawn: a change": (USER_FACING, {"MANIFEST.yaml": yaml.safe_dump(degrade(USER_FACING, module__user_facing=False))},
+                                        "modules/login (criticality standard, user-facing", 1),
 }
 
 
 @pytest.mark.parametrize(("manifest", "edits", "expected", "code"), MODULE_CASES.values(), ids=MODULE_CASES.keys())
 def test_what_changes_a_module(tmp_path, capsys, monkeypatch, manifest, edits, expected, code):
     """A module changes when its behaviour may: not its manifest, AGENTS.md, README.md,
-    docs/ or an empty placeholder (D24, PDR-0003 and PDR-0002 clarifications)."""
+    docs/ or an empty placeholder (D24, PDR-0003 and PDR-0002 clarifications) — unless the manifest
+    moves what the module owes: its criticality or its user-facing surface (D184)."""
     base, head = revise(tmp_path, edits, manifest)
     result = check(tmp_path, base, head, "", monkeypatch, deliverable_line=None)
     output = capsys.readouterr().out

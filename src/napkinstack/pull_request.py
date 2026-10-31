@@ -22,7 +22,8 @@ Rules:
       sessions, or its person's account (`nstack claim`)
 
 Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
-beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24). A NapkinStack
+beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24) — or whose manifest
+moves its criticality or its user-facing surface, which is the decider's call (D184). A NapkinStack
 update or a documentation fix is neither delivery work nor a reason for a sheet.
 The out-of-cycle label lifts K1 to K3 and K5, visibly and countably (.nstack/handbook/10-measurement.md).
 
@@ -99,7 +100,8 @@ def _manifest(text: str) -> dict:
 
 def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[dict]]:
     """Folder, relative to the root, to its manifests — at the head and at the base — for
-    every module whose behaviour the files may change, a deleted module included."""
+    every module whose behaviour the files may change, a deleted module included, or whose
+    manifest moved what it owes."""
     manifests = {path.relative_to(root).as_posix(): [_manifest(path.read_text(encoding="utf-8"))]
                  for path in find_manifests(root)}
     listed = _git(root, "ls-tree", "-r", "--name-only", base).stdout.split()
@@ -112,9 +114,17 @@ def touched_modules(root: Path, base: str, files: list[str]) -> dict[str, list[d
     for path, found in sorted(manifests.items()):
         folder = path.removesuffix("/MANIFEST.yaml")
         if any(file.startswith(f"{folder}/") and (not is_description(file[len(folder) + 1:]) or file in relied)
-               for file in files):
+               for file in files) or _owes_differently(found):
             touched[folder] = found
     return touched
+
+
+def _owes_differently(manifests: list[dict]) -> bool:
+    """True when the manifest moved what its module owes (.nstack/handbook/05-workflow.md §7): the
+    rest of a manifest is a description, these two say which checks the module answers to (D184)."""
+    owed = [(module.get("criticality"), module.get("user_facing") is True)
+            for module in (data.get("module") for data in manifests) if isinstance(module, dict)]
+    return len(set(owed)) > 1
 
 
 CONTRACT_PAGE = re.compile(r"(?P<path>.+/(?P<contract>[^/]+)/(?P<version>v\d+))/README\.md")

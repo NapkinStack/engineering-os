@@ -6,7 +6,8 @@ Fitness function 3 — Pull request scope and size.
 
 A module is touched when the pull request changes it beyond its description — the same
 count as `nstack pr-check`'s (D34): editing a manifest, an AGENTS.md, a README or docs/
-changes no module, and contracts/ is a module like any other.
+changes no module, unless the manifest moves its criticality or its user-facing surface (D184),
+and contracts/ is a module like any other.
 
 The `cross-module` label lifts P1, the `over-budget` label documents P2: both are visible,
 so the exceptions are countable (.nstack/handbook/10-measurement.md §3).
