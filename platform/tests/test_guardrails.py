@@ -372,6 +372,34 @@ def test_boundaries(tmp_path, capsys, modules_map, rule, fails):
     expect(code, capsys.readouterr().out, rule, fails)
 
 
+READS_BOTH = {"src/client.py": 'A = "contracts/customers-api/v1/x"\nB = "contracts/customers-api/v2/x"\n'}
+
+
+@pytest.mark.parametrize(("producer", "consumer", "sources"), [
+    (("v1", "v2"), ("v1",), READS),         # 1. the producer declares v2, and goes on writing v1
+    (("v1", "v2"), ("v1", "v2"), READS_BOTH),  # 2. the consumer declares v2 beside v1, and reads both
+    (("v2",), ("v2",), {"src/client.py": 'B = "contracts/customers-api/v2/x"\n'})],  # 3. after the writing, v1 removed
+    ids=["the producer declares first", "the consumer reads both", "v1 removed at the end"])
+def test_a_new_version_across_two_modules_has_an_order_each_step_passes(tmp_path, capsys, producer, consumer, sources):
+    """#318: 03-contracts.md §4 names this order; nothing asks both manifests in one pull request."""
+    write_contract(tmp_path, "customers-api/v1", "customers-api/v2")
+    billing = {**VALID, "consumes": [{"contract": "customers-api", "version": version, "module": "customers"}
+                                     for version in consumer]}
+    write_module(tmp_path, "billing", billing, sources)
+    write_module(tmp_path, "customers", provides(CUSTOMERS, "customers", producer))
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_consumer_ahead_of_its_producer_is_told_the_order(tmp_path, capsys):
+    write_contract(tmp_path, "customers-api/v1", "customers-api/v2")
+    write_module(tmp_path, "billing", consumes(VALID, "customers", "v2"), {"src/c.py": 'B = "contracts/customers-api/v2/x"\n'})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 1
+    assert "have its producer declare it first" in capsys.readouterr().out
+    page = (Path(__file__).resolve().parents[2] / "skeleton/.nstack/handbook/03-contracts.md").read_text(encoding="utf-8")
+    assert "**Declaring a version is not writing it.**" in page
+
+
 def test_a_cycle_through_contracts_is_a_cycle(tmp_path, capsys):
     """D37: the contracts are the only dependency allowed, so B3 reads them."""
     write_contract(tmp_path, "customers-api/v1", "billing-api/v1")
