@@ -152,6 +152,10 @@ Two agents one person runs are two holders: a session renews only a hold it is o
 session of that person is refused like anyone else, and takes the hold with `--take-over` when
 the person says so, stale or not; a person with no `--session` renews their own.
 
+When a deliverable's work went on other branches, the empty branch its claim started stays:
+`nstack plan` names it once the default branch records the deliverable's delivery — its
+`Deliverable:` line, or its id in parentheses in a subject — once it is no longer `ready` or `in-progress`, or once it belongs to another cycle, with the commands that delete it.
+
 The hold is a branch of the shared remote, `nstack/hold/<cycle>/D30`, whose commits are its
 events; the remote takes the first of two claims and refuses the second. A hold's last work is
 its newest event or commit on a branch `d30-…`; with none for `hold_days` (an answer of the

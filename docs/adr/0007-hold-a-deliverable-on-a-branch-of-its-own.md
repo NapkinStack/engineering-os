@@ -97,7 +97,7 @@ no service, and no forge required.
    fork's is never one: who holds it now, and from whom. `nstack unclaim <id>` commits a `release`; by
    another than the holder or the charter's decider, refused unless stale; another session of the holder's person is another than the holder (clarified for D185). The previous holder's
    branches are never touched.
-7. **`plan`.** After its rules, a *Holds* section for the accepted cycle: each deliverable free,
+7. **`plan`.** (Clarified for D189: it also names the empty start branches a claim left, once their deliverable's work has landed or its state moved on, with the commands that delete them.) After its rules, a *Holds* section for the accepted cycle: each deliverable free,
    held (person, session, since, last worked on) or stale. Read from the remote; unreachable, it
    says *holds not read* — never a failure; no remote, the local holds are read and said local. A hold of a deliverable `accepted` or
    `dropped` is shown ended.

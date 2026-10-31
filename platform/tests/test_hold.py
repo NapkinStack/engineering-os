@@ -923,3 +923,168 @@ def test_a_delivery_of_a_held_ready_deliverable_is_never_told_to_edit_the_cycle_
     said.clear()
     pull_request.check_cycle(alice, "Deliverable: D1", set(), today, lambda *a: None, said.append)
     assert said == []
+
+
+def finished(shared: Path, alice: Path, state: str = "accepted") -> None:
+    """D1's state moved on main, as a delivery's acceptance does."""
+    path = alice / "docs/project/cycles/03-the-window.md"
+    git(alice, "switch", "-q", "main")
+    git(alice, "pull", "-q", "origin", "main")
+    path.write_text(path.read_text(encoding="utf-8").replace("state: ready", f"state: {state}"), encoding="utf-8")
+    git(alice, "add", "-A")
+    git(alice, "commit", "-q", "-m", "D1 accepted")
+    git(alice, "push", "-q", "origin", "main")
+
+
+def test_plan_names_the_empty_start_branch_its_done_deliverable_left(shared, capsys):
+    """#316: never the pull request's, refused by git branch -d, and named by nothing."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    branch = "d1-resume-an-interrupted-recording"
+    finished(shared, alice)
+    capsys.readouterr()
+    hold.show(alice)
+    out = capsys.readouterr().out
+    assert "Empty start branches left" in out
+    assert f"git push origin --delete {branch}" in out and f"git branch -D {branch}" in out
+
+
+def test_plan_says_nothing_of_a_start_branch_still_in_use(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" not in capsys.readouterr().out
+
+
+def test_plan_says_nothing_of_a_branch_holding_work(shared, capsys):
+    """Work is never called left over, however done the deliverable."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    branch = "d1-resume-an-interrupted-recording"
+    git(alice, "switch", "-q", branch)
+    (alice / "work.txt").write_text("work", encoding="utf-8")
+    git(alice, "add", "-A")
+    git(alice, "commit", "-q", "-m", "work")
+    git(alice, "push", "-q", "origin", branch)
+    finished(shared, alice)
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" not in capsys.readouterr().out
+
+
+def test_plan_says_nothing_of_a_branch_empty_but_not_a_claim_s(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    finished(shared, alice)
+    git(alice, "commit", "-q", "--allow-empty", "-m", "a note someone keeps")
+    git(alice, "push", "-q", "origin", "HEAD:refs/heads/d1-kept")
+    git(alice, "reset", "-q", "--hard", "HEAD~1")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "d1-kept" not in capsys.readouterr().out
+
+
+def land(alice: Path, message: str) -> None:
+    git(alice, "switch", "-q", "main")
+    git(alice, "pull", "-q", "origin", "main")
+    git(alice, "commit", "-q", "--allow-empty", "-m", message)
+    git(alice, "push", "-q", "origin", "main")
+
+
+def test_plan_names_it_once_the_work_landed_though_the_state_is_unmoved(shared, capsys):
+    """A delivery never edits the cycle file (D183): at the kernel's Close the state is still ready."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    land(alice, "resume: nothing lost (D1) (#7)")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "d1-resume-an-interrupted-recording" in capsys.readouterr().out.split("Empty start branches left")[-1]
+
+
+def test_a_mere_mention_is_no_landing(shared, capsys):
+    """A live hold's branch is never named because a commit spoke of it."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    land(alice, "docs: note that the export waits for D1")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" not in capsys.readouterr().out
+
+
+def test_a_deliverable_line_is_a_landing(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    land(alice, "Resume a recording\n\nDeliverable: D1")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" in capsys.readouterr().out
+
+
+def test_a_malformed_cycle_is_no_traceback_in_plan(shared, capsys):
+    alice = clone(shared, "alice")
+    (alice / "docs/project/cycles/02-old.md").write_text("---\nstatus: closed\ndeliverables: 5\n---\n", encoding="utf-8")
+    assert hold.show(alice) == 0
+
+
+def test_a_checkout_behind_never_names_a_branch_held_in_a_cycle_it_knows(shared, capsys):
+    """D7 is closed-cycle here; another clone moved it to the current cycle and holds it."""
+    alice = clone(shared, "alice")
+    old = alice / "docs/project/cycles/02-old.md"
+    old.write_text("---\nstatus: completed\ndeliverables:\n  - id: D7\n    title: x\n---\n", encoding="utf-8")
+    git(alice, "commit", "-q", "--allow-empty", "-m", "Start D7 — x")
+    git(alice, "push", "-q", "origin", "HEAD:refs/heads/d7-x")
+    git(alice, "reset", "-q", "--hard", "HEAD~1")
+    tip = hold._event(alice, None, "D7", "claim", "@bob", "bob-d7")
+    git(alice, "push", "-q", "origin", f"{tip}:refs/heads/nstack/hold/03-the-window/D7")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "d7-x" not in capsys.readouterr().out
+
+
+def test_another_deliverable_s_number_is_no_landing(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    land(alice, "something else (D10) (#7)")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" not in capsys.readouterr().out
+
+
+def test_a_deliverable_this_checkout_does_not_know_is_left_alone(shared, capsys):
+    """Another's claim, on a cycle file newer than this checkout: never told to delete it."""
+    alice = clone(shared, "alice")
+    git(alice, "commit", "-q", "--allow-empty", "-m", "Start D3 — new one")
+    git(alice, "push", "-q", "origin", "HEAD:refs/heads/d3-new-one")
+    git(alice, "reset", "-q", "--hard", "HEAD~1")
+    capsys.readouterr()
+    hold.show(alice)
+    assert "d3-new-one" not in capsys.readouterr().out
+
+
+def test_two_commits_on_a_start_branch_are_not_named(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    branch = "d1-resume-an-interrupted-recording"
+    git(alice, "switch", "-q", branch)
+    git(alice, "commit", "-q", "--allow-empty", "-m", "second")
+    git(alice, "push", "-q", "origin", branch)
+    finished(shared, alice)
+    capsys.readouterr()
+    hold.show(alice)
+    assert "Empty start branches left" not in capsys.readouterr().out
+
+
+def test_without_a_remote_only_the_local_delete_is_named(shared, capsys):
+    alone = clone(shared, "alone")
+    git(alone, "remote", "remove", "origin")
+    hold.claim(alone, "D1", session="s", person="@alice")
+    git(alone, "branch", "--list")
+    path = alone / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("state: ready", "state: accepted"), encoding="utf-8")
+    git(alone, "add", "-A")
+    git(alone, "commit", "-q", "-m", "accepted")
+    capsys.readouterr()
+    hold.show(alone)
+    out = capsys.readouterr().out
+    assert "git branch -D d1-resume" in out and "git push" not in out
