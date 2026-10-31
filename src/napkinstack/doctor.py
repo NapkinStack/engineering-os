@@ -415,10 +415,18 @@ def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
 
 
 def _agent_identities(root: Path) -> list[str]:
-    """The bot identities the recent history's commits name, as GitHub's noreply addresses say them."""
-    shown = subprocess.run(["git", "log", "-n", "500", "--format=%ae%n%ce"], cwd=root, capture_output=True, text=True)
-    found = [address.lower() for address in shown.stdout.split()
-             if address.lower().endswith("[bot]@users.noreply.github.com")]
+    """The bot identities of the recent history's commits that name a session, as GitHub's noreply
+    addresses say them. The line is what the kernel asks of an agent's commit: a forge's own bot,
+    Dependabot's, carries none and neither verifies nor approves (#310)."""
+    shown = subprocess.run(["git", "log", "-n", "500", "--format=%ae%x1f%ce%x1f%B%x1e"],
+                           cwd=root, capture_output=True, text=True)
+    found = []
+    for record in shown.stdout.split("\x1e"):
+        author, committer, message = (record.strip().split("\x1f") + ["", ""])[:3]
+        # In the whole message: a squash keeps it above a last paragraph of co-authors.
+        if re.search(r"^Agent-Session:[ \t]*\S", message, re.M | re.I):
+            found += [address.lower() for address in (author, committer)
+                      if address.lower().endswith("[bot]@users.noreply.github.com")]
     return list(dict.fromkeys(found))
 
 
