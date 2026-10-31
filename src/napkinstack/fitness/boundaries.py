@@ -211,7 +211,8 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
             offered = ", ".join(f"{k[0]} {k[1]} by {v}" for k, v in sorted(provided.items(), key=str)) or "none"
             if producer is None:
                 fail("B6", name, f"consumes {key[0]} {key[1]}, which no module provides (provided: {offered}).\n"
-                                 "      Action: consume a provided version, or have its producer declare it.")
+                                 "      Action: consume a provided version, or have its producer declare it first, "
+                                 "in a pull request of its own (.nstack/handbook/03-contracts.md §4).")
             elif c.get("module") not in (None, producer):
                 fail("B6", name, f"consumes {key[0]} {key[1]} from '{c.get('module')}', which is "
                                  f"provided by '{producer}'.\n      Action: name the producer.")
