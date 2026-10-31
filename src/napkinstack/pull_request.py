@@ -8,7 +8,7 @@ Rules:
       head, the stricter
   T2  a verifier named who is not an author of the change, and every scenario row filled
       in: id, given · when · then, a kind (automated, explored, human only — reason), a
-      result (passed, failed, not verified)
+      result (passed, failed, not verified); a | that splits a row is said (D187)
   T3  no scenario passed without its evidence and the commit it was verified on
   T4  evidence at the head commit: an automated scenario is run again, one explored by hand
       is confirmed at the head instead — and at criticality critical, run again like the rest
@@ -67,6 +67,8 @@ COLUMNS = ("#", "given · when · then", "kind", "result", "evidence", "commit")
 # Optional seventh column, read only when a scenario needs it: the head commit and what
 # changed since. A sheet no fix has disturbed never has to carry it (T4, D71).
 CONFIRMED = "confirmed"
+CELLS = "cells read"  # how many a row held
+PIPED = "a pipe in a code span"  # a bare |: the table ends the cell there, as GitHub does
 KINDS = {"automated", "explored"}
 RESULTS = {"passed", "failed", "not verified"}
 SECTION = re.compile(r"^##[ \t]+Test sheet[ \t]*$", re.I | re.M)
@@ -203,7 +205,8 @@ def read_sheet(body: str) -> tuple[str, list[str], list[dict[str, str]]]:
         values = _cells(line)
         if all(value in EMPTY or PLACEHOLDER.fullmatch(value) for value in values[1:]):
             continue  # the template's example row
-        rows.append(dict(zip(header, values + [""] * (len(header) - len(values)))))
+        piped = any("|" in span for span in re.findall(r"`[^`]*`", line.replace("\\|", "")))
+        rows.append({**dict(zip(header, values + [""] * (len(header) - len(values)))), CELLS: len(values), PIPED: piped})
     return verifier, header, rows
 
 
@@ -282,6 +285,18 @@ def _result(cell: str) -> str:
     return re.split(r"[ \t]+[—–-][ \t]+", cell.replace("*", "").strip(), maxsplit=1)[0].lower()
 
 
+def _split(row: dict, width: int) -> bool:
+    """A bare | moved the row's columns. A row that reads well has not moved, whatever it holds:
+    cells beyond the header are ignored, as GitHub ignores them, and backticks prove nothing."""
+    result = _result(row["result"])
+    commit = SHA.fullmatch(row["commit"].strip().strip("`").lower())
+    kind = row["kind"].lower() in KINDS or HUMAN_ONLY.fullmatch(row["kind"])
+    if kind and result in RESULTS and (commit or result == "not verified"):
+        return False
+    late = SHA.fullmatch(row.get(CONFIRMED, "").strip().strip("`").lower())  # one cell after the commit's
+    return bool(row[PIPED] or late or row[CELLS] > width)
+
+
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
                 strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False) -> list[str]:
@@ -309,6 +324,11 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
     human_only, rerun, unconfirmed = [], [], []
     for row in rows:
         ident = row["#"] or "?"
+        if _split(row, len(header)):
+            fail("T2", f"scenario {ident}: a | splits its row ({row[CELLS]} cells, the header {len(header)}): its "
+                       "columns cannot be read.\n      Action: a | in a cell ends it, in a code span too: "
+                       "write it \\|.")
+            continue
         kind = row["kind"]
         reason = HUMAN_ONLY.fullmatch(kind)
         result = _result(row["result"])
