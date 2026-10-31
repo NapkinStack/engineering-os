@@ -22,6 +22,41 @@ a patch.
 
 ---
 
+## v0.20.0 — 2026-10-31
+
+Six workstreams, D184 to D189, from the issues projects filed.
+
+This is a minor version: it turns a green project red in two places, which **Migration** says.
+
+**In the engine**
+
+- **A manifest that moves what its module owes touches it** (D184, #319). Raising a module to `critical` said *Modules touched: 0, test sheet not required*; lowering it the same. A manifest moving `criticality` or `user_facing` now counts in `pr-check` and `pr-scope`, so T1, P1 and the cycle rules apply. The rest of a manifest stays a description.
+- **Another session of one person does not renew a hold** (D185, #315). Two agents of one person flipped a hold with no one told. A session renews only a hold it is on, or one naming no session; another is refused by `claim`, and by `unclaim` unless the hold is stale or that person is the decider. It takes the hold with `--take-over` on the person's word, stale or not, recorded with the session it leaves, and its open pull requests are told. K5's advice says the command as it runs. A person with no `--session` still renews.
+- **B6's action names the order of a new contract version** (D186, #318). No rule is relaxed.
+- **A row whose columns moved is T2, not *passed without evidence*** (D187, #317). A bare `|` ends a cell, in a code span too; the message names it and its escape. A row that reads well stays untouched, cells beyond the header included.
+- **`doctor`'s L6 counts as an agent identity a bot address on a commit naming a session** (D188, #310). One Dependabot commit no longer hides the notice that every change waits for a human.
+- **`nstack plan` names the empty start branches a claim left** (D189, #316), with the commands that delete them, once the delivery is recorded on the default branch, the state moved on, or the deliverable belongs to another cycle with no live hold. It deletes nothing.
+
+**In your project** — 10 files, text only
+
+- **`.nstack/handbook/03-contracts.md`** §4: *Declaring a version is not writing it*: the producer declares and goes on writing v1, the consumer reads both, the producer writes v2 (D186).
+- **`.nstack/handbook/project.md`**: two agents of one person are two holders, and the command a new session runs (D185); the empty start branch (D189); a manifest moving what its module owes (D184).
+- **`AGENTS.md`**: another agent's session is someone else, even for your person (D185); step 12 names the empty start branch (D189).
+- **`.nstack/handbook/02-modules.md`**, **`.nstack/handbook/05-workflow.md`**, **`.github/pull_request_template.md`**: a manifest moving criticality or the user-visible surface changes its module (D184).
+- **`.nstack/playbooks/verification.md`**, **`.nstack/handbook/RULES.md`** (T2, B6): how to write a `|` in a cell; where B6 points (D186, D187).
+- **`CONTRIBUTING.md`**: two agents of one person are two holders (D185).
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- In a framed project, a pull request that only moves a module's `criticality` or `user_facing` is delivery work: it names a ready or in-progress deliverable of the accepted cycle, or carries `out-of-cycle` with its `Out of cycle: <reason>` line. In any project, it owes a sheet when the stricter of the two values asks one.
+- Moving one module's value while changing another module, its code or its value, fails P1: one pull request each, or the `cross-module` label.
+- An agent resuming under a new session name no longer renews its hold: `nstack claim D<n> --take-over --person <the person the refusal names> --session <it>`, on that person's word. `nstack unclaim` from that session is refused too, unless the hold is stale or that person is the decider. An agent always passes `--session`: without it, it renews as a person would.
+- After a take-over, the session it left is off the hold: a pull request carrying only that session's commits fails K5 until a commit names the new one.
+- `nstack plan` may list empty start branches on the first run: reading the list and running its commands is optional.
+
+---
+
 ## v0.19.4 — 2026-10-29
 
 Three workstreams, D181 to D183, from the third project's first day with a second agent approving.

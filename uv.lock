@@ -200,7 +200,7 @@ wheels = [
 
 [[package]]
 name = "napkinstack"
-version = "0.19.4"
+version = "0.20.0"
 source = { editable = "." }
 dependencies = [
     { name = "copier" },
