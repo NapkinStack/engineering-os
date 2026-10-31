@@ -530,7 +530,7 @@ for audit in template-injection unpinned-uses excessive-permissions artipacked; 
 done
 
 echo "-> workflows: a token variable left empty MUST still be judged, offline"
-for token in GH_TOKEN GITHUB_TOKEN; do
+for token in GH_TOKEN GITHUB_TOKEN ZIZMOR_GITHUB_TOKEN; do
   OUT=$(cd "$HK/zizmor" && env "$token=" pre-commit run zizmor --files .github/workflows/flaw.yml 2>&1 || true)
   echo "$OUT" | grep -qF "[template-injection]" \
     || { echo "FAIL: $token empty stopped zizmor before it read the workflow."; echo "$OUT"; exit 1; }

@@ -52,7 +52,7 @@ repos:
     hooks:
       - id: zizmor
         # An empty token variable makes zizmor refuse its option before --offline counts (#327).
-        entry: env -u GH_TOKEN -u GITHUB_TOKEN zizmor
+        entry: env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN zizmor
         args: [--no-progress, --offline]
 
   # Workflow validity. shellcheck disabled: absent locally, present on GitHub runners,
