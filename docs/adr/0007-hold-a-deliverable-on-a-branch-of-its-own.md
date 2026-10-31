@@ -75,8 +75,7 @@ no service, and no forge required.
    proven.
 3. **`nstack claim <id> [--session S] [--person P]`.** Refuses a deliverable that is not `ready`
    or `in-progress` in the accepted cycle. Fetches the hold's branch: absent or last event
-   `release`, it commits a `claim` on it and pushes; held by the same person, it commits a `renew` (adding the session
-   if new); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
+   `release`, it commits a `claim` on it and pushes; held by the same person from a session on the hold, or with no session on either side, it commits a `renew` (clarified for D185: another session of that person is another holder, as D181 reads an agent's independence; it takes the hold with `--take-over` on the person's word, stale or not); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
    creates the first work branch `d<n>-<slug>` from the remote's default branch as it is now, with one empty commit naming the
    deliverable, pushes it, and with a token opens a **draft pull request** whose description
    holds `Deliverable: <id>`; without one, it says the display is skipped.
@@ -96,7 +95,7 @@ no service, and no forge required.
    makes no new work branch — a take-over, or a claim after a release — comments on the open pull
    requests of this repository's work branches `d<n>-…`, asked branch by branch so that a
    fork's is never one: who holds it now, and from whom. `nstack unclaim <id>` commits a `release`; by
-   another than the holder or the charter's decider, refused unless stale. The previous holder's
+   another than the holder or the charter's decider, refused unless stale; another session of the holder's person is another than the holder (clarified for D185). The previous holder's
    branches are never touched.
 7. **`plan`.** After its rules, a *Holds* section for the accepted cycle: each deliverable free,
    held (person, session, since, last worked on) or stale. Read from the remote; unreachable, it

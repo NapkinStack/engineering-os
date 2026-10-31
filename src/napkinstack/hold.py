@@ -10,6 +10,10 @@ from it: the refusal is git's, on any forge. A hold is never merged; its work is
 Usage :  nstack claim D<n> [--session S] [--person P] [--take-over]
          nstack unclaim D<n> [--session S] [--person P]
 Output:  0 when the hold is taken, renewed or released; 1 when refused — saying who holds it.
+
+Two sessions of one person are two holders (D181, D185): a session renews only a hold it is on; a
+person's other session takes it with --take-over, on that person's word. A person with no session
+has nothing to tell apart, and their name answers.
 """
 
 from __future__ import annotations
@@ -360,7 +364,7 @@ def _show(root: Path, name: str | None, ident: str, title: str, person: str, bra
     said: list[str] = []
     try:
         if branch is None:
-            since = (f" from {previous.person}, on whose work nobody had worked since {when(previous.worked)}"
+            since = (f" from {previous.person}, last worked on {when(previous.worked)}"
                      if previous is not None else "")
             for number in _open_pulls(root, forge, ident):
                 _call(forge, "POST", f"/issues/{number}/comments", {"body": (
@@ -387,7 +391,7 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         print(f"FAIL [hold] {found}")
         return 1
     cycle, title = found
-    person = _person(root, person)
+    person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character: it would "
               "write the record's lines.\n      Action: name them on one line.")
@@ -402,11 +406,13 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     days = limit(root)
     stale_at = current.worked + days * DAY
     previous = None
+    mine = same(current.person, person)
+    other_session = _another_session(current, session)
     if not current.held:
         event = "claim"
-    elif same(current.person, person):
+    elif mine and not other_session:
         event = "renew"
-    elif take_over and time.time() >= stale_at:
+    elif take_over and (mine or time.time() >= stale_at):  # a person moves their own hold on their word
         event, previous = "take-over", current
     elif take_over:
         print(f"FAIL [hold] {ident} is {said(current)}: it is not stale — work on it is younger than "
@@ -419,7 +425,9 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         print(f"FAIL [hold] {ident} is {said(current)}" + (f" — stale, no work for {days} days." if stale else ".")
               + (f"\n      Action: {again} — recorded, with its previous holder."
                  if stale else "\n      Action: take another ready deliverable — nstack plan lists them; "
-                               "or ask its holder to give it back (nstack unclaim)."))
+                               "or ask its holder to give it back (nstack unclaim)."
+                               + (f"\n      Another session of the same person holds it: only if that person asks, "
+                                  f"{again} — recorded, with the session it leaves." if mine else "")))
         return 1
     sha = _event(root, current.tip, ident, event, person, session, previous)
     ok, where = _record(root, name, cycle, ident, sha)
@@ -436,13 +444,21 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         else:
             print(f"FAIL [hold] {ident}: the remote refused the hold.\n      {where}")
         return 1
-    done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {previous.person if previous else ''}"}
+    left = f"{previous.person}, session {', '.join(previous.sessions)}" if previous and previous.sessions \
+        else (previous.person if previous else "")
+    done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {left}"}
     print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "") + f"; {where}.")
     if event != "renew":
         made, branch = _work_branch(root, name, ident, title, session)
         print(made)
         print(_show(root, name, ident, title, person, branch, previous) + ".")
     return 0
+
+
+def _another_session(current: Hold, session: str | None) -> bool:
+    """Named, and on none of the hold's events. A person with no session has nothing to tell apart."""
+    named = (session or "").strip().casefold()
+    return bool(named and current.sessions and named not in {held.casefold() for held in current.sessions})
 
 
 def _ended(root: Path, ident: str, current: str | None) -> str | None:
@@ -459,7 +475,7 @@ def _ended(root: Path, ident: str, current: str | None) -> str | None:
 def release(root: Path, ident: str, session: str | None = None, person: str | None = None) -> int:
     cycle = plan.accepted_cycle(root)
     stem = cycle[0].stem if cycle else None
-    person = _person(root, person)
+    person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character.\n"
               "      Action: name them on one line.")
@@ -481,7 +497,13 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
     charter = plan.read_front_matter(root / plan.CHARTER)[0] if (root / plan.CHARTER).is_file() else None
     decider = str((charter or {}).get("decider") or "")
     stale = time.time() >= current.worked + limit(root) * DAY
-    if not (same(current.person, person) or (decider and same(decider, person)) or stale):
+    is_decider = bool(decider and same(decider, person))
+    if same(current.person, person) and _another_session(current, session) and not stale and not is_decider:
+        print(f"FAIL [hold] {ident} is {said(current)}: another session of the same person does not give it "
+              f"back.\n      Action: only if that person asks, nstack claim {ident} --take-over --person {person} "
+              f"--session {session}.")
+        return 1
+    if not (same(current.person, person) or is_decider or stale):
         print(f"FAIL [hold] {ident} is {said(current)}: only its holder or the decider ({decider or 'none named'}) "
               "releases a hold that is not stale.\n      Action: ask them.")
         return 1

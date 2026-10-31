@@ -144,9 +144,13 @@ them never deliver it twice:
 ```bash
 nstack claim D30 --person @alice --session <session>   # held; its first work branch d30-… made, unless one exists
 nstack plan                                             # who holds what, since when; what is stale
-nstack unclaim D30                                      # given back: by its holder, the decider, anyone once stale
-nstack claim D30 --take-over                            # a hold nobody worked on for hold_days
+nstack unclaim D30                                      # given back: by its holder's session, the decider, anyone once stale
+nstack claim D30 --take-over --person @alice            # a hold nobody worked on for hold_days, or your own person's other session
 ```
+
+Two agents one person runs are two holders: a session renews only a hold it is on. Another
+session of that person is refused like anyone else, and takes the hold with `--take-over` when
+the person says so, stale or not; a person with no `--session` renews their own.
 
 The hold is a branch of the shared remote, `nstack/hold/<cycle>/D30`, whose commits are its
 events; the remote takes the first of two claims and refuses the second. A hold's last work is
@@ -155,7 +159,7 @@ project, 7 by default) it is **stale**, and anyone may take it over — recorded
 taken from; the previous work is kept. The pull request check refuses delivery work for a
 deliverable someone else holds (K5): its commits name none of the hold's sessions, and no
 author, committer or opener is its person; nobody holds it, it asks nothing. A holder working
-from a new session names it on the hold first — `nstack claim D30 --session <it>`. A hold says who is
+from a new session takes it first, on the person's word — `nstack claim D30 --take-over --person @alice --session <it>`. A hold says who is
 accountable; it proves nobody's identity.
 
 **A hold lasts its cycle.** Once the cycle is closed or stopped, nothing it guarded can be delivered, and

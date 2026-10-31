@@ -455,8 +455,8 @@ def check_hold(root: Path, body: str, labels: set[str], authorship: tuple[set[st
         return
     fail("K5", f"{ident} is {hold.said(found)}: this pull request comes from none of its sessions "
                f"and not from its person.\n      Action: the holder gives it back (nstack unclaim {ident}), "
-               f"or once stale nstack claim {ident} --take-over. The holder working from another session "
-               f"names it on the hold first: nstack claim {ident} --session <it>.")
+               f"or once stale nstack claim {ident} --take-over. The holder's person moves it to another "
+               f"session on their word: nstack claim {ident} --take-over --person {found.person} --session <it>.")
 
 
 def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:

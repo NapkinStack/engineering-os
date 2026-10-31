@@ -132,13 +132,94 @@ def test_two_claims_at_once_leave_one_hold_and_the_refusal_names_it(shared, caps
     assert remote_events(shared) == ["claim"]
 
 
-def test_the_holder_claiming_again_renews_and_adds_the_session(shared):
+def test_the_holding_session_claiming_again_renews(shared):
     alice = clone(shared, "alice")
     hold.claim(alice, "D1", session="alice-d1", person="@alice")
-    assert hold.claim(alice, "D1", session="alice-d1-again", person="@alice") == 0
+    assert hold.claim(alice, "D1", session="alice-d1", person="alice") == 0  # the @ or not, one person
     assert remote_events(shared) == ["renew", "claim"]
-    state = hold.read(alice, "03-the-window", "D1")
-    assert state.sessions == ["alice-d1", "alice-d1-again"]
+    assert hold.read(alice, "03-the-window", "D1").sessions == ["alice-d1"]
+
+
+def test_another_session_of_the_same_person_is_refused_and_named_the_way_out(shared, capsys):
+    """#315: two agents of one person are two holders (D181); neither renews the other's hold."""
+    hold.claim(clone(shared, "alice"), "D1", session="agent-one", person="@alice")
+    capsys.readouterr()
+    assert hold.claim(clone(shared, "other"), "D1", session="agent-two", person="alice") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [hold] D1 is held by @alice, session agent-one, since" in out
+    assert "--take-over" in out and "asks" in out
+    assert remote_events(shared) == ["claim"]
+
+
+def test_the_person_s_word_takes_over_from_their_other_session_at_once(shared, capsys):
+    """Not stale: the hold is the person's to move, recorded with the session it left."""
+    hold.claim(clone(shared, "alice"), "D1", session="agent-one", person="@alice")
+    capsys.readouterr()
+    other = clone(shared, "other")
+    assert hold.claim(other, "D1", session="agent-two", person="@alice", take_over=True) == 0
+    assert "taken over from @alice, session agent-one" in capsys.readouterr().out
+    assert remote_events(shared) == ["take-over", "claim"]
+    state = hold.read(other, "03-the-window", "D1")
+    assert state.person == "@alice" and state.sessions == ["agent-two"]
+    assert "Hold-Previous: @alice (agent-one)" in git(shared, "log", "-1", "--format=%B", REF)
+    assert hold.claim(other, "D1", session="agent-one", person="@alice") == 1  # and it does not flip back
+
+
+def test_what_the_refusal_says_to_run_works_as_written(shared, capsys):
+    """The kernel forbids git's user as the person: a command naming none would be refused again."""
+    hold.claim(clone(shared, "alice"), "D1", session="agent-one", person="@alice")
+    capsys.readouterr()
+    other = clone(shared, "other")
+    assert hold.release(other, "D1", session="agent-two", person="@alice") == 1
+    assert "--person @alice" in capsys.readouterr().out
+    assert hold.claim(other, "D1", session="agent-two", person="@alice", take_over=True) == 0
+
+
+def test_the_decider_gives_back_a_hold_their_own_session_holds(shared):
+    hold.claim(clone(shared, "dana"), "D1", session="s1", person="@dana")
+    assert hold.release(clone(shared, "other"), "D1", session="s2", person="@dana") == 0
+
+
+def test_a_padded_session_is_written_stripped(shared):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="  s1 ", person="@alice") == 0
+    assert hold.read(alice, "03-the-window", "D1").sessions == ["s1"]
+    assert "Agent-Session: s1\n" in git(shared, "log", "-1", "--format=%B", REF) + "\n"
+
+
+def test_a_session_is_the_same_whatever_its_case_or_spaces(shared):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="Agent-One", person="@alice")
+    assert hold.claim(alice, "D1", session=" agent-one ", person="@alice") == 0
+    assert remote_events(shared) == ["renew", "claim"]
+
+
+def test_another_session_of_the_same_person_does_not_unclaim_either(shared, capsys):
+    """#315 by the other door: release, then claim."""
+    hold.claim(clone(shared, "alice"), "D1", session="agent-one", person="@alice")
+    capsys.readouterr()
+    assert hold.release(clone(shared, "other"), "D1", session="agent-two", person="@alice") == 1
+    assert "--take-over" in capsys.readouterr().out
+    assert remote_events(shared) == ["claim"]
+
+
+@pytest.mark.parametrize("first, second", [("agent-one", None), (None, "agent-two"), (None, None)])
+def test_a_person_with_no_session_on_one_side_renews(shared, first, second):
+    """A person at the keyboard has no session: nothing to tell apart, the person's name answers."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session=first, person="@alice")
+    assert hold.claim(alice, "D1", session=second, person="@alice") == 0
+    assert remote_events(shared) == ["renew", "claim"]
+
+
+def test_an_older_hold_flipped_between_two_sessions_still_renews_for_either(shared):
+    """What v0.19.4 let happen stays readable: both sessions are on its events."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="agent-one", person="@alice")
+    tip = hold.read(alice, "03-the-window", "D1")
+    assert hold._record(alice, "origin", "03-the-window", "D1",
+                        hold._event(alice, tip.tip, "D1", "renew", "@alice", "agent-two"))[0]
+    assert hold.claim(alice, "D1", session="agent-one", person="@alice") == 0
 
 
 @pytest.mark.parametrize("deliverable, said", [("D2", "is 'proposed'"), ("D9", "not in 03-the-window")])
