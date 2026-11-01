@@ -113,6 +113,20 @@ no service, and no forge required.
 - **How we will observe it**: PDR-0015's criterion — on a project with two contributors, no
   deliverable delivered by two pull requests; every delivering pull request preceded by its hold.
 
+## Clarification of 2026-11-01 (D193, PDR-0022) — the record of a delivery
+
+`nstack deliver` commits a `deliver` event on the hold's branch, an empty commit as the others, with one
+`Hold-Criterion: <n> <answer>` trailer per criterion, an answer being `#<pull request>` or a commit. No
+claim is needed first: with no hold, the event starts the branch. It ends the hold: `held` is false, and a
+`release` withdraws it. `delivered` is computed, never stored: a `deliver` event with at least one criterion, until a merge it
+names, or every merge of the deliverable, is seen reverted on the default branch's main line since the cycle's
+`start`, read in UTC. Each change of the main line is alive or undone. A revert acts on what its body names (`This reverts commit`,
+`Reverts …#<n>`), else on what its title names, by number or words; nested titles count by parity, `Revert` one and
+`Reapply` two. A revert in other words, and another forge's merge commit, are not read: a stated limit. A deliverable carried from
+an earlier cycle, its merges there, is recorded only by the acceptance issue the cycle names. What is not seen never takes a record down: a shallow clone, a
+`start` moved or removed. It lives here so it needs no forge
+and survives a squash; `plan`, `claim`, `board` and `pr-check` read `hold.delivered`, as last fetched.
+
 ## Success criterion
 
 On a project with two contributors: two claims of one deliverable at the same second leave one

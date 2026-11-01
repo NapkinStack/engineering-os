@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import datetime
 import os
+import re
 import subprocess
 from pathlib import Path
 
+import time
 import pytest
+import yaml
 
 from napkinstack import hold
 
@@ -1102,7 +1105,7 @@ def merged_said(root: Path, capsys) -> str:
     capsys.readouterr()
     hold.show(root)
     out = capsys.readouterr().out
-    return out.split("Merged, the plan's state not moved yet")[1].split("\n\n")[0] if "Merged, the plan's state" in out else ""
+    return out.split("Merged, not recorded")[1].split("\n\n")[0] if "Merged, not recorded" in out else ""
 
 
 def test_plan_tells_a_deliverable_merged_from_one_waiting_and_counts_its_pull_requests(shared, capsys):
@@ -1202,3 +1205,591 @@ def test_a_merge_commit_counts_once_not_each_commit_it_brought(shared, capsys):
     git(alice, "merge", "-q", "--no-ff", "-m", "Merge the work (D1)", "side")
     git(alice, "push", "-q", "origin", "main")
     assert merged_lines(alice, capsys) == ["D1  1 merge"]
+
+
+# PDR-0022: an agent records a delivery, a rule checks it, the state is computed.
+
+def two_criteria(root: Path) -> None:
+    path = root / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        '      - "Given a cut, when it resumes, then nothing is lost"\n',
+        '      - "Given a cut, when it resumes, then nothing is lost"\n      - "Given a second cut, then it resumes"\n'),
+        encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "two criteria")
+    git(root, "push", "-q", "origin", "main")
+
+
+def plain_plan(root: Path, capsys) -> str:
+    capsys.readouterr()
+    hold.show(root)
+    return capsys.readouterr().out
+
+
+def test_a_merged_deliverable_is_recorded_with_no_pull_request_and_is_no_longer_held(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "the work (D1) (#7)")
+    head = git(alice, "rev-parse", "origin/main").strip()
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    assert git(alice, "rev-parse", "origin/main").strip() == head, "nothing lands on the default branch"
+    out = plain_plan(alice, capsys)
+    assert "D1  delivered by @alice" in out and "#7" in out and "held by" not in out
+    assert "0 held" in out and "Merged, not recorded" not in out
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
+def test_each_criterion_answers_or_none_is_recorded(shared, capsys):
+    alice = clone(shared, "alice")
+    two_criteria(alice)
+    landed(alice, "one (D1) (#7)")
+    landed(alice, "two (D1) (#8)")
+    assert hold.deliver(alice, "D1", ["1=#7"], person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [deliver]" in out and "criterion 2" in out and "Given a second cut" in out and "Action:" in out
+    assert hold.deliver(alice, "D1", ["1=#7", "2=#8"], person="@alice") == 0
+    assert hold.read(alice, "03-the-window", "D1").criteria == ["1 #7", "2 #8"]
+
+
+@pytest.mark.parametrize("given, said", [(["#99"], "#99"), (["nothing"], "nothing"), (["3=#7"], "criterion 3"),
+                                         (["#7\nHold-Event: release"], "#7")])
+def test_an_answer_that_names_no_merge_of_the_deliverable_is_refused(shared, capsys, given, said):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1) (#7)")
+    landed(alice, "another's work (D2) (#99)")
+    assert hold.deliver(alice, "D1", given, person="@alice") == 1
+    assert said in capsys.readouterr().out
+    assert not hold.read(alice, "03-the-window", "D1").recorded
+
+
+def test_a_commit_answers_where_the_forge_gave_no_number_and_the_acceptance_issue_too(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1)")
+    sha = git(alice, "rev-parse", "HEAD").strip()
+    assert hold.deliver(alice, "D1", ["#55"], person="@alice") == 1
+    path = alice / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8") + "\n### D1\n\nIts acceptance issue: #55\n", encoding="utf-8")
+    git(alice, "add", "-A")
+    git(alice, "commit", "-q", "-m", "names the issue")
+    git(alice, "push", "-q", "origin", "main")
+    assert hold.deliver(alice, "D1", [f"1={sha[:9]}"], person="@alice", session="a") == 0
+    assert hold.release(alice, "D1", person="@alice") == 0
+    assert hold.deliver(alice, "D1", ["#55"], person="@alice") == 0
+
+
+def test_no_merge_is_refused_however_the_agent_words_it(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "a note speaking of D1")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "no merge" in out and "Action:" in out
+    assert hold.read(alice, "03-the-window", "D1").held
+
+
+def test_every_merge_reverted_refuses_the_record_and_reopens_one_made(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    landed(alice, 'Revert "the work (D1) (#7)"')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+    assert "D1  free — delivered, then a merge it names was reverted: back in work" in plain_plan(alice, capsys)
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 1
+    assert hold.claim(alice, "D1", session="s2", person="@bob") == 0, "anyone takes it back"
+
+
+def test_only_the_person_or_the_decider_records_a_hold_not_stale(shared, capsys):
+    alice, bob = clone(shared, "alice"), clone(shared, "bob")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "the work (D1) (#7)")
+    git(bob, "pull", "-q", "origin", "main")
+    assert hold.deliver(bob, "D1", ["#7"], session="b", person="@bob") == 1
+    assert "held by @alice" in capsys.readouterr().out
+    assert hold.deliver(bob, "D1", ["#7"], session="another", person="@alice") == 0, "a person's new session"
+
+
+def test_a_delivered_deliverable_is_never_stale_and_cannot_be_taken(shared, capsys, monkeypatch):
+    alice, bob = clone(shared, "alice"), clone(shared, "bob")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "the work (D1) (#7)")
+    hold.deliver(alice, "D1", ["#7"], session="s", person="@alice")
+    now = time.time()
+    monkeypatch.setattr(hold.time, "time", lambda: now + 30 * hold.DAY)
+    git(bob, "pull", "-q", "origin", "main")
+    out = plain_plan(bob, capsys)
+    assert "STALE" not in out and "D1  delivered" in out
+    for take_over in (False, True):
+        assert hold.claim(bob, "D1", session="b", person="@bob", take_over=take_over) == 1
+        assert "already delivered" in capsys.readouterr().out
+
+
+def test_recording_again_changes_nothing_and_a_wrong_record_is_withdrawn(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], person="@alice") == 0
+    tip = hold.read(alice, "03-the-window", "D1").tip
+    assert hold.deliver(alice, "D1", ["#7"], person="@alice") == 0
+    assert hold.read(alice, "03-the-window", "D1").tip == tip
+    assert hold.release(alice, "D1", person="@alice") == 0
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_a_shallow_clone_never_reads_as_back_in_work_and_refuses_to_record(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1) (#7)")
+    hold.deliver(alice, "D1", ["#7"], person="@alice")
+    monkeypatch.setattr(hold, "_read_merges", lambda *a: hold.Merges())
+    monkeypatch.setattr(hold, "_shallow", lambda root: True)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+    assert "merges not read" in plain_plan(alice, capsys)
+    bob = clone(shared, "bob")
+    assert hold.release(alice, "D1", person="@alice") == 0
+    git(bob, "fetch", "-q")
+    assert hold.deliver(bob, "D1", ["#7"], person="@bob") == 1
+    assert "unshallow" in capsys.readouterr().out
+
+
+def test_a_closure_writes_the_states_from_the_records_and_nothing_else(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1) (#7)")
+    hold.deliver(alice, "D1", ["#7"], person="@alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    before = path.read_text(encoding="utf-8")
+    assert hold.write_states(alice) == 0
+    assert path.read_text(encoding="utf-8") == before.replace("state: ready", "state: accepted", 1)
+    assert "D1" in capsys.readouterr().out
+    assert "state: proposed" in path.read_text(encoding="utf-8")
+    assert hold.write_states(alice) == 0, "nothing left to write is no failure"
+
+
+def test_the_stale_hold_of_merged_work_says_to_record_it(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "the work (D1) (#7)")
+    now = time.time()
+    monkeypatch.setattr(hold.time, "time", lambda: now + 30 * hold.DAY)
+    assert "nstack deliver D1" in plain_plan(alice, capsys).split("Merged, not recorded")[0]
+
+
+# What the independent verifier broke in the first version of PDR-0022's record.
+
+@pytest.mark.parametrize("revert", [
+    'Revert "x (D1) (#5)"', 'Revert "x (D1) (#5)" (#6)', 'Merge pull request #6 from o/revert-5-x\n\nRevert "x (D1) (#5)"'])
+def test_a_revert_in_each_shape_a_forge_writes_takes_the_record_down(shared, capsys, revert):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+    landed(alice, revert)
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_a_git_revert_of_a_merge_named_only_in_its_body_is_read_by_its_sha(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "feature (#5)\n\nDeliverable: D1\n")
+    sha = git(alice, "rev-parse", "HEAD").strip()
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+    landed(alice, f'Revert "feature (#5)"\n\nThis reverts commit {sha}.\n')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_the_forge_s_merge_commit_is_a_merge_of_what_its_title_names(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "Merge pull request #5 from o/d1-x\n\nx (D1)\n")
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+
+
+def test_a_reapplied_merge_brings_the_record_back_and_a_later_one_does_not_excuse_a_cited_revert(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    landed(alice, 'Revert "x (D1) (#5)"')
+    landed(alice, "typo (D1) (#9)")
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set(), "the record cites what is gone"
+    landed(alice, 'Reapply "x (D1) (#5)"')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
+def test_a_revert_of_an_earlier_cycle_s_commit_touches_nothing_of_this_one(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "old (D1) (#3)", date="2020-01-01T12:00:00+00:00")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    landed(alice, 'Revert "old (D1) (#3)"')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
+def test_a_start_moved_or_removed_never_reads_as_a_revert(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("start: 2026-10-17", "start: 2099-01-01"), encoding="utf-8")
+    assert "reverted" not in plain_plan(alice, capsys)
+    assert hold.claim(alice, "D1", session="b", person="@bob") == 1
+
+
+def test_a_record_never_goes_stale_for_a_stranger_s_unclaim_and_its_recorder_withdraws_it(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="a", person="@alice")
+    hold.release(alice, "D1", session="a", person="@alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], session="b", person="@bob")
+    assert "delivered by @bob" in plain_plan(alice, capsys)
+    now = time.time()
+    monkeypatch.setattr(hold.time, "time", lambda: now + 30 * hold.DAY)
+    assert hold.release(alice, "D1", person="@mallory") == 1
+    assert "only who recorded it" in capsys.readouterr().out
+    assert hold.release(alice, "D1", session="c", person="@bob") == 0
+
+
+def test_a_session_on_the_hold_records_under_another_name_a_stranger_does_not(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="sa", person="@alice")
+    landed(alice, "x (D1) (#5)")
+    assert hold.deliver(alice, "D1", ["#5"], session="other", person="@bot") == 1
+    assert hold.deliver(alice, "D1", ["#5"], session="SA", person="@bot") == 0
+
+
+def test_the_decider_records_a_hold_not_theirs(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    landed(alice, "x (D1) (#5)")
+    decider = hold.plan.read_front_matter(alice / hold.plan.CHARTER)[0]["decider"]
+    assert hold.deliver(alice, "D1", ["#5"], person=decider) == 0
+
+
+@pytest.mark.parametrize("where", ["criterion", "elsewhere"])
+def test_an_issue_named_by_accident_answers_nothing(shared, capsys, where):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    text = path.read_text(encoding="utf-8")
+    text = text.replace("then nothing is lost", "then nothing is lost, see #7") if where == "criterion" else text + "\nSee #7.\n"
+    path.write_text(text, encoding="utf-8")
+    assert hold.deliver(alice, "D1", ["#7"], person="@alice") == 1
+
+
+def test_a_commit_of_another_deliverable_answers_nothing(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "mine (D1) (#5)")
+    landed(alice, "theirs (D2) (#6)")
+    assert hold.deliver(alice, "D1", [git(alice, "rev-parse", "HEAD").strip()[:9]], person="@alice") == 1
+
+
+def test_a_hand_pushed_record_with_no_criterion_is_no_record(shared, capsys):
+    found = hold.Hold(event="deliver", person="@nobody")
+    assert not found.recorded and not found.held
+
+
+@pytest.mark.parametrize("cycle, wrong", [
+    ("  - id: D1\n    title: 'x'\n    state: 'ready'\n    module: capture\n    acceptance:\n      - \"a\"\n  - title: y\n    id: D12\n    state: proposed\n", None),
+    ("  - id: D1\n    title: 'x'\n    notes: |\n      state: draft here\n    state: ready\n    acceptance:\n      - \"a\"\n", None),
+    ("  - id: D1\n    title: 'x'\n    acceptance:\n      - \"a\n        state: open\"\n    state: ready\n", None),
+])
+def test_writing_the_states_changes_the_state_alone(shared, capsys, cycle, wrong):
+    alice = clone(shared, "alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    text = re.sub(r"deliverables:\n.*?---", lambda m: "deliverables:\n" + cycle + "---", path.read_text(encoding="utf-8"), count=1, flags=re.S)
+    path.write_text(text, encoding="utf-8")
+    git(alice, "add", "-A")
+    git(alice, "commit", "-q", "-m", "form")
+    landed(alice, "x (D1) (#5)")
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+    assert hold.write_states(alice) == 0
+    after = hold.plan.read_front_matter(path)[0]["deliverables"]
+    before = yaml.safe_load(cycle)
+    before[0]["state"] = "accepted"
+    assert after == before
+
+
+def test_writing_the_states_keeps_crlf_and_a_shallow_clone_refuses(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    monkeypatch.setattr(hold, "_shallow", lambda root: True)
+    assert hold.write_states(alice) == 1
+    monkeypatch.undo()
+    before = path.read_bytes()
+    assert hold.write_states(alice) == 0
+    assert path.read_bytes() == before.replace(b"state: ready", b"state: accepted", 1)
+
+
+@pytest.mark.parametrize("ident, states", [(None, False), ("D1", True)])
+def test_the_command_takes_a_deliverable_or_the_states(shared, capsys, ident, states):
+    assert hold.deliver_command(clone(shared, "alice"), ident, [], None, None, states) == 1
+    assert "FAIL [deliver]" in capsys.readouterr().out
+
+
+def test_the_plan_counts_delivered_and_the_project_view_too(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    assert "0 of 2 accepted · 1 delivered" in hold.plan.progress(alice)
+    capsys.readouterr()
+    hold.plan.show(alice)
+    assert "1 delivered" in capsys.readouterr().out
+
+
+def test_the_command_line_refreshes_before_it_counts_and_fetches_once(shared, capsys, monkeypatch):
+    alice, bob = clone(shared, "alice"), clone(shared, "bob")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    calls = []
+    real = hold.fetch
+    monkeypatch.setattr(hold, "fetch", lambda *a, **k: calls.append(1) or real(*a, **k))
+    from napkinstack import cli
+    capsys.readouterr()
+    assert cli.main(["plan", "--root", str(bob)]) in (0, None, 1)
+    out = capsys.readouterr().out
+    assert "1 delivered" in out and len(calls) == 1
+
+
+def test_k3_says_a_delivered_deliverable_is_delivered_and_not_to_claim_it(shared, capsys):
+    from napkinstack import pull_request
+
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    warned, failed = [], []
+    pull_request.check_cycle(alice, "Deliverable: D1", set(), datetime.date(2026, 10, 20),
+                             lambda code, text: failed.append(code), warned.append)
+    assert not failed and len(warned) == 1 and "on record as delivered" in warned[0] and "nstack claim" not in warned[0]
+
+
+def test_a_reworded_revert_is_read_by_the_commit_it_names(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    sha = git(alice, "rev-parse", "HEAD").strip()
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    landed(alice, f"undo the window work\n\nThis reverts commit {sha}.\n")
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_a_revert_of_a_reworded_title_is_read_by_its_pull_request(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    landed(alice, 'Revert "another title (#5)"')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_writing_the_states_refuses_when_more_than_the_state_would_change(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    before = path.read_text(encoding="utf-8")
+    monkeypatch.setattr(hold, "_with_state", lambda front, ident: front.replace("Export", "Changed"))
+    assert hold.write_states(alice) == 1
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_a_cycle_not_accepted_reads_no_record(shared, monkeypatch):
+    alice = clone(shared, "alice")
+    monkeypatch.setattr(hold, "delivered", lambda root, path, data: {"D1"})
+    assert hold.plan.delivered_in(alice, alice, {"status": "closed"}) == set()
+    assert hold.plan.delivered_in(alice, alice, {"status": "accepted"}) == {"D1"}
+
+
+# The second round: a commit is both what it reverts and what it delivers.
+
+def merges_of(root: Path) -> hold.Merges:
+    hold.refresh(root)
+    hold._fetched.pop(root, None)
+    return hold._read_merges(root, hold.remote(root), hold.plan.accepted_cycle(root)[1])
+
+
+@pytest.mark.parametrize("body", ["* wip\n\n* Revert \"wip\"\n\nThis reverts commit deadbeefdeadbeef.\n",
+                                  "This reverts commit 1234567890ab\n"])
+def test_a_squash_listing_a_revert_of_its_own_branch_is_still_a_delivery(shared, body):
+    alice = clone(shared, "alice")
+    landed(alice, f"D1 — feature (#5)\n\n{body}")
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+
+
+def test_a_delivery_of_one_reverting_another_does_both(shared):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    sha = git(alice, "rev-parse", "HEAD").strip()
+    landed(alice, f"D2 — y (#6)\n\nAlso:\nThis reverts commit {sha}.\n")
+    found = merges_of(alice)
+    assert "D1" not in found.live and [one[1] for one in found.live["D2"]] == ["6"]
+
+
+@pytest.mark.parametrize("revert", ['Revert "D1 — x" (#6)\n\nReverts o/r#5', 'Merge pull request #6 from o/revert-5-d1-x\n\nRevert "D1 — x"',
+                                    'Revert "Merge pull request #5 from o/d1-x"'])
+def test_the_forge_s_revert_titled_without_the_number_is_read(shared, revert):
+    alice = clone(shared, "alice")
+    landed(alice, "D1 — x (#5)")
+    assert hold.deliver(alice, "D1", ["#5"], person="@alice") == 0
+    landed(alice, revert)
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_a_revert_of_several_takes_each_off(shared):
+    alice = clone(shared, "alice")
+    landed(alice, "a (D1) (#5)")
+    first = git(alice, "rev-parse", "HEAD").strip()
+    landed(alice, "b (D2) (#6)")
+    second = git(alice, "rev-parse", "HEAD").strip()
+    landed(alice, f'Revert "both" (#7)\n\nThis reverts commit {first}.\n\nThis reverts commit {second}.\n')
+    found = merges_of(alice)
+    assert not found.live and set(found.reverted) == {"D1", "D2"}
+
+
+@pytest.mark.parametrize("again", ['Reapply "D1 — x (#5)" (#7)', 'Revert "Revert "D1 — x (#5)"" (#7)',
+                                   'Revert "Revert "D1 — x (#5)" (#6)" (#7)'])
+def test_a_reapply_brings_the_merge_back_and_is_citable(shared, again):
+    alice = clone(shared, "alice")
+    landed(alice, "D1 — x (#5)")
+    landed(alice, 'Revert "D1 — x (#5)" (#6)')
+    landed(alice, again)
+    found = merges_of(alice)
+    assert [one[1] for one in found.live["D1"]] == ["5"] and "D1" not in found.reverted
+    assert {one[1] for one in found.citable["D1"]} == {"5", "7"}
+    assert hold.deliver(alice, "D1", ["#7"], person="@alice") == 0
+
+
+def test_a_reapply_never_reverted_is_a_merge(shared):
+    alice = clone(shared, "alice")
+    landed(alice, 'Reapply "D1 — x (#5)" (#9)')
+    assert [one[1] for one in merges_of(alice).live["D1"]] == ["9"]
+
+
+@pytest.mark.parametrize("body", ["", "Deliverable: D1\n", "x (D1)\n\nDeliverable: D1\n"])
+def test_a_forge_merge_commit_is_read_whatever_its_body_holds(shared, body):
+    alice = clone(shared, "alice")
+    landed(alice, f"Merge pull request #5 from o/d1-x\n\n{body}")
+    assert merges_of(alice).live.get("D1", []) == ([] if not body else merges_of(alice).live["D1"])
+    if body:
+        assert merges_of(alice).live["D1"][0][1] == "5"
+
+
+def test_k3_reads_the_records_on_ci_s_fresh_clone(shared, capsys):
+    from napkinstack import pull_request
+
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    hold.deliver(alice, "D1", ["#5"], person="@alice")
+    warned = []
+    pull_request.check_cycle(clone(shared, "fresh"), "Deliverable: D1", set(), datetime.date(2026, 10, 20),
+                             lambda code, text: None, warned.append)
+    assert len(warned) == 1 and "on record as delivered" in warned[0]
+
+
+def carried(alice: Path, line: str = "") -> None:
+    landed(alice, "x (D1) (#3)", date="2020-01-01T12:00:00+00:00")
+    if line:
+        path = alice / "docs/project/cycles/03-the-window.md"
+        path.write_text(path.read_text(encoding="utf-8") + line, encoding="utf-8")
+
+
+def test_a_deliverable_carried_over_is_recorded_only_by_the_issue_the_cycle_names_for_it(shared, capsys):
+    alice = clone(shared, "alice")
+    carried(alice, "\n| D1, D2 on a Mac | The colleague | [#449](https://example.invalid/449) |\n")
+    assert hold.deliver(alice, "D1", ["#3"], person="@alice") == 1, "an earlier cycle's merge answers nothing"
+    assert hold.deliver(alice, "D1", ["#449"], person="@alice") == 0
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
+def test_an_id_with_no_merge_ever_is_still_refused_and_the_table_of_another_is_no_answer(shared, capsys):
+    alice = clone(shared, "alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8") + "\n| D2 | #449 |\n", encoding="utf-8")
+    assert hold.deliver(alice, "D1", ["#449"], person="@alice") == 1
+    carried(alice)
+    assert hold.deliver(alice, "D1", ["#449"], person="@alice") == 1
+
+
+def test_a_subheading_stays_in_its_deliverable_s_section(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8") + "\n### D1\n\n#### Criteria\n\nIssue #81\n\n### D2\n\nIssue #82\n", encoding="utf-8")
+    assert hold.deliver(alice, "D1", ["#82"], person="@alice") == 1
+    assert hold.deliver(alice, "D1", ["#81"], person="@alice") == 0
+
+
+# The third round: a chain of reverts, and what was merged before the cycle.
+
+def chained(alice: Path, *messages: str) -> hold.Merges:
+    for message in messages:
+        landed(alice, message)
+    return merges_of(alice)
+
+
+@pytest.mark.parametrize("chain", [
+    ['D1 — x', 'Revert "D1 — x"', 'Reapply "D1 — x"', 'Revert "Reapply "D1 — x""'],
+    ['D1 — x', 'Revert "D1 — x"', 'Reapply "D1 — x"', 'Revert "D1 — x"'],
+    ['D1 — x (#3)', 'Revert "D1 — x (#3)" (#4)', 'Revert "Revert "D1 — x (#3)" (#4)" (#5)',
+     'Revert "Revert "Revert "D1 — x (#3)" (#4)" (#5)" (#6)'],
+    ['D1 — x', 'Revert "D1 — x"', 'Revert "Revert "D1 — x""', 'Revert "Revert "Revert "D1 — x"""'],
+])
+def test_a_chain_of_reverts_ending_gone_is_gone(shared, chain):
+    found = chained(clone(shared, "alice"), *chain)
+    assert "D1" not in found.live and "D1" in found.reverted
+
+
+def test_a_reapply_counts_one_change(shared):
+    found = chained(clone(shared, "alice"), "D1 — x (#3)", 'Revert "D1 — x (#3)"', 'Reapply "D1 — x (#3)"')
+    assert len(found.live["D1"]) == 1
+
+
+def test_a_reapply_with_only_a_deliverable_line_is_a_merge(shared):
+    found = chained(clone(shared, "alice"), 'Reapply "add thing"\n\nDeliverable: D1\n')
+    assert "D1" in found.live
+
+
+@pytest.mark.parametrize("date", ["2020-01-02T12:00:00+00:00", None])
+def test_an_earlier_merge_reverted_is_no_carried_delivery(shared, capsys, date):
+    alice = clone(shared, "alice")
+    carried(alice, "\n| D1 | #99 |\n")
+    landed(alice, 'Revert "x (D1) (#3)" (#4)', date=date)
+    assert hold.deliver(alice, "D1", ["#99"], person="@alice") == 1
+
+
+def test_a_small_fix_reverted_leaves_a_carried_record_standing(shared):
+    alice = clone(shared, "alice")
+    carried(alice, "\n| D1 | #99 |\n")
+    assert hold.deliver(alice, "D1", ["#99"], person="@alice") == 0
+    landed(alice, "D1 — small fix (#7)")
+    landed(alice, 'Revert "D1 — small fix (#7)"')
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
+def test_a_revert_naming_an_earlier_commit_stops_there_even_if_the_words_match(shared):
+    alice = clone(shared, "alice")
+    landed(alice, "D1 — x", date="2020-01-01T12:00:00+00:00")
+    old = git(alice, "rev-parse", "HEAD").strip()
+    landed(alice, "D1 — x (#7)")
+    found = chained(alice, f'Revert "D1 — x"\n\nThis reverts commit {old}.\n')
+    assert "D1" in found.live
+
+
+@pytest.mark.parametrize("line", ["D1 of the earlier cycle was closed by #99; unrelated.", "See D1-legacy-notes and #99.", "| D1-old | #99 |"])
+def test_a_sentence_mentioning_the_id_answers_nothing_for_a_carried_deliverable(shared, capsys, line):
+    alice = clone(shared, "alice")
+    carried(alice, f"\n{line}\n")
+    assert hold.deliver(alice, "D1", ["#99"], person="@alice") == 1
+
+
+def test_a_commit_git_cannot_decode_breaks_nothing(shared):
+    alice = clone(shared, "alice")
+    tree = git(alice, "rev-parse", "HEAD^{tree}").strip()
+    parent = git(alice, "rev-parse", "HEAD").strip()
+    raw = (f"tree {tree}\nparent {parent}\nauthor t <t@e.invalid> 1800000000 +0000\ncommitter t <t@e.invalid> 1800000000 +0000\n\n").encode() + b"caf\xe9 (D1) (#3)\n"
+    sha = subprocess.run(["git", "hash-object", "-t", "commit", "-w", "--stdin"], cwd=alice, input=raw, capture_output=True, check=True).stdout.decode().strip()
+    git(alice, "push", "-q", "origin", f"{sha}:refs/heads/main")
+    assert "D1" in merges_of(alice).live

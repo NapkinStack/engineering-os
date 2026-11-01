@@ -414,7 +414,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     end = plan.as_date(data.get("end"))
     if end is not None and today >= end:  # `end` is the first day the cycle is over (the cycle form)
         fail("K2", f"circuit breaker: {path.name} ended on {end}, with no automatic extension.\n"
-                   "      Action: the decider chooses — ship what is accepted (status: closed), "
+                   "      Action: the decider chooses — ship what is delivered or accepted (status: closed), "
                    "frame a new cycle with a new appetite, or stop the project (status: stopped).")
         return
     match = DELIVERABLE.search(body)
@@ -430,12 +430,26 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     elif not plan.one_of(states[match[1]], {"ready", "in-progress"}):
         fail("K3", f"deliverable {match[1]} is '{states[match[1]]}': work starts on a ready "
                    "deliverable (definition of ready).")
+    elif _on_record(root, path, data, match[1]):
+        warn(f"[K3] deliverable {match[1]} is on record as delivered, and this pull request delivers it again.\n"
+             f"      Action: if its record is wrong, nstack unclaim {match[1]}; a defect found since is an issue of its own.")
     elif states[match[1]] == "ready" and not _held(root, match[1]):
         # Said, not refused. The hold says the work started; the cycle file stays the decider's
         # record, never changed by a delivery — under `docs/`, a human would have to approve it.
         warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it while this pull request "
              f"delivers it.\n      Action: nstack claim {match[1]} — the hold says it is in progress; "
-             f"{path.name} changes in the plan's own pull requests, never in a delivery's.")
+             f"{path.name} changes never in a delivery's pull request.")
+
+
+def _on_record(root: Path, path: Path, data: dict, ident: str) -> bool:
+    """On CI's fresh clone nothing has fetched the holds yet; unreadable, K5 says so."""
+    from napkinstack import hold
+
+    try:
+        hold.fetch(root)
+    except hold.Unreachable:
+        return False
+    return ident in plan.delivered_in(root, path, data)
 
 
 def _held(root: Path, ident: str) -> bool:
