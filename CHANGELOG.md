@@ -22,6 +22,25 @@ a patch.
 
 ---
 
+## v0.20.1 — 2026-11-01
+
+Two workstreams, D190 and D191, from the issues a second agent's first day on a project filed.
+
+This is a patch: nothing green turns red.
+
+**In the engine**
+
+- **`nstack plan` says what is merged and not yet recorded** (D191, #328). `0 of 24 accepted` hid approved merges, and an agent told its decider an acceptance was owed for each. Below the holds, the plan names each deliverable still open whose commits on the default branch name it since the cycle started, in a title or a `Deliverable:` line, and how many, a revert taken off. It reads titles, checks no approval and moves no state: several pull requests may deliver one deliverable.
+
+**In your project** — 4 files
+
+- **`.pre-commit-config.yaml`**: the zizmor hook runs without `GH_TOKEN`, `GITHUB_TOKEN` and `ZIZMOR_GITHUB_TOKEN` (D190, #327). An empty one, as an agent's environment sets to keep a person's token away, made zizmor refuse its option before `--offline` counted: every commit and `nstack attest` touching a workflow failed before reading it. `env -u` has to exist where the hooks run.
+- **`.nstack/handbook/project.md`**: the plan's new section, and what it does not check (D191).
+- **`.nstack/playbooks/framing.md`** §4: a deliverable one approved pull request delivered, its sheet run, owes the decider no further request; the plan's own pull request may record several states together (D191).
+- **`.copier-answers.yml`**: `_commit`.
+
+---
+
 ## v0.20.0 — 2026-10-31
 
 Six workstreams, D184 to D189, from the issues projects filed.
