@@ -127,6 +127,7 @@ green.
 | P5 | **Every check has a test that proves it fails** | A guardrail that cannot fail guards nothing. |
 | P6 | **Explanatory failure message** — rule, file, line, action | A check that says "violation" will be worked around. |
 | P7 | **Branding at the periphery** — `platform/`, the CLI and the distribution carry the brand; the rules stay generic | Nobody adopts a way of working that carries a vendor's name in every file. |
+| P8 | **A person is asked only where their judgement changes something** — whatever a rule can establish, an agent carries through and the repository proves; an agent's word alone is no proof (PDR-0022) | Attention is the scarce resource. A gesture that adds no judgement is a brake, and a brake gets skipped. |
 
 ---
 
