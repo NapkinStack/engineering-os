@@ -655,3 +655,190 @@ def test_a_cycle_whose_file_name_holds_a_space_can_be_read(tmp_path):
     framed(tmp_path, cycles={"03 the window.md": closed()})
     decision(tmp_path, "adr/0003-x.md", "By the end of 03 the window.\n\nRead at 03 the window's closure, 2026-10-18: met")
     assert "WARNING [C10]" not in judged(tmp_path)
+
+
+# PDR-0022: what needs a person, first; "nothing" only when it is certain.
+
+def needing(root, capsys) -> str:
+    capsys.readouterr()
+    assert plan.needs(root) == 0
+    return capsys.readouterr().out
+
+
+EMPTY = "\n## What needs a person\n\n| Deliverable | Who | The literal gesture |\n|---|---|---|\n"
+TABLE = """
+### What needs a person
+
+| Deliverable | Who | The literal gesture |
+|---|---|---|
+| D1 | The decider | Say yes in #12 |
+| D1, D2 on a Mac | The colleague | Run the app, then answer #426 |
+| <D1> | <who> | <the literal gesture> |
+| Everyone | The decider | Read the release notes |
+"""
+
+
+def with_table(root, states=("ready", "ready"), table=TABLE, start=None, **over):
+    framed(root, cycles={"01-first.md": progress_cycle(start or TODAY, states=states) | over})
+    path = root / "docs/project/cycles/01-first.md"
+    path.write_text(path.read_text(encoding="utf-8") + table, encoding="utf-8")
+
+
+def test_nothing_needs_you_only_on_a_section_that_says_so(tmp_path, capsys):
+    with_table(tmp_path, table=EMPTY)
+    assert needing(tmp_path, capsys) == "Nothing needs you.\n"
+
+
+def test_no_section_is_never_nothing(tmp_path, capsys):
+    with_table(tmp_path, table="")
+    out = needing(tmp_path, capsys)
+    assert "cannot say" in out and "has no *What needs a person*" in out and "Nothing" not in out
+
+
+def test_each_row_is_listed_with_who_and_the_gesture(tmp_path, capsys):
+    with_table(tmp_path)
+    out = needing(tmp_path, capsys)
+    assert out.startswith("Needs you (3):\n")
+    assert "  D1 — The decider: Say yes in #12" in out
+    assert "  D1, D2 on a Mac — The colleague: Run the app, then answer #426" in out
+    assert "  Everyone — The decider: Read the release notes" in out and "<who>" not in out
+
+
+@pytest.mark.parametrize("done", ["accepted", "deferred", "dropped"])
+def test_a_plain_row_goes_with_its_deliverable_s_state(tmp_path, capsys, done):
+    with_table(tmp_path, states=(done, "ready"))
+    out = needing(tmp_path, capsys)
+    assert "Say yes in #12" not in out and "Run the app" in out
+
+
+def delivered_with(monkeypatch, *answers):
+    from napkinstack import hold
+
+    monkeypatch.setattr(hold, "delivered", lambda root, path, data: {"D1", "D2"})
+    monkeypatch.setattr(hold, "read", lambda root, cycle, ident: hold.Hold(event="deliver", criteria=list(answers)))
+
+
+def test_a_delivered_row_goes_only_when_its_gesture_names_what_the_record_answers(tmp_path, capsys, monkeypatch):
+    with_table(tmp_path)
+    delivered_with(monkeypatch, "1 #12")
+    out = needing(tmp_path, capsys)
+    assert "Say yes in #12" not in out
+    assert "Run the app" in out, "a row saying more than its ids waits for a person"
+
+
+def test_a_delivery_answering_something_else_leaves_the_trial_listed(tmp_path, capsys, monkeypatch):
+    with_table(tmp_path)
+    delivered_with(monkeypatch, "1 #7")
+    assert "Say yes in #12" in needing(tmp_path, capsys)
+
+
+def test_a_person_s_trial_row_stays_after_the_delivery_is_recorded(tmp_path, capsys, monkeypatch):
+    with_table(tmp_path, table=EMPTY + "| D1, trial | The colleague | Run the app, answer #426 |\n")
+    delivered_with(monkeypatch, "1 #426")
+    assert "Run the app" in needing(tmp_path, capsys)
+
+
+@pytest.mark.parametrize("cell", ["D1-D3", "D1 to D3", "D1–D3"])
+def test_a_range_stays_for_one_left(tmp_path, capsys, cell):
+    with_table(tmp_path, states=("accepted", "ready", "accepted"), table=EMPTY + f"| {cell} | Me | Run |\n")
+    assert "Run" in needing(tmp_path, capsys)
+
+
+def test_a_range_goes_when_all_are_done_and_a_passing_mention_never_does(tmp_path, capsys):
+    with_table(tmp_path, states=("accepted", "accepted", "ready"), table=EMPTY + "| D1-D2 | Me | Run |\n| Before D1 starts | Me | Pick |\n")
+    out = needing(tmp_path, capsys)
+    assert "Run" not in out and "Pick" in out
+
+
+@pytest.mark.parametrize("heading", ["# What needs a person", "##### What needs a person", "### What Needs A Person",
+                                     "### **What needs a person**", "### What needs a person:", "## 5. What needs a person",
+                                     "### What needs a human", "### What needs a person in this cycle"])
+def test_the_heading_is_read_however_it_is_written(tmp_path, capsys, heading):
+    with_table(tmp_path, table=f"\n{heading}\n\n| A | B | C |\n|---|---|---|\n| D1 | Me | Run |\n")
+    assert "D1 — Me: Run" in needing(tmp_path, capsys)
+
+
+@pytest.mark.parametrize("body", ["- D1: me, run it\n", "Someone runs the trial.\n", "| D1 | Me |\n|---|---|\n| D1 | run |\n",
+                                  "| D1 | Me | Run |\n"])
+def test_a_filled_section_nstack_cannot_read_is_said_never_nothing(tmp_path, capsys, body):
+    with_table(tmp_path, table=f"\n## What needs a person\n\n{body}")
+    out = needing(tmp_path, capsys)
+    assert "Nothing needs you" not in out and ("no table nstack can read" in out or "with no gesture" in out or "D1 — Me: Run" in out)
+
+
+def test_a_sub_heading_a_fence_a_comment_and_a_second_table_are_read_as_they_are(tmp_path, capsys):
+    with_table(tmp_path, table="\n## What needs a person\n\n### Trials\n\n| A | B | C |\n|---|---|---|\n| D1 | Me | One |\n\n```\n# a comment\n```\n\n"
+                               "| A | B | C |\n|---|---|---|\n| D2 | Me | Two |\n\n<!-- | D1 | Me | Hidden | -->\n\n## Later\n\n| A | B | C |\n|---|---|---|\n| D1 | Me | Elsewhere |\n")
+    out = needing(tmp_path, capsys)
+    assert out.startswith("Needs you (2):") and "One" in out and "Two" in out and "Hidden" not in out and "Elsewhere" not in out
+
+
+def test_cells_with_pipes_and_the_form_s_placeholders(tmp_path, capsys):
+    with_table(tmp_path, table=EMPTY + "| D1 | Me | a \\| b |\n| D2 | <who> | <the literal gesture> |\n| <kbd>Store</kbd> | Me | Press |\n")
+    out = needing(tmp_path, capsys)
+    assert "D1 — Me: a | b" in out and "<who>" not in out and "Press" in out
+
+
+def test_a_long_gesture_says_where_the_rest_is(tmp_path, capsys):
+    with_table(tmp_path, table=EMPTY + "| D1 | Me | " + "x" * 300 + " |\n")
+    line = next(one for one in needing(tmp_path, capsys).splitlines() if "D1" in one)
+    assert len(line) < 220 and line.endswith("… (01-first.md)")
+
+
+def test_a_cycle_at_its_end_needs_the_decider(tmp_path, capsys):
+    with_table(tmp_path, table=EMPTY, start=TODAY - datetime.timedelta(weeks=9))
+    out = needing(tmp_path, capsys)
+    assert "01-first" in out and "ended on" in out and "you choose" in out
+
+
+def test_a_cycle_with_nothing_left_needs_its_closure(tmp_path, capsys):
+    with_table(tmp_path, states=("accepted", "dropped"), table=EMPTY)
+    assert "nothing left to deliver" in needing(tmp_path, capsys)
+
+
+def test_a_cycle_proposed_a_charter_proposed_and_no_cycle(tmp_path, capsys):
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(TODAY) | {"status": "proposed"}})
+    assert "01-first waits for your word" in needing(tmp_path, capsys)
+    other = tmp_path / "other"
+    other.mkdir()
+    framed(other, cycles={})
+    assert "no cycle is open" in needing(other, capsys)
+    third = tmp_path / "third"
+    third.mkdir()
+    framed(third, {**CHARTER, "status": "proposed"}, cycles={})
+    assert "the charter waits for your word" in needing(third, capsys)
+
+
+@pytest.mark.parametrize("over", [{"end": "soon"}, {"deliverables": None}, {"status": "Accepted"}])
+def test_a_plan_its_checks_refuse_is_never_nothing(tmp_path, capsys, over):
+    with_table(tmp_path, table=EMPTY, **over)
+    out = needing(tmp_path, capsys)
+    assert "cannot say" in out and "Nothing" not in out and "frame the next" not in out
+
+
+def test_two_accepted_cycles_are_never_nothing(tmp_path, capsys):
+    framed(tmp_path, cycles={"01.md": progress_cycle(TODAY), "02.md": progress_cycle(TODAY)})
+    assert "cannot say" in needing(tmp_path, capsys)
+
+
+def test_an_agent_s_work_is_not_listed_a_decision_due_is_a_warning_below(tmp_path, capsys, monkeypatch):
+    with_table(tmp_path, table=EMPTY)
+    monkeypatch.setattr(plan, "_due", lambda root, read: ["[C10] docs/adr/0001.md"])
+    assert needing(tmp_path, capsys) == "Nothing needs you.\n"
+
+
+def test_an_unframed_project_or_an_unreadable_file_says_no_nothing(tmp_path, capsys):
+    assert needing(tmp_path, capsys) == ""
+    framed(tmp_path, cycles={"01-first.md": progress_cycle(TODAY)})
+    (tmp_path / "docs/project/cycles/01-first.md").write_bytes(b"\xff\xfe not yaml")
+    assert "Nothing needs you" not in needing(tmp_path, capsys)
+
+
+def test_the_command_says_it_before_the_plan(tmp_path, capsys):
+    from napkinstack import cli
+
+    with_table(tmp_path)
+    capsys.readouterr()
+    cli.main(["plan", "--root", str(tmp_path)])
+    out = capsys.readouterr().out
+    assert out.index("Needs you (") < out.index("Plan: charter")
