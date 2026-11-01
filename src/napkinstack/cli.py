@@ -101,7 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add(sub, "boundaries", "declared graph against real graph, release artefacts included (B1-B9)",
          lambda a: boundaries.run(a.root))
     _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8), the decisions due at a closure "
-         "(C10), the project across its cycles, and who holds what", lambda a: plan.run(a.root) | plan.show(a.root) | hold.show(a.root))
+         "(C10), the project across its cycles, and who holds what", lambda a: hold.refresh(a.root) | plan.run(a.root) | plan.show(a.root) | hold.show(a.root))
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
@@ -196,6 +196,14 @@ def build_parser() -> argparse.ArgumentParser:
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
     rs.add_argument("--session", help="the agent's session, written on the release")
     rs.add_argument("--person", help="who releases it, such as @alice (default: git's user)")
+    dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request; "
+                              "refused with no merge of it",
+              lambda a: hold.deliver_command(a.root, a.deliverable, a.held or [], a.session, a.person, a.write_states))
+    dl.add_argument("deliverable", nargs="?", help="the deliverable's identifier, D<n>")
+    dl.add_argument("--held", action="append", metavar="[N=]#PR", help="what holds a criterion: '#12' for every one, '2=#12' for the second; repeatable")
+    dl.add_argument("--session", help="the agent's session, written on the record")
+    dl.add_argument("--person", help="who records it, such as @alice (default: git's user)")
+    dl.add_argument("--write-states", action="store_true", help="at a closure: writes the records' states in the cycle file, for its one pull request")
     bd = _add(sub, "board", "shows the cycles and their deliverables on the forge, one way: milestones and issues",
               lambda a: board.run(a.root, a.dry_run))
     bd.add_argument("--dry-run", action="store_true", help="say what would change, change nothing")

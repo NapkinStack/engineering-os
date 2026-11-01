@@ -25,6 +25,7 @@ from napkinstack.pull_request import DELIVERABLE
 
 SHOWN = {"accepted", "closed", "stopped"}  # a proposed cycle decides nothing yet
 OPEN_STATES = {"proposed", "ready", "in-progress"}
+DONE_STATES = {"accepted", "delivered"}  # delivered: computed from a record, never written (PDR-0022)
 LABEL = "deliverable"
 STATE_LABEL = "state: {}"
 EDITED_THERE = "Generated from {path}: the plan is edited there, in a pull request — an edit made here is undone."
@@ -67,15 +68,15 @@ def _handle(person: str) -> str | None:
 
 
 def _reason(state: str) -> str:
-    return "completed" if state == "accepted" else "not_planned"
+    return "completed" if state in DONE_STATES else "not_planned"
 
 
 def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, list[int]] | None = None,
-            today: datetime.date | None = None) -> tuple[list[Shown], list[str]]:
+            today: datetime.date | None = None, delivered: set[str] | None = None) -> tuple[list[Shown], list[str]]:
     """The display the cycle files call for, and what cannot be shown and why. `holders`:
     deliverable identifier to the hold's person; `pulls`: identifier to the pull requests whose
     description names it."""
-    holders, pulls = holders or {}, pulls or {}
+    holders, pulls, delivered = holders or {}, pulls or {}, delivered or set()
     cycles: dict[str, list[tuple[Path, dict]]] = {}
     for path in plan.cycle_files(root):
         data = plan.read_front_matter(path)[0]
@@ -107,7 +108,7 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
         end = plan.as_date(data.get("end"))
         shown.append(Shown(
             kind="cycle", key=number, title=title, state="closed" if closed else "open",
-            body="\n\n".join(part for part in (goal, plan.progress_of(path, data, today, appetite=False),
+            body="\n\n".join(part for part in (goal, plan.progress_of(path, data, today, appetite=False, delivered=set() if closed else delivered),
                                                EDITED_THERE.format(path=relative), marker("cycle", number)) if part),
             due=str(end) if end else None, start=plan.as_date(data.get("start"))))
         items = data.get("deliverables")
@@ -115,8 +116,9 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
             if not isinstance(item, dict) or not item.get("id") or str(item["id"]) in twice:
                 continue
             ident, state = str(item["id"]), str(item.get("state") or "")
+            state = "delivered" if ident in delivered and not closed else state
             listed = item.get("acceptance")
-            criteria = [f"- [{'x' if state == 'accepted' else ' '}] {line}"
+            criteria = [f"- [{'x' if state in DONE_STATES else ' '}] {line}"
                         for line in (listed if isinstance(listed, list) else [listed] if isinstance(listed, str) else [])
                         if isinstance(line, str)]
             person = holders.get(ident)
@@ -219,10 +221,15 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
         if holders is None:
             lines.append("holders not shown: the holds cannot be read — assignees left as they are")
         starts = [item.start for item in first if item.kind == "cycle" and item.start]
-        shown, _ = desired(root, holders or {}, _pulls(forge, min(starts) if starts else None), today)
+        cycle = plan.accepted_cycle(root)
+        done = plan.delivered_in(root, *cycle) if cycle and holders is not None else set()
+        shown, _ = desired(root, holders or {}, _pulls(forge, min(starts) if starts else None), today, done)
         milestones = _pages(forge, "/milestones?state=all")
         # Every issue, not those carrying the label: a label removed by hand leaves the marker.
         issues = [item for item in _pages(forge, "/issues?state=all") if "pull_request" not in item]
+        if holders is None:  # the records unread too: one failed fetch reopens nothing they closed
+            closed_ones = {key for key, issue in _own(issues, "body", "deliverable").items() if issue.get("state") == "closed"}
+            shown = [item for item in shown if not (item.kind == "deliverable" and item.state == "open" and item.key in closed_ones)]
         lines += _apply(forge, shown, milestones, issues, dry_run, keep_assignees=holders is None)
     except hold.Refused as error:
         limited = re.search(r"HTTP 429|rate limit", str(error), re.I)

@@ -168,7 +168,7 @@ def accepted_cycle(root: Path) -> tuple[Path, dict] | None:
     return None
 
 
-PROGRESS = (("accepted", "accepted"), ("in-progress", "in progress"), ("ready", "ready"),
+PROGRESS = (("accepted", "accepted"), ("delivered", "delivered"), ("in-progress", "in progress"), ("ready", "ready"),
             ("proposed", "proposed"), ("deferred", "deferred"))  # dropped: out of the count
 
 
@@ -177,15 +177,24 @@ def progress(root: Path, today: datetime.date | None = None) -> str | None:
     deliverables by state — a dropped one counts in nothing — and where the cycle stands in its
     appetite (#219). None when no cycle is accepted."""
     cycle = accepted_cycle(root)
-    return None if cycle is None else progress_of(*cycle, today=today)
+    return None if cycle is None else progress_of(*cycle, today=today, delivered=delivered_in(root, *cycle))
 
 
-def progress_of(path: Path, data: dict, today: datetime.date | None = None, appetite: bool = True) -> str:
+def delivered_in(root: Path, path: Path, data: dict) -> set[str]:
+    """What the records say is delivered in the accepted cycle (PDR-0022), read in `hold`."""
+    from napkinstack import hold
+
+    return hold.delivered(root, path, data) if data.get("status") == "accepted" else set()
+
+
+def progress_of(path: Path, data: dict, today: datetime.date | None = None, appetite: bool = True,
+                delivered: set[str] = frozenset()) -> str:
     """One cycle's line, accepted or not: what `progress` says. Without the appetite — the
     day and the days left, which change every day — it is what the forge's display repeats
     (ADR-0008)."""
     items = data.get("deliverables")
-    states = [item.get("state") for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
+    states = ["delivered" if str(item.get("id")) in delivered else item.get("state")
+              for item in (items if isinstance(items, list) else []) if isinstance(item, dict)]
     counted = [state for state in states if state != "dropped"]
     said = [f"{states.count('accepted')} of {len(counted)} accepted"]
     said += [f"{counted.count(state)} {name}" for state, name in PROGRESS[1:] if counted.count(state)]
@@ -213,13 +222,13 @@ LATER_FORM = "<Candidates for the next framing: what framing left out, and ideas
 ITEM = re.compile(r"^(?:[-*+]|\d+[.)])\s", re.M)  # a top-level item: one candidate each
 
 
-def _cycle_said(path: Path, data: dict | None) -> str:
+def _cycle_said(root: Path, path: Path, data: dict | None) -> str:
     """One cycle of the project's history: its status, the date that matters for it, and its
     deliverables as `progress_of` counts them — one figure, wherever it is said. What its own
     rules refuse (C3, C6) is said plainly, never as a value printed raw."""
     if data is None:
         return "front matter unreadable (C1)"
-    status, counts = data.get("status"), progress_of(path, data, appetite=False).split(": ", 1)[1]
+    status, counts = data.get("status"), progress_of(path, data, appetite=False, delivered=delivered_in(root, path, data)).split(": ", 1)[1]
     if not one_of(status, CYCLE_STATUSES):
         return f"status unknown (C3) · {counts}"
     if status in OUTCOMES:
@@ -316,7 +325,7 @@ def project(root: Path) -> list[str]:
     lines = [f"Project: {head} · {len(read)} cycle{'' if len(read) == 1 else 's'}"
              + (f": {', '.join(tally)}" if tally else "")]
     width = max(len(path.stem) for path in cycles) if cycles else 0
-    lines += [f"  {path.stem.ljust(width)}  {_cycle_said(path, data)}" for path, data in read]
+    lines += [f"  {path.stem.ljust(width)}  {_cycle_said(root, path, data)}" for path, data in read]
     # The cycle running, else the last one ended — where the next framing starts —, else the last.
     ended = [path for path, data in read if data and one_of(data.get("status"), OUTCOMES)]
     latest = next((path for path, data in read if data and data.get("status") == "accepted"),

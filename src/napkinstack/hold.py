@@ -9,11 +9,17 @@ from it: the refusal is git's, on any forge. A hold is never merged; its work is
 
 Usage :  nstack claim D<n> [--session S] [--person P] [--take-over]
          nstack unclaim D<n> [--session S] [--person P]
+         nstack deliver D<n> --held '#12' [--held '2=#13'] [--session S] [--person P]
+         nstack deliver --write-states
 Output:  0 when the hold is taken, renewed or released; 1 when refused — saying who holds it.
 
 Two sessions of one person are two holders (D181, D185): a session renews only a hold it is on; a
 person's other session takes it with --take-over, on that person's word. A person with no session
 has nothing to tell apart, and their name answers.
+
+A `deliver` event records a delivery, criterion by criterion (PDR-0022): a rule refuses it with no
+merge of the deliverable on the default branch. `delivered` is computed from it and from those
+merges, and never written in the cycle file until its closure.
 """
 
 from __future__ import annotations
@@ -53,15 +59,21 @@ class Hold:
     sessions: list[str] = field(default_factory=list)
     since: int = 0
     worked: int = 0  # the newest of its last event and its work branches' tips
+    criteria: list[str] = field(default_factory=list)  # what a `deliver` event says holds each criterion
 
     @property
     def held(self) -> bool:
-        return self.event not in (None, "release")
+        return self.event not in (None, "release", "deliver")
+
+    @property
+    def recorded(self) -> bool:
+        """A delivery is on record; whether it still stands is `delivered`'s to say."""
+        return self.event == "deliver" and bool(self.criteria)  # with none, no rule ever ran on it
 
 
 def _git(root: Path, *args: str, check: bool = False, stdin: str | None = None,
          timeout: int | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=check, input=stdin,
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, errors="replace", check=check, input=stdin,
                           timeout=timeout,
                           # A remote asking for a password is unreachable, not a wait.
                           env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
@@ -139,16 +151,18 @@ def read(root: Path, cycle: str, ident: str) -> Hold:
     log = _git(root, "log", "--reverse", "--format=%H%x1f%ct%x1f"
                "%(trailers:key=Hold-Event,valueonly,separator=)%x1f"
                "%(trailers:key=Hold-Person,valueonly,separator=)%x1f"
-               "%(trailers:key=Agent-Session,valueonly,separator=)%x1e", ref)
+               "%(trailers:key=Agent-Session,valueonly,separator=)%x1f"
+               "%(trailers:key=Hold-Criterion,valueonly,separator=%x1d)%x1e", ref)
     if log.returncode != 0:
         return found
     for entry in filter(str.strip, log.stdout.split("\x1e")):
-        sha, at, event, person, session = (part.strip() for part in entry.split("\x1f"))
+        sha, at, event, person, session, criteria = (part.strip() for part in entry.split("\x1f"))
         found.tip, found.event = sha, event
-        if event in ("claim", "take-over"):
+        if event in ("claim", "take-over", "deliver"):  # a record names who said it, whoever held it
             found.person, found.sessions, found.since = person, [], int(at)
-        if event in ("claim", "take-over", "renew") and session and session not in found.sessions:
+        if event in ("claim", "take-over", "renew", "deliver") and session and session not in found.sessions:
             found.sessions.append(session)
+        found.criteria = [one.strip() for one in criteria.split("\x1d") if one.strip()] if event == "deliver" else []
         found.worked = int(at)
     tips = _git(root, "for-each-ref", "--format=%(committerdate:unix)", _work_refs(root, ident)).stdout.split()
     found.worked = max([found.worked, *map(int, tips)])
@@ -197,8 +211,9 @@ def _person(root: Path, given: str | None) -> str:
 
 
 def _event(root: Path, parent: str | None, ident: str, event: str, person: str, session: str | None,
-           previous: Hold | None = None) -> str:
+           previous: Hold | None = None, criteria: list[str] | None = None) -> str:
     trailers = [f"Hold-Event: {event}", f"Hold-Person: {person}"]
+    trailers += [f"Hold-Criterion: {one}" for one in criteria or []]
     if session:
         trailers.append(f"Agent-Session: {session}")
     if previous is not None:
@@ -403,6 +418,10 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
               f"      {error}\n      Action: check the network and the remote, then again.")
         return 1
     current = read(root, cycle, ident)
+    if _stands(root, name, cycle, ident, current):
+        print(f"FAIL [hold] {ident} is already delivered: {_recorded_said(current)}.\n      Action: take another "
+              f"ready deliverable — nstack plan lists them; a record found wrong is withdrawn with nstack unclaim {ident}.")
+        return 1
     days = limit(root)
     stale_at = current.worked + days * DAY
     previous = None
@@ -486,7 +505,7 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         print(f"FAIL [hold] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
         return 1
     current = read(root, stem, ident) if stem else Hold()
-    if not current.held:
+    if not current.held and not current.recorded:
         ended = _ended(root, ident, stem)
         if ended:
             print(ended)
@@ -496,9 +515,13 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         return 1
     charter = plan.read_front_matter(root / plan.CHARTER)[0] if (root / plan.CHARTER).is_file() else None
     decider = str((charter or {}).get("decider") or "")
-    stale = time.time() >= current.worked + limit(root) * DAY
+    stale = not current.recorded and time.time() >= current.worked + limit(root) * DAY  # a record never goes stale
     is_decider = bool(decider and same(decider, person))
-    if same(current.person, person) and _another_session(current, session) and not stale and not is_decider:
+    if current.recorded and not (same(current.person, person) or is_decider):
+        print(f"FAIL [hold] {ident} is {_recorded_said(current)}: only who recorded it or the decider "
+              f"({decider or 'none named'}) withdraws a record.\n      Action: ask them.")
+        return 1
+    if not current.recorded and same(current.person, person) and _another_session(current, session) and not stale and not is_decider:
         print(f"FAIL [hold] {ident} is {said(current)}: another session of the same person does not give it "
               f"back.\n      Action: only if that person asks, nstack claim {ident} --take-over --person {person} "
               f"--session {session}.")
@@ -516,25 +539,49 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
     return 0
 
 
+_fetched: dict[Path, "str | None | Unreachable"] = {}  # what `refresh` just read, for `show` to say
+
+
+_NOT_READ = object()
+
+
+def refresh(root: Path) -> int:
+    """Brings the holds in before `nstack plan` counts them; what cannot be read `show` says."""
+    try:
+        _fetched[root] = fetch(root)
+    except Unreachable as error:
+        _fetched[root] = error
+    return 0
+
+
 def show(root: Path) -> int:
     """Who holds what in the accepted cycle, for `nstack plan`: said, never a failure."""
+    just_read = _fetched.pop(root, _NOT_READ)
     cycle = plan.accepted_cycle(root)
     if cycle is None:
         return 0
     path, data = cycle
     days = limit(root)
     try:
-        name = fetch(root)
+        name = fetch(root) if just_read is _NOT_READ else just_read
+        if isinstance(name, Unreachable):
+            raise name
     except Unreachable as error:
         print(f"\nHolds in {path.stem}: holds not read — the remote cannot be read.\n      {error}")
         return 0
     lines, held, stale = [], 0, 0
     items = data.get("deliverables")
+    read_merges = _read_merges(root, name, data)
+    merges = read_merges.live
     for item in items if isinstance(items, list) else []:
         if not isinstance(item, dict):
             continue
         ident, state = str(item.get("id")), item.get("state")
         found = read(root, path.stem, ident)
+        if found.recorded and plan.one_of(state, TAKEABLE):
+            lines.append(f"  {ident}  {_recorded_said(found)}" if _stands(root, name, path.stem, ident, found, read_merges)
+                         else f"  {ident}  free — delivered, then a merge it names was reverted: back in work")
+            continue
         if not found.held and not plan.one_of(state, TAKEABLE):
             continue
         if not found.held:
@@ -544,18 +591,21 @@ def show(root: Path) -> int:
         elif time.time() >= found.worked + days * DAY:
             held, stale = held + 1, stale + 1
             lines.append(f"  {ident}  STALE — {said(found)}: its holder renews (nstack claim {ident}); "
-                         f"anyone else may nstack claim {ident} --take-over")
+                         f"anyone else may nstack claim {ident} --take-over"
+                         + (f"; its work is merged: nstack deliver {ident} once its criteria hold" if ident in merges else ""))
         else:
             held += 1
             lines.append(f"  {ident}  {said(found)}")
     where = f"from {name}" if name else "local only: no remote"
     print(f"\nHolds in {path.stem}: {held} held, of which {stale} stale ({where}; stale after {days} days without work):")
     print("\n".join(lines) or "  no ready deliverable")
-    merged = _merged(root, name, data)
+    merged = [] if _shallow(root) else _merged(path.stem, root, merges, items)
     if merged:
-        print("\nMerged, the plan's state not moved yet — read from commit titles, no approval checked; "
-              "the plan's own pull request records the states:")
+        print("\nMerged, not recorded as delivered — read from commit titles, no approval checked; once every "
+              "criterion holds: nstack deliver D<n> --held '#<pull request>':")
         print("\n".join(merged))
+    if _shallow(root):
+        print("\nA shallow clone: merges not read, so what is merged is not said here.\n      Action: git fetch --unshallow.")
     left = _empty_starts(root, name, items if isinstance(items, list) else [])
     if left:
         print("\nEmpty start branches left — one empty commit each, nothing to lose, and git branch -d refuses them:")
@@ -601,43 +651,376 @@ _ID = r"D[1-9][0-9]*"
 _TITLED = re.compile(rf"\(({_ID}(?:, *{_ID})*)(?:,[^()]*)?\)(?: *\(#[0-9]+\))?$")  # "… (D47, second of three) (#12)"
 _OPENED = re.compile(rf"^({_ID}) [—–-]")
 _NAMED = re.compile(rf"^Deliverable:[ \t]*({_ID})\b", re.I | re.M)  # as pr-check K3 reads it
+_PULL = re.compile(r"\(#([0-9]+)\)$")
+_MERGED = re.compile(r"^Merge pull request #([0-9]+)\b")  # the forge's merge commit: the title is the body's first line
+_REVERTS = re.compile(r"^This reverts commit ([0-9a-f]{7,40})", re.M)
+_REVERTS_PULL = re.compile(r"^Reverts [\w./-]*#([0-9]+)\s*$", re.M)  # the forge's revert button
+_ANSWER = re.compile(r"(?:(?P<criterion>[0-9]+)=)?(?P<answer>#[0-9]+|[0-9a-f]{7,40})")
 
 
 def _delivers(subject: str, body: str) -> set[str]:
     """The deliverables a commit on the default branch delivers: its title, as a squash leaves it, or
     the `Deliverable:` line a pull request's description keeps. A mention elsewhere names nothing."""
     titled, opened = _TITLED.search(subject), _OPENED.match(subject)
-    return ({part.strip().upper() for part in re.findall(_ID, titled[1])} if titled else set()) \
+    return ({part.upper() for part in re.findall(_ID, titled[1])} if titled else set()) \
         | ({opened[1].upper()} if opened else set()) | {found.upper() for found in _NAMED.findall(body)}
 
 
-def _merged(root: Path, name: str | None, data: dict) -> list[str]:
-    """What the default branch records of the cycle's open deliverables since it started (#328): a
-    merge is said and moves no state, since several pull requests may deliver one deliverable and
-    only the plan's own pull request records its criteria (D183). An id carried over from an earlier
-    cycle answers for this cycle's merges alone. The whole main line is read and filtered in UTC:
-    `--since` stops at the first older commit, and reads the date in the machine's timezone."""
-    start, items = plan.as_date(data.get("start")), data.get("deliverables")
-    if start is None or not isinstance(items, list):
-        return []
+@dataclass
+class Merges:
+    """What the default branch's main line says of the deliverables, each change alive or undone."""
+    live: dict[str, list[tuple[str, str | None]]] = field(default_factory=dict)  # this cycle's: id to (commit, pull request)
+    citable: dict[str, list[tuple[str, str | None]]] = field(default_factory=dict)  # the same, with what reapplied them
+    reverted: dict[str, list[tuple[str, str | None]]] = field(default_factory=dict)
+    earlier: set[str] = field(default_factory=set)  # alive, merged before the cycle: an id carried over
+
+
+@dataclass
+class _Change:
+    sha: str
+    pull: str | None
+    subject: str
+    idents: set[str]
+    before: bool  # merged before the cycle started
+    alive: bool = True
+    also: list[tuple[str, str | None]] = field(default_factory=list)  # the commits that reapplied it
+    undid: set[str] = field(default_factory=set)  # the commits that reverted it
+
+
+def _plain(subject: str) -> str:
+    return _PULL.sub("", subject).strip()
+
+
+def _chain(subject: str) -> tuple[str, str | None, int]:
+    """A title's innermost title, that title's pull request, and how many reverts wrap it: `Revert` is
+    one, `Reapply` two. Odd, the change is gone; even, it is back."""
+    depth, pull = 0, None
+    while True:
+        found = _PULL.search(subject)
+        pull = found[1] if found else None
+        subject = _PULL.sub("", subject).strip()
+        wrapped = re.fullmatch(r'(Revert|Reapply) "(.*)"', subject, re.S)
+        if not wrapped:
+            break
+        depth, subject = depth + (1 if wrapped[1] == "Revert" else 2), wrapped[2]
+    merged = _MERGED.match(subject)
+    return subject, merged[1] if merged else pull, depth
+
+
+def _read_merges(root: Path, name: str | None, data: dict) -> Merges:
+    """Every change of the whole main line, whatever its date (`--since` stops at the first older
+    commit, and reads the date in the machine's timezone), alive or undone; those since the cycle
+    started, in UTC, are its merges (#328), an id carried over answering for its own alone.
+
+    A revert acts on what its body names — `This reverts commit`, `Reverts …#<n>` — and on nothing
+    else if it names any, however they end: an unknown commit changes nothing. Otherwise its title
+    names one, by number or words. A commit is a merge of what its title names as well as what its
+    body reverts. Not read: a revert in words alone, another forge's merge commit."""
+    found, start = Merges(), plan.as_date(data.get("start"))
+    if start is None:
+        return found
     base = f"{MIRROR}/base" if name else "refs/heads/main"
     since = datetime.datetime(start.year, start.month, start.day, tzinfo=datetime.timezone.utc).timestamp()
-    counts: dict[str, int] = {}
-    log = _git(root, "log", "--first-parent", "--format=%ct%x00%s%x00%b%x01", base).stdout
+    changes: list[_Change] = []
+    log = _git(root, "log", "--first-parent", "--reverse", "--format=%H%x00%ct%x00%s%x00%b%x01", base).stdout
     for entry in log.split("\x01"):
         fields = entry.strip().split("\0")
-        if len(fields) != 3 or int(fields[0]) < since:
+        if len(fields) != 4:
             continue
-        reverted = re.fullmatch(r'Revert "(.*)"', fields[1])
-        for ident in _delivers(reverted[1], "") if reverted else _delivers(fields[1], fields[2]):
-            counts[ident] = counts.get(ident, 0) + (-1 if reverted else 1)
+        sha, before, subject, body = fields[0], int(fields[1]) < since, fields[2], fields[3]
+        merged = _MERGED.match(subject)
+        if merged:  # "Merge pull request #5 from …": a title on the body's first line, unless it is a trailer
+            title = body.partition("\n")[0].strip()
+            subject = f"#{merged[1]}" if not title or _NAMED.match(title) else f"{title} (#{merged[1]})"
+        own = _PULL.search(subject)
+        own = own[1] if own else merged[1] if merged else None
+        inner, inner_pull, depth = _chain(subject)
+        shas, pulls = _REVERTS.findall(body), _REVERTS_PULL.findall(body)
+        targets = [change for change in changes if any(change.sha.startswith(one) or
+                                                       any(also[0].startswith(one) for also in change.also) or
+                                                       any(undid.startswith(one) for undid in change.undid) for one in shas)
+                   or change.pull in pulls]
+        back = {id(change) for change in targets if any(undid.startswith(one) for undid in change.undid for one in shas)}
+        if not depth:
+            for change in targets:
+                change.alive = id(change) in back
+                if not change.alive:
+                    change.undid.add(sha)
+            if _delivers(subject, body):
+                changes.append(_Change(sha, own, _plain(subject), _delivers(subject, body), before))
+            continue
+        if not shas and not pulls:
+            wanted = depth % 2 == 1  # a revert undoes what is alive, a reapply brings back what is not
+            for change in reversed(changes):
+                if change.alive == wanted and ((change.pull == inner_pull) if inner_pull else (change.subject == _plain(inner))):
+                    targets = [change]
+                    break
+        for change in targets:
+            change.alive = depth % 2 == 0
+            if change.alive:
+                change.also.append((sha, own))
+            else:
+                change.undid.add(sha)
+        if not targets and depth % 2 == 0 and not shas and not pulls:  # reapplied, never seen reverted: a merge
+            idents = _delivers(inner, body)
+            if idents:
+                changes.append(_Change(sha, own, _plain(inner), idents, before))
+    for change in changes:
+        for ident in change.idents:
+            if not change.alive:
+                found.reverted.setdefault(ident, []).extend([(change.sha, change.pull), *change.also])
+            elif change.before:
+                found.earlier.add(ident)
+            else:
+                found.live.setdefault(ident, []).append((change.sha, change.pull))
+                found.citable.setdefault(ident, []).extend([(change.sha, change.pull), *change.also])
+    return found
+
+
+def _merges(root: Path, name: str | None, data: dict) -> dict[str, list[tuple[str, str | None]]]:
+    return _read_merges(root, name, data).live
+
+
+def _merged(cycle: str, root: Path, merges: dict, items) -> list[str]:
+    """The open deliverables with merges and no record: what `nstack deliver` is owed."""
     lines = []
-    for item in items:
+    for item in items if isinstance(items, list) else []:
         if isinstance(item, dict) and plan.one_of(item.get("state"), TAKEABLE):
             ident = str(item.get("id")).upper()
-            if counts.get(ident, 0) > 0:
-                lines.append(f"  {ident}  {counts[ident]} merge" + ("" if counts[ident] == 1 else "s"))
+            if merges.get(ident) and not read(root, cycle, ident).recorded:
+                lines.append(f"  {ident}  {len(merges[ident])} merge" + ("" if len(merges[ident]) == 1 else "s"))
     return lines
+
+
+def _shallow(root: Path) -> bool:
+    return _git(root, "rev-parse", "--is-shallow-repository").stdout.strip() == "true"
+
+
+def _stands(root: Path, name: str | None, cycle: str, ident: str, found: Hold, merges: Merges | None = None) -> bool:
+    """A record stands until a merge it names is seen reverted, or every merge of the deliverable is;
+    only what is seen takes it down: a shallow clone, a `start` moved or removed never do."""
+    if not found.recorded:
+        return False
+    if _shallow(root):
+        return True
+    if merges is None:
+        path = next((one for one in plan.cycle_files(root) if one.stem == cycle), None)
+        merges = _read_merges(root, name, plan.read_front_matter(path)[0] or {}) if path else Merges()
+    ident = ident.upper()
+    live, gone = merges.live.get(ident, []), merges.reverted.get(ident, [])
+    if not gone:
+        return True
+    if ident in merges.earlier:
+        live = live or [("", None)]
+    answers = {one.split(" ", 1)[1] for one in found.criteria if " " in one}
+    def cited(merge: tuple[str, str | None]) -> bool:
+        return any(answer == f"#{merge[1]}" or merge[0].startswith(answer) for answer in answers)
+    return bool(live) and not any(cited(merge) for merge in gone)
+
+
+def delivered(root: Path, path: Path, data: dict) -> set[str]:
+    """The cycle's deliverables a record says are delivered, the one answer everything reads
+    (PDR-0022): as last fetched, with no network. An unreadable hold is none."""
+    items = data.get("deliverables")
+    open_ones = [str(item.get("id")) for item in (items if isinstance(items, list) else [])
+                 if isinstance(item, dict) and plan.one_of(item.get("state"), TAKEABLE)]
+    found = {ident: read(root, path.stem, ident) for ident in open_ones}
+    recorded = [ident for ident, one in found.items() if one.recorded]
+    if not recorded:
+        return set()
+    name = remote(root)
+    merges = _read_merges(root, name, data)
+    return {ident for ident in recorded if _stands(root, name, path.stem, ident, found[ident], merges)}
+
+
+def _recorded_said(found: Hold) -> str:
+    sessions = f", session {', '.join(found.sessions)}" if found.sessions else ""
+    held = "; ".join(found.criteria)
+    return f"delivered by {found.person}{sessions}, on {when(found.worked)}" + (f" — {held}" if held else "")
+
+
+def _answers(item: dict, given: list[str]) -> dict[int, str] | str:
+    """Each criterion's answer, or why not. `#12` answers every criterion; `2=#12` the second."""
+    listed = item.get("acceptance")
+    criteria = listed if isinstance(listed, list) else [listed] if isinstance(listed, str) else []
+    answers: dict[int, str] = {}
+    for one in given:
+        found = _ANSWER.fullmatch(one.strip())
+        if not found:
+            return f"'{one.strip()}' names no pull request or commit.\n      Action: --held '#12', or --held '2=#12' for the second criterion."
+        numbers = [int(found["criterion"])] if found["criterion"] else range(1, len(criteria) + 1)
+        for number in numbers:
+            if not 1 <= number <= len(criteria):
+                return (f"criterion {number} does not exist: the deliverable has {len(criteria)}.\n"
+                        "      Action: number them as the cycle lists them, from 1.")
+            answers[number] = found["answer"]
+    missing = [number for number in range(1, len(criteria) + 1) if number not in answers]
+    if missing:
+        told = "\n".join(f"      criterion {number}: {criteria[number - 1]}" for number in missing)
+        return f"nothing says what holds:\n{told}\n      Action: --held '{missing[0]}=#<pull request>'; one only a person can try waits for their answer."
+    return answers
+
+
+def deliver(root: Path, ident: str, given: list[str], session: str | None = None, person: str | None = None) -> int:
+    """Records a delivery on the hold's branch: no pull request, nothing under docs/ (PDR-0022)."""
+    found = _deliverable(root, ident)
+    if isinstance(found, str):
+        print(f"FAIL [deliver] {found}")
+        return 1
+    cycle, _ = found
+    path, data = plan.accepted_cycle(root)
+    person, session = _person(root, person), (session or "").strip() or None
+    if any(not value.isprintable() for value in (person, session or "")):
+        print("FAIL [deliver] a person or a session holds a line break or a control character.\n      Action: name them on one line.")
+        return 1
+    try:
+        name = fetch(root)
+    except Unreachable as error:
+        print(f"FAIL [deliver] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
+        return 1
+    if _shallow(root):
+        print(f"FAIL [deliver] a shallow clone cannot read {ident}'s merges.\n      Action: git fetch --unshallow, then again.")
+        return 1
+    current, seen = read(root, cycle, ident), _read_merges(root, name, data)
+    merges = seen.live
+    if _stands(root, name, cycle, ident, current, seen):
+        print(f"{ident} is already delivered: {_recorded_said(current)}.")
+        return 0
+    charter = plan.read_front_matter(root / plan.CHARTER)[0] if (root / plan.CHARTER).is_file() else None
+    decider = str((charter or {}).get("decider") or "")
+    on_hold = bool(session) and session.casefold() in {one.casefold() for one in current.sessions}
+    if current.held and not on_hold and not same(current.person, person) and not (decider and same(decider, person)):
+        print(f"FAIL [deliver] {ident} is {said(current)}: only a session on the hold, its person or the decider ({decider or 'none named'}) records "
+              f"its delivery.\n      Action: ask them; a stale hold is taken over first, with nstack claim {ident} --take-over.")
+        return 1
+    carried = not merges.get(ident) and ident in seen.earlier
+    if not merges.get(ident) and not carried:
+        print(f"FAIL [deliver] the default branch records no merge of {ident} since the cycle started: nothing is "
+              f"delivered yet, or every merge was reverted.\n      Action: merge its work, its title ending ({ident}), then again.")
+        return 1
+    items = {str(item.get("id")): item for item in data["deliverables"] if isinstance(item, dict)}
+    if not items[ident].get("acceptance"):
+        print(f"FAIL [deliver] {ident} has no acceptance criteria: nothing can be held.\n      Action: the cycle lists them (C4).")
+        return 1
+    answers = _answers(items[ident], given)
+    if isinstance(answers, str):
+        print(f"FAIL [deliver] {ident}: {answers}")
+        return 1
+    named = _named_for(path, ident)
+    mine = seen.citable.get(ident, [])  # carried over, merged in an earlier cycle: only a person's answer is left to name
+    for number, answer in answers.items():
+        pull = answer[1:] if answer.startswith("#") else None
+        known = any(one[1] == pull for one in mine) or bool(re.search(rf"#{pull}\b", named)) if pull else \
+            any(one[0].startswith(answer) for one in mine)
+        if not known:
+            print(f"FAIL [deliver] {ident}, criterion {number}: {answer} is no merge of {ident}, nor named in {path.name}.\n"
+                  f"      Action: name one of {', '.join('#' + one[1] if one[1] else one[0][:9] for one in mine) or 'none'}, "
+                  "or the acceptance issue named beside its state, in its section, or in a table's row with its id.")
+            return 1
+    sha = _event(root, current.tip, ident, "deliver", person, session,
+                 criteria=[f"{number} {answers[number]}" for number in sorted(answers)])
+    ok, where = _record(root, name, cycle, ident, sha)
+    if not ok:
+        print(f"FAIL [deliver] {ident}'s hold moved meanwhile: {where}\n      Action: run nstack plan, then again.")
+        return 1
+    print(f"{ident} delivered, on record; {where}. No pull request: nstack plan says it, and the closure writes the state.")
+    return 0
+
+
+def deliver_command(root: Path, ident: str | None, given: list[str], session: str | None, person: str | None, states: bool) -> int:
+    """One deliverable, or the states at a closure: never both, never neither."""
+    if states and (ident or given):
+        print("FAIL [deliver] --write-states takes no deliverable and no --held.\n      Action: nstack deliver --write-states.")
+        return 1
+    if states:
+        return write_states(root)
+    if not ident:
+        print("FAIL [deliver] no deliverable named.\n      Action: nstack deliver D<n> --held '#<pull request>', or --write-states at a closure.")
+        return 1
+    return deliver(root, ident, given, session, person)
+
+
+def _named_for(path: Path, ident: str) -> str:
+    """Where a cycle names a deliverable's acceptance issue: beside its state, in its section, or on
+    a table's row with its id in a cell, as what needs a person — never elsewhere in the file,
+    where any number may stand."""
+    text = path.read_text(encoding="utf-8")
+    front = plan.FRONT_MATTER.match(text)
+    body = text[front.end():] if front else text
+    heading = re.search(rf"^(#{{2,4}}) +{re.escape(ident)}\b", body, re.M)
+    section = ""
+    if heading:
+        rest = body[heading.end():]
+        ended = re.search(rf"^#{{1,{len(heading[1])}}} ", rest, re.M)
+        section = rest[:ended.start()] if ended else rest
+    # A row of a table naming it, as `| D38, D39 on a Mac | … | #426 |`: a sentence mentioning it answers nothing.
+    lines = [line for line in body.splitlines() if re.search(rf"^\s*\|.*\b{re.escape(ident)}\b(?!-).*\|", line)]
+    block = re.search(rf"^[ \t]*-[ \t]*id:[ \t]*[\"']?{re.escape(ident)}[\"']?\b.*?(?=^[ \t]*-[ \t]*id:|\Z)", front[1] if front else "", re.S | re.M)
+    state = re.search(r"^[ \t]*state:.*$", block[0], re.M) if block else None
+    return "\n".join([state[0] if state else "", section, *lines])
+
+
+def _with_state(front: str, ident: str) -> str | None:
+    """The front matter with this deliverable's state accepted, or None when its lines are not the
+    form a cycle file takes: `- id: D1`, then `state:` at that key's indent."""
+    lines = front.split("\n")
+    for index, line in enumerate(lines):
+        found = re.fullmatch(rf"([ \t]*)-([ \t]+)id:[ \t]*[\"']?{re.escape(ident)}[\"']?[ \t]*(?:#.*)?\r?", line)
+        if not found:
+            continue
+        key = " " * (len(found[1]) + 1 + len(found[2]))
+        for at in range(index + 1, len(lines)):
+            if re.match(rf"{re.escape(found[1])}-[ \t]", lines[at]):
+                return None
+            state = re.fullmatch(rf"({key}state:[ \t]*)(\S+)([ \t]*(?:#.*)?\r?)", lines[at])
+            if state:
+                lines[at] = f"{state[1]}accepted{state[3]}"
+                return "\n".join(lines)
+    return None
+
+
+def write_states(root: Path) -> int:
+    """At a closure, what the records say goes in the cycle file, for its one pull request."""
+    cycle = plan.accepted_cycle(root)
+    if cycle is None:
+        print("FAIL [deliver] no accepted cycle: there is no state to write.")
+        return 1
+    path, data = cycle
+    try:
+        fetch(root)
+    except Unreachable as error:
+        print(f"FAIL [deliver] the remote cannot be read: nothing is known of the records.\n      {error}")
+        return 1
+    if _shallow(root):
+        print("FAIL [deliver] a shallow clone cannot tell whether a record still stands.\n      Action: git fetch --unshallow, then again.")
+        return 1
+    done = sorted(delivered(root, path, data))
+    with open(path, encoding="utf-8", newline="") as handle:  # a CRLF file stays one, its diff one line
+        text = handle.read()
+    matter = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n", text, re.S)
+    front = matter[1] if matter else ""
+    for ident in done:
+        written = _with_state(front, ident)
+        if written is None:
+            print(f"FAIL [deliver] {ident}'s state could not be found in {path.name}: nothing written.\n      Action: write the states by hand.")
+            return 1
+        front = written
+    wanted = {str(item.get("id")): {**item, "state": "accepted"} if str(item.get("id")) in done else item
+              for item in data.get("deliverables") or [] if isinstance(item, dict)}
+    try:
+        reread = yaml.safe_load(front) or {}
+    except yaml.YAMLError:
+        reread = {}
+    now = {str(item.get("id")): item for item in reread.get("deliverables") or [] if isinstance(item, dict)}
+    if done and now != wanted:  # read back: anything else changed is a refusal, never a success
+        print(f"FAIL [deliver] writing the states would change more than they in {path.name}: nothing written.\n      Action: write them by hand.")
+        return 1
+    if done:
+        with open(path, "w", encoding="utf-8", newline="") as handle:
+            handle.write(text[:matter.start(1)] + front + text[matter.end(1):])
+    print(f"{path.name}: {', '.join(done)} accepted, from their records; commit it in the closure's pull request." if done
+          else f"{path.name}: no record to write.")
+    return 0
 
 
 def _landed(root: Path, ident: str, ref: str, base: str) -> bool:

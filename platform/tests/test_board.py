@@ -575,3 +575,30 @@ def test_a_pull_request_opened_since_the_last_run_is_an_update_never_called_a_ha
     board.run(root, today=TODAY)
     out = capsys.readouterr().out
     assert "updated issue D2 — Export: body" in out and "restored" not in out
+
+
+def test_a_delivered_deliverable_closes_as_completed_and_its_criteria_are_ticked(tmp_path):
+    shown = by_key(board.desired(project(tmp_path), today=TODAY, delivered={"D2"}))
+    assert (shown["D2"].state, shown["D2"].reason) == ("closed", "completed")
+    assert "state: delivered" in shown["D2"].labels and "- [x]" in shown["D2"].body
+    assert "1 delivered" in shown["03"].body
+
+
+def test_a_run_reads_the_records_closes_the_issue_and_a_failed_fetch_reopens_nothing(forge, monkeypatch):
+    root, site = forge
+    monkeypatch.setattr(hold, "delivered", lambda root, path, data: {"D2"})
+    board.run(root, today=TODAY)
+    export = next(issue for issue in site.issues.values() if issue["title"] == "D2 — Export")
+    assert export["state"] == "closed" and export["state_reason"] == "completed"
+    monkeypatch.setattr(hold, "delivered", lambda root, path, data: set())
+    monkeypatch.setattr(hold, "fetch", lambda root, again=False: (_ for _ in ()).throw(hold.Unreachable("no")))
+    board.run(root, today=TODAY)
+    export = next(issue for issue in site.issues.values() if issue["title"] == "D2 — Export")
+    assert export["state"] == "closed"
+
+
+def test_a_closed_cycle_counts_no_record_of_the_accepted_one(tmp_path):
+    framed(tmp_path, cycles={"02-prev.md": cycle(start=datetime.date(2026, 9, 1), deliverables=[deliverable(id="D2", state="deferred")])
+                             | {"status": "closed", "outcome": "completed", "ended_on": "2026-09-20"}})
+    shown = by_key(board.desired(tmp_path, today=TODAY, delivered={"D2"}))
+    assert "delivered" not in shown["02"].body
