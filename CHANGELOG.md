@@ -22,6 +22,38 @@ a patch.
 
 ---
 
+## v0.21.0 — 2026-11-01
+
+PDR-0022, D192 and D193: agents deliver alone, and a person is asked only where it matters. Its first part.
+
+This is a minor version: one more gesture at a kernel's *Close*, a new state the plan and the forge's display show, and what **Migration** says.
+
+**In the engine**
+
+- **`nstack deliver` records a delivery with no pull request** (D193). `nstack deliver D30 --held '#412'`, or `--held '1=#412' --held '2=#415'` criterion by criterion, writes an event on the deliverable's hold. It is refused with no merge of the deliverable on the default branch since the cycle started, with a criterion unanswered, or with an answer that is no merge of it nor the acceptance issue the cycle names for it. A session on the hold, its person or the decider records it. A deliverable carried over from an earlier cycle is recorded only by that issue.
+- **`delivered` is computed, one way, everywhere** (D193). `plan` counts it, `claim` and `--take-over` refuse it, a record never goes stale, `board` closes its issue, and `pr-check` K3 warns when a pull request delivers it again. A merge it names reverted, or every merge, and it reads as back in work; its recorder or the decider withdraws a wrong record with `nstack unclaim`.
+- **`nstack deliver --write-states`** (D193) writes the records in the cycle file at a closure, read back before anything is written: it refuses a change beyond the states.
+- **`nstack plan`**: *Merged, not recorded* replaces D191's section. What it reads: a revert acting on what its body names, else on its title, by parity; **not read**, a revert in other words, or another forge's merge commit. A commit git cannot decode no longer stops it.
+
+The rule sees that a merge exists, never that a criterion is met. A false record passes it; the closure's reading is what catches one.
+
+**In your project** — 6 files, text only
+
+- **`AGENTS.md`**: step 12 records the delivery.
+- **`.nstack/handbook/project.md`**: `nstack deliver`, what it refuses and what it cannot see; a record's withdrawal; the cycle's diagram and the issues' closing.
+- **`.nstack/playbooks/framing.md`** §4, §5: nobody writes a state during a cycle; `accepted` is written at the closure, the decider's word quoted once there where approval is waived; `--write-states` comes first at any ending, while the cycle is still accepted.
+- **`.nstack/handbook/glossary.md`**: `delivered`; the decider reads the closure.
+- **`CONTRIBUTING.md`**: delivered is recorded, not requested.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **States already written stay true**: nothing to move by hand. A deliverable merged and still open appears under *Merged, not recorded*: its session runs `nstack deliver`. Until then, its hold goes stale as before.
+- **Before closing or stopping a cycle, `nstack deliver --write-states`.** Nothing enforces it yet: a cycle closed without it keeps its records out of the file, and its issues read as not planned.
+- **An agent's write access to `nstack/hold/*`** is what recording needs, as `claim` does: nothing to change where agents already claim.
+
+---
+
 ## v0.20.1 — 2026-11-01
 
 Two workstreams, D190 and D191, from the issues a second agent's first day on a project filed.
