@@ -1088,3 +1088,117 @@ def test_without_a_remote_only_the_local_delete_is_named(shared, capsys):
     hold.show(alone)
     out = capsys.readouterr().out
     assert "git branch -D d1-resume" in out and "git push" not in out
+
+
+def landed(alice: Path, message: str, date: str | None = None) -> None:
+    """A commit on main, as a merged pull request leaves one."""
+    git(alice, "switch", "-q", "main")
+    git(alice, "commit", "-q", "--allow-empty", "-m", message,
+        env={"GIT_COMMITTER_DATE": date} if date else None)
+    git(alice, "push", "-q", "origin", "main")
+
+
+def merged_said(root: Path, capsys) -> str:
+    capsys.readouterr()
+    hold.show(root)
+    out = capsys.readouterr().out
+    return out.split("Merged, the plan's state not moved yet")[1].split("\n\n")[0] if "Merged, the plan's state" in out else ""
+
+
+def test_plan_tells_a_deliverable_merged_from_one_waiting_and_counts_its_pull_requests(shared, capsys):
+    """#328: `0 of N accepted` says nothing of what is merged. Several pull requests may deliver one
+    deliverable, so a merge is said, and moves no state."""
+    alice = clone(shared, "alice")
+    landed(alice, "capture: first part (D1)")
+    landed(alice, "Second part\n\nDeliverable: D1\n")
+    said = merged_said(alice, capsys)
+    assert "D1  2 merges" in said
+    path = alice / "docs/project/cycles/03-the-window.md"
+    assert "state: ready" in path.read_text(encoding="utf-8")
+
+
+def test_plan_says_no_merge_of_an_accepted_deliverable_a_mention_or_another_cycle(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "A note that speaks of D1 and of D12")
+    assert merged_said(alice, capsys) == ""
+    landed(alice, "capture: an earlier cycle's work (D1)", date="2020-01-01T12:00:00+00:00")
+    assert merged_said(alice, capsys) == "", "an id carried over: its older merge is not this cycle's"
+    landed(alice, "capture: the work (D1)")
+    assert "D1  1 merge" in merged_said(alice, capsys)
+    finished(shared, alice)
+    assert merged_said(alice, capsys) == ""
+
+
+def merged_lines(root: Path, capsys) -> list[str]:
+    return [line.strip() for line in merged_said(root, capsys).splitlines()[1:]]
+
+
+@pytest.mark.parametrize("message", ["x (D1)", "x (D1) (#12)", "x (D1, second of three)", "x (D2, D1)",
+                                     "D1 — x", "Second part\n\nDeliverable: D1\n", "Second\n\ndeliverable: d1\n"])
+def test_each_form_a_delivery_takes_is_counted(shared, capsys, message):
+    alice = clone(shared, "alice")
+    landed(alice, message)
+    assert "D1  1 merge" in merged_lines(alice, capsys)
+
+
+@pytest.mark.parametrize("message", ["x (D12)", "Second\n\nDeliverable: D12\n", "D12 — x", "Start D1 — x",
+                                     "x\n\nD1 — capture\n", "x\n\n* part (D1)\n", "See (D1) for this", "x (see D1)"])
+def test_another_id_or_a_mere_mention_counts_nothing(shared, capsys, message):
+    alice = clone(shared, "alice")
+    landed(alice, message)
+    assert merged_lines(alice, capsys) == []
+
+
+def test_a_revert_takes_its_merge_off(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1) (#5)")
+    landed(alice, "y (D1) (#6)")
+    landed(alice, 'Revert "x (D1) (#5)"')
+    assert merged_lines(alice, capsys) == ["D1  1 merge"]
+    landed(alice, 'Revert "y (D1) (#6)"')
+    assert merged_lines(alice, capsys) == []
+
+
+def test_an_old_dated_commit_hides_no_earlier_merge(shared, capsys):
+    """`git log --since` stops at the first older commit: a wrong clock lost every merge before it."""
+    alice = clone(shared, "alice")
+    landed(alice, "one (D1)")
+    landed(alice, "old (D2)", date="2020-01-01T12:00:00+00:00")
+    landed(alice, "later")
+    assert merged_lines(alice, capsys) == ["D1  1 merge"]
+
+
+@pytest.mark.parametrize("zone", ["UTC", "America/Los_Angeles", "Asia/Tokyo"])
+def test_the_first_day_of_a_cycle_is_the_same_on_every_machine(shared, capsys, monkeypatch, zone):
+    alice = clone(shared, "alice")
+    landed(alice, "before (D1)", date="2026-10-16T23:59:59+00:00")
+    landed(alice, "on (D1)", date="2026-10-17T00:00:00+00:00")
+    monkeypatch.setenv("TZ", zone)
+    assert merged_lines(alice, capsys) == ["D1  1 merge"]
+
+
+def test_without_a_remote_the_local_default_branch_is_read(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "x (D1)")
+    git(alice, "remote", "remove", "origin")
+    assert merged_lines(alice, capsys) == ["D1  1 merge"]
+
+
+def test_an_id_no_pattern_could_read_breaks_nothing(shared, capsys):
+    alice = clone(shared, "alice")
+    path = alice / "docs/project/cycles/03-the-window.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("id: D1\n", 'id: "D(1"\n'), encoding="utf-8")
+    git(alice, "add", "-A")
+    landed(alice, "x")
+    assert merged_lines(alice, capsys) == []
+
+
+def test_a_merge_commit_counts_once_not_each_commit_it_brought(shared, capsys):
+    alice = clone(shared, "alice")
+    git(alice, "switch", "-q", "-c", "side")
+    for part in ("one", "two", "three"):
+        git(alice, "commit", "-q", "--allow-empty", "-m", f"{part} (D1)")
+    git(alice, "switch", "-q", "main")
+    git(alice, "merge", "-q", "--no-ff", "-m", "Merge the work (D1)", "side")
+    git(alice, "push", "-q", "origin", "main")
+    assert merged_lines(alice, capsys) == ["D1  1 merge"]

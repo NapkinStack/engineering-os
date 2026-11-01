@@ -551,6 +551,11 @@ def show(root: Path) -> int:
     where = f"from {name}" if name else "local only: no remote"
     print(f"\nHolds in {path.stem}: {held} held, of which {stale} stale ({where}; stale after {days} days without work):")
     print("\n".join(lines) or "  no ready deliverable")
+    merged = _merged(root, name, data)
+    if merged:
+        print("\nMerged, the plan's state not moved yet — read from commit titles, no approval checked; "
+              "the plan's own pull request records the states:")
+        print("\n".join(merged))
     left = _empty_starts(root, name, items if isinstance(items, list) else [])
     if left:
         print("\nEmpty start branches left — one empty commit each, nothing to lose, and git branch -d refuses them:")
@@ -590,6 +595,49 @@ def _empty_starts(root: Path, name: str | None, items: list) -> list[str]:
     return [f"  {branch}  " + "; ".join(([f"git push {name} --delete {branch}"] if "remote" in places else [])
                                         + ([f"git branch -D {branch}"] if "local" in places else []))
             for branch, places in sorted(branches.items())]
+
+
+_ID = r"D[1-9][0-9]*"
+_TITLED = re.compile(rf"\(({_ID}(?:, *{_ID})*)(?:,[^()]*)?\)(?: *\(#[0-9]+\))?$")  # "… (D47, second of three) (#12)"
+_OPENED = re.compile(rf"^({_ID}) [—–-]")
+_NAMED = re.compile(rf"^Deliverable:[ \t]*({_ID})\b", re.I | re.M)  # as pr-check K3 reads it
+
+
+def _delivers(subject: str, body: str) -> set[str]:
+    """The deliverables a commit on the default branch delivers: its title, as a squash leaves it, or
+    the `Deliverable:` line a pull request's description keeps. A mention elsewhere names nothing."""
+    titled, opened = _TITLED.search(subject), _OPENED.match(subject)
+    return ({part.strip().upper() for part in re.findall(_ID, titled[1])} if titled else set()) \
+        | ({opened[1].upper()} if opened else set()) | {found.upper() for found in _NAMED.findall(body)}
+
+
+def _merged(root: Path, name: str | None, data: dict) -> list[str]:
+    """What the default branch records of the cycle's open deliverables since it started (#328): a
+    merge is said and moves no state, since several pull requests may deliver one deliverable and
+    only the plan's own pull request records its criteria (D183). An id carried over from an earlier
+    cycle answers for this cycle's merges alone. The whole main line is read and filtered in UTC:
+    `--since` stops at the first older commit, and reads the date in the machine's timezone."""
+    start, items = plan.as_date(data.get("start")), data.get("deliverables")
+    if start is None or not isinstance(items, list):
+        return []
+    base = f"{MIRROR}/base" if name else "refs/heads/main"
+    since = datetime.datetime(start.year, start.month, start.day, tzinfo=datetime.timezone.utc).timestamp()
+    counts: dict[str, int] = {}
+    log = _git(root, "log", "--first-parent", "--format=%ct%x00%s%x00%b%x01", base).stdout
+    for entry in log.split("\x01"):
+        fields = entry.strip().split("\0")
+        if len(fields) != 3 or int(fields[0]) < since:
+            continue
+        reverted = re.fullmatch(r'Revert "(.*)"', fields[1])
+        for ident in _delivers(reverted[1], "") if reverted else _delivers(fields[1], fields[2]):
+            counts[ident] = counts.get(ident, 0) + (-1 if reverted else 1)
+    lines = []
+    for item in items:
+        if isinstance(item, dict) and plan.one_of(item.get("state"), TAKEABLE):
+            ident = str(item.get("id")).upper()
+            if counts.get(ident, 0) > 0:
+                lines.append(f"  {ident}  {counts[ident]} merge" + ("" if counts[ident] == 1 else "s"))
+    return lines
 
 
 def _landed(root: Path, ident: str, ref: str, base: str) -> bool:
