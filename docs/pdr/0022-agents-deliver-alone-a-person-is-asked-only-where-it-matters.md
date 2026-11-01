@@ -98,8 +98,9 @@ agent's word alone never counts as proof.
    that closure, for the cycle.
 6. **A criterion only a person can try stays with them.** The cycle names its acceptance issue, as today; the
    deliverable waits and is listed until their answer is there.
-7. **`nstack plan` opens with what needs a person**: a trial, a decision due, a cycle at its end, and later a
-   change waiting for a human approver. Empty, it says *nothing needs you*.
+7. **`nstack plan` opens with what needs a person**: a trial, a word owed, a cycle at its end, and later a
+   change waiting for a human approver. Empty, it says *nothing needs you*, and only when that is certain
+   (clarified for D194: a decision due is an agent's to read, P8, and only a missed one comes to a person).
 8. **Joining costs one gesture.** Giving an agent its identity becomes a command and one click at the forge.
 9. **The rest of NapkinStack is read against P8**: each manual gesture a playbook asks for is automated,
    removed, or kept with its reason.
@@ -127,8 +128,8 @@ A shallow clone or an unreachable remote: the plan says it could not read, never
       and `board` closes its issue.
 - [ ] Given a delivered deliverable whose merges are all reverted, then it reads as back in work.
 - [ ] Given a closure, then one pull request writes the states from the records.
-- [ ] Given a trial, a decision due or a cycle at its end, then the plan opens with it; given none, it says
-      *nothing needs you*.
+- [ ] Given a trial, a word owed or a cycle at its end, then the plan opens with it; given none, it says
+      *nothing needs you*; given what it cannot read, it says it cannot say.
 - [ ] Given a new agent, then one command and one click give it a working identity, isolated from any
       other account on the workstation.
 

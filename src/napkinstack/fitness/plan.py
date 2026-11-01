@@ -33,7 +33,9 @@ A root without docs/project/, such as the NapkinStack repository itself, is out 
 
 from __future__ import annotations
 
+import contextlib
 import datetime
+import io
 import re
 from pathlib import Path
 
@@ -340,6 +342,130 @@ def show(root: Path) -> int:
     checks cannot read stops them first."""
     if lines := project(root):
         print("\n" + "\n".join(lines))
+    return 0
+
+
+NEEDS = re.compile(r"^(#{1,6})[ \t]*(?:\d+[.)][ \t]*)?\**What needs (?:a person|a human)\b.*$", re.I | re.M)
+ROW_IDS = re.compile(r"(D[1-9][0-9]*)((?:(?:,| and |\s*[-–]\s*| to )\s*D[1-9][0-9]*)*)")
+GESTURE = 160
+UNKNOWN = "cannot say"
+
+
+def _named(cell: str) -> tuple[set[str], bool]:
+    """The deliverables a row's first cell opens with, a range opened out, and whether it says more
+    than them (`D66, trial`). A cell not opening with one names none: `Before D1 starts` waits."""
+    found = ROW_IDS.match(cell)
+    if not found:
+        return set(), bool(cell)
+    idents = {found[1]}
+    for link, ident in re.findall(r"(,| and |\s*[-–]\s*| to )\s*(D[1-9][0-9]*)", found[2]):
+        if link.strip() in ("-", "–", "to"):
+            last = max(int(one[1:]) for one in idents)
+            idents |= {f"D{number}" for number in range(last + 1, int(ident[1:]))}
+        idents.add(ident)
+    return idents, bool(cell[found.end():].strip(" ,"))
+
+
+def _rows(root: Path, path: Path, done: set[str], delivered: set[str]) -> list[str] | None:
+    """The cycle's *What needs a person*; None when it has none. A row goes when each deliverable it names
+    is accepted, deferred or dropped; or delivered, a plain row whose text names what the record answers
+    with. A row saying more than its ids (`D66, trial`), or whose gesture no record answers, stays: a
+    delivery proves a merge, never a person's answer (PDR-0022, 6). What cannot be read is said."""
+    from napkinstack import hold
+
+    text = path.read_text(encoding="utf-8", errors="replace")
+    front = FRONT_MATTER.match(text)
+    body = re.sub(r"^(```|~~~).*?^\1[^\n]*$", "", text[front.end():] if front else text, flags=re.S | re.M)
+    body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
+    heading = NEEDS.search(body)
+    if not heading:
+        return None
+    rest = body[heading.end():]
+    ended = re.search(rf"^#{{1,{len(heading[1])}}}[ \t]", rest, re.M)
+    section = rest[:ended.start()] if ended else rest
+    raw = section.splitlines()
+    separator = re.compile(r"^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$")
+    lines, tables = [], 0
+
+    def cut(line: str) -> list[str]:
+        return [cell.strip().replace("\\|", "|") for cell in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+    for index, line in enumerate(raw):
+        if not line.lstrip().startswith("|") or separator.match(line):
+            continue
+        if index + 1 < len(raw) and separator.match(raw[index + 1]):
+            tables += 1
+            continue  # the table's head
+        cells = cut(line)
+        if len(cells) < 3:
+            lines.append(f"{cells[0]}: a row of {path.name}'s *What needs a person* with no gesture: read it")
+            continue
+        if all(cell.startswith("<") and cell.endswith(">") for cell in cells[1:]):
+            continue
+        idents, more = _named(cells[0])
+        gesture = " | ".join(cells[2:])
+        if idents and idents <= done:
+            continue
+        if idents and not more and idents <= done | delivered:
+            answers = {one.split(" ", 1)[1] for ident in idents - done
+                       for one in hold.read(root, path.stem, ident).criteria if " " in one}
+            if answers and any(re.search(rf"{re.escape(answer)}\b", gesture) for answer in answers):
+                continue
+        if len(gesture) > GESTURE:
+            gesture = gesture[:GESTURE].rstrip() + f"… ({path.name})"
+        lines.append(f"{cells[0]} — {cells[1]}: {gesture}")
+    unread = re.sub(r"^<.*?>[ \t]*$", "", section, flags=re.S | re.M).strip()
+    if not tables and unread:
+        lines.append(f"{path.stem}: its *What needs a person* is no table nstack can read: read it")
+    return lines
+
+
+def needs_you(root: Path, today: datetime.date | None = None) -> list[str] | str | None:
+    """What a person must do, and only that (PDR-0022): each line a gesture nobody else may make. A string
+    when it cannot be said, never *nothing*: a false *nothing* costs more than any list. None outside a
+    framed project with no charter waiting."""
+    today = today or datetime.date.today()
+    current = stage(root)
+    if current == UNFRAMED and (root / CHARTER).is_file():
+        return ["the charter waits for your word: its status: accepted, in a pull request you approve"]
+    if current != FRAMED:
+        return None
+    with contextlib.redirect_stdout(io.StringIO()):
+        judged = run(root)
+    if judged != 0:
+        return "the plan's checks fail, below"
+    read = [(path, read_front_matter(path)[0]) for path in cycle_files(root)]
+    lines = [f"{path.stem} waits for your word: its status: accepted, in a pull request you approve"
+             for path, data in read if data.get("status") == "proposed"]
+    cycle = accepted_cycle(root)
+    if cycle is None and not lines:
+        lines.append("no cycle is open: frame the next one with your agent (.nstack/forms/cycle.md)")
+    if cycle is not None:
+        path, data = cycle
+        items = [item for item in data.get("deliverables") if isinstance(item, dict)]
+        delivered = delivered_in(root, path, data)
+        done = {str(item.get("id")) for item in items if one_of(item.get("state"), {"accepted", "deferred", "dropped"})}
+        end = as_date(data.get("end"))
+        if end is not None and today >= end:
+            lines.append(f"{path.stem} ended on {end}: you choose — ship what is delivered or accepted, frame a new cycle, or stop")
+        elif items and all(str(item.get("id")) in done | delivered for item in items):
+            lines.append(f"{path.stem} has nothing left to deliver: read its records, then its closure")
+        rows = _rows(root, path, done, delivered)
+        if rows is None:
+            return f"{path.stem} has no *What needs a person*: add it (.nstack/forms/cycle.md)"
+        lines += rows
+    return lines
+
+
+def needs(root: Path, today: datetime.date | None = None) -> int:
+    """`nstack plan` opens with it: said, never a failure."""
+    lines = needs_you(root, today)
+    if lines is None:
+        return 0
+    if isinstance(lines, str):
+        print(f"Needs you: {UNKNOWN} — {lines}.")
+    else:
+        print(f"Needs you ({len(lines)}):\n" + "\n".join(f"  {line}" for line in lines) if lines else "Nothing needs you.")
     return 0
 
 
