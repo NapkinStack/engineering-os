@@ -22,6 +22,34 @@ a patch.
 
 ---
 
+## v0.22.0 — 2026-11-01
+
+PDR-0022's second part, D194, and D195 from a pilot's issue: `nstack plan` opens with what needs a person.
+
+This is a minor version: a new opening to `plan`, a new section in the cycle form, and what **Migration** says. Nothing green turns red.
+
+**In the engine**
+
+- **`nstack plan` opens with what needs a person** (D194): a charter or a cycle waiting for the decider's word, a cycle at its end or with nothing left to deliver, and each row of the cycle's *What needs a person* still open. A row goes when its deliverables are accepted, deferred or dropped; delivered, only a plain row whose gesture names what the record answers with. A row saying more than its ids stays until then: a delivery proves a merge, never a person's answer.
+- **It says *Nothing needs you* only when that is certain** (D194): with no such section in the cycle, or checks that fail, it says it cannot say.
+
+It reads the repository: a pull request waiting for a human approver is not in it yet.
+
+**In your project** — 5 files, text only
+
+- **`.nstack/forms/cycle.md`**: the section *What needs a person*, each row with its literal gesture.
+- **`.nstack/handbook/project.md`**: what `plan` opens with, and when it cannot say.
+- **`.nstack/playbooks/framing.md`**: fill the section while framing, and keep it true.
+- **`.nstack/handbook/03-contracts.md`** (D195, #337): a test that a consumer refuses a later version names one never declared, `minutes/vnext`, never the next number. B1 reads any declared version a module names, refused or not.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **A cycle already running reads *cannot say* until it has the section.** Nothing turns red. To get the answer, add *What needs a person* to the accepted cycle, from the form, by the way your project changes a cycle.
+- **A consumer's test naming the next number** still fails B1 once the producer declares it: rename that version `vnext` in the test. No rule changed.
+
+---
+
 ## v0.21.0 — 2026-11-01
 
 PDR-0022, D192 and D193: agents deliver alone, and a person is asked only where it matters. Its first part.
