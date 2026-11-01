@@ -843,3 +843,15 @@ def test_a_dist_inside_the_module_is_its_own(tmp_path, capsys):
     write_module(tmp_path, "customers", CUSTOMERS)
     write_module(tmp_path, "billing", VALID, {"web/build.sh": "cp app ../dist/customers/\n"})
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+def test_a_test_refusing_a_version_never_declared_passes_b1_and_the_next_number_does_not(tmp_path, capsys):
+    """03-contracts.md §4 (#337)."""
+    write_contract(tmp_path, "customers-api/v1", "customers-api/v2")
+    write_module(tmp_path, "customers", provides(CUSTOMERS, "customers", ("v1", "v2")))
+    refusing = {**READS, "tests/test_client.py": 'REFUSED = "contracts/customers-api/vnext"\n'}
+    write_module(tmp_path, "billing", consumes(VALID, "customers"), refusing)
+    assert boundaries.run(tmp_path) == 0
+    (tmp_path / "modules/billing/tests/test_client.py").write_text('REFUSED = "contracts/customers-api/v2"\n', encoding="utf-8")
+    assert boundaries.run(tmp_path) == 1
+    assert "[B1]" in capsys.readouterr().out
