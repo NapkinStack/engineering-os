@@ -335,6 +335,18 @@ def _clone(app: dict, clone: Path, bot: dict) -> str | None:
     return None
 
 
+def _hooks(name: str, clone: Path) -> str | None:
+    """Installs the project's hooks in the clone (D198) — gitleaks among them in a project nstack
+    made — with the engine's own pre-commit and the agent's environment: the person's git
+    configuration, and a core.hooksPath in it, are not read. None when done; else why not."""
+    done = subprocess.run([sys.executable, "-m", "pre_commit", "install"], cwd=clone, env=_environment(name),
+                          capture_output=True, text=True)
+    if done.returncode:
+        said = (done.stdout + done.stderr).strip().splitlines()
+        return " ".join(said[-2:]) if said else f"pre-commit exited with {done.returncode}"
+    return None
+
+
 def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clone: Path | None = None,
         browser=webbrowser.open, wait: float = 900) -> int:
     """`nstack agent add`: the App, its key, its installation and its clone, in one command."""
@@ -434,6 +446,11 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
         return 1
     app["clone"] = str(target)
     _save(app)
+    if refused := _hooks(name, target):
+        _say(f"FAIL [agent] the project's hooks could not be installed in {target}: {refused}\n"
+             "      Action: fix what pre-commit says in that clone, then run nstack agent add "
+             f"{name} again — an agent does not commit without them.")
+        return 1
     shim = _shim(name)
     proof = _git("push", "--dry-run", "-q", "origin", "HEAD:refs/heads/nstack-identity-check",
                  cwd=target, env=_environment(name))
@@ -444,6 +461,7 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
     _say(f"Agent {name}: {app['slug']}[bot], on {repo}, in {target}.\n"
          "  - git: commits as the App, pushes with its token, minted per call; the person's git configuration "
          "and helpers are not read.\n"
+         "  - hooks: the project's, run on every commit, installed by this engine's pre-commit.\n"
          + ("  - gh: as the App, from the agent's own folder; gh auth refused.\n" if shim else
             "  - gh: not found on this workstation; once installed, run this command again.\n")
          + "  - a push to the repository, tried without writing: accepted.\n"

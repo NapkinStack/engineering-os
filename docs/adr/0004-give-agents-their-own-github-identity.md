@@ -329,6 +329,10 @@ table above are made precise.
   installed elsewhere, and its installation is a request the owner approves. Public lets anyone
   install it on their own repositories, which gives the App access there, never here. Its key stays
   on the collaborator's workstation: it is never handed from one person to another.
+- **The clone runs the project's hooks** (D198): the command installs them with the engine's own
+  pre-commit, outside the person's git configuration, and stops when it cannot. A secret is caught
+  before it leaves the workstation; `--no-verify` skips a hook, so CI's scan of the history stays
+  the barrier.
 
 ## Rejected alternatives
 
