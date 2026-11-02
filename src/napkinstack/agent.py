@@ -173,6 +173,27 @@ def _engine() -> str:
     return f'"{Path(sys.executable).as_posix()}" -m napkinstack'
 
 
+def _netrc() -> str | None:
+    """A ~/.netrc entry git would hand the forge in the agent's clone: libcurl reads it whatever
+    git's configuration, and some versions send its password under the address's own user. None
+    when there is none; else what to say."""
+    host = urllib.parse.urlsplit(_web()).hostname or ""
+    paths = [Path(os.environ["NETRC"])] if os.environ.get("NETRC") else []
+    paths += [Path.home() / ".netrc", Path.home() / "_netrc"]
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if re.search(rf"(^|\s)(machine\s+{re.escape(host)}|default)(\s|$)", text):
+            return (f"FAIL [agent] {path} holds a login for {host}: git hands it to the forge in the agent's "
+                    "clone, before the App's token and whatever the clone's configuration — the agent would "
+                    "act as you.\n"
+                    f"      Action: remove that entry from {path.name} (a credential helper of yours can replace "
+                    "it), or run the agent in a sandbox with a home of its own.")
+    return None
+
+
 def _environment(name: str) -> dict[str, str]:
     """The agent's environment: none of the person's credentials, git without their configuration,
     gh with a folder of its own and a token minted per call."""
@@ -326,6 +347,9 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
         _say(f"FAIL [agent] {name!r} is not a name: lowercase letters, digits and dashes, 25 at most.\n"
              "      Action: nstack agent add scout")
         return 1
+    if said := _netrc():
+        _say(said)
+        return 1
     answers_file = root / ".copier-answers.yml"
     answers = yaml.safe_load(answers_file.read_text(encoding="utf-8")) if answers_file.is_file() else None
     if not answers or answers.get("forge", "github") != "github" or not answers.get("github_repo"):
@@ -418,8 +442,8 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
              f"      Action: check the App's installation on {repo} gives Contents: write.")
         return 1
     _say(f"Agent {name}: {app['slug']}[bot], on {repo}, in {target}.\n"
-         "  - git: commits as the App, pushes with its token, minted per call; the person's git configuration, "
-         "helpers and ~/.netrc are not read.\n"
+         "  - git: commits as the App, pushes with its token, minted per call; the person's git configuration "
+         "and helpers are not read.\n"
          + ("  - gh: as the App, from the agent's own folder; gh auth refused.\n" if shim else
             "  - gh: not found on this workstation; once installed, run this command again.\n")
          + "  - a push to the repository, tried without writing: accepted.\n"
@@ -434,6 +458,9 @@ def run(name: str, command: list[str]) -> int:
     if app is None or not app.get("clone"):
         _say(f"FAIL [agent] no agent named {name} on this workstation.\n"
              f"      Action: a person runs nstack agent add {name} at the project's root.")
+        return 1
+    if said := _netrc():
+        _say(said)
         return 1
     command = command[1:] if command[:1] == ["--"] else command
     if not command:

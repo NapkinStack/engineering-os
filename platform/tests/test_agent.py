@@ -293,28 +293,50 @@ def test_gh_in_the_agent_s_environment_is_the_app_and_refuses_a_login(forge, pro
     assert "args=auth status" in status, "reading the login is not keeping one"
 
 
-def test_git_over_https_hands_the_app_s_token_never_the_person_s_netrc_or_injected_config(
+def _person(tmp_path, monkeypatch, netrc: str) -> None:
+    person = tmp_path / "person"
+    person.mkdir()
+    (person / ".netrc").write_text(netrc)
+    (person / ".netrc").chmod(0o600)
+    monkeypatch.setenv("HOME", str(person))
+
+
+def _ls_remote() -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, "-m", "napkinstack", "agent", "run", "scout", "--", "git", "ls-remote",
+                           "origin"], capture_output=True, text=True, timeout=60)
+
+
+def test_git_over_https_hands_the_app_s_token_never_the_config_the_person_s_shell_injects(
         forge, project, tmp_path, monkeypatch):
-    """The person's ~/.netrc and the GIT_CONFIG_* variables of their shell are theirs: neither reaches the forge."""
     import base64
 
     assert agent.add(project, "scout", browser=Browser()) == 0
-    clone = project.parent / "demo-scout"
-    _git("remote", "set-url", "origin", REMOTE("acme/demo"), cwd=clone)
-    person = tmp_path / "person"
-    person.mkdir()
-    (person / ".netrc").write_text("machine 127.0.0.1 login person password PERSONSECRET\n")
-    (person / ".netrc").chmod(0o600)
-    monkeypatch.setenv("HOME", str(person))
+    _git("remote", "set-url", "origin", REMOTE("acme/demo"), cwd=project.parent / "demo-scout")
+    _person(tmp_path, monkeypatch, "machine elsewhere.example login person password PERSONSECRET\n")
     monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.extraHeader")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "Authorization: Basic cGVyc29uOklOSkVDVEVE")
-    subprocess.run([sys.executable, "-m", "napkinstack", "agent", "run", "scout", "--", "git", "ls-remote", "origin"],
-                   capture_output=True, text=True, timeout=60)
+    _ls_remote()
     handed = [base64.b64decode(auth.split()[1]).decode() for auth in Forge.git_auth if auth]
     assert "x-access-token:ghs_installation-token" in handed, handed
     assert all(one.startswith("x-access-token:") and "PERSONSECRET" not in one for one in handed), handed
     assert not any("cGVyc29uOklOSkVDVEVE" in (auth or "") for auth in Forge.git_auth), "the injected header went out"
+
+
+@pytest.mark.parametrize("entry", ["machine 127.0.0.1 login person password PERSONSECRET\n",
+                                   "default login person password PERSONSECRET\n"])
+def test_a_netrc_login_for_the_forge_stops_the_agent_before_git_can_hand_it_over(
+        forge, project, tmp_path, monkeypatch, entry, capsys):
+    """libcurl reads ~/.netrc whatever git's configuration; some versions send its password under the
+    address's own user (seen on CI). Nothing in the clone can stop it: the agent does not start."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    _git("remote", "set-url", "origin", REMOTE("acme/demo"), cwd=project.parent / "demo-scout")
+    _person(tmp_path, monkeypatch, entry)
+    refused = _ls_remote()
+    assert refused.returncode == 1 and ".netrc holds a login for 127.0.0.1" in refused.stdout, refused.stdout
+    assert not Forge.git_auth, "git never ran"
+    assert agent.add(project, "scout", browser=Browser()) == 1
+    assert ".netrc holds a login" in capsys.readouterr().out
 
 
 def test_the_helper_calls_the_engine_that_made_it_not_another_on_the_path(forge, project):

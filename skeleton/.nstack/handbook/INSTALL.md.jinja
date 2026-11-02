@@ -224,7 +224,8 @@ It makes the App from a manifest, keeps its key in a folder of the agent's own
 (`~/.config/nstack/agents/scout/`, readable by you alone; on Windows under `%APPDATA%`, as your account's permissions there allow), and clones the project beside this one,
 `<project>-scout`, configured to commit and push as the App, with tokens minted per call for
 this repository alone and valid one hour. `nstack agent run` starts the agent there without
-your tokens, your SSH agent, your git configuration or your `~/.netrc`. It is not a sandbox: an agent that
+your tokens, your SSH agent or your git configuration — and refuses to start it while your
+`~/.netrc` holds a login for the forge, which git would hand over whatever its configuration. It is not a sandbox: an agent that
 looks for your files can still read them — a container or a system user of its own closes that.
 When you cannot create an App for this repository's owner, `--mine` makes it on your account and
 asks the owner to approve its installation. What the App gets — set by the command, and read

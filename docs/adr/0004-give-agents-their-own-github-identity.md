@@ -318,8 +318,10 @@ table above are made precise.
   and a `gh` in the agent's folder takes a token per call and refuses `gh auth`: no token is
   written to disk.
 - **The agent's session**: `nstack agent run` starts it in a clone of its own, beside the project,
-  without the person's tokens, SSH agent, git configuration — their shell's included — or `~/.netrc`,
-  the user named in the remote's address so that git never looks it up. That removes them from its
+  without the person's tokens, SSH agent or git configuration, their shell's included. A login
+  for the forge in the person's `~/.netrc` stops it: libcurl reads that file whatever git's
+  configuration, and some versions send its password even under the remote's own user (seen on
+  CI), so the command refuses rather than claim to hide it. That removes them from its
   environment; it is not a sandbox, which the table still names for an agent that must not read
   the person's files.
 - **When the person cannot create an App for the repository's owner** — a collaborator on an
