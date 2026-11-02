@@ -29,8 +29,7 @@ flowchart TD
     C2 --> C3["INVENTORY: what exists already,<br/>here and in established tools"]
     C3 --> G{"Batch ≤ review<br/>budget?"}
     G -->|No| G1["Split it<br/>and start again at framing"] --> C
-    G -->|Yes| P["Present the plan — steps 1 to 3,<br/>the oracle you will write, the size —<br/>and wait for approval"]
-    P --> D["ORACLE: write the executable<br/>success criterion"]
+    G -->|Yes| D["ORACLE: write the executable<br/>success criterion — no wait:<br/>the plan goes in the pull request"]
     D --> E{"Oracle<br/>executable?"}
     E -->|No| E1["Do not generate.<br/>Make the criterion verifiable<br/>or send the framing back"] --> D
     E -->|Yes| F["Oracle RED — commit"]

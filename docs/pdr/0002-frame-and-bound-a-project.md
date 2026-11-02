@@ -1,6 +1,8 @@
 # PDR-0002 — Frame and bound a project
 
-- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery); clarified on 2026-09-19 (the criterion is effective work); clarified on 2026-10-15 (what a session reads of the cycle; a deliverable's state)
+- **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in the pilot project); extended on 2026-09-16 (discovery); clarified on 2026-09-19 (the criterion is effective work); clarified on 2026-10-15 (what a session reads of the cycle; a deliverable's state); on
+  2026-11-02, by PDR-0022 §9 (D197): no wait for approval before writing — the plan goes in the pull
+  request, for its approver
 - **Date**: 2026-09-16
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the project skeleton (kernel, playbooks, handbook, templates,
