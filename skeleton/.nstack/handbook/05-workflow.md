@@ -44,11 +44,11 @@ flowchart TD
     J -->|Yes| K["SELF-REVIEW the diff:<br/>scope, side effects, regressions"]
 
     K --> L["DOCUMENT the<br/>sources of truth affected"]
-    L --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
-    M --> S["SYNC: bring the branch current<br/>before its pull request"]
-    S --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — when §7 requires one"]
+    L --> S["SYNC: bring the branch current<br/>before its pull request"]
+    S --> M["SUMMARISE: done / verified /<br/>assumed / not verified / risks"]
+    M --> V["VERIFY: a verifier who is not the author<br/>runs the test sheet — when §7 requires one"]
     V --> N["Human review + CI"]
-    N --> Z["CLOSE: once merged, the branch is gone —<br/>forge, workstation, worktree"]
+    N --> Z["CLOSE: once merged and each criterion held,<br/>nstack deliver; the branch is gone —<br/>forge, workstation, worktree"]
 
     style D fill:#1f2937,color:#fff
     style F fill:#1f2937,color:#fff

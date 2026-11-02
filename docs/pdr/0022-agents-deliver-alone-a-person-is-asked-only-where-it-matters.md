@@ -2,7 +2,7 @@
 
 - **Status**: Accepted (2026-11-01, by the maintainer: "ok on adopte cette philosophie dans tout
   nstack. go PDR-0022"), from the reading of #328 and of a delivered deliverable still shown as
-  held on the third project. To be built by the next three workstreams
+  held on the third project. Built by D193 (v0.21.0), D194 (v0.22.0) and D196
 - **Date**: 2026-11-01
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (`plan`, `claim`, `board`, `pr-check`, a new gesture), the

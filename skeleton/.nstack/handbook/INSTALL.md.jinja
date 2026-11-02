@@ -334,9 +334,9 @@ approve it.
 | `.copier-answers.yml` | The NapkinStack version and the creation answers | `nstack update`, the only thing that changes it |
 {% if forge == "github" %}| `.github/` | What makes the rules non-bypassable | GitHub |{% else %}| `CODEOWNERS` | Who approves each path | {% if forge == "none" %}People: no forge reads it{% else %}The forge{% endif %} |{% endif %}
 
-> **`.nstack/handbook/` is never loaded into an agent's context.** It is the human reference. An
-> agent loads: the kernel, the module's `AGENTS.md`, a playbook when triggered. That is
-> the whole difference between a handbook and an operating system.
+> **`.nstack/handbook/` is never loaded into an agent's context.** It is the human reference.
+> What an agent loads, and in which order, is said once: the kernel's §4. That is the whole
+> difference between a handbook and an operating system.
 
 ---
 
@@ -346,9 +346,11 @@ approve it.
 nstack --help        # lists the commands
 nstack fitness       # manifests + boundaries + skills + plan + hygiene — before every commit
 nstack discover <idea-file>   # starts a discovery, for your agent
-nstack plan          # the discovery, the charter and the cycles (docs/project/), the decisions due at a closure, the project across its cycles, who holds what
+nstack plan          # what needs a person first; then the discovery, the charter and the cycles (docs/project/), the decisions due at a closure, the project across its cycles, who holds what
 nstack claim D<n> --session <s> --person @<you>   # takes a deliverable before its first change; nstack unclaim gives it back
-{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
+nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered; --write-states at the closure
+{% if forge == "github" %}nstack agent add <name> · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
+{% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
 nstack skills        # generates the Claude Code skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
 nstack settings      # the calls that would bring the forge's settings to the checklist; --apply: yours makes them

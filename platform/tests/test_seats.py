@@ -160,7 +160,7 @@ def test_the_acceptance_tracks_a_deliverable_and_describes_none() -> None:
     assert set(fields) == {"tracks", "who", "run", "elsewhere"}, sorted(fields)
     assert not set(fields) & {"criteria", "acceptance", "state", "status", "need", "expected"}
     said = next(field["attributes"]["value"] for field in form["body"] if field["type"] == "markdown")
-    for needed in ("**tracks**", "not copied here", "state is set there", "06-decisions.md §9", "**one trial**",
+    for needed in ("**tracks**", "not copied here", "state is never read from this issue", "06-decisions.md §9", "**one trial**",
                    "closed when each step has its answer"):
         assert needed in " ".join(said.split()), f"the form does not say: {needed}"
     rows = dict(re.findall(r"^\| ([^|]+?) \| ([^|]+?) \|$", subsection(DECISIONS, "Sources of truth"), re.M))
