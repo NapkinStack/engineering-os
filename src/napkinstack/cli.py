@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from napkinstack import assurance, attest, board, hold
+from napkinstack import agent, assurance, attest, board, hold
 from napkinstack import (compat, discovery, doctor, landed, modules, provenance, settings,
                          pull_request, skills)
 from napkinstack.fitness import boundaries, hygiene, manifests, plan, pr_scope
@@ -210,6 +210,29 @@ def build_parser() -> argparse.ArgumentParser:
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")
+    ag = sub.add_parser("agent", help="an agent's identity: its own GitHub App, its clone, none of your credentials")
+    ags = ag.add_subparsers(dest="action", required=True)
+    aa = ags.add_parser("add", help="creates the agent's App (one click), has you install it (one click), "
+                                    "and clones the project to work as it — run by a person")
+    aa.add_argument("name", help="the agent's name on this workstation, such as scout")
+    aa.add_argument("--root", type=_root, default=_here(), help="project root (default: found from here)")
+    aa.add_argument("--mine", action="store_true",
+                    help="the App on your own account, public, its installation requested from the "
+                         "repository's owner: when you cannot create an App for that owner")
+    aa.add_argument("--workflows", action="store_true", help="Workflows: write, where agents maintain CI")
+    aa.add_argument("--clone", type=Path, help="the agent's clone (default: beside the project, <project>-<name>)")
+    aa.set_defaults(func=lambda a: agent.add(a.root, a.name, a.mine, a.workflows, a.clone))
+    ar = ags.add_parser("run", help="starts the agent's command in its clone, with none of your credentials")
+    ar.add_argument("name")
+    ar.add_argument("argv", metavar="command", nargs=argparse.REMAINDER, help="-- then the agent's command")
+    ar.set_defaults(func=lambda a: agent.run(a.name, a.argv))
+    tk = ags.add_parser("token", help="prints a token of the agent's App, for this repository, valid one hour")
+    tk.add_argument("name")
+    tk.set_defaults(func=lambda a: agent.token(a.name))
+    ac = ags.add_parser("credential", help="git's credential helper, set in the agent's clone")
+    ac.add_argument("name")
+    ac.add_argument("operation")
+    ac.set_defaults(func=lambda a: agent.credential(a.name, a.operation))
     ini = sub.add_parser("init", help="creates a project from the skeleton")
     ini.add_argument("destination", type=Path, help="project folder, missing or empty")
     ini.add_argument("--project-name", help="project name (asked when absent)")

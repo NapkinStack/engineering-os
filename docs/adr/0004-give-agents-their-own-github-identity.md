@@ -2,7 +2,8 @@
 
 - **Status**: Accepted (2026-09-16, by the maintainer; the success criterion is observed in
   the pilot project); clarified on 2026-09-19 (who verified, D32; an approval covers what it
-  read, D31) and on 2026-09-20 (two powers, never in the same hand, PDR-0008). **Clarified
+  read, D31), on 2026-09-20 (two powers, never in the same hand, PDR-0008) and on 2026-11-02
+  (the identity in one command, D196). **Clarified
   2026-10-28 (D175)**: the deferred decision is taken by PDR-0021, within its bound — on a project
   answering `approval: agent`, another agent approves `prototype` and `standard`
   modules; elsewhere this record stands as written
@@ -295,6 +296,37 @@ any mode; what PDR-0008 adds is a second, temporary identity whose only power is
 barrier, and which cannot work behind it.
 
 ---
+
+## Clarification of 2026-11-02 — the identity in one command (D196, PDR-0022 §8)
+
+Added when building the gesture PDR-0022 asks for, without changing the decision. Points of the
+table above are made precise.
+
+- **One App per agent**, as PDR-0021 already asks on `approval: agent`: `nstack agent add` makes
+  one each time, so an agent never approves what another session of its App pushed. *One App per
+  developer* stays rejected below for keys a team shares; here each key stays on one workstation.
+- **Created from a manifest.** The command posts the App's manifest — the permissions of the
+  table, no webhook, private — through a page on the person's machine; the forge asks them to
+  click *Create GitHub App* and hands the App and its key back to the command. Installing it is a
+  second click: the forge installs no App from its manifest. PDR-0022 said one click; it is two,
+  and both are the person's on purpose — the forge shows them what they grant.
+- **The local tooling is the engine, on an established library.** The table named tools to choose,
+  never to build. Minting a token is a JWT signed with the App's key and one call to the forge:
+  the engine does it with PyJWT, installed with it on every system, where `gh-token` is a binary
+  to fetch per system. Git and the shim call back the interpreter that made them, never the `nstack`
+  the PATH finds, which may be another version. `nstack agent credential` is git's credential helper in the agent's clone,
+  and a `gh` in the agent's folder takes a token per call and refuses `gh auth`: no token is
+  written to disk.
+- **The agent's session**: `nstack agent run` starts it in a clone of its own, beside the project,
+  without the person's tokens, SSH agent, git configuration — their shell's included — or `~/.netrc`,
+  the user named in the remote's address so that git never looks it up. That removes them from its
+  environment; it is not a sandbox, which the table still names for an agent that must not read
+  the person's files.
+- **When the person cannot create an App for the repository's owner** — a collaborator on an
+  organisation they do not own — `--mine` makes it on their account, public so that it may be
+  installed elsewhere, and its installation is a request the owner approves. Public lets anyone
+  install it on their own repositories, which gives the App access there, never here. Its key stays
+  on the collaborator's workstation: it is never handed from one person to another.
 
 ## Rejected alternatives
 
