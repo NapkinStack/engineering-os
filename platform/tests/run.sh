@@ -745,7 +745,7 @@ if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
 fi
 for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2)" \
             "Validate GitHub issue config" "Validate GitHub issue forms" "zizmor"; do
-  echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
+  grep_text "$(grep_text "$OUT" -F -- "$hook")" -qF "Passed" \
     || { echo "FAIL: hook "$hook" not run on the project."; echo "$OUT"; exit 1; }
 done
 if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
@@ -1395,8 +1395,8 @@ grep_text "$OUT" -qF "This repository: guarded" && ! grep_text "$OUT" -qF "ungua
 echo "-> doctor: no ruleset at all, G12 names the ruleset to create, not an actor to remove (D25)"
 repo_c acme/bare
 OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1) || true
-echo "$OUT" | grep -A1 -E "FAIL +\[G12\]" | grep -qF "create the ruleset first (G1)" \
-  && echo "$OUT" | grep -A2 -E "FAIL +\[G4\]" | grep -qF "only once it has run" \
+grep_text "$(grep_text "$OUT" -A1 -E "FAIL +\[G12\]")" -qF "create the ruleset first (G1)" \
+  && grep_text "$(grep_text "$OUT" -A2 -E "FAIL +\[G4\]")" -qF "only once it has run" \
   || { echo "FAIL: G12 or G4 action misleading without a ruleset."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: an approval that survives a push is a gap (G13, D31)"
