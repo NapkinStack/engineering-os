@@ -22,6 +22,36 @@ a patch.
 
 ---
 
+## v0.23.0 — 2026-11-02
+
+PDR-0022's third part, D196 and D198: an agent gets its own identity in one command, and its clone runs the project's hooks. D197: the pages say what the engine does, and the kernel no longer has an agent wait for approval before writing.
+
+This is a minor version: a new command, `nstack agent`, a new dependency, PyJWT, and a kernel that drops one human turn, as **Migration** says. Nothing green turns red.
+
+**In the engine**
+
+- **`nstack agent add <name>` gives an agent its identity** (D196): run by a person, it makes a GitHub App from a manifest (*Create GitHub App*, one click), waits for its installation on the repository (*Install*, a second), keeps its key in a folder of the agent's own, readable by that person alone, and clones the project beside it, `<project>-<name>`, to commit and push as the App. Tokens are minted per call for that repository alone, valid one hour, never written to disk; git's credential helper and a `gh` that refuses `gh auth` use them. A push is tried without writing. `--mine` makes the App on the person's account when they cannot create one for the repository's owner; `--workflows` asks Workflows: write. Refused inside an agent's session.
+- **`nstack agent run <name> -- <command>`** (D196) starts the agent in its clone without the person's tokens, SSH agent or git configuration, and refuses while their `~/.netrc` holds a login for the forge. It is not a sandbox, and says so.
+- **The agent's clone runs the project's hooks** (D198): `agent add` installs them — gitleaks among them — with the engine's own pre-commit, outside the person's git configuration, and stops when it cannot. A project without `.pre-commit-config.yaml` gets none, said. CI's scan of the history stays the barrier: `--no-verify` skips a local hook.
+- **A new dependency**: `PyJWT[crypto]`, which signs the App's tokens. `uv tool install` brings it.
+
+**In your project** — 27 files, text and pinned actions
+
+- **`AGENTS.md`** (D197, PDR-0022 §9): steps 1 to 5 go in the pull request's description, where its approver reads them; **an agent waits for no one before writing** — the cycle approved the scope, the merge approves the change. *Close* gives `nstack deliver` its `--session`.
+- **`.nstack/handbook/INSTALL.md`** (D196): the agent's identity by `nstack agent add`, in place of an App made by hand.
+- **`.nstack/handbook/07-governance.md`**, **`09-platform.md`**, **`.nstack/tooling-profile.md`** (D196, D198): the identity by command; its clone runs the project's hooks.
+- **`.nstack/handbook/` `00-overview.md`, `03-contracts.md`, `04-ai-context.md`, `05-workflow.md`, `06-decisions.md`, `README.md`, `RULES.md`, `glossary.md`, `project.md`**, **`.nstack/forms/cycle.md`**, **`.nstack/playbooks/` `data-migration.md`, `documentation.md`, `framing.md`, `operations.md`**, **`CONTRIBUTING.md`**, **`.github/ISSUE_TEMPLATE/05-acceptance.yml`** (D197): one account of a deliverable's state — written at framing and at the closure, read in between; *What needs a person* and *Closure* in the glossary; what an agent loads said once, in the kernel; the checks required by `nstack settings --apply`; playbook codes apart from deliverable ids.
+- **`.github/workflows/`** — `commits-on-main.yml`, `governance.yml`, `module-checks.yml`, `plan-on-the-forge.yml`, `pull-request.yml`: `astral-sh/setup-uv` v10.3.2, pinned by digest (#331); `governance.yml` says the checks are required by `nstack settings --apply`.
+- **`.copier-answers.yml`**: `_commit`.
+
+**Migration**
+
+- **Your agents stop waiting for approval before writing.** If your team wants that turn, say so in your project's own instructions to its agents; the kernel no longer asks for it. The plan now goes in the pull request's description.
+- **An agent's App made by hand keeps working.** To move to `nstack agent add`, run it with a new name: it makes a new App; uninstall the old one at the forge.
+- **D194's *cannot say*** is unchanged: a cycle without *What needs a person* still reads it until the section is added.
+
+---
+
 ## v0.22.0 — 2026-11-01
 
 PDR-0022's second part, D194, and D195 from a pilot's issue: `nstack plan` opens with what needs a person.
