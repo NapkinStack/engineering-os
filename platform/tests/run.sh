@@ -6,6 +6,10 @@ REPO=$(pwd)
 # sed that edits a file where it is, on GNU and on BSD alike: `sed -i` alone is GNU's, and a
 # Mac's sed takes the next word for a backup's suffix (D99).
 in_place() { local file=${!#}; sed -i.bak "$@" && rm -f "$file.bak"; }
+# grep over a command's output kept in a variable, fed as a here-string: `echo "$OUT" | grep -q`
+# under pipefail fails at random when grep stops at its first match and echo, still writing a large
+# output, dies of SIGPIPE — a line that is there reported missing (D198).
+grep_text() { local text=$1; shift; grep "$@" <<<"$text"; }
 
 # Every repository this suite creates is thrown away within seconds, and git's automatic
 # maintenance has no business running inside one: it writes into .git/objects/pack while a
@@ -88,7 +92,7 @@ printf 'module:\n  name: broken\n' > "$TMP/modules/broken/MANIFEST.yaml"
 if OUT=$(cd / && uv run --project "$REPO" nstack manifests --root "$TMP" 2>&1); then
   echo "FAIL: an incomplete manifest went green."; rm -rf "$TMP"; exit 1
 fi
-echo "$OUT" | grep -qF "[M2] broken" \
+grep_text "$OUT" -qF "[M2] broken" \
   || { echo "FAIL: expected M2 message missing."; echo "$OUT"; rm -rf "$TMP"; exit 1; }
 rm -rf "$TMP"
 
@@ -108,7 +112,7 @@ mkdir -p "$SK/empty"
 if ! OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/empty" 2>&1); then
   echo "FAIL: a root without playbooks is refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Skills: not applicable" \
+grep_text "$OUT" -qF "Skills: not applicable" \
   || { echo "FAIL: out-of-scope root not stated as such."; echo "$OUT"; exit 1; }
 
 echo "-> skills: playbooks without .nstack/skills.yaml MUST fail (S1)"
@@ -117,14 +121,14 @@ printf '# orphan\n' > "$SK/empty/.nstack/playbooks/orphan.md"
 if OUT=$(cd / && uv run --project "$REPO" nstack skills --check --root "$SK/empty" 2>&1); then
   echo "FAIL: playbooks without a mapping went green."; exit 1
 fi
-echo "$OUT" | grep -qF "[S1] .nstack/skills.yaml not found" \
+grep_text "$OUT" -qF "[S1] .nstack/skills.yaml not found" \
   || { echo "FAIL: expected S1 message missing."; echo "$OUT"; exit 1; }
 
 echo "-> skills: on a fresh clone, S3 is not applicable and the check passes"
 if ! OUT=$(nstack_sk --check 2>&1); then
   echo "FAIL: --check fails although no skill was generated."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "S3 not applicable" \
+grep_text "$OUT" -qF "S3 not applicable" \
   || { echo "FAIL: S3 skipped without saying so."; echo "$OUT"; exit 1; }
 
 echo "-> skills: an out-of-sync skill MUST fail"
@@ -133,7 +137,7 @@ echo "added" >> "$SK/.nstack/playbooks/tests.md"
 if OUT=$(nstack_sk --check 2>&1); then
   echo "FAIL: an out-of-sync skill went green."; exit 1
 fi
-echo "$OUT" | grep -qF "[S3] skill 'tests' out of sync" \
+grep_text "$OUT" -qF "[S3] skill 'tests' out of sync" \
   || { echo "FAIL: expected S3 message missing."; echo "$OUT"; exit 1; }
 
 echo "-> skills: a deleted skill MUST fail"
@@ -142,7 +146,7 @@ rm "$SK/.claude/skills/ux/SKILL.md"
 if OUT=$(nstack_sk --check 2>&1); then
   echo "FAIL: a deleted skill went green."; exit 1
 fi
-echo "$OUT" | grep -qF "[S3] skill 'ux' missing" \
+grep_text "$OUT" -qF "[S3] skill 'ux' missing" \
   || { echo "FAIL: expected S3 message missing."; echo "$OUT"; exit 1; }
 
 echo "-> skills: the generated frontmatter is valid YAML and returns name and description"
@@ -192,7 +196,7 @@ for name in Uppercase -leading trailing- double--hyphen under_score "${A64}a"; d
   if OUT=$(nstack_sk --check 2>&1); then
     echo "FAIL: invalid skill name accepted: '$name'."; exit 1
   fi
-  echo "$OUT" | grep -qF "[S4] skill '$name'" \
+  grep_text "$OUT" -qF "[S4] skill '$name'" \
     || { echo "FAIL: expected S4 message missing for '$name'."; echo "$OUT"; exit 1; }
 done
 
@@ -201,7 +205,7 @@ modified_tests_skill tests 1025
 if OUT=$(nstack_sk --check 2>&1); then
   echo "FAIL: a 1025-character description was accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "[S4] skill 'tests'" \
+grep_text "$OUT" -qF "[S4] skill 'tests'" \
   || { echo "FAIL: expected S4 message missing."; echo "$OUT"; exit 1; }
 
 echo "-> skills: a 64-character name and a 1024-character description are accepted"
@@ -236,14 +240,14 @@ for case in "demo2|team-|invalid owner 'team-'" "Demo|acme/team|invalid name 'De
   if OUT=$(uv run nstack new-module "$name" "$owner" standard --root "$SC" 2>&1); then
     echo "FAIL: new-module $name $owner accepted."; exit 1
   fi
-  echo "$OUT" | grep -qF "FAIL [new-module] $message" \
+  grep_text "$OUT" -qF "FAIL [new-module] $message" \
     || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
 done
 
 echo "-> verbs: a module holding only its description has nothing to check yet (D33)"
 for verb in check test; do
   OUT=$(uv run nstack "$verb" demo --root "$SC" 2>&1) \
-    && echo "$OUT" | grep -qF "demo: holds only its description, nothing to $verb yet" \
+    && grep_text "$OUT" -qF "demo: holds only its description, nothing to $verb yet" \
     || { echo "FAIL: nstack $verb on a new module is not green."; echo "$OUT"; exit 1; }
 done
 
@@ -252,7 +256,7 @@ printf 'code\n' > "$SC/modules/demo/src/app.txt"
 if OUT=$(uv run nstack check demo --root "$SC" 2>&1); then
   echo "FAIL: a module holding code with no check went green."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [check] module 'demo': commands.check not declared" \
+grep_text "$OUT" -qF "FAIL [check] module 'demo': commands.check not declared" \
   || { echo "FAIL: failure without the module or the command."; echo "$OUT"; exit 1; }
 
 echo "-> verbs: the declared command runs from the module folder, whatever the stack"
@@ -263,12 +267,12 @@ data = yaml.safe_load(open(path, encoding="utf-8"))
 data["commands"] = {"check": "test -f MANIFEST.yaml && echo stack-free", "test": "true"}
 yaml.safe_dump(data, open(path, "w", encoding="utf-8"), allow_unicode=True)
 EOF
-OUT=$(uv run nstack check demo --root "$SC" 2>&1) && echo "$OUT" | grep -qx "stack-free" \
+OUT=$(uv run nstack check demo --root "$SC" 2>&1) && grep_text "$OUT" -qx "stack-free" \
   || { echo "FAIL: the declared command does not run from the module."; echo "$OUT"; exit 1; }
 
 echo "-> verbs: run from inside a module, the project above it is found, as git finds its own (D130)"
 printf '_commit: v0.0.0\n' > "$SC/.copier-answers.yml"
-OUT=$(cd "$SC/modules/demo/src" && uv run --project "$OLDPWD" nstack check demo 2>&1) && echo "$OUT" | grep -qx "stack-free" \
+OUT=$(cd "$SC/modules/demo/src" && uv run --project "$OLDPWD" nstack check demo 2>&1) && grep_text "$OUT" -qx "stack-free" \
   || { echo "FAIL: run from a module's folder, the project above was not found."; echo "$OUT"; rm -f "$SC/.copier-answers.yml"; exit 1; }
 rm -f "$SC/.copier-answers.yml"
 
@@ -278,7 +282,7 @@ printf 'code\n' > "$SC/modules/zeta/src/app.txt"
 if OUT=$(uv run nstack check --root "$SC" 2>&1); then
   echo "FAIL: an undeclared module went green."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qx "stack-free" && echo "$OUT" | grep -qF "FAIL [check] module 'zeta'" \
+grep_text "$OUT" -qx "stack-free" && grep_text "$OUT" -qF "FAIL [check] module 'zeta'" \
   || { echo "FAIL: modules not walked, or failure not named."; echo "$OUT"; exit 1; }
 
 echo "-> verbs: bootstrap, e2e and clean optional; an undeclared run and an unknown module MUST fail"
@@ -294,7 +298,7 @@ for case in "run demo|commands.run not declared" "test unknown|module 'unknown' 
   if OUT=$(uv run nstack $arguments --root "$SC" 2>&1); then
     echo "FAIL: nstack $arguments accepted."; exit 1
   fi
-  echo "$OUT" | grep -qF "$message" || { echo "FAIL: message "$message" missing."; echo "$OUT"; exit 1; }
+  grep_text "$OUT" -qF "$message" || { echo "FAIL: message "$message" missing."; echo "$OUT"; exit 1; }
 done
 
 echo "-> CI engine: a published version from PyPI, anything else from the repository, announced (PDR-0005)"
@@ -323,8 +327,8 @@ printf "_commit: 'v0.4.0'\n_src_path: '%s'\n" "$URL" > "$EI/project/.copier-answ
 engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --refresh-package napkinstack --with-executables-from pre-commit' \
   || { echo "FAIL: a published version is not installed from PyPI, read afresh."; engine v0.4.0 "$URL"; exit 1; }
 OUT=$(engine v0.4.0-3-g1a2b3c4 "$URL")
-echo "$OUT" | grep -qF "::warning::UNPUBLISHED NapkinStack: $URL@1a2b3c4" \
-  && echo "$OUT" | grep -qF "uv tool install napkinstack @ git+$URL@1a2b3c4" \
+grep_text "$OUT" -qF "::warning::UNPUBLISHED NapkinStack: $URL@1a2b3c4" \
+  && grep_text "$OUT" -qF "uv tool install napkinstack @ git+$URL@1a2b3c4" \
   || { echo "FAIL: an unpublished commit is not installed from the repository, announced."; echo "$OUT"; exit 1; }
 engine v0.4.0-3-g1a2b3c4 gh:NapkinStack/engineering-os | grep -qF "git+https://github.com/NapkinStack/engineering-os@1a2b3c4" \
   && engine v0.4.0-3-g1a2b3c4 git@github.com:NapkinStack/engineering-os.git \
@@ -333,11 +337,11 @@ engine v0.4.0-3-g1a2b3c4 gh:NapkinStack/engineering-os | grep -qF "git+https://g
 if OUT=$(engine v0.4.0-3-g1a2b3c4 /srv/checkouts/framework); then
   echo "FAIL: a source on one machine accepted in CI."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "is a path on one machine" || { echo "FAIL: no reason given."; echo "$OUT"; exit 1; }
+grep_text "$OUT" -qF "is a path on one machine" || { echo "FAIL: no reason given."; echo "$OUT"; exit 1; }
 if OUT=$(UV_FAILS=1 engine v0.4.0-3-g0000000 "$URL"); then
   echo "FAIL: a missing ref did not fail."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "framework ref '0000000' not found" && ! echo "$OUT" | grep -qF "napkinstack==" \
+grep_text "$OUT" -qF "framework ref '0000000' not found" && ! grep_text "$OUT" -qF "napkinstack==" \
   || { echo "FAIL: a missing ref fell back, or was not named."; echo "$OUT"; exit 1; }
 rm -rf "$EI"
 
@@ -349,7 +353,7 @@ printf '# orphan\n' > "$FT/.nstack/playbooks/orphan.md"
 if OUT=$(uv run nstack fitness --root "$FT" 2>&1); then
   echo "FAIL: a playbook without an entry went green."; rm -rf "$FT"; exit 1
 fi
-echo "$OUT" | grep -qF "[S1]" || { echo "FAIL: S1 expected."; echo "$OUT"; rm -rf "$FT"; exit 1; }
+grep_text "$OUT" -qF "[S1]" || { echo "FAIL: S1 expected."; echo "$OUT"; rm -rf "$FT"; exit 1; }
 rm -rf "$FT"
 
 echo "-> hygiene: a path from one person's machine in a tracked file MUST fail (H1)"
@@ -363,7 +367,7 @@ git -C "$HY" "${GIT_ID_RM[@]}" commit -qm files
 if OUT=$(uv run nstack hygiene --root "$HY" 2>&1); then
   echo "FAIL: a path from one person's machine went green."; rm -rf "$HY"; exit 1
 fi
-echo "$OUT" | grep -qF "[H1]" || { echo "FAIL: H1 expected."; echo "$OUT"; rm -rf "$HY"; exit 1; }
+grep_text "$OUT" -qF "[H1]" || { echo "FAIL: H1 expected."; echo "$OUT"; rm -rf "$HY"; exit 1; }
 rm -rf "$HY"
 
 echo "-> nstack pr-scope: responds on the given root"
@@ -381,7 +385,7 @@ EOF
 if OUT=$(GITHUB_REF_NAME=v9.9.9 bash -c "$TAG_CHECK" 2>&1); then
   echo "FAIL: tag v9.9.9 accepted for a different version."; exit 1
 fi
-echo "$OUT" | grep -qF "Tag v9.9.9 and version" \
+grep_text "$OUT" -qF "Tag v9.9.9 and version" \
   || { echo "FAIL: refusal without an explanatory message."; echo "$OUT"; exit 1; }
 GITHUB_REF_NAME="v$(uv version --short)" bash -c "$TAG_CHECK" >/dev/null \
   || { echo "FAIL: matching tag refused."; exit 1; }
@@ -414,7 +418,7 @@ git -C "$HK/secret" add config.ini
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/secret" commit -m test 2>&1); then
   echo "FAIL: a secret was committed."; exit 1
 fi
-echo "$OUT" | grep -qE "Detect hardcoded secrets\.+Failed" \
+grep_text "$OUT" -qE "Detect hardcoded secrets\.+Failed" \
   || { echo "FAIL: refusal without the gitleaks hook."; echo "$OUT"; exit 1; }
 
 echo "-> hooks: a private key MUST block the commit"
@@ -424,7 +428,7 @@ git -C "$HK/key" add id
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/key" commit -m test 2>&1); then
   echo "FAIL: a private key was committed."; exit 1
 fi
-echo "$OUT" | grep -qiE "detect private key\.+Failed" \
+grep_text "$OUT" -qiE "detect private key\.+Failed" \
   || { echo "FAIL: refusal without detect-private-key."; echo "$OUT"; exit 1; }
 
 echo "-> hooks: a shebang script that is not executable MUST block the commit"
@@ -434,7 +438,7 @@ git -C "$HK/shebang" add tool.sh
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/shebang" commit -m test 2>&1); then
   echo "FAIL: a non-executable script was committed."; exit 1
 fi
-echo "$OUT" | grep -qiE "shebangs are executable\.+Failed" \
+grep_text "$OUT" -qiE "shebangs are executable\.+Failed" \
   || { echo "FAIL: refusal without the shebang check."; echo "$OUT"; exit 1; }
 
 echo "-> hooks: a push and a message run their own hooks, not the commit's again (D125)"
@@ -442,9 +446,9 @@ repo_with_hooks stages
 echo "said" > "$HK/stages/said.txt"
 PUSH=$(cd "$HK/stages" && pre-commit run --hook-stage pre-push --all-files 2>&1 || true)
 MSG=$(cd "$HK/stages" && pre-commit run --hook-stage commit-msg --commit-msg-filename said.txt 2>&1 || true)
-echo "$PUSH" | grep -qF "NapkinStack fitness functions" && ! echo "$PUSH" | grep -qE "Detect hardcoded secrets|large files|shebang" \
+grep_text "$PUSH" -qF "NapkinStack fitness functions" && ! grep_text "$PUSH" -qE "Detect hardcoded secrets|large files|shebang" \
   || { echo "FAIL: a push runs the commit's hooks again."; echo "$PUSH"; exit 1; }
-echo "$MSG" | grep -qF "No link to a private assistant session" && ! echo "$MSG" | grep -qF "Detect hardcoded secrets" \
+grep_text "$MSG" -qF "No link to a private assistant session" && ! grep_text "$MSG" -qF "Detect hardcoded secrets" \
   || { echo "FAIL: a message runs the commit's hooks again."; echo "$MSG"; exit 1; }
 
 echo "-> CI: a secret committed by bypassing the hook MUST be found, without being printed"
@@ -456,9 +460,9 @@ git "${GIT_ID[@]}" -C "$HK/history" commit -q --no-verify -m bypass
 if OUT=$(cd "$HK/history" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
   echo "FAIL: the history scan found nothing."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qi "leaks found" \
+grep_text "$OUT" -qi "leaks found" \
   || { echo "FAIL: failure without a gitleaks detection."; echo "$OUT"; exit 1; }
-if echo "$OUT" | grep -qF "$TOKEN"; then
+if grep_text "$OUT" -qF "$TOKEN"; then
   echo "FAIL: the secret appears in clear text in the output (CI logs are public)."; exit 1
 fi
 
@@ -471,7 +475,7 @@ git -C "$HK/session" add notes.md
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/session" commit -m "A change" -m "Session: $LINK" 2>&1); then
   echo "FAIL: a commit message holding a session link accepted."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "No link to a private assistant session" \
+grep_text "$OUT" -qF "No link to a private assistant session" \
   || { echo "FAIL: refusal without the session-link hook."; echo "$OUT"; exit 1; }
 git "${GIT_ID[@]}" -C "$HK/session" commit -q -m "A change" -m "Co-Authored-By: An Assistant <noreply@example.com>" \
   || { echo "FAIL: a message naming a co-author, without a link, refused."; exit 1; }
@@ -525,14 +529,14 @@ if OUT=$(cd "$HK/zizmor" && pre-commit run zizmor --files .github/workflows/flaw
   echo "FAIL: a vulnerable workflow went through."; exit 1
 fi
 for audit in template-injection unpinned-uses excessive-permissions artipacked; do
-  echo "$OUT" | grep -qF "[$audit]" \
+  grep_text "$OUT" -qF "[$audit]" \
     || { echo "FAIL: zizmor does not report $audit."; echo "$OUT"; exit 1; }
 done
 
 echo "-> workflows: a token variable left empty MUST still be judged, offline"
 for token in GH_TOKEN GITHUB_TOKEN ZIZMOR_GITHUB_TOKEN; do
   OUT=$(cd "$HK/zizmor" && env "$token=" pre-commit run zizmor --files .github/workflows/flaw.yml 2>&1 || true)
-  echo "$OUT" | grep -qF "[template-injection]" \
+  grep_text "$OUT" -qF "[template-injection]" \
     || { echo "FAIL: $token empty stopped zizmor before it read the workflow."; echo "$OUT"; exit 1; }
 done
 
@@ -544,7 +548,7 @@ git -C "$HK/actionlint" add .github
 if OUT=$(cd "$HK/actionlint" && pre-commit run actionlint --files .github/workflows/invalid.yml 2>&1); then
   echo "FAIL: an invalid workflow went through."; exit 1
 fi
-echo "$OUT" | grep -qF '"runs-on" section is missing' \
+grep_text "$OUT" -qF '"runs-on" section is missing' \
   || { echo "FAIL: actionlint does not report the expected error."; echo "$OUT"; exit 1; }
 
 echo "-> hooks: a conflict marker outside a git merge MUST block the commit"
@@ -556,7 +560,7 @@ git -C "$HK/conflict" add rule.md
 if OUT=$(git "${GIT_ID[@]}" -C "$HK/conflict" commit -m test 2>&1); then
   echo "FAIL: a file containing conflict markers was committed."; exit 1
 fi
-echo "$OUT" | grep -qF "Merge conflict string" \
+grep_text "$OUT" -qF "Merge conflict string" \
   || { echo "FAIL: refusal without check-merge-conflict."; echo "$OUT"; exit 1; }
 
 echo "-> YAML: a duplicate key MUST fail (check-yaml)"
@@ -566,7 +570,7 @@ git -C "$HK/duplicate" add duplicate.yaml
 if OUT=$(cd "$HK/duplicate" && pre-commit run check-yaml --files duplicate.yaml 2>&1); then
   echo "FAIL: a duplicate key went through."; exit 1
 fi
-echo "$OUT" | grep -qF 'found duplicate key "name"' \
+grep_text "$OUT" -qF 'found duplicate key "name"' \
   || { echo "FAIL: check-yaml does not report the duplicate key."; echo "$OUT"; exit 1; }
 
 echo "-> YAML: an unquoted placeholder MUST fail (check-yaml)"
@@ -576,7 +580,7 @@ git -C "$HK/template" add template.yaml
 if OUT=$(cd "$HK/template" && pre-commit run check-yaml --files template.yaml 2>&1); then
   echo "FAIL: an unquoted placeholder went through."; exit 1
 fi
-echo "$OUT" | grep -qF 'found unhashable key' \
+grep_text "$OUT" -qF 'found unhashable key' \
   || { echo "FAIL: check-yaml does not report the placeholder."; echo "$OUT"; exit 1; }
 
 echo "-> YAML: an ambiguous boolean value MUST fail (yamllint, repository configuration)"
@@ -587,7 +591,7 @@ if OUT=$(cd "$HK/truthy" && pre-commit run yamllint --files rule.yaml 2>&1); the
   echo "FAIL: the value 'yes' went through."; exit 1
 fi
 # The message text, not "(truthy)": on GitHub Actions, yamllint switches to the annotations format.
-echo "$OUT" | grep -qF 'truthy value should be one of' \
+grep_text "$OUT" -qF 'truthy value should be one of' \
   || { echo "FAIL: yamllint does not report the truthy rule."; echo "$OUT"; exit 1; }
 
 echo "-> GitHub: an invalid dependabot.yml, issue form and issue configuration MUST fail"
@@ -604,7 +608,7 @@ for case in check-dependabot:.github/dependabot.yml \
   if OUT=$(cd "$HK/schemas" && pre-commit run "$hook" --files "$file" 2>&1); then
     echo "FAIL: invalid $file accepted by $hook."; exit 1
   fi
-  echo "$OUT" | grep -qF "Schema validation errors" \
+  grep_text "$OUT" -qF "Schema validation errors" \
     || { echo "FAIL: $hook does not report a schema error."; echo "$OUT"; exit 1; }
 done
 
@@ -624,7 +628,7 @@ echo "-> init: project created and committed on main, answers rendered, no templ
 if ! OUT=$(nstack init "$PROJECT" --source "$REPO" --ref HEAD "${ANSWERS[@]}" 2>&1); then
   echo "FAIL: nstack init failed."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Project created in" \
+grep_text "$OUT" -qF "Project created in" \
   || { echo "FAIL: nstack init does not confirm the creation."; echo "$OUT"; exit 1; }
 [ "$(git -C "$PROJECT" branch --show-current)" = main ] && [ -z "$(git -C "$PROJECT" status --porcelain)" ] \
   || { echo "FAIL: the project is not committed on main."; git -C "$PROJECT" status; exit 1; }
@@ -677,7 +681,7 @@ mkdir -p "$GN/occupied" && echo guard > "$GN/occupied/guard.txt"
 if OUT=$(nstack init "$GN/occupied" --source "$REPO" --ref HEAD "${ANSWERS[@]}" 2>&1); then
   echo "FAIL: init into a non-empty folder accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "is not empty" \
+grep_text "$OUT" -qF "is not empty" \
   || { echo "FAIL: refusal without an explanation."; echo "$OUT"; exit 1; }
 [ "$(ls -A "$GN/occupied")" = guard.txt ] || { echo "FAIL: init wrote into the refused folder."; exit 1; }
 
@@ -691,7 +695,7 @@ for question in github_repo owner_team; do
   if OUT=$(nstack init "$GN/refused-$question" --source "$REPO" --ref HEAD "${answers[@]}" 2>&1); then
     echo "FAIL: $question '${answers[-1]}' accepted."; exit 1
   fi
-  echo "$OUT" | grep -qF "FAIL [init] Answer rejected for $question" \
+  grep_text "$OUT" -qF "FAIL [init] Answer rejected for $question" \
     || { echo "FAIL: refusal of $question without an explanatory message."; echo "$OUT"; exit 1; }
 done
 
@@ -711,7 +715,7 @@ git "${GIT_ID[@]}" -C "$UNSAFE" commit -q --no-verify -m unsafe
 if OUT=$(nstack init "$GN/unsafe" --source "$UNSAFE" --ref HEAD "${ANSWERS[@]}" 2>&1); then
   echo "FAIL: unsafe template accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [init] Template $UNSAFE runs code" \
+grep_text "$OUT" -qF "FAIL [init] Template $UNSAFE runs code" \
   || { echo "FAIL: unsafe refusal without an explanatory message."; echo "$OUT"; exit 1; }
 [ ! -e "$GN/unsafe" ] || { echo "FAIL: the refused template created files."; exit 1; }
 
@@ -719,7 +723,7 @@ echo "-> init: a template version that cannot be found MUST be explained (P6)"
 if OUT=$(nstack init "$GN/missing" --source "$REPO" --ref v9.9.9 "${ANSWERS[@]}" 2>&1); then
   echo "FAIL: unknown version accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [init] Template $REPO at version v9.9.9 unreachable" \
+grep_text "$OUT" -qF "FAIL [init] Template $REPO at version v9.9.9 unreachable" \
   || { echo "FAIL: unknown version without an explanatory message."; echo "$OUT"; exit 1; }
 
 echo "-> skeleton: hooks and YAML rules identical to the repository's (P3)"
@@ -734,14 +738,14 @@ git clone -q "$PROJECT" "$CLONE"
 if ! OUT=$(cd "$CLONE" && nstack fitness --root . 2>&1); then
   echo "FAIL: the project does not pass nstack fitness."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Skills: S1, S2 and S4 compliant" \
+grep_text "$OUT" -qF "Skills: S1, S2 and S4 compliant" \
   || { echo "FAIL: skills not checked in the project."; echo "$OUT"; exit 1; }
 if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
   echo "FAIL: the project does not pass its hooks."; echo "$OUT"; exit 1
 fi
 for hook in "Lint GitHub Actions workflow files" "Validate Dependabot Config (v2)" \
             "Validate GitHub issue config" "Validate GitHub issue forms" "zizmor"; do
-  echo "$OUT" | grep -F -- "$hook" | grep -qF "Passed" \
+  grep_text "$(grep_text "$OUT" -F -- "$hook")" -qF "Passed" \
     || { echo "FAIL: hook "$hook" not run on the project."; echo "$OUT"; exit 1; }
 done
 if ! OUT=$(cd "$CLONE" && pre-commit run gitleaks-history --hook-stage manual --all-files 2>&1); then
@@ -758,7 +762,7 @@ printf 'Notes kept in /%s/someone/notes.\n' home > "$CLONE/notes.md"; git -C "$C
 if OUT=$(cd "$CLONE" && pre-commit run nstack-fitness --hook-stage pre-push --all-files 2>&1); then
   echo "FAIL: the pre-push fitness hook let a fault of hygiene through."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [H1] notes.md:1" \
+grep_text "$OUT" -qF "FAIL [H1] notes.md:1" \
   || { echo "FAIL: the pre-push hook does not say the fault."; echo "$OUT"; exit 1; }
 git -C "$CLONE" rm -q --cached notes.md; rm "$CLONE/notes.md"
 
@@ -795,10 +799,10 @@ if OUT=$(cd "$CLONE" && PR_BODY="$(cat .github/pull_request_template.md)" nstack
 fi
 # PDR-0007, its first two criteria in one run: the project has no charter, so the cycle rules
 # say nothing and the run names the stage — while another rule, the test sheet, still refuses.
-echo "$OUT" | grep -qF "modules/face (criticality standard, user-facing)" \
-  && echo "$OUT" | grep -qF "Project unframed — no accepted charter: the cycle rules (K1 to K3, K5) do not apply" \
+grep_text "$OUT" -qF "modules/face (criticality standard, user-facing)" \
+  && grep_text "$OUT" -qF "Project unframed — no accepted charter: the cycle rules (K1 to K3, K5) do not apply" \
   || { echo "FAIL: T1 or the project's stage missing."; echo "$OUT"; exit 1; }
-if echo "$OUT" | grep -qE "FAIL \[K[123]\]"; then
+if grep_text "$OUT" -qE "FAIL \[K[123]\]"; then
   echo "FAIL: a cycle rule fired in a project that has no cycle (PDR-0007)."; echo "$OUT"; exit 1
 fi
 
@@ -806,7 +810,7 @@ echo "-> plan: a module holding code and a module map left as its form MUST fail
 if OUT=$(cd "$CLONE" && nstack plan --root . 2>&1); then
   echo "FAIL: a project with code in a module and no module map went green."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [C8] modules/README.md" && echo "$OUT" | grep -qF "(face)" \
+grep_text "$OUT" -qF "FAIL [C8] modules/README.md" && grep_text "$OUT" -qF "(face)" \
   || { echo "FAIL: C8 does not name the map and the module."; echo "$OUT"; exit 1; }
 in_place 's#^<A diagram of this project.*#One module, face: the page a visitor sees. No contract yet.#' "$CLONE/modules/README.md"
 
@@ -868,7 +872,7 @@ git -C "$A" switch -q -c cycle/03-framing
 if OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
   echo "FAIL: update accepted from a feature branch."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "cycle/03-framing" && echo "$OUT" | grep -qF "git switch main" \
+grep_text "$OUT" -qF "cycle/03-framing" && grep_text "$OUT" -qF "git switch main" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
   && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v90.2.0 >/dev/null \
   || { echo "FAIL: update from a feature branch badly refused."; echo "$OUT"; exit 1; }
@@ -891,12 +895,12 @@ grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
 grep -qx "checks: attested" "$A/.copier-answers.yml" \
   && grep -qF "The project's answers below" "$A/.copier-answers.yml" \
   || { echo "FAIL: the decider's answer was not kept, or the header forbids writing it (D134)."; head -5 "$A/.copier-answers.yml"; exit 1; }
-echo "$OUT" | grep -qF "git push -u origin nstack/update-v90.2.0" \
+grep_text "$OUT" -qF "git push -u origin nstack/update-v90.2.0" \
   || { echo "FAIL: next step missing."; echo "$OUT"; exit 1; }
 # D66: the notes name the distance travelled, never the target alone — one update can cross
 # several versions, and the change that conflicts may come from any of them.
-echo "$OUT" | grep -qF "What v90.1.0 -> v90.2.0 changes, engine and project apart:" \
-  && echo "$OUT" | grep -qF "every section above v90.1.0" \
+grep_text "$OUT" -qF "What v90.1.0 -> v90.2.0 changes, engine and project apart:" \
+  && grep_text "$OUT" -qF "every section above v90.1.0" \
   || { echo "FAIL: the notes do not name every version crossed (D66)."; echo "$OUT"; exit 1; }
 
 echo "-> update: a file the team deleted is not recreated (criterion 6)"
@@ -924,7 +928,7 @@ echo "-> update: a project already up to date creates no branch"
 if ! OUT=$(nstack update --root "$A" --ref v90.2.0 2>&1); then
   echo "FAIL: up-to-date project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "Already up to date" \
+grep_text "$OUT" -qF "Already up to date" \
   && [ "$(git -C "$A" branch --list 'nstack/*' | wc -l)" -eq 1 ] \
   || { echo "FAIL: up-to-date project mishandled."; echo "$OUT"; exit 1; }
 
@@ -932,13 +936,13 @@ echo "-> update: an older version MUST be refused, without changing anything"
 if OUT=$(nstack update --root "$A" --ref v90.1.0 2>&1); then
   echo "FAIL: downgrade accepted."; exit 1
 fi
-echo "$OUT" | grep -qF "older than the project version (90.2.0)" \
+grep_text "$OUT" -qF "older than the project version (90.2.0)" \
   && [ -z "$(git -C "$A" status --porcelain)" ] \
   || { echo "FAIL: downgrade badly refused."; echo "$OUT"; exit 1; }
 # P6: the action is a command to run, not a description of one. Found in real use on
 # 2026-09-20: the maintainer met this refusal, then tried `uv tool upgrade`, which does
 # nothing on a pinned install.
-echo "$OUT" | grep -qF 'uv tool install "napkinstack@latest"' \
+grep_text "$OUT" -qF 'uv tool install "napkinstack@latest"' \
   || { echo "FAIL: the refusal must name the command that moves the workstation forward."; echo "$OUT"; exit 1; }
 
 echo "-> update: a modified working tree MUST be refused, without changing anything"
@@ -946,7 +950,7 @@ echo "local change" >> "$A/README.md"
 if OUT=$(nstack update --root "$A" --ref v90.3.0 2>&1); then
   echo "FAIL: update accepted on a modified tree."; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [update] Working tree modified" \
+grep_text "$OUT" -qF "FAIL [update] Working tree modified" \
   && [ "$(git -C "$A" diff --name-only)" = README.md ] \
   && ! git -C "$A" rev-parse --verify --quiet refs/heads/nstack/update-v90.3.0 >/dev/null \
   || { echo "FAIL: modified tree badly refused."; echo "$OUT"; exit 1; }
@@ -1009,8 +1013,8 @@ grep -qF "Where the work stands after a break" "$M/.nstack/handbook/project.md" 
 for gone in playbooks docs/os docs/project/README.md docs/tooling-profile.md docs/adr/_TEMPLATE.md; do
   [ ! -e "$M/$gone" ] || { echo "FAIL: $gone is left in both places."; exit 1; }
 done
-echo "$OUT" | grep -qF "docs/project/README.md -> .nstack/handbook/project.md" \
-  && echo "$OUT" | grep -qF "playbooks/tests.md -> .nstack/playbooks/tests.md" \
+grep_text "$OUT" -qF "docs/project/README.md -> .nstack/handbook/project.md" \
+  && grep_text "$OUT" -qF "playbooks/tests.md -> .nstack/playbooks/tests.md" \
   || { echo "FAIL: the update does not name what it carried."; echo "$OUT"; exit 1; }
 # The fixture's own pages already speak the new addresses: what is asserted is that the old
 # ones the project wrote are gone, and that each became the right new one.
@@ -1024,13 +1028,13 @@ grep -qF '(../../.nstack/handbook/06-decisions.md)' "$M/docs/adr/README.md" \
   || { echo "FAIL: a relative link of the project to a moved page is dead."; tail -2 "$M/docs/adr/README.md"; exit 1; }
 grep -qF 'Framed with `.nstack/playbooks/framing.md`; the matrix is `.nstack/handbook/05-workflow.md` §7.' "$M/docs/project/notes.md" \
   || { echo "FAIL: an old address written in the project's own notes was left."; cat "$M/docs/project/notes.md"; exit 1; }
-echo "$OUT" | grep -qF "old addresses rewritten" && echo "$OUT" | grep -qF "  - docs/project/notes.md" \
+grep_text "$OUT" -qF "old addresses rewritten" && grep_text "$OUT" -qF "  - docs/project/notes.md" \
   || { echo "FAIL: the update does not say which of the project's files it rewrote."; echo "$OUT"; exit 1; }
 grep -qF '# The contract rules: docs/os/03-contracts.md' "$M/modules/demo/src/app.py" \
   || { echo "FAIL: the update rewrote a module's code: its pull request now changes that module (D88)."; cat "$M/modules/demo/src/app.py"; exit 1; }
 grep -qF 'How this module is judged: `.nstack/handbook/08-quality.md`.' "$M/modules/demo/README.md" \
   || { echo "FAIL: a module's description kept an old address."; tail -2 "$M/modules/demo/README.md"; exit 1; }
-echo "$OUT" | grep -qF "left as written" && echo "$OUT" | grep -qF "  - modules/demo/src/app.py" \
+grep_text "$OUT" -qF "left as written" && grep_text "$OUT" -qF "  - modules/demo/src/app.py" \
   || { echo "FAIL: the update does not name the code it left with an old address."; echo "$OUT"; exit 1; }
 (cd "$M" && nstack pr-scope --base main >/dev/null) \
   || { echo "FAIL: the update's own pull request is refused by the scope rule (D88)."; exit 1; }
@@ -1060,7 +1064,7 @@ grep -qF 'docs/os/03-contracts.md' "$K/contracts/billing/v1/openapi.yaml" \
 # The schema served its case: with it, the module owes the standard verbs (M7), which this
 # fixture's scaffold does not declare — another rule's subject.
 git -C "$K" rm -q contracts/billing/v1/openapi.yaml && commit_project "$K" "The schema has served its case"
-echo "$OUT" | grep -qF "contracts/ kept" \
+grep_text "$OUT" -qF "contracts/ kept" \
   || { echo "FAIL: the update does not say it kept the contracts module."; echo "$OUT"; exit 1; }
 (cd "$K" && nstack manifests --root . >/dev/null) || { echo "FAIL: the kept contracts module is not valid."; exit 1; }
 [ -z "$(git -C "$K" status --porcelain)" ] || { echo "FAIL: the update of a project holding a contract is not committed."; exit 1; }
@@ -1069,7 +1073,7 @@ echo "-> update: outside a project, the command MUST explain it"
 if OUT=$(nstack update --root "$GN/occupied" 2>&1); then
   echo "FAIL: update accepted outside a project."; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [update] .copier-answers.yml not found" \
+grep_text "$OUT" -qF "FAIL [update] .copier-answers.yml not found" \
   || { echo "FAIL: expected message missing."; echo "$OUT"; exit 1; }
 
 B="$GN/project-b"
@@ -1081,8 +1085,8 @@ echo "-> update: versions skipped in one go, conflict marked and left to the tea
 if OUT=$(nstack update --root "$B" --ref v90.3.0 2>&1); then
   echo "FAIL: conflict passed over in silence."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [update] NapkinStack v90.1.0 -> v90.3.0: conflicts" \
-  && echo "$OUT" | grep -qF "  - .nstack/playbooks/security.md" \
+grep_text "$OUT" -qF "FAIL [update] NapkinStack v90.1.0 -> v90.3.0: conflicts" \
+  && grep_text "$OUT" -qF "  - .nstack/playbooks/security.md" \
   || { echo "FAIL: conflict without the list of files."; echo "$OUT"; exit 1; }
 [ "$(git -C "$B" branch --show-current)" = nstack/update-v90.3.0 ] \
   && [ "$(git -C "$B" rev-parse HEAD)" = "$(git -C "$B" rev-parse main)" ] \
@@ -1095,7 +1099,7 @@ git -C "$B" add -A
 if OUT=$(git "${GIT_ID[@]}" -C "$B" commit -m "Update" 2>&1); then
   echo "FAIL: an update conflict was committed."; exit 1
 fi
-echo "$OUT" | grep -qF "Merge conflict string" \
+grep_text "$OUT" -qF "Merge conflict string" \
   || { echo "FAIL: refusal without check-merge-conflict."; echo "$OUT"; exit 1; }
 
 # Doctor: simulated GitHub API, never the real one. Responses copied from the NapkinStack
@@ -1244,7 +1248,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 20 ] && echo "$INIT_OUT" | grep -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 20 ] && grep_text "$INIT_OUT" -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/.nstack/handbook/INSTALL.md.jinja \
@@ -1287,8 +1291,8 @@ checks() {  # $1 = RUNNER_ENVIRONMENT; prints the script's output, its verbs log
 if OUT=$(checks github-hosted); then echo "FAIL: a module whose tests failed passed the job."; echo "$OUT"; exit 1; fi
 CALLS=$(tr '\n' ',' < "$MC/calls")
 [ "$CALLS" = "bootstrap a,check a,test a,compat a,bootstrap b,check b,test b,compat b,e2e b," ] \
-  && echo "$OUT" | grep -qF "Criticality: high" && echo "$OUT" | grep -qF "Criticality: standard" \
-  && echo "$OUT" | grep -qF "Module checks failed: a" \
+  && grep_text "$OUT" -qF "Criticality: high" && grep_text "$OUT" -qF "Criticality: standard" \
+  && grep_text "$OUT" -qF "Module checks failed: a" \
   || { echo "FAIL: every module, V1 after a failure, e2e only when green — not what ran."; echo "$CALLS"; echo "$OUT"; exit 1; }
 checks self-hosted >/dev/null || true
 [ "$(grep -c '^clean ' "$MC/calls")" -eq 2 ] \
@@ -1328,15 +1332,15 @@ echo "# What the product is" > "$A/PRODUCT.md"  # a product may write about itse
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1); then
   echo "FAIL: non-compliant workstation accepted."; echo "$OUT"; exit 1
 fi
-if echo "$OUT" | grep -qF "PRODUCT.md"; then
+if grep_text "$OUT" -qF "PRODUCT.md"; then
   echo "FAIL: doctor still judges a file named PRODUCT.md (L4 is retired)."; echo "$OUT"; exit 1
 fi
 rm "$A/PRODUCT.md"
 for rule in L1 L3 L6 L7; do
-  echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
+  grep_text "$OUT" -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
-echo "$OUT" | grep -qF "Action: pre-commit install" && echo "$OUT" | grep -qF 'make `*  @<owner>` its first rule' \
+grep_text "$OUT" -qF "Action: pre-commit install" && grep_text "$OUT" -qF 'make `*  @<owner>` its first rule' \
   || { echo "FAIL: L3 or L6 action missing."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: a newer published version is named, as information; a silent registry is said (D91)"
@@ -1344,11 +1348,11 @@ REG=$(mktemp -d); mkdir -p "$REG/pypi/napkinstack"
 echo '{"info": {"version": "99.0.0"}}' > "$REG/pypi/napkinstack/json"
 in_place "s#^_commit: .*#_commit: v$V#" "$A/.copier-answers.yml"
 OUT=$(NSTACK_REGISTRY_URL="file://$REG" GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1) || true
-echo "$OUT" | grep -qF "NEWER VERSION  v99.0.0 is published; the project is on v$V — information, not a gap" \
-  && echo "$OUT" | grep -qF 'uv tool install "napkinstack==99.0.0"' \
+grep_text "$OUT" -qF "NEWER VERSION  v99.0.0 is published; the project is on v$V — information, not a gap" \
+  && grep_text "$OUT" -qF 'uv tool install "napkinstack==99.0.0"' \
   || { echo "FAIL: doctor does not name a newer published version."; echo "$OUT"; exit 1; }
 OUT=$(GH_TOKEN=fake-token nstack doctor --root "$A" 2>&1) || true
-echo "$OUT" | grep -qF "NOT READ       the registry did not answer" \
+grep_text "$OUT" -qF "NOT READ       the registry did not answer" \
   || { echo "FAIL: a registry that does not answer is not said."; echo "$OUT"; exit 1; }
 rm -rf "$REG"
 
@@ -1363,19 +1367,19 @@ fi
 # PDR-0007, criterion 6: what framing buys, and the gesture that starts it — said by the
 # diagnosis, in one place and once. The project is unframed; that is not one of its gaps.
 [ "$(echo "$OUT" | grep -cF "Framing buys an appetite, an end date, a circuit breaker and a decider")" -eq 1 ] \
-  && echo "$OUT" | grep -qF "To start: follow .nstack/playbooks/framing.md" \
-  && echo "$OUT" | grep -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
+  && grep_text "$OUT" -qF "To start: follow .nstack/playbooks/framing.md" \
+  && grep_text "$OUT" -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
 for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19 G20; do
-  echo "$OUT" | grep -qE "FAIL +\[$rule\]" \
+  grep_text "$OUT" -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
-[ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 13 ] && echo "$OUT" | grep -qE "OK +\[L1\]" \
+[ "$(echo "$OUT" | grep -cF 'Action: Settings')" -ge 13 ] && grep_text "$OUT" -qE "OK +\[L1\]" \
   || { echo "FAIL: actions or workstation incorrect."; echo "$OUT"; exit 1; }
 # P6: each of the three merge rules names the place to go, not just the rule it broke (D61).
 [ "$(echo "$OUT" | grep -cF 'Action: Settings → General → Pull Requests')" -eq 3 ] \
   || { echo "FAIL: G14-G16 without their setting's location."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "This repository: unguarded" && echo "$OUT" | grep -qF "Not yet in place" \
+grep_text "$OUT" -qF "This repository: unguarded" && grep_text "$OUT" -qF "Not yet in place" \
   || { echo "FAIL: a public repository with no settings is unguarded, its gaps reachable (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: checklist applied, the command exits successfully (criterion 2)"
@@ -1383,16 +1387,16 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
+grep_text "$OUT" -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "This repository: guarded" && ! echo "$OUT" | grep -qF "unguarded" \
+grep_text "$OUT" -qF "This repository: guarded" && ! grep_text "$OUT" -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: no ruleset at all, G12 names the ruleset to create, not an actor to remove (D25)"
 repo_c acme/bare
 OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1) || true
-echo "$OUT" | grep -A1 -E "FAIL +\[G12\]" | grep -qF "create the ruleset first (G1)" \
-  && echo "$OUT" | grep -A2 -E "FAIL +\[G4\]" | grep -qF "only once it has run" \
+grep_text "$(grep_text "$OUT" -A1 -E "FAIL +\[G12\]")" -qF "create the ruleset first (G1)" \
+  && grep_text "$(grep_text "$OUT" -A2 -E "FAIL +\[G4\]")" -qF "only once it has run" \
   || { echo "FAIL: G12 or G4 action misleading without a ruleset."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: an approval that survives a push is a gap (G13, D31)"
@@ -1400,8 +1404,8 @@ repo_c acme/stale
 if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: stale approvals kept, reported compliant."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "FAIL +\[G13\]" && echo "$OUT" | grep -qE "OK +\[G2\]" \
-  && echo "$OUT" | grep -qF "dismiss stale pull request approvals" \
+grep_text "$OUT" -qE "FAIL +\[G13\]" && grep_text "$OUT" -qE "OK +\[G2\]" \
+  && grep_text "$OUT" -qF "dismiss stale pull request approvals" \
   || { echo "FAIL: stale approvals badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: a bypass actor on the main branch's ruleset is a gap (G12, ADR-0004)"
@@ -1409,8 +1413,8 @@ repo_c acme/bypass
 if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: a bypassable ruleset accepted."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "FAIL +\[G12\]" && echo "$OUT" | grep -qE "OK +\[G1\]" \
-  && echo "$OUT" | grep -qF "remove every bypass actor" \
+grep_text "$OUT" -qE "FAIL +\[G12\]" && grep_text "$OUT" -qE "OK +\[G1\]" \
+  && grep_text "$OUT" -qF "remove every bypass actor" \
   || { echo "FAIL: bypass actor badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: private repository on the Free plan is unguarded, and not at fault for it (PDR-0006)"
@@ -1419,15 +1423,15 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: a project that has done everything its plan allows must not be reported as faulty."
   echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
+grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
   && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 10 ] \
-  && echo "$OUT" | grep -qF "Secret Protection is a paid option" \
-  && echo "$OUT" | grep -qE "OK +\[G7\]" \
+  && grep_text "$OUT" -qF "Secret Protection is a paid option" \
+  && grep_text "$OUT" -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "This repository: unguarded" \
-  && echo "$OUT" | grep -qF "Out of reach on this plan" \
-  && echo "$OUT" | grep -qF "make the repository public" \
-  && ! echo "$OUT" | grep -qE "^FAIL +\[G1\]" \
+grep_text "$OUT" -qF "This repository: unguarded" \
+  && grep_text "$OUT" -qF "Out of reach on this plan" \
+  && grep_text "$OUT" -qF "make the repository public" \
+  && ! grep_text "$OUT" -qE "^FAIL +\[G1\]" \
   || { echo "FAIL: the unguarded state, its reason and its exits must be named (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: private repository under GitHub Team, compliant without private reporting"
@@ -1435,17 +1439,17 @@ repo_c acme/private-team
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "nstack doctor: compliant" && echo "$OUT" | grep -qE "NOT APPLICABLE +\[G6\]" \
+grep_text "$OUT" -qF "nstack doctor: compliant" && grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
   && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 25 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"
 RC=0; OUT=$(unset GH_TOKEN GITHUB_TOKEN; published doctor --root "$C" 2>&1) || RC=$?
 [ "$RC" -eq 2 ] || { echo "FAIL: nothing read and nothing missing must exit 2, got $RC."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qE "NOT VERIFIED +\[G11\]" && ! echo "$OUT" | grep -qE "OK +\[G" \
-  && echo "$OUT" | grep -qF "GH_TOKEN" \
+grep_text "$OUT" -qE "NOT VERIFIED +\[G11\]" && ! grep_text "$OUT" -qE "OK +\[G" \
+  && grep_text "$OUT" -qF "GH_TOKEN" \
   || { echo "FAIL: missing token mishandled."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "This repository: not verified" \
+grep_text "$OUT" -qF "This repository: not verified" \
   || { echo "FAIL: what cannot be read is never guarded (PDR-0006)."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: token without the Administration permission, unreadable settings are not verified"
@@ -1453,16 +1457,16 @@ repo_c acme/restricted
 if OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant without the Administration permission."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "OK +\[G1\]" && echo "$OUT" | grep -qE "NOT VERIFIED +\[G5\]" \
-  && echo "$OUT" | grep -qE "NOT VERIFIED +\[G8\]" && echo "$OUT" | grep -qF "Administration: read" \
-  && echo "$OUT" | grep -qE "NOT VERIFIED +\[G12\]" \
+grep_text "$OUT" -qE "OK +\[G1\]" && grep_text "$OUT" -qE "NOT VERIFIED +\[G5\]" \
+  && grep_text "$OUT" -qE "NOT VERIFIED +\[G8\]" && grep_text "$OUT" -qF "Administration: read" \
+  && grep_text "$OUT" -qE "NOT VERIFIED +\[G12\]" \
   || { echo "FAIL: missing permission mishandled."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: API unreachable, nothing is declared compliant"
 if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant without the API."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "NOT VERIFIED +\[G1\]" && echo "$OUT" | grep -qF "unreachable" \
+grep_text "$OUT" -qE "NOT VERIFIED +\[G1\]" && grep_text "$OUT" -qF "unreachable" \
   || { echo "FAIL: unreachable API mishandled."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: a contributor's checkout holding the project's version is SOURCES, said and not a gap (L1, D136)"
@@ -1472,8 +1476,8 @@ in_place "s#^_commit: .*#_commit: v0.9.6#" "$C/.copier-answers.yml"
 OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1) \
   || { echo "FAIL: a contributor's checkout ahead of the project reported as a gap."; echo "$OUT"; exit 1; }
 echo "$OUT" | head -1 | grep -qF "Judged by an UNPUBLISHED NapkinStack — a local checkout" \
-  && echo "$OUT" | grep -qE "SOURCES +\[L1\]" && echo "$OUT" | grep -qF "which holds the project's v0.9.6" \
-  && echo "$OUT" | grep -qF "To judge as CI does: uv tool install" \
+  && grep_text "$OUT" -qE "SOURCES +\[L1\]" && grep_text "$OUT" -qF "which holds the project's v0.9.6" \
+  && grep_text "$OUT" -qF "To judge as CI does: uv tool install" \
   || { echo "FAIL: a contributor's checkout badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: a checkout without the project's version is a gap that says why (L1, PDR-0005)"
@@ -1481,73 +1485,73 @@ in_place "s#^_commit: .*#_commit: v90.9.9#" "$C/.copier-answers.yml"
 if OUT=$(GH_TOKEN=fake-token nstack doctor --root "$C" 2>&1); then
   echo "FAIL: an unpublished engine without the project's version reported compliant."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qE "FAIL +\[L1\]" && echo "$OUT" | grep -qF "does not hold the project's v90.9.9" \
-  && echo "$OUT" | grep -qF "1 gap(s), 0 not verified" \
+grep_text "$OUT" -qE "FAIL +\[L1\]" && grep_text "$OUT" -qF "does not hold the project's v90.9.9" \
+  && grep_text "$OUT" -qF "1 gap(s), 0 not verified" \
   || { echo "FAIL: a checkout without the project's version badly reported."; echo "$OUT"; exit 1; }
 in_place "s#^_commit: .*#_commit: v$V#" "$C/.copier-answers.yml"
 
 echo "-> doctor: a gap exits 1 even when other settings were not read (D77)"
 repo_c acme/bare
 RC=0; OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1) || RC=$?
-[ "$RC" -eq 1 ] && echo "$OUT" | grep -qF "as calls to run yourself: nstack settings" \
+[ "$RC" -eq 1 ] && grep_text "$OUT" -qF "as calls to run yourself: nstack settings" \
   || { echo "FAIL: a gap must exit 1 and name the command that plans its closing, got $RC."; echo "$OUT"; exit 1; }
 
 echo "-> settings: a bare repository gets the calls that close the distance, and nothing is written (PDR-0008, criterion 1)"
 OUT=$(GH_TOKEN=fake-secret-token-value nstack settings --root "$C" 2>&1) \
   || { echo "FAIL: the plan of a readable repository must exit 0."; echo "$OUT"; exit 1; }
-echo "$OUT" | grep -qF "gh api --method POST repos/acme/bare/rulesets" \
-  && echo "$OUT" | grep -qF '"~DEFAULT_BRANCH"' && echo "$OUT" | grep -qF '"bypass_actors": []' \
-  && echo "$OUT" | grep -qF '"type": "deletion"' && echo "$OUT" | grep -qF '"type": "non_fast_forward"' \
-  && echo "$OUT" | grep -qF '"context": "Test sheet and cycle"' \
-  && echo "$OUT" | grep -qF "gh api --method PATCH repos/acme/bare " \
-  && echo "$OUT" | grep -qF '"allow_merge_commit": false' \
-  && echo "$OUT" | grep -qF "gh api --method PUT repos/acme/bare/private-vulnerability-reporting" \
-  && echo "$OUT" | grep -qF '"sha_pinning_required": true' \
-  && echo "$OUT" | grep -qF '"name": "out-of-cycle"' \
-  && echo "$OUT" | grep -qF '"name": "request"' && echo "$OUT" | grep -qF '"name": "acceptance"' \
-  && echo "$OUT" | grep -qF "Nothing was changed" && echo "$OUT" | grep -qF "Then: nstack doctor" \
+grep_text "$OUT" -qF "gh api --method POST repos/acme/bare/rulesets" \
+  && grep_text "$OUT" -qF '"~DEFAULT_BRANCH"' && grep_text "$OUT" -qF '"bypass_actors": []' \
+  && grep_text "$OUT" -qF '"type": "deletion"' && grep_text "$OUT" -qF '"type": "non_fast_forward"' \
+  && grep_text "$OUT" -qF '"context": "Test sheet and cycle"' \
+  && grep_text "$OUT" -qF "gh api --method PATCH repos/acme/bare " \
+  && grep_text "$OUT" -qF '"allow_merge_commit": false' \
+  && grep_text "$OUT" -qF "gh api --method PUT repos/acme/bare/private-vulnerability-reporting" \
+  && grep_text "$OUT" -qF '"sha_pinning_required": true' \
+  && grep_text "$OUT" -qF '"name": "out-of-cycle"' \
+  && grep_text "$OUT" -qF '"name": "request"' && grep_text "$OUT" -qF '"name": "acceptance"' \
+  && grep_text "$OUT" -qF "Nothing was changed" && grep_text "$OUT" -qF "Then: nstack doctor" \
   || { echo "FAIL: the plan of a bare repository is incomplete."; echo "$OUT"; exit 1; }
 [ ! -s "$API/writes" ] || { echo "FAIL: the settings command wrote to the forge:"; cat "$API/writes"; exit 1; }
-if echo "$OUT" | grep -qF "fake-secret-token-value"; then
+if grep_text "$OUT" -qF "fake-secret-token-value"; then
   echo "FAIL: the credential appears in the output (PDR-0008, criterion 8)."; exit 1
 fi
 
 echo "-> settings: a compliant repository gets no call (criterion 4)"
 repo_c acme/compliant
 OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
-echo "$OUT" | grep -qF "nothing to change: the checklist is in place" && ! echo "$OUT" | grep -qF "gh api" \
+grep_text "$OUT" -qF "nothing to change: the checklist is in place" && ! grep_text "$OUT" -qF "gh api" \
   || { echo "FAIL: a compliant repository was given something to do."; echo "$OUT"; exit 1; }
 
 echo "-> settings: what is stricter than the checklist is left alone, and said (criterion 5)"
 repo_c acme/strict
 OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
-! echo "$OUT" | grep -qF "gh api" \
+! grep_text "$OUT" -qF "gh api" \
   || { echo "FAIL: two required approvals were planned down to the checklist's one."; echo "$OUT"; exit 1; }
 repo_c acme/local-only
 OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
-echo "$OUT" | grep -qF '"allowed_actions": "local_only"' && echo "$OUT" | grep -qF "stricter than the checklist" \
-  && ! echo "$OUT" | grep -qF "selected-actions" \
+grep_text "$OUT" -qF '"allowed_actions": "local_only"' && grep_text "$OUT" -qF "stricter than the checklist" \
+  && ! grep_text "$OUT" -qF "selected-actions" \
   || { echo "FAIL: a repository allowing only its own actions was planned open."; echo "$OUT"; exit 1; }
 
 echo "-> settings: an existing bypass list is never emptied by a call, only named (PDR-0008: no ruleset rewritten)"
 repo_c acme/bypass
 OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
-echo "$OUT" | grep -qF "G12 by hand" && ! echo "$OUT" | grep -qF "gh api" \
+grep_text "$OUT" -qF "G12 by hand" && ! grep_text "$OUT" -qF "gh api" \
   || { echo "FAIL: a bypass list must be left to a human."; echo "$OUT"; exit 1; }
 
 echo "-> settings: a private repository on a plan that enforces nothing is never called guarded (criterion 6)"
 repo_c acme/private
 OUT=$(GH_TOKEN=fake-token nstack settings --root "$C" 2>&1)
-echo "$OUT" | grep -qF "Out of reach on this plan" && echo "$OUT" | grep -qF "stays UNGUARDED" \
-  && echo "$OUT" | grep -qF "rulesets require the GitHub Team plan" && ! echo "$OUT" | grep -qF "rulesets --input" \
-  && echo "$OUT" | grep -qF "nothing to change within what this plan allows" \
+grep_text "$OUT" -qF "Out of reach on this plan" && grep_text "$OUT" -qF "stays UNGUARDED" \
+  && grep_text "$OUT" -qF "rulesets require the GitHub Team plan" && ! grep_text "$OUT" -qF "rulesets --input" \
+  && grep_text "$OUT" -qF "nothing to change within what this plan allows" \
   || { echo "FAIL: a private repository on a free plan badly planned."; echo "$OUT"; exit 1; }
 
 echo "-> settings: without a token the whole checklist is planned, and said to be unread"
 repo_c acme/bare
 OUT=$(unset GH_TOKEN GITHUB_TOKEN; nstack settings --root "$C" 2>&1)
-echo "$OUT" | grep -qF "not read — no token" && echo "$OUT" | grep -qF "repos/acme/bare/rulesets" \
-  && echo "$OUT" | grep -qF "On a private repository without a paid plan the forge refuses the ruleset" \
+grep_text "$OUT" -qF "not read — no token" && grep_text "$OUT" -qF "repos/acme/bare/rulesets" \
+  && grep_text "$OUT" -qF "On a private repository without a paid plan the forge refuses the ruleset" \
   && [ "$(echo "$OUT" | grep -c "^gh api ")" -ge 9 ] \
   || { echo "FAIL: the unread plan is incomplete."; echo "$OUT"; exit 1; }
 
@@ -1555,7 +1559,7 @@ echo "-> settings: a repository the token cannot read is said, never planned aro
 if OUT=$(GITHUB_API_URL=http://127.0.0.1:9 GH_TOKEN=fake-token nstack settings --root "$C" 2>&1); then
   echo "FAIL: an unreachable repository was planned."; echo "$OUT"; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [settings] acme/bare cannot be read" \
+grep_text "$OUT" -qF "FAIL [settings] acme/bare cannot be read" \
   || { echo "FAIL: unreadable repository mishandled."; echo "$OUT"; exit 1; }
 [ ! -s "$API/writes" ] || { echo "FAIL: something wrote to the forge during this suite:"; cat "$API/writes"; exit 1; }
 
@@ -1563,7 +1567,7 @@ echo "-> doctor: outside a project, the command MUST explain it"
 if OUT=$(nstack doctor --root "$GN/occupied" 2>&1); then
   echo "FAIL: doctor accepted outside a project."; exit 1
 fi
-echo "$OUT" | grep -qF "FAIL [doctor] .copier-answers.yml not found" \
+grep_text "$OUT" -qF "FAIL [doctor] .copier-answers.yml not found" \
   || { echo "FAIL: expected message missing."; echo "$OUT"; exit 1; }
 
 echo "Platform tests: OK"

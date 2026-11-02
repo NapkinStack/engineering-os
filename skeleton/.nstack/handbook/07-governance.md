@@ -334,7 +334,7 @@ A pull request's author cannot approve it. An agent working with a human's crede
 settings close that door, and they only hold together:
 
 1. **The agent has its own identity** — on GitHub, an App installed on the repository (`nstack agent add <name>`: made and
-   installed in two clicks, with a clone that works as it): tokens
+   installed in two clicks, with a clone that works as it and runs the project's hooks): tokens
    that expire within the hour, never the Administration permission; elsewhere, a bot account
    with the same limits. Its session reaches no human credential — no SSH key, token or
    command-line login of a human: `nstack agent run` keeps the person's tokens, SSH agent and
