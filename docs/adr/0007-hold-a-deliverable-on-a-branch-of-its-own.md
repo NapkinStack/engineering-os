@@ -2,7 +2,8 @@
 
 - **Status**: Accepted (2026-10-21, by the maintainer, approving #214); built in D137. Clarified while
   building: the verb that gives a hold back is `nstack unclaim` — `release` already makes a
-  module's artefacts; a deliverable `in-progress` may be taken too, as K3 accepts it
+  module's artefacts; a deliverable `in-progress` may be taken too, as K3 accepts it. Clarified
+  2026-11-01 (D193, PDR-0022): the record of a delivery
 - **Date**: 2026-10-21
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack claim`, `nstack unclaim`, `plan`, `pr-check`), a

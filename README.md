@@ -14,7 +14,7 @@ Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 ```mermaid
 flowchart LR
     I["Install<br/>uv tool install"]:::cmd --> N["nstack init"]:::cmd
-    N --> G["Publish on its forge<br/>on GitHub: apply the checklist"]:::human
+    N --> G["Publish on its forge<br/>on GitHub: nstack settings --apply"]:::human
     G --> D["nstack doctor<br/>read-only"]:::cmd
     D --> M["nstack new-module"]:::cmd
     M --> W["Work in pull requests<br/>the team and its agent"]:::human
@@ -94,16 +94,19 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential, then reads the result back — never an agent's, never in CI |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
-| `nstack check`, `test`, `bootstrap` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
+| `nstack check`, `test`, `bootstrap`, `clean` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
-| `nstack plan` | The discovery, the charter and the cycles: formats, one cycle at a time, closures, and the decisions due at a closure; then the project across its cycles, and who holds what |
+| `nstack plan` | Opens with what needs a person, or says nothing does; then the discovery, the charter and the cycles: formats, one cycle at a time, closures, and the decisions due at a closure; the project across its cycles, and who holds what |
+| `nstack claim <deliverable> [--take-over]`; `nstack unclaim <deliverable>` | Takes a ready deliverable for a session before its first change, on a branch of its own the shared remote refuses to a second taker; gives it back ([ADR-0007](docs/adr/0007-hold-a-deliverable-on-a-branch-of-its-own.md)) |
+| `nstack deliver <deliverable> --held [N=]#PR` | Records that a merged deliverable is delivered, criterion by criterion, with no pull request; refused with no merge of it; `--write-states` writes the states at a closure ([PDR-0022](docs/pdr/0022-agents-deliver-alone-a-person-is-asked-only-where-it-matters.md)) |
+| `nstack board [--dry-run]` | Shows the cycles and their deliverables on the forge, one way: milestones and issues ([ADR-0008](docs/adr/0008-show-the-plan-as-milestones-and-issues-applied-by-ci.md)) |
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene — each also runs alone: `manifests`, `boundaries`, `skills`, `plan`, `hygiene` |
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared — one run at a time on a machine |
 | `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
-| `nstack pr-check` | The test sheet and the cycle, read from the pull request description |
+| `nstack pr-check` | The test sheet, the cycle and the attested checks, read from the pull request description |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks`; attesting the same commit again keeps the module checks it passed (`--again` runs them) |
 | `nstack skills` | Exposes the playbooks as skills for the agent |

@@ -135,13 +135,15 @@ def test_the_cycle_s_form_gives_each_deliverable_its_section():
     assert "### D1" in form and "log issue" in form, "the form keeps free notes for every deliverable together"
 
 
-def test_the_plan_is_approved_before_any_file_is_written():
-    assert "Before writing any file, present steps 1 to 3" in KERNEL
-    assert "always.md" not in KERNEL[KERNEL.index("## 2. Working loop"): KERNEL.index("## 3. Stopping rules")], (
-        "a project's rule may add to the kernel or tighten it, never waive its approval (PDR-0002)")
-    loop = (SKELETON / "handbook/05-workflow.md").read_text(encoding="utf-8")
-    loop = loop[loop.index("## 2. The loop"): loop.index("## 3.")]
-    assert loop.index("Present the plan") < loop.index("ORACLE: write"), "the diagram commits the oracle before the plan"
+def test_the_plan_is_written_for_the_approver_and_no_one_is_waited_for_before_writing():
+    """PDR-0022 §9, P8: the cycle approved the scope and the merge approves the change; a wait for a
+    person before the first file added a human turn to every task and caught nothing more (D197)."""
+    loop = KERNEL[KERNEL.index("## 2. Working loop"): KERNEL.index("## 3. Stopping rules")]
+    assert "You wait for no one before writing" in loop and "pull request's description" in loop, loop
+    assert "wait for the approval" not in KERNEL
+    handbook = (SKELETON / "handbook/05-workflow.md").read_text(encoding="utf-8")
+    handbook = handbook[handbook.index("## 2. The loop"): handbook.index("## 3.")]
+    assert "wait for approval" not in handbook and "the plan goes in the pull request" in handbook
 
 
 def test_the_kernel_names_who_hears_of_a_framework_defect():

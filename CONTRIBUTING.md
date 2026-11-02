@@ -143,4 +143,4 @@ project that had deleted it: `nstack update` sees a new file. Rename only when t
 worth that cost, and say so in the version pull request.
 
 Leak barriers and exceptions (`cross-module`, `over-budget`): the same as in the projects,
-described in [`skeleton/CONTRIBUTING.md`](skeleton/CONTRIBUTING.md).
+described in [`skeleton/CONTRIBUTING.md.jinja`](skeleton/CONTRIBUTING.md.jinja).
