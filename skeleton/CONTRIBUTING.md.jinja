@@ -18,7 +18,10 @@ Once per person, before a first deliverable. Each step says where it is said in 
    follows it. It works under an identity of its own{% if forge == "github" %} — a GitHub App (`.nstack/handbook/INSTALL.md`,
    *the identity your agents work under*){% endif %} — never with your credentials. Creating it{% if forge != "none" %} and installing it on
    the repository{% endif %} is a person's act: yours where you may, else the decider's on your
-   request; its key stays outside any repository. Each session your agent runs has a name — any
+   request; its key stays outside any repository.{% if forge == "github" %} One command makes it, and the forge
+   asks you for two clicks: `nstack agent add <name>`; then start your agent with
+   `nstack agent run <name> -- <its command>`. Where you cannot create an App for the
+   repository's owner, add `--mine`: the owner approves its installation.{% endif %} Each session your agent runs has a name — any
    opaque label, `alice-d30` — that goes on its commits (`Agent-Session:`) and its holds (`--session`).
    Where the project answers `approval: agent`, each agent needs an identity of its
    own (step 6).
