@@ -5,7 +5,7 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.22.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
+> **Status: v0.23.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
 > What each version changes, engine and project apart: [`CHANGELOG.md`](CHANGELOG.md).
 > What is open: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
@@ -69,8 +69,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.22.0" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.22.0"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.23.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.23.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
@@ -99,6 +99,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack plan` | Opens with what needs a person, or says nothing does; then the discovery, the charter and the cycles: formats, one cycle at a time, closures, and the decisions due at a closure; the project across its cycles, and who holds what |
 | `nstack claim <deliverable> [--take-over]`; `nstack unclaim <deliverable>` | Takes a ready deliverable for a session before its first change, on a branch of its own the shared remote refuses to a second taker; gives it back ([ADR-0007](docs/adr/0007-hold-a-deliverable-on-a-branch-of-its-own.md)) |
 | `nstack deliver <deliverable> --held [N=]#PR` | Records that a merged deliverable is delivered, criterion by criterion, with no pull request; refused with no merge of it; `--write-states` writes the states at a closure ([PDR-0022](docs/pdr/0022-agents-deliver-alone-a-person-is-asked-only-where-it-matters.md)) |
+| `nstack agent add <name>`; `nstack agent run <name> -- <command>` | Gives an agent its own GitHub App and a clone that commits as it and runs the project's hooks — `add` is a person's, two clicks at the forge; starts the agent there without the person's credentials, not a sandbox ([ADR-0004](docs/adr/0004-give-agents-their-own-github-identity.md)) |
 | `nstack board [--dry-run]` | Shows the cycles and their deliverables on the forge, one way: milestones and issues ([ADR-0008](docs/adr/0008-show-the-plan-as-milestones-and-issues-applied-by-ci.md)) |
 | `nstack fitness` | Manifests, boundaries between modules, skills, plan, hygiene — each also runs alone: `manifests`, `boundaries`, `skills`, `plan`, `hygiene` |
 | `nstack pr-scope` | One PR = one module, review budget |
