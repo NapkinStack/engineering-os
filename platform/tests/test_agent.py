@@ -506,6 +506,17 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
     assert "--settings" in done.stderr and "sandbox" in done.stderr
 
 
+def test_on_github_com_the_agent_s_settings_also_open_the_ci_logs_host(forge, project, monkeypatch):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+    monkeypatch.setenv("GITHUB_API_URL", "https://api.github.com")
+    settings = json.loads(agent._claude_settings("scout").read_text())
+    # `gh run view --log` is redirected there by the API (seen 2026-11-03); a job's own log goes to
+    # Azure blob storage, left closed: opening it would open every Azure account
+    assert settings["sandbox"]["network"]["allowedDomains"] == [
+        "api.github.com", "github.com", "results-receiver.actions.githubusercontent.com"]
+
+
 @pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
 def test_settings_the_person_gives_claude_are_kept_and_said(forge, project, tmp_path, monkeypatch):
     _claude_stand_in(tmp_path, monkeypatch)
@@ -514,6 +525,8 @@ def test_settings_the_person_gives_claude_are_kept_and_said(forge, project, tmp_
         done = _run("run", "scout", "--", "claude", *given)
         assert [line[4:] for line in done.stdout.splitlines()] == given
         assert "your --settings is kept" in done.stderr
+        assert f"allowedDomains needs {urllib.parse.urlsplit(forge).hostname}." in done.stderr, \
+            "the person is told the hosts their own settings must open"
 
 
 def test_the_agent_s_environment_names_its_gh_for_a_guard_hook(forge, project):
