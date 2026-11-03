@@ -145,7 +145,8 @@ def test_an_engine_level_with_its_project_or_ahead_says_nothing(tmp_path, monkey
 
 # --- A project learns of a newer version from doctor, and from nowhere else (D91) ---
 # Measured on 2026-10-12: nothing told a project that a version had been published. The one
-# command that already reads the network says it, as information; no other opens a connection.
+# command that already reads the network says it, as information. (D201: update also asks whether
+# the version it lays is published yet.)
 
 def registry(root, monkeypatch, version) -> None:
     page = root / "registry" / "pypi" / "napkinstack"

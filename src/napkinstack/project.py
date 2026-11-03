@@ -588,8 +588,25 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
             print(f"  - {name}")
     print(f"What {previous} -> {current} changes, engine and project apart: "
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
+    if note := _not_yet_published(current):
+        print(note)
     print(f"\n{next_step(root, branch)}")
     return 0
+
+
+def _not_yet_published(ref: str) -> str | None:
+    """D201: the project's CI installs a published version from the registry. Updated to one it does
+    not list yet — an engine run from its sources is ahead of the release — the pull request's
+    checks fail with uv's "No solution found" until it is published. Said only when the registry
+    answered: update reads the network already, through Copier."""
+    from napkinstack import doctor
+
+    if not doctor.PUBLISHED.fullmatch(ref) or doctor.listed(ref.removeprefix("v")) is not False:
+        return None
+    return (f"NOTE: {ref} is not on PyPI yet: this project's CI installs its engine from there, and its checks "
+            "fail until the release is published.\n"
+            f"      Action: open the pull request once {doctor.registry()}/project/napkinstack/"
+            f"{ref.removeprefix('v')}/ answers, or run its checks again then.")
 
 
 def _by_hand(root: Path, command: str, wanted: str | None = None) -> int | None:
