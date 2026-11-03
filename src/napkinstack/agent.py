@@ -506,9 +506,13 @@ def status(name: str | None) -> int:
             print("Start one with: nstack agent run <name> -- <your agent's command>")
         return 0
     app = _load(name)
-    if app is None or not app.get("clone"):
+    if app is None:
         _say(f"FAIL [agent] no agent named {name} on this workstation.\n"
              f"      Action: a person runs nstack agent add {name} at the project's root.")
+        return 1
+    if not app.get("clone"):
+        _say(f"FAIL [agent] agent {name}'s App {app.get('slug')} exists, its clone is not made: nstack agent add stopped before.\n"
+             f"      Action: a person runs nstack agent add {name} again at the project's root: the App is kept.")
         return 1
     clone = Path(app["clone"])
     hook = clone / ".git" / "hooks" / "pre-commit"
@@ -547,7 +551,7 @@ def run(name: str, command: list[str]) -> int:
          "  - kept: your agent tool's own configuration (its sandbox, hooks and permissions), and your files: "
          "this is not a sandbox.\n"
          "  - the agent checks who it is with: nstack agent status", sys.stderr)
-    if Path(command[0]).name in ("claude", "claude.exe"):
+    if Path(command[0]).name.lower() in ("claude", "claude.exe", "claude.cmd"):
         if any(arg == "--settings" or arg.startswith("--settings=") for arg in command[1:]):
             _say("  - claude: your --settings is kept; give it the forge's hosts in sandbox.network.allowedDomains "
                  "if your sandbox is on.", sys.stderr)

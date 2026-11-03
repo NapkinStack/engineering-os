@@ -498,10 +498,11 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
     home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
     assert args == ["--settings", str(home / "claude-settings.json"), "-p", "review #1"]
     settings = json.loads((home / "claude-settings.json").read_text())
-    host = urllib.parse.urlsplit(forge).hostname
-    assert host in settings["sandbox"]["network"]["allowedDomains"]
-    assert settings["sandbox"]["filesystem"]["allowWrite"] == [str(home / "gh")]
-    assert "enabled" not in settings["sandbox"], "the person's sandbox stays as they set it"
+    host = urllib.parse.urlsplit(forge).hostname  # the test's forge serves web and API on one host
+    assert settings == {"sandbox": {"network": {"allowedDomains": [host]},
+                                    "filesystem": {"allowWrite": [str(home / "gh")]}},
+                        "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic"}}, \
+        "the forge's hosts and the agent's gh folder, nothing more; the sandbox never switched"
     assert "--settings" in done.stderr and "sandbox" in done.stderr
 
 
@@ -509,9 +510,32 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
 def test_settings_the_person_gives_claude_are_kept_and_said(forge, project, tmp_path, monkeypatch):
     _claude_stand_in(tmp_path, monkeypatch)
     assert agent.add(project, "scout", browser=Browser()) == 0
-    done = _run("run", "scout", "--", "claude", "--settings", "mine.json")
-    assert [line[4:] for line in done.stdout.splitlines()] == ["--settings", "mine.json"]
-    assert "your --settings is kept" in done.stderr
+    for given in (["--settings", "mine.json"], ["--settings=mine.json"]):
+        done = _run("run", "scout", "--", "claude", *given)
+        assert [line[4:] for line in done.stdout.splitlines()] == given
+        assert "your --settings is kept" in done.stderr
+
+
+def test_the_agent_s_environment_names_its_gh_for_a_guard_hook(forge, project):
+    """A person's hook against a bare gh lets the agent's through by this one comparison (07 §7):
+    it holds wherever the agents' folder is — NSTACK_AGENTS_HOME, XDG_CONFIG_HOME or APPDATA."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    env = agent._environment("scout")
+    assert Path(env["GH_CONFIG_DIR"]).parent / "bin" / "gh" == Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "bin" / "gh"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for gh")
+def test_status_says_whether_gh_here_is_the_agent_s(forge, project, tmp_path, monkeypatch):
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    (tools / "gh").write_text("#!/bin/sh\n")
+    (tools / "gh").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    shim = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "bin" / "gh"
+    assert f"gh: as the App ({shim})" in _run("status", env=dict(agent._environment("scout"))).stdout
+    person = {k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"}
+    assert "gh here is not the agent" in _run("status", "scout", env=person).stdout
 
 
 def test_status_tells_an_agent_who_it_is(forge, project):
