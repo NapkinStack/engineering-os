@@ -461,3 +461,85 @@ def test_a_push_the_forge_would_refuse_fails_the_command(forge, project, tmp_pat
 def test_the_agent_s_folder_is_the_person_s_alone(forge, project):
     assert agent.add(project, "scout", browser=Browser()) == 0
     assert (Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout").stat().st_mode & 0o777 == 0o700
+
+
+# D199: an agent knows what it is, and its tool works from the first run.
+
+def _run(*args: str, env: dict | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, "-m", "napkinstack", "agent", *args], capture_output=True, text=True,
+                          env=env)
+
+
+def _claude_stand_in(tmp_path, monkeypatch) -> None:
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    (tools / "claude").write_text('#!/bin/sh\nfor a in "$@"; do echo "arg=$a"; done\n')
+    (tools / "claude").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
+
+
+def test_run_says_what_the_agent_gets_and_what_it_keeps_of_the_person(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("run", "scout", "--", sys.executable, "-c", "print('the agent speaks')")
+    assert done.returncode == 0 and done.stdout == "the agent speaks\n", "the agent's own output is untouched"
+    said = done.stderr
+    assert "Agent scout: demo-scout[bot] on acme/demo" in said
+    assert "removed: your tokens, SSH agent and git configuration" in said
+    assert "kept: your agent tool's own configuration" in said and "nstack agent status" in said
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
+def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, project, tmp_path, monkeypatch):
+    _claude_stand_in(tmp_path, monkeypatch)
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("run", "scout", "--", "claude", "-p", "review #1")
+    assert done.returncode == 0, done.stderr
+    args = [line[4:] for line in done.stdout.splitlines()]
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
+    assert args == ["--settings", str(home / "claude-settings.json"), "-p", "review #1"]
+    settings = json.loads((home / "claude-settings.json").read_text())
+    host = urllib.parse.urlsplit(forge).hostname
+    assert host in settings["sandbox"]["network"]["allowedDomains"]
+    assert settings["sandbox"]["filesystem"]["allowWrite"] == [str(home / "gh")]
+    assert "enabled" not in settings["sandbox"], "the person's sandbox stays as they set it"
+    assert "--settings" in done.stderr and "sandbox" in done.stderr
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
+def test_settings_the_person_gives_claude_are_kept_and_said(forge, project, tmp_path, monkeypatch):
+    _claude_stand_in(tmp_path, monkeypatch)
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("run", "scout", "--", "claude", "--settings", "mine.json")
+    assert [line[4:] for line in done.stdout.splitlines()] == ["--settings", "mine.json"]
+    assert "your --settings is kept" in done.stderr
+
+
+def test_status_tells_an_agent_who_it_is(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("status", env=dict(agent._environment("scout")))
+    assert done.returncode == 0, done.stdout
+    out = done.stdout
+    assert "You are agent scout: demo-scout[bot], on acme/demo" in out
+    assert str((project.parent / "demo-scout").resolve()) in out
+    assert "hooks: none" in out  # the test project has no .pre-commit-config.yaml
+    assert "this session: the agent's" in out
+
+
+def test_status_lists_the_agents_for_a_person(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("status", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"})
+    assert done.returncode == 0
+    assert "scout" in done.stdout and "demo-scout[bot]" in done.stdout and "acme/demo" in done.stdout
+    assert "this session: yours, not an agent's" in done.stdout
+
+
+def test_status_of_an_agent_read_from_a_person_s_session_says_so(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("status", "scout", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"})
+    assert done.returncode == 0
+    assert "this session: not the agent's: start it with nstack agent run scout" in done.stdout
+
+
+def test_status_of_an_unknown_agent_says_how_to_make_it(forge):
+    done = _run("status", "nobody")
+    assert done.returncode == 1 and "nstack agent add nobody" in done.stdout
