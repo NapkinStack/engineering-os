@@ -36,7 +36,8 @@ Rules:
       hand, which Copier would misread; `nstack update --forge` changes it. A remote on another
       known public forge is said, never judged: a mirror is a choice
   N1  information, never a gap (D91): a published version newer than the project's, read from
-      the registry — the one place a project learns of it. No other command opens a connection
+      the registry — the one place a project learns of it. Elsewhere, only `nstack update` asks
+      it, whether the version it lays is published yet (D201)
   G1-G21  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, G21 outside `approval: agent`, and on a private one G1-G5, G12, G13, G17,
           G18, G20 and G21 name the GitHub plan or option required
@@ -549,17 +550,35 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
     return results
 
 
-def _latest() -> str | None:
-    """The latest version the registry publishes, or None when it did not answer."""
-    registry = (os.environ.get("NSTACK_REGISTRY_URL") or "https://pypi.org").rstrip("/")
-    request = urllib.request.Request(f"{registry}/pypi/napkinstack/json",
+def registry() -> str:
+    return (os.environ.get("NSTACK_REGISTRY_URL") or "https://pypi.org").rstrip("/")
+
+
+def _page() -> dict | None:
+    """The registry's page of napkinstack, or None when it did not answer."""
+    request = urllib.request.Request(f"{registry()}/pypi/napkinstack/json",
                                      headers={"Accept": "application/json", "User-Agent": f"nstack/{__version__}"})
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
-            version = str(json.load(response)["info"]["version"])
-    except (OSError, ValueError, KeyError, TypeError):
+            page = json.load(response)
+    except (OSError, ValueError):
+        return None
+    return page if isinstance(page, dict) else None
+
+
+def _latest() -> str | None:
+    """The latest version the registry publishes, or None when it did not answer."""
+    try:
+        version = str((_page() or {})["info"]["version"])
+    except (KeyError, TypeError):
         return None
     return version if PUBLISHED.fullmatch(f"v{version}") else None
+
+
+def listed(version: str) -> bool | None:
+    """Whether the registry lists this version (D201), or None when it did not answer."""
+    releases = (_page() or {}).get("releases")
+    return version in releases if isinstance(releases, dict) else None
 
 
 def _number(version: str) -> tuple[int, ...]:

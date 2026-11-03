@@ -8,6 +8,7 @@ workstation on git 2.56.
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -86,3 +87,30 @@ def test_copier_s_old_git_warning_is_not_shown(old, capfd):
     project.update(old, "HEAD")
     seen = capfd.readouterr()
     assert "Make sure Git >= 2.24" not in seen.out + seen.err
+
+
+# --- D201: an update to a version the registry does not list yet says the CI will fail ---
+# On the third project, 2026-11-03, an update pull request to v0.24.0 was opened from an engine run
+# from its sources, before the release was approved: its CI said only uv's "No solution found".
+
+def _registry(tmp_path, monkeypatch, *versions: str) -> None:
+    page = tmp_path / "registry" / "pypi" / "napkinstack"
+    page.mkdir(parents=True)
+    (page / "json").write_text(json.dumps({"info": {"version": versions[-1]},
+                                           "releases": {version: [] for version in versions}}), encoding="utf-8")
+    monkeypatch.setenv("NSTACK_REGISTRY_URL", (tmp_path / "registry").as_uri())
+
+
+@pytest.mark.parametrize("listed, said", [(("0.15.1",), True), (("0.15.1", "0.16.0"), False), (None, False)],
+                         ids=["not listed: said", "listed: silent", "no answer: silent"])
+def test_an_update_to_a_version_the_registry_does_not_list_says_the_ci_will_fail(old, tmp_path, monkeypatch, capsys,
+                                                                                 listed, said):
+    if listed:
+        _registry(tmp_path, monkeypatch, *listed)
+    capsys.readouterr()
+    assert project.update(old, "v0.16.0") == 0
+    out = capsys.readouterr().out
+    note = "v0.16.0 is not on PyPI yet: this project's CI installs its engine from there"
+    assert (note in out) is said, out
+    if said:
+        assert "napkinstack/0.16.0/" in out and "Action:" in out, out

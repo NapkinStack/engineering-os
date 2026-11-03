@@ -326,6 +326,13 @@ printf "_commit: 'v0.4.0'\n_src_path: '%s'\n" "$URL" > "$EI/project/.copier-answ
 # would say the version does not exist. The package's own page is read again (D119).
 engine v0.4.0 "$URL" | grep -qxF 'uv tool install napkinstack==0.4.0 --refresh-package napkinstack --with-executables-from pre-commit' \
   || { echo "FAIL: a published version is not installed from PyPI, read afresh."; engine v0.4.0 "$URL"; exit 1; }
+# D201: a version not yet on PyPI — its release awaiting approval — failed with uv's words alone.
+if OUT=$(UV_FAILS=1 engine v0.4.0 "$URL"); then
+  echo "FAIL: a published version that cannot be installed did not fail."; echo "$OUT"; exit 1
+fi
+grep_text "$OUT" -qF "FAIL [nstack] napkinstack 0.4.0 could not be installed from PyPI" \
+  && grep_text "$OUT" -qF "pypi.org/project/napkinstack/0.4.0/" && ! grep_text "$OUT" -qF "git+" \
+  || { echo "FAIL: a version not on PyPI is not explained, or fell back to the repository."; echo "$OUT"; exit 1; }
 OUT=$(engine v0.4.0-3-g1a2b3c4 "$URL")
 grep_text "$OUT" -qF "::warning::UNPUBLISHED NapkinStack: $URL@1a2b3c4" \
   && grep_text "$OUT" -qF "uv tool install napkinstack @ git+$URL@1a2b3c4" \
