@@ -22,6 +22,31 @@ a patch.
 
 ---
 
+## v0.24.0 — 2026-11-03
+
+D199 and D200, from a reviewer agent on the third project: an agent knows who it is, and its tool works from the first run. D196 tried on the forge: two clicks.
+
+This is a minor version: a new command, `nstack agent status`, and a kernel line. Nothing green turns red.
+
+**In the engine**
+
+- **`nstack agent run` says what the agent gets** (D199): as it starts, on the error output, what is removed — the person's tokens, SSH agent and git configuration — and what is kept: the agent tool's own configuration, and the person's files. The agent's own output is untouched.
+- **For `claude`, settings of the agent's own** (D199, D200): `agent run` adds `--settings <agent folder>/claude-settings.json`. When the person's sandbox is on, it lets the agent reach the forge — on github.com, the host of a run's logs too — and write its `gh` folder, and sets `GIT_HTTP_PROXY_AUTHMETHOD=basic`. It never turns the sandbox off, nor touches a hook or a permission. Given the person's own `--settings`, it adds none and names the hosts their sandbox must open.
+- **`nstack agent status [name]`** (D199): for an agent, who it is, whether this session is its, its `gh` and its hooks; for a person, the agents of the workstation.
+
+**In your project** — 4 files, text
+
+- **`.copier-answers.yml`**: `_commit`.
+- **`AGENTS.md`** (D199): when `NSTACK_AGENT` is set, the agent is an nstack agent, and `nstack agent status` says which.
+- **`.nstack/handbook/INSTALL.md`** (D199, D200): the agent's tool keeps the person's configuration; what the settings open.
+- **`.nstack/handbook/07-governance.md`** (D199): the one test a person's guard hook against `gh` needs to let an agent's own through.
+
+**Migration**
+
+- **A guard hook of yours that refuses `gh`** refuses an agent's too, until it takes the test in `07-governance.md` §7.
+
+---
+
 ## v0.23.0 — 2026-11-02
 
 PDR-0022's third part, D196 and D198: an agent gets its own identity in one command, and its clone runs the project's hooks. D197: the pages say what the engine does, and the kernel no longer has an agent wait for approval before writing.
