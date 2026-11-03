@@ -229,6 +229,10 @@ def build_parser() -> argparse.ArgumentParser:
     tk = ags.add_parser("token", help="prints a token of the agent's App, for this repository, valid one hour")
     tk.add_argument("name")
     tk.set_defaults(func=lambda a: agent.token(a.name))
+    st = ags.add_parser("status", help="who this agent is — its App, repository, clone, gh and hooks; "
+                                       "for a person, the agents on this workstation")
+    st.add_argument("name", nargs="?", help="an agent's name (default: this session's agent, NSTACK_AGENT)")
+    st.set_defaults(func=lambda a: agent.status(a.name))
     ac = ags.add_parser("credential", help="git's credential helper, set in the agent's clone")
     ac.add_argument("name")
     ac.add_argument("operation")

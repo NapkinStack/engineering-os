@@ -335,6 +335,10 @@ table above are made precise.
   who pushes, not what. A secret is caught
   before it leaves the workstation; `--no-verify` skips a hook, so CI's scan of the history stays
   the barrier.
+- **The agent's tool keeps the person's configuration** (D199): Claude Code, started by
+  `nstack agent run`, reads `~/.claude` — its sandbox, hooks and permissions. The command says so as
+  it starts, gives Claude Code settings of the agent's own that open the forge to a sandbox that is
+  on, and `nstack agent status` tells an agent who it is.
 
 ## Rejected alternatives
 
