@@ -48,6 +48,7 @@ PERSONAL = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRIS
             "SSH_AUTH_SOCK", "GIT_ASKPASS", "SSH_ASKPASS", "GIT_SSH", "GIT_SSH_COMMAND", "GIT_PROXY_COMMAND",
             "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")  # without the count, git reads no GIT_CONFIG_KEY_n
 REFUSED_AUTH = {"login", "logout", "refresh", "setup-git", "switch"}  # what would keep or change a login
+CI_LOGS = "results-receiver.actions.githubusercontent.com"  # where github.com serves a run's logs
 
 
 def _api() -> str:
@@ -474,15 +475,23 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
     return 0
 
 
+def _hosts() -> list[str]:
+    """What the agent reaches: the forge's web and API hosts, and on github.com the host of a run's
+    logs (D200) — the API sends `gh run view --log` there. A job's own log goes to Azure blob
+    storage, left closed: opening it would open every Azure account to the agent."""
+    hosts = {host for host in (urllib.parse.urlsplit(_web()).hostname, urllib.parse.urlsplit(_api()).hostname) if host}
+    if "github.com" in hosts:
+        hosts.add(CI_LOGS)
+    return sorted(hosts)
+
+
 def _claude_settings(name: str) -> Path:
     """Claude Code's settings of the agent's own, added to the person's (D199): their sandbox, when
     on, cuts the forge — the agent's git and gh go nowhere — and lets it write nowhere outside its
-    clone, gh's folder included. This opens the forge's hosts and that folder; it never turns the
+    clone, gh's folder included. This opens the agent's hosts and that folder; it never turns the
     sandbox off, nor touches a hook or a permission of theirs."""
     folder = home() / name
-    hosts = sorted({host for host in (urllib.parse.urlsplit(_web()).hostname, urllib.parse.urlsplit(_api()).hostname)
-                    if host})
-    settings = {"sandbox": {"network": {"allowedDomains": hosts}, "filesystem": {"allowWrite": [str(folder / "gh")]}},
+    settings = {"sandbox": {"network": {"allowedDomains": _hosts()}, "filesystem": {"allowWrite": [str(folder / "gh")]}},
                 # git behind the sandbox's proxy fails "Proxy CONNECT aborted" without it
                 "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic"}}
     path = folder / "claude-settings.json"
@@ -553,8 +562,8 @@ def run(name: str, command: list[str]) -> int:
          "  - the agent checks who it is with: nstack agent status", sys.stderr)
     if Path(command[0]).name.lower() in ("claude", "claude.exe", "claude.cmd"):
         if any(arg == "--settings" or arg.startswith("--settings=") for arg in command[1:]):
-            _say("  - claude: your --settings is kept; give it the forge's hosts in sandbox.network.allowedDomains "
-                 "if your sandbox is on.", sys.stderr)
+            _say(f"  - claude: your --settings is kept; if your sandbox is on, its sandbox.network.allowedDomains "
+                 f"needs {', '.join(_hosts())}.", sys.stderr)
         else:
             command = [command[0], "--settings", str(_claude_settings(name)), *command[1:]]
             _say(f"  - claude: --settings {home() / name / 'claude-settings.json'}, added to yours: your sandbox, "

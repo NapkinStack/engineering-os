@@ -233,7 +233,7 @@ It says so as it starts, in a few lines on the error output — the agent's own 
 reads its own configuration from your home (`~/.claude` for Claude Code): your sandbox, your
 hooks, your permissions apply to the agent too. For Claude Code, `nstack agent run <name> -- claude`
 adds `--settings` with a file of the agent's own: when your sandbox is on, it lets the agent reach
-the forge and write its `gh` folder, and sets `GIT_HTTP_PROXY_AUTHMETHOD=basic` for git behind the
+the forge — on github.com, the host of a run's logs too — and write its `gh` folder, and sets `GIT_HTTP_PROXY_AUTHMETHOD=basic` for git behind the
 sandbox's proxy — nothing more; it never turns the sandbox off, and settings your organisation
 manages still win over it. Given your own `--settings`, it adds none and says so. A hook of yours that refuses `gh` — against your own
 account — lets an agent's session through only when its `gh` is the App's

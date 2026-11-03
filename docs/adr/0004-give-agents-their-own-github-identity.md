@@ -339,6 +339,9 @@ table above are made precise.
   `nstack agent run`, reads `~/.claude` — its sandbox, hooks and permissions. The command says so as
   it starts, gives Claude Code settings of the agent's own that open the forge to a sandbox that is
   on, and `nstack agent status` tells an agent who it is.
+- **On github.com, the CI's logs too** (D200): the API sends a run's logs to
+  `results-receiver.actions.githubusercontent.com`, so those settings open that host as well; a
+  job's own log goes to Azure blob storage, left closed — opening it would open every Azure account.
 
 ## Rejected alternatives
 
