@@ -2,7 +2,7 @@
 
 - **Status**: Accepted (2026-11-01, by the maintainer: "ok on adopte cette philosophie dans tout
   nstack. go PDR-0022"), from the reading of #328 and of a delivered deliverable still shown as
-  held on the third project. Built by D193 (v0.21.0), D194 (v0.22.0) and D196. §9 begun on
+  held on the third project. Built by D193 (v0.21.0), D194 (v0.22.0) and D196 (v0.23.0), tried on the forge on 2026-11-03. §9 begun on
   2026-11-02 (D197, the maintainer's word): the kernel's wait for a person's approval before the
   first file is removed — the cycle approved the scope, the merge approves the change
 - **Date**: 2026-11-01
@@ -103,7 +103,8 @@ agent's word alone never counts as proof.
 7. **`nstack plan` opens with what needs a person**: a trial, a word owed, a cycle at its end, and later a
    change waiting for a human approver. Empty, it says *nothing needs you*, and only when that is certain
    (clarified for D194: a decision due is an agent's to read, P8, and only a missed one comes to a person).
-8. **Joining costs one gesture.** Giving an agent its identity becomes a command and one click at the forge.
+8. **Joining costs one gesture.** Giving an agent its identity becomes a command and one click at the forge
+   (clarified for D196: two clicks — the forge installs no App from its manifest, ADR-0004).
 9. **The rest of NapkinStack is read against P8**: each manual gesture a playbook asks for is automated,
    removed, or kept with its reason.
 
@@ -132,8 +133,8 @@ A shallow clone or an unreachable remote: the plan says it could not read, never
 - [ ] Given a closure, then one pull request writes the states from the records.
 - [ ] Given a trial, a word owed or a cycle at its end, then the plan opens with it; given none, it says
       *nothing needs you*; given what it cannot read, it says it cannot say.
-- [ ] Given a new agent, then one command and one click give it a working identity, isolated from any
-      other account on the workstation.
+- [ ] Given a new agent, then one command and the forge's two clicks give it a working identity, isolated
+      from any other account on the workstation (tried on the third project on 2026-11-03: D196's row).
 
 ---
 
