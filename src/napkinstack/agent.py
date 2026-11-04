@@ -499,13 +499,30 @@ def _claude_settings(name: str) -> Path:
     return path
 
 
+def _who_commits(agents: list[str]) -> str:
+    """Who a session without NSTACK_AGENT commits as (D202, #352): an App made by hand commits as a
+    bot, and an agent told it is the person may do what a person may — approve, own the code."""
+    found = {key: subprocess.run(["git", "config", key], capture_output=True, text=True).stdout.strip()
+             for key in ("user.name", "user.email")}
+    bot = next((value for value in found.values() if re.search(r"\[bot\](@|$)", value)), None)
+    if bot is None:
+        return "yours, not an agent's (NSTACK_AGENT is not set)"
+    for one in agents:
+        mine = f"{(_load(one) or {}).get('slug')}[bot]"
+        if bot == mine or f"+{mine}@" in bot:
+            return (f"commits as {bot}, agent {one}'s App, without nstack agent run: its gh here is not the agent's; "
+                    f"start it with nstack agent run {one} -- <command>")
+    return (f"commits as {bot}, an App not made by nstack agent add: nstack cannot say what its gh and hooks do; "
+            "it is an agent, never the person")
+
+
 def status(name: str | None) -> int:
     """`nstack agent status`: who the agent is, for the agent itself; the agents here, for a person."""
     session = os.environ.get("NSTACK_AGENT")
     name = name or session
     if not name:
         agents = sorted(path.parent.name for path in home().glob("*/app.json")) if home().is_dir() else []
-        print("The agents on this workstation — this session: yours, not an agent's (NSTACK_AGENT is not set).")
+        print(f"The agents on this workstation — this session: {_who_commits(agents)}.")
         if not agents:
             print("No agent on this workstation.\n      Action: at a project's root, nstack agent add <name>")
         for one in agents:

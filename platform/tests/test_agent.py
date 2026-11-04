@@ -465,9 +465,19 @@ def test_the_agent_s_folder_is_the_person_s_alone(forge, project):
 
 # D199: an agent knows what it is, and its tool works from the first run.
 
-def _run(*args: str, env: dict | None = None) -> subprocess.CompletedProcess:
+def _run(*args: str, env: dict | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, "-m", "napkinstack", "agent", *args], capture_output=True, text=True,
-                          env=env)
+                          env=env, cwd=cwd)
+
+
+def _checkout(tmp_path, name: str, email: str) -> Path:
+    """A checkout whose own git configuration names who commits there."""
+    root = tmp_path / "checkout"
+    root.mkdir()
+    _git("init", "-q", cwd=root)
+    _git("config", "--local", "user.name", name, cwd=root)
+    _git("config", "--local", "user.email", email, cwd=root)
+    return root
 
 
 def _claude_stand_in(tmp_path, monkeypatch) -> None:
@@ -562,12 +572,31 @@ def test_status_tells_an_agent_who_it_is(forge, project):
     assert "this session: the agent's" in out
 
 
-def test_status_lists_the_agents_for_a_person(forge, project):
+def test_status_lists_the_agents_for_a_person(forge, project, tmp_path):
     assert agent.add(project, "scout", browser=Browser()) == 0
-    done = _run("status", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"})
+    done = _run("status", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"},
+                cwd=_checkout(tmp_path, "P", "p@example.com"))
     assert done.returncode == 0
     assert "scout" in done.stdout and "demo-scout[bot]" in done.stdout and "acme/demo" in done.stdout
     assert "this session: yours, not an agent's" in done.stdout
+
+
+# D202 (#352): a session under an App made by hand commits as a bot, NSTACK_AGENT unset; it was
+# told "yours, not an agent's", and an agent that believes it acts for the person may approve.
+@pytest.mark.parametrize("name, email, said", [
+    ("napkinstack-agent[bot]", "1+napkinstack-agent[bot]@users.noreply.github.com",
+     "this session: commits as napkinstack-agent[bot], an App not made by nstack agent add"),
+    ("Someone", "2+other[bot]@users.noreply.github.com",
+     "this session: commits as 2+other[bot]@users.noreply.github.com, an App not made by nstack agent add"),
+    ("demo-scout[bot]", "3+demo-scout[bot]@users.noreply.github.com",
+     "this session: commits as demo-scout[bot], agent scout's App, without nstack agent run"),
+], ids=["a hand-made App", "named by its email", "an agent's clone, not started as it"])
+def test_a_session_that_commits_as_an_app_is_never_called_the_person_s(forge, project, tmp_path, name, email, said):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("status", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"},
+                cwd=_checkout(tmp_path, name, email))
+    assert done.returncode == 0, done.stdout
+    assert said in done.stdout and "yours, not an agent's" not in done.stdout, done.stdout
 
 
 def test_status_of_an_agent_read_from_a_person_s_session_says_so(forge, project):
