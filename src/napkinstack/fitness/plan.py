@@ -242,7 +242,7 @@ def _cycle_said(root: Path, path: Path, data: dict | None) -> str:
         # Accepted while another cycle ran: C5 keeps it proposed, the running cycle's closure starts it (#354).
         running = accepted_cycle(root)
         then = (f"starts at {running[0].stem}'s closure" if running
-                else "no cycle runs: its status: accepted, and its start the day it starts")
+                else "no cycle runs: set its status: accepted and its start")
         return f"accepted on {word}, {then} · {counts}"
     key, said = ("end", "in progress, ends") if status == "accepted" else ("start", "proposed, starts")
     date = as_date(data.get(key))
@@ -442,12 +442,19 @@ def needs_you(root: Path, today: datetime.date | None = None) -> list[str] | str
     if judged != 0:
         return "the plan's checks fail, below"
     read = [(path, read_front_matter(path)[0]) for path in cycle_files(root)]
-    # A proposed cycle carrying accepted_on has the decider's word: the closure sets it accepted (#354).
-    lines = [f"{path.stem} waits for your word: its status: accepted, in a pull request you approve"
-             for path, data in read if data.get("status") == "proposed" and "accepted_on" not in data]
     cycle = accepted_cycle(root)
-    accepted_next = any(data.get("status") == "proposed" and "accepted_on" in data for _, data in read)
-    if cycle is None and not lines and not accepted_next:
+    lines = []
+    for path, data in read:
+        if data.get("status") != "proposed":
+            continue
+        if "accepted_on" not in data:
+            lines.append(f"{path.stem} waits for your word: its status: accepted, in a pull request you approve")
+        elif cycle is None:
+            # The word was given while a cycle ran (#354); none runs now — the closure did not start it, or the
+            # project stopped or was reframed since: setting it accepted is the decider's to approve.
+            lines.append(f"{path.stem} was accepted on {as_date(data.get('accepted_on'))} and no cycle runs: "
+                         "its status: accepted and its start, in a pull request you approve")
+    if cycle is None and not lines:
         lines.append("no cycle is open: frame the next one with your agent (.nstack/forms/cycle.md)")
     if cycle is not None:
         path, data = cycle

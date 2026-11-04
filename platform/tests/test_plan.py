@@ -832,14 +832,21 @@ def test_a_next_cycle_accepted_while_one_runs_waits_for_its_closure_not_for_the_
     assert "02-next waits for your word" in needing(tmp_path, capsys)
 
 
-def test_a_cycle_accepted_with_none_running_is_the_closure_s_to_set_not_a_new_framing(tmp_path, capsys):
-    """The closure that should have set it `accepted` did not: no person's gesture, no new framing —
-    the view names what is left to write."""
-    framed(tmp_path, cycles={"01-first.md": closed() | {"ended_on": "2026-11-03"},
-                             "02-next.md": cycle(status="proposed", accepted_on="2026-11-01")})
-    assert needing(tmp_path, capsys) == "Nothing needs you.\n"
+@pytest.mark.parametrize("ended", [closed(), closed(status="stopped", outcome="stopped"),
+                                   closed(status="stopped", outcome="reframed")], ids=["closed", "stopped", "reframed"])
+def test_a_cycle_accepted_with_none_running_needs_the_decider_s_approval_never_a_new_framing(tmp_path, capsys, ended):
+    """No cycle runs — the closure did not start it, or the project stopped or was reframed since the word: the
+    pull request setting it accepted is the decider's to approve, never "frame the next one". Two of them are
+    both listed: the decider chooses. A date written as YAML reads as one."""
+    framed(tmp_path, cycles={"01-first.md": ended | {"ended_on": "2026-11-03"},
+                             "02-next.md": cycle(status="proposed", accepted_on=datetime.date(2026, 11, 1))})
+    out = needing(tmp_path, capsys)
+    assert out == ("Needs you (1):\n  02-next was accepted on 2026-11-01 and no cycle runs: its status: accepted "
+                   "and its start, in a pull request you approve\n"), out
     assert plan.project(tmp_path)[2].startswith(
-        "  02-next   accepted on 2026-11-01, no cycle runs: its status: accepted, and its start the day it starts · ")
+        "  02-next   accepted on 2026-11-01, no cycle runs: set its status: accepted and its start · ")
+    write(tmp_path, "cycles/03-other.md", cycle(status="proposed", accepted_on="2026-11-02"))
+    assert needing(tmp_path, capsys).startswith("Needs you (2):")
 
 
 def test_two_accepted_cycles_are_never_nothing(tmp_path, capsys):

@@ -404,11 +404,15 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         return  # unframed: K1 to K3 and K5 bound work inside a cycle, and there is none (PDR-0007)
     cycle = plan.accepted_cycle(root)
     if cycle is None:
-        # The charter is accepted: sending the reader back to framing would be false (D47).
+        # The charter is accepted: sending the reader back to framing would be false (D47) — and so would
+        # framing a cycle the decider already accepted while the last one ran (#354).
+        waiting = next((path for path in plan.cycle_files(root)
+                        if (data := plan.read_front_matter(path)[0]) and data.get("status") == "proposed"
+                        and "accepted_on" in data), None)
+        action = (f"set {waiting.name}'s status: accepted and its start, in a pull request the decider approves"
+                  if waiting else "open the next cycle with your agent (.nstack/forms/cycle.md)")
         fail("K1", "no accepted cycle: the charter is accepted, and no cycle is open.\n"
-                   "      Action: open the next cycle with your agent "
-                   "(.nstack/forms/cycle.md), or add the "
-                   f"{LABEL} label with a justification.")
+                   f"      Action: {action}, or add the {LABEL} label with a justification.")
         return
     path, data = cycle
     end = plan.as_date(data.get("end"))
