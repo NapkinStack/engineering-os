@@ -68,6 +68,8 @@ PLAN_CASES = {
     "C3 appetite as a boolean": (lambda r: framed(r, cycles={"01.md": cycle(appetite_weeks=True)}), "C3", True),
     "C3 end not set by the appetite": (lambda r: framed(r, cycles={"01.md": cycle(end=TODAY.isoformat())}), "C3", True),
     "C3 start not a date": (lambda r: framed(r, cycles={"01.md": {**cycle(), "start": "soon"}}), "C3", True),
+    "C3 accepted_on not a date (#354)": (lambda r: framed(r, cycles={"01.md": cycle(), "02.md": cycle(
+        status="proposed", accepted_on="yes")}), "C3", True),
     "C4 no deliverable": (lambda r: framed(r, cycles={"01.md": cycle(deliverables=[])}), "C4", True),
     "C4 invalid id": (lambda r: framed(r, cycles={"01.md": cycle(deliverables=[deliverable(id="X1")])}), "C4", True),
     "C4 id used twice": (lambda r: framed(r, cycles={"01.md": cycle(deliverables=[deliverable(), deliverable()])}), "C4", True),
@@ -814,6 +816,30 @@ def test_a_plan_its_checks_refuse_is_never_nothing(tmp_path, capsys, over):
     with_table(tmp_path, table=EMPTY, **over)
     out = needing(tmp_path, capsys)
     assert "cannot say" in out and "Nothing" not in out and "frame the next" not in out
+
+
+def test_a_next_cycle_accepted_while_one_runs_waits_for_its_closure_not_for_the_decider(tmp_path, capsys):
+    """#354: the decider's word on the next cycle, given while the current one runs, has a field —
+    `accepted_on` on a cycle still proposed, since C5 keeps one accepted cycle at a time. The plan
+    stays compliant, stops asking for the word, and says when the cycle starts."""
+    with_table(tmp_path, table=EMPTY)
+    write(tmp_path, "cycles/02-next.md", cycle(start=TODAY + datetime.timedelta(days=14), status="proposed",
+                                               accepted_on="2026-11-03"))
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+    assert needing(tmp_path, capsys) == "Nothing needs you.\n"
+    assert plan.project(tmp_path)[2].startswith("  02-next   accepted on 2026-11-03, starts at 01-first's closure · ")
+    write(tmp_path, "cycles/02-next.md", cycle(start=TODAY + datetime.timedelta(days=14), status="proposed"))
+    assert "02-next waits for your word" in needing(tmp_path, capsys)
+
+
+def test_a_cycle_accepted_with_none_running_is_the_closure_s_to_set_not_a_new_framing(tmp_path, capsys):
+    """The closure that should have set it `accepted` did not: no person's gesture, no new framing —
+    the view names what is left to write."""
+    framed(tmp_path, cycles={"01-first.md": closed() | {"ended_on": "2026-11-03"},
+                             "02-next.md": cycle(status="proposed", accepted_on="2026-11-01")})
+    assert needing(tmp_path, capsys) == "Nothing needs you.\n"
+    assert plan.project(tmp_path)[2].startswith(
+        "  02-next   accepted on 2026-11-01, no cycle runs: its status: accepted, and its start the day it starts · ")
 
 
 def test_two_accepted_cycles_are_never_nothing(tmp_path, capsys):

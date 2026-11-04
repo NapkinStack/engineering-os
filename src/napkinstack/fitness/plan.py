@@ -9,7 +9,8 @@ Rules:
   C1  front matter readable: a YAML mapping at the top of the file
   C2  charter: status proposed or accepted, a decider who is one named person, at least
       one success criterion
-  C3  cycle: a goal, a known status, appetite_weeks, start and end, end = start + appetite
+  C3  cycle: a goal, a known status, appetite_weeks, start and end, end = start + appetite;
+      accepted_on, when written, a date: the next cycle's acceptance while another runs
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
   C6  a closed or stopped cycle records its outcome and the date it ended, and may record the
@@ -237,6 +238,12 @@ def _cycle_said(root: Path, path: Path, data: dict | None) -> str:
         ended = as_date(data.get("ended_on"))
         outcome = data.get("outcome") if one_of(data.get("outcome"), OUTCOMES[status]) else "outcome unknown (C6)"
         return f"{status} ({outcome})" + (f" on {ended}" if ended else "") + f" · {counts}"
+    if status == "proposed" and (word := as_date(data.get("accepted_on"))):
+        # Accepted while another cycle ran: C5 keeps it proposed, the running cycle's closure starts it (#354).
+        running = accepted_cycle(root)
+        then = (f"starts at {running[0].stem}'s closure" if running
+                else "no cycle runs: its status: accepted, and its start the day it starts")
+        return f"accepted on {word}, {then} · {counts}"
     key, said = ("end", "in progress, ends") if status == "accepted" else ("start", "proposed, starts")
     date = as_date(data.get(key))
     return (f"{said} {date}" if date else said.split(",")[0]) + f" · {counts}"
@@ -435,10 +442,12 @@ def needs_you(root: Path, today: datetime.date | None = None) -> list[str] | str
     if judged != 0:
         return "the plan's checks fail, below"
     read = [(path, read_front_matter(path)[0]) for path in cycle_files(root)]
+    # A proposed cycle carrying accepted_on has the decider's word: the closure sets it accepted (#354).
     lines = [f"{path.stem} waits for your word: its status: accepted, in a pull request you approve"
-             for path, data in read if data.get("status") == "proposed"]
+             for path, data in read if data.get("status") == "proposed" and "accepted_on" not in data]
     cycle = accepted_cycle(root)
-    if cycle is None and not lines:
+    accepted_next = any(data.get("status") == "proposed" and "accepted_on" in data for _, data in read)
+    if cycle is None and not lines and not accepted_next:
         lines.append("no cycle is open: frame the next one with your agent (.nstack/forms/cycle.md)")
     if cycle is not None:
         path, data = cycle
@@ -624,6 +633,8 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
     elif weeks is not None and end != start + datetime.timedelta(weeks=weeks):
         fail("C3", path, f"end {end}: the appetite sets it, start + {weeks} week(s) = "
                          f"{start + datetime.timedelta(weeks=weeks)}")
+    if "accepted_on" in data and as_date(data.get("accepted_on")) is None:
+        fail("C3", path, "accepted_on: the day the decider accepted this cycle, YYYY-MM-DD")
     _check_deliverables(path, data.get("deliverables"), fail)
     if one_of(status, OUTCOMES):
         if not one_of(data.get("outcome"), OUTCOMES[status]):
