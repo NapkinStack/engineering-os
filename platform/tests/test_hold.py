@@ -1261,6 +1261,17 @@ def test_a_criterion_held_by_several_merges_keeps_each_one(shared, capsys):
     assert hold.deliver(alice, "D1", ["1=#7", "1=#8", "1=#7", "#9"], person="@alice") == 0
     assert hold.read(alice, "03-the-window", "D1").criteria == ["1 #7 #8 #9", "2 #9"]
     assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+    landed(alice, 'Revert "part 7 (D1) (#7)" (#10)')  # the first answer of a criterion, not its last
+    hold.refresh(alice)
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == set()
+
+
+def test_each_answer_of_a_criterion_is_checked_not_only_its_last(shared, capsys):
+    alice = clone(shared, "alice")
+    landed(alice, "the work (D1) (#7)")
+    landed(alice, "another's work (D2) (#99)")
+    assert hold.deliver(alice, "D1", ["1=#99", "1=#7"], person="@alice") == 1
+    assert "#99 is no merge of D1" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("given, said", [(["#99"], "#99"), (["nothing"], "nothing"), (["3=#7"], "criterion 3"),
