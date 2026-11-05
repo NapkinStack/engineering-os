@@ -14,6 +14,10 @@ It says nothing about what predates it: the commit that created the repository, 
 everything the repository already held when the record arrived, are not reported. A record
 that greets a project by failing on its own arrival teaches people to ignore it.
 
+A commit the forge lists no pull request for is read from the one its subject names — `(#N)`, or
+`Merge pull request #N` — when that pull request's `merged` event names it: the forge can lose a
+commit's link to its pull request, and a record red for good hides the commit that should turn it red.
+
 It reads from the last commit it recorded, not from the push alone: a push whose run never
 started — CI out of minutes, a runner down — is read by the next run that does. Its last
 success is read from the forge (actions: read); a record that never succeeded reads the push.
@@ -30,6 +34,7 @@ Output:  0 when every commit of the span arrived through a pull request, or when
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -70,6 +75,28 @@ def _exempt(root: Path, commit: str, beginning: str | None) -> str | None:
         return "the first commit of the repository"
     if beginning and _git(root, "merge-base", "--is-ancestor", commit, beginning).returncode == 0:
         return "older than the record itself"
+    return None
+
+
+def _named_pull(root: Path, commit: str, forge: GitHub) -> int | None:
+    """The pull request the commit's subject names — `… (#N)`, as a squash writes it, or `Merge pull
+    request #N`, as a merge does — when the forge says that one merged this commit. The forge can
+    lose a commit's link to its pull request (#356); the pull request's `merged` event keeps the
+    commit it merged — the API version read here no longer has `merge_commit_sha` —, and only the
+    forge writes it: a subject naming another is no proof."""
+    subject = _git(root, "show", "-s", "--format=%s", commit).stdout.strip()
+    named = re.search(r"\(#(\d+)\)$|^Merge pull request #(\d+) ", subject)
+    if not named:
+        return None
+    number = int(named[1] or named[2])
+    for page in range(1, 11):  # oldest first: a busy pull request's merged event is on a later page
+        events = forge.get(f"/issues/{number}/events?per_page=100&page={page}", missing=True)
+        events = events if isinstance(events, list) else []
+        if any(isinstance(event, dict) and event.get("event") == "merged" and event.get("commit_id") == commit
+               for event in events):
+            return number
+        if len(events) < 100:
+            return None
     return None
 
 
@@ -127,12 +154,16 @@ def run(root: Path, span: str, forge: GitHub | None) -> int:
             continue
         try:
             pulls = forge.get(f"/commits/{commit}/pulls")
+            named = None if pulls else _named_pull(root, commit, forge)
         except NotVerified as reason:
             print(f"[W1] commit {commit[:12]}: not verified. Reason: {reason}")
             continue
         checked += 1
         if pulls:
             print(f"Commit {_described(root, commit)}: arrived through a pull request.")
+        elif named:
+            print(f"Commit {_described(root, commit)}: arrived through pull request #{named}, which merged it "
+                  "— the forge lists no pull request for the commit itself.")
         else:
             outside.append(commit)
     for commit in outside:
