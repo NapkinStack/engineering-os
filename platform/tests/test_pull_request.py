@@ -433,6 +433,9 @@ CYCLE_CASES = {
         "FAIL [C1] docs/project/charter.md cannot be read", 1),
     "K1 between two cycles names the cycle (D47)": (lambda r: framed(r, cycles={}), "Deliverable: D1", "",
                                                     "FAIL [K1] no accepted cycle", 1),
+    "K1 names the cycle accepted while the last one ran (#354)": (lambda r: framed(r, cycles={
+        "02-next.md": cycle(status="proposed", accepted_on="2026-11-03")}), "Deliverable: D1", "",
+        "Action: set 02-next.md's status: accepted and its start, in a pull request the decider approves", 1),
     "K2 circuit breaker": (lambda r: framed(r, cycles={"01-first.md": BROKEN}), "Deliverable: D1", "",
                            "FAIL [K2] circuit breaker: 01-first.md ended on", 1),
     # The cycle form: `end` is the first day the cycle is over. K2 let the end date through (D138).
