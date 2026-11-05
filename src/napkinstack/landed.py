@@ -14,6 +14,10 @@ It says nothing about what predates it: the commit that created the repository, 
 everything the repository already held when the record arrived, are not reported. A record
 that greets a project by failing on its own arrival teaches people to ignore it.
 
+A commit the forge lists no pull request for is read from the one its subject names — `(#N)`, or
+`Merge pull request #N` — when that pull request's `merged` event names it: the forge can lose a
+commit's link to its pull request, and a record red for good hides the commit that should turn it red.
+
 It reads from the last commit it recorded, not from the push alone: a push whose run never
 started — CI out of minutes, a runner down — is read by the next run that does. Its last
 success is read from the forge (actions: read); a record that never succeeded reads the push.
@@ -85,10 +89,15 @@ def _named_pull(root: Path, commit: str, forge: GitHub) -> int | None:
     if not named:
         return None
     number = int(named[1] or named[2])
-    events = forge.get(f"/issues/{number}/events?per_page=100", missing=True)
-    merged = any(isinstance(event, dict) and event.get("event") == "merged" and event.get("commit_id") == commit
-                 for event in (events if isinstance(events, list) else []))
-    return number if merged else None
+    for page in range(1, 11):  # oldest first: a busy pull request's merged event is on a later page
+        events = forge.get(f"/issues/{number}/events?per_page=100&page={page}", missing=True)
+        events = events if isinstance(events, list) else []
+        if any(isinstance(event, dict) and event.get("event") == "merged" and event.get("commit_id") == commit
+               for event in events):
+            return number
+        if len(events) < 100:
+            return None
+    return None
 
 
 def _described(root: Path, commit: str) -> str:
