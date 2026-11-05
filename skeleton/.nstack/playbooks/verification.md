@@ -108,7 +108,11 @@ mutant. A mutant can make the code loop forever, so it is never run unbounded:
 
 Test data only: never a real user's data, never a secret on a screenshot (`security.md`).
 Evidence lives where the whole team sees it — a CI artefact, or an image attached to the
-pull request.
+pull request. **Where checks are attested**, no CI run keeps an artefact, and an agent's identity
+cannot attach an image through the forge's API: commit the few screenshots that prove a criterion
+under the module's `docs/evidence/<deliverable>/`, made-up data only, and link them from the sheet
+at the head's commit. The `check-added-large-files` hook bounds each file; a video stays a
+local file the sheet names, with what it shows.
 
 A user-facing change covers the eight states of an interface (`ux.md`), or says which are
 out of scope. A state missing from the sheet is a gap to report.

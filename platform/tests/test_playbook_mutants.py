@@ -31,3 +31,11 @@ def test_the_source_is_restored_on_every_exit():
 
 def test_the_report_counts_killed_survived_and_timed_out():
     assert "killed, survived, timed out" in text()
+
+
+def test_an_attested_project_s_screenshots_have_a_route_and_its_bound_is_the_hook_s():
+    """#341: with attested checks no CI artefact holds a sheet's screenshots, and an agent's identity
+    cannot attach an image through the API. The playbook names the route — committed beside the
+    module, test data only —, bounded by a hook every project already runs."""
+    assert "docs/evidence/" in text() and "check-added-large-files" in text()
+    assert "check-added-large-files" in (ROOT / "skeleton/.pre-commit-config.yaml").read_text(encoding="utf-8")
