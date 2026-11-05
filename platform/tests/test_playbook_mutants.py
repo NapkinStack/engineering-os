@@ -35,7 +35,8 @@ def test_the_report_counts_killed_survived_and_timed_out():
 
 def test_an_attested_project_s_screenshots_have_a_route_and_its_bound_is_the_hook_s():
     """#341: with attested checks no CI artefact holds a sheet's screenshots, and an agent's identity
-    cannot attach an image through the API. The playbook names the route — committed beside the
-    module, test data only —, bounded by a hook every project already runs."""
-    assert "docs/evidence/" in text() and "check-added-large-files" in text()
+    cannot attach an image through the API. The playbook names the route — committed on the
+    verifier's own branch, never the change's — its head stays the one verified (T4), its authors its own
+    (T2) —, made-up data only, each file bounded by a hook every project already runs."""
+    assert "`evidence/<pull request>`, never on the change's branch" in text() and "check-added-large-files" in text()
     assert "check-added-large-files" in (ROOT / "skeleton/.pre-commit-config.yaml").read_text(encoding="utf-8")
