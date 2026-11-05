@@ -24,12 +24,16 @@ class Forge:
     """The pull requests the forge reports for a commit, by sha, and the record's last run that
     succeeded, when there is one."""
 
-    def __init__(self, pulls: dict[str, list], recorded: str | None = None) -> None:
-        self.pulls, self.recorded = pulls, recorded
+    def __init__(self, pulls: dict[str, list], recorded: str | None = None, merged: dict[int, str] | None = None) -> None:
+        self.pulls, self.recorded, self.merged = pulls, recorded, merged or {}
 
     def get(self, path: str, missing: bool = False):
         if path.startswith("/actions/workflows/"):
             return {"workflow_runs": [{"head_sha": self.recorded}] if self.recorded else []}
+        if path.startswith("/issues/"):  # a pull request's events, by number: its merged event, or 404
+            number = int(path.split("/")[2])
+            return ([{"event": "labeled", "commit_id": None}, {"event": "merged", "commit_id": self.merged[number]},
+                     {"event": "closed", "commit_id": None}] if number in self.merged else None)
         return self.pulls.get(path.removeprefix("/commits/").removesuffix("/pulls"), [])
 
 
@@ -70,6 +74,28 @@ def test_a_commit_that_arrived_through_a_pull_request_passes(tmp_path, capsys):
     head = commit(tmp_path, "through a pull request")
     assert landed.run(tmp_path, f"{base}..{head}", Forge({head: [{"number": 7}]})) == 0
     assert "arrived through a pull request" in capsys.readouterr().out
+
+
+def test_a_merge_whose_link_the_forge_lost_is_read_from_the_pull_request_it_names(tmp_path, capsys):
+    """#356: the forge answered no pull request for a squash merge of #645 — its commit→pull request
+    link lost —, and W1 failed on it at every later push. The pull request the subject names says
+    which commit it merged: when it is this one, the commit arrived through it."""
+    _, base = repository(tmp_path)
+    head = commit(tmp_path, "PDR-0006: the product is named Kitokey (#645)")
+    assert landed.run(tmp_path, f"{base}..{head}", Forge({}, merged={645: head})) == 0, capsys.readouterr().out
+    assert "arrived through pull request #645, which merged it" in capsys.readouterr().out
+
+
+def test_a_subject_naming_a_pull_request_that_did_not_merge_it_is_still_recorded(tmp_path, capsys):
+    """Anyone may write `(#645)`; only the forge says what #645 merged. Another commit, or no such
+    pull request, and the commit is recorded as before."""
+    _, base = repository(tmp_path)
+    other = commit(tmp_path, "the real merge (#645)")
+    head = commit(tmp_path, "straight to main (#645)")
+    assert landed.run(tmp_path, f"{other}..{head}", Forge({}, merged={645: other})) == 1
+    assert "FAIL [W1]" in capsys.readouterr().out
+    assert landed.run(tmp_path, f"{other}..{head}", Forge({})) == 1
+    assert "FAIL [W1]" in capsys.readouterr().out
 
 
 def test_the_record_says_nothing_about_what_predates_it(tmp_path, capsys):

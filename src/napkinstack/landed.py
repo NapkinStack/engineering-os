@@ -30,6 +30,7 @@ Output:  0 when every commit of the span arrived through a pull request, or when
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -71,6 +72,23 @@ def _exempt(root: Path, commit: str, beginning: str | None) -> str | None:
     if beginning and _git(root, "merge-base", "--is-ancestor", commit, beginning).returncode == 0:
         return "older than the record itself"
     return None
+
+
+def _named_pull(root: Path, commit: str, forge: GitHub) -> int | None:
+    """The pull request the commit's subject names — `… (#N)`, as a squash writes it, or `Merge pull
+    request #N`, as a merge does — when the forge says that one merged this commit. The forge can
+    lose a commit's link to its pull request (#356); the pull request's `merged` event keeps the
+    commit it merged — the API version read here no longer has `merge_commit_sha` —, and only the
+    forge writes it: a subject naming another is no proof."""
+    subject = _git(root, "show", "-s", "--format=%s", commit).stdout.strip()
+    named = re.search(r"\(#(\d+)\)$|^Merge pull request #(\d+) ", subject)
+    if not named:
+        return None
+    number = int(named[1] or named[2])
+    events = forge.get(f"/issues/{number}/events?per_page=100", missing=True)
+    merged = any(isinstance(event, dict) and event.get("event") == "merged" and event.get("commit_id") == commit
+                 for event in (events if isinstance(events, list) else []))
+    return number if merged else None
 
 
 def _described(root: Path, commit: str) -> str:
@@ -127,12 +145,16 @@ def run(root: Path, span: str, forge: GitHub | None) -> int:
             continue
         try:
             pulls = forge.get(f"/commits/{commit}/pulls")
+            named = None if pulls else _named_pull(root, commit, forge)
         except NotVerified as reason:
             print(f"[W1] commit {commit[:12]}: not verified. Reason: {reason}")
             continue
         checked += 1
         if pulls:
             print(f"Commit {_described(root, commit)}: arrived through a pull request.")
+        elif named:
+            print(f"Commit {_described(root, commit)}: arrived through pull request #{named}, which merged it "
+                  "— the forge lists no pull request for the commit itself.")
         else:
             outside.append(commit)
     for commit in outside:
