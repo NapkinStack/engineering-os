@@ -38,9 +38,10 @@ committers and co-authors — read from GitHub's noreply addresses; another addr
 account — and the sessions its commits name in an `Agent-Session:` trailer.
 It is a declaration checked against the history, not a proof of identity: it refuses the
 session that verifies its own work, not one that lies about its name (ADR-0004, measurement).
-A person named must have left a hand on the pull request, read in one GraphQL query from PR_NUMBER,
+Each person named must have left a hand on the pull request, read in one GraphQL query from PR_NUMBER,
 GITHUB_REPOSITORY and GH_TOKEN or GITHUB_TOKEN (#363): an author who writes another's name over results
-of its own is refused. Without a number — a run on a workstation — it is not read; unread, it is said.
+of its own is refused. Without a number — a run on a workstation, or under nstack attest — it is not
+read; on the forge's run, unread is said as a warning, never failed.
 Output:  0 when every applicable rule passes, 1 otherwise.
 """
 
@@ -274,9 +275,10 @@ TRACES = """query($owner: String!, $name: String!, $number: Int!) {
 def traces(root: Path) -> set[str] | str | None:
     """The accounts whose hand is on the pull request — its description's editors, its reviewers,
     its commenters —, lower case and without `[bot]`; why they are not read; None with no pull
-    request number, on a workstation."""
+    request number, on a workstation, and while `nstack attest` records the head: the hand is
+    judged on the forge's run, which a review or an edit of the description starts again."""
     number = os.environ.get("PR_NUMBER", "").strip()
-    if not number.isdigit():
+    if not re.fullmatch(r"[0-9]+", number) or os.environ.get("NSTACK_ATTESTING"):
         return None
     repository = os.environ.get("GITHUB_REPOSITORY") or project.answer(root, "github_repo") or ""
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
@@ -289,15 +291,18 @@ def traces(root: Path) -> set[str] | str | None:
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "nstack"})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
-            found = json.loads(response.read())["data"]["repository"]["pullRequest"]
+            answer = json.loads(response.read())
+        if answer.get("errors"):  # a field refused leaves the rest of the answer partial
+            return f"the forge refused part of the query ({answer['errors'][0].get('type', 'error')})"
+        found = answer["data"]["repository"]["pullRequest"]
         hands = [(found[kind], key) for kind, key in (("reviews", "author"), ("comments", "author"),
                                                        ("userContentEdits", "editor"))]
-    except (OSError, ValueError, KeyError, TypeError) as error:
+        if any(connection["totalCount"] > len(connection["nodes"]) for connection, _ in hands):
+            return "more traces than one page"
+        return {node[key]["login"].lower().removesuffix("[bot]") for connection, key in hands
+                for node in connection["nodes"] if node and node.get(key)}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
         return f"the forge did not answer ({type(error).__name__})"
-    if any(connection["totalCount"] > len(connection["nodes"]) for connection, _ in hands):
-        return "more traces than one page"
-    return {node[key]["login"].lower().removesuffix("[bot]") for connection, key in hands
-            for node in connection["nodes"] if node and node.get(key)}
 
 
 def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail,
@@ -323,12 +328,12 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
     elif session and unnamed:
         fail("T2", f"Test sheet: an agent's commits name no session ({', '.join(unnamed)}): the verifier "
                    f"cannot be told from their author.\n      Action: {UNNAMED_ACTION}")
-    elif not session and hands is not None and not handles & hands:
-        named = ", @".join(sorted(handles))
+    elif hands is not None and (absent := sorted(handles - hands)):
+        named = ", @".join(absent)
         fail("T2", f"Test sheet: the verifier @{named} left no trace on this pull request — no edit of its "
                    "description, no review, no comment: the sheet says who should have verified, not who did.\n"
-                   f"      Action: @{named} runs the sheet and writes it in the description, or the sheet names "
-                   "who did (.nstack/playbooks/verification.md).")
+                   f"      Action: @{named} runs the sheet and writes it in the description, or reviews it; or the "
+                   "sheet names only who did (.nstack/playbooks/verification.md).")
 
 
 def _result(cell: str) -> str:

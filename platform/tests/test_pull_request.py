@@ -543,8 +543,11 @@ HAND = {
     "no trace of the person named": ({"alice"}, "@dana", "the verifier @dana left no trace on this pull request", 1),
     "the person's edit, review or comment": ({"alice", "dana"}, "@dana", "Pull request rules: compliant.", 0),
     "the bot named with its suffix": ({"dana-bot"}, "@dana-bot[bot]", "Pull request rules: compliant.", 0),
-    "one of two named": ({"erin"}, "@dana, with @erin", "Pull request rules: compliant.", 0),
-    "a session is no account": ({"alice"}, "session verifier-7", "Pull request rules: compliant.", 0),
+    "two named, each with a hand": ({"dana", "erin"}, "@dana, with @erin", "Pull request rules: compliant.", 0),
+    "two named, one without": ({"erin"}, "@dana, with @erin", "the verifier @dana left no trace", 1),
+    "a session is no account": ({"alice"}, "session verifier-7, asked by @dana", "Pull request rules: compliant.", 0),
+    "a session's hand is never read": ("token refused (HTTP 401)", "session verifier-7, asked by @dana",
+                                       "Pull request rules: compliant.", 0),
     "the traces not read": ("token refused (HTTP 401)", "@dana", "WARNING [T2] whether @dana's hand is on", 0),
     "a pull request with more than one page": ("more traces than one page", "@dana", "not read: more traces", 0),
 }
@@ -564,6 +567,15 @@ def test_a_person_named_verifier_left_a_trace_on_the_pull_request(tmp_path, caps
     output = capsys.readouterr().out
     assert expected in output, output
     assert result == code, output
+    assert "session" not in verifier or "WARNING [T2]" not in output, output
+
+
+def test_off_github_the_hand_is_not_read(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, USER_FACING)
+    monkeypatch.setattr(pull_request.project, "forge", lambda root: "gitlab")
+    monkeypatch.setattr(pull_request, "traces", lambda root: pytest.fail("read off GitHub"))
+    check(tmp_path, base, head, sheet(PASSED, verifier="@dana"), monkeypatch)
+    assert "WARNING [T2]" not in capsys.readouterr().out
 
 
 class Answer:
@@ -602,6 +614,27 @@ def test_the_traces_are_the_authors_of_reviews_comments_and_description_edits(tm
     monkeypatch.setenv("GITHUB_TOKEN", "t0ken")
     monkeypatch.setattr(pull_request.urllib.request, "urlopen", answer)
     assert pull_request.traces(tmp_path) == {"dana", "erin", "frank"}
+    monkeypatch.setenv("NSTACK_ATTESTING", "abc1234")  # attest records the head: judged on the forge's run
+    assert pull_request.traces(tmp_path) is None
+    monkeypatch.delenv("NSTACK_ATTESTING")
+    monkeypatch.setenv("PR_NUMBER", "²")
+    assert pull_request.traces(tmp_path) is None
+    monkeypatch.setenv("PR_NUMBER", "643")
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"data": {
+        "repository": {"pullRequest": {"reviews": {"totalCount": 1, "nodes": [{"author": {"login": "app[bot]"}}]},
+                                        "comments": {"totalCount": 0, "nodes": []},
+                                        "userContentEdits": None}}}, "errors": [{"type": "FORBIDDEN"}]}))
+    assert "refused part of the query (FORBIDDEN)" in pull_request.traces(tmp_path)
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"data": {
+        "repository": {"pullRequest": {"reviews": {"totalCount": 1, "nodes": [{"author": {"login": "App[bot]"}}]},
+                                        "comments": {"totalCount": 0, "nodes": []},
+                                        "userContentEdits": None}}}}))
+    assert "did not answer (TypeError)" in pull_request.traces(tmp_path)
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"data": {
+        "repository": {"pullRequest": {"reviews": {"totalCount": 1, "nodes": [{"author": {"login": "App[bot]"}}]},
+                                        "comments": {"totalCount": 0, "nodes": []},
+                                        "userContentEdits": {"totalCount": 0, "nodes": []}}}}}))
+    assert pull_request.traces(tmp_path) == {"app"}
     assert sent["variables"] == {"owner": "acme", "name": "app", "number": 643}, sent
     assert sent["auth"] == "Bearer t0ken" and sent["url"] == "https://api.github.com/graphql", sent
     monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"data": {
@@ -695,6 +728,7 @@ def test_ci_gives_pr_check_the_pull_request_s_number_and_a_read_token():
     workflow = yaml.safe_load((Path(__file__).parents[2] / "skeleton/.github/workflows/pull-request.yml")
                               .read_text(encoding="utf-8"))
     assert workflow["permissions"] == {"contents": "read", "pull-requests": "read"}, workflow["permissions"]
+    assert workflow[True]["pull_request_review"] == {"types": ["submitted"]}, workflow[True]  # a review re-runs it
     step = next(step for step in workflow["jobs"]["description"]["steps"] if "pr-check" in step.get("run", ""))
     assert step["env"]["PR_NUMBER"] == "${{ github.event.pull_request.number }}", step["env"]
     assert step["env"]["GH_TOKEN"] == "${{ github.token }}", step["env"]
