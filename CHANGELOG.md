@@ -22,6 +22,33 @@ a patch.
 
 ---
 
+## v0.26.0 — 2026-11-05
+
+D204, D205, D206 and D207, from the third project: a merge whose link the forge lost no longer keeps the commit record red, a criterion held by several merges keeps each one, a spike whose product is a record has its door named, and an attested project's screenshots have a route.
+
+This is a minor version: `nstack deliver` records every answer of a criterion given more than once. Nothing green turns red; a record red on a lost link turns green.
+
+**In the engine**
+
+- **W1 reads a merge whose link the forge lost** (D204): a commit the forge lists no pull request for is read from the one its subject names — `… (#N)` or `Merge pull request #N` — when that pull request's `merged` event names this commit. A subject naming another, or a `referenced` event, proves nothing: the commit is still recorded.
+- **A criterion held by several merges keeps each one** (D205): `--held '1=#603' --held '1=#605'` writes `Hold-Criterion: 1 #603 #605`, each answer checked; it was the last one alone. The record stands while any of them does, and `nstack plan` closes the row for any.
+- **`nstack deliver` refusing a spike with no merge names its door** (D206): a spike whose product is a record, not shipped code, is a spike outside the code, `module: null`, and the closure accepts it from its line.
+
+**In your project** — 8 files, text
+
+- **`.copier-answers.yml`**: `_commit`.
+- **`.nstack/handbook/RULES.md`** (D204): W1's row.
+- **`.nstack/handbook/project.md`** (D205): a criterion held by two, in the example.
+- **`.nstack/playbooks/framing.md`**, **`.nstack/forms/cycle.md`** (D206): a measure whose product is a record is a spike outside the code, even about one module; the closure reads it from the log issue it was run under, the project's or its module's.
+- **`.nstack/playbooks/verification.md`**, **`.nstack/playbooks/tests.md`**, **`.gitignore`** (D207): where checks are attested, the verifier commits screenshots and videos on its own branch, `evidence/<pull request>`, never on the change's; each is linked from the sheet at that branch's commit, holds made-up data only, and is read before it is pushed.
+
+**Migration**
+
+- **A record red on a merge the forge lost** (`FAIL [W1]` on a commit whose subject ends with its pull request): nothing to do — the next run on `main` after the update reads it, and catches up from the last commit it recorded.
+- **A spike measured outside the code, refused by `nstack deliver`**: on the decider's word, re-frame it `module: null` and accept it at the closure from its log line.
+
+---
+
 ## v0.25.0 — 2026-11-05
 
 D201, D202 and D203, from the third project: an update ahead of its release says its CI will fail, a session committing as an App is never told it is the person's, and a next cycle accepted while one runs has a state.
