@@ -898,7 +898,10 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
     carried = not merges.get(ident) and ident in seen.earlier
     if not merges.get(ident) and not carried:
         print(f"FAIL [deliver] the default branch records no merge of {ident} since the cycle started: nothing is "
-              f"delivered yet, or every merge was reverted.\n      Action: merge its work, its title ending ({ident}), then again.")
+              f"delivered yet, or every merge was reverted.\n      Action: merge its work, its title ending ({ident}), then again. "
+              "A spike whose product is a record, not shipped code, has no merge to record: it is a spike outside the code, "
+              "`module: null` — on an accepted cycle, a re-framing on the decider's word —, and the closure accepts it from "
+              "its line (.nstack/playbooks/framing.md §2, §4).")
         return 1
     items = {str(item.get("id")): item for item in data["deliverables"] if isinstance(item, dict)}
     if not items[ident].get("acceptance"):

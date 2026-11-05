@@ -1307,6 +1307,8 @@ def test_no_merge_is_refused_however_the_agent_words_it(shared, capsys):
     assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 1
     out = capsys.readouterr().out
     assert "no merge" in out and "Action:" in out
+    # #347: a spike whose product is a record has no merge to record; the refusal names its door.
+    assert "A spike whose product is a record" in out and "module: null" in out and "framing.md" in out
     assert hold.read(alice, "03-the-window", "D1").held
 
 
