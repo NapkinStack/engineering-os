@@ -22,6 +22,32 @@ a patch.
 
 ---
 
+## v0.25.0 — 2026-11-05
+
+D201, D202 and D203, from the third project: an update ahead of its release says its CI will fail, a session committing as an App is never told it is the person's, and a next cycle accepted while one runs has a state.
+
+This is a minor version: a new optional field in a cycle's front matter, `accepted_on`. Nothing green turns red.
+
+**In the engine**
+
+- **`nstack update` ahead of the release** (D201): updating to a `vX.Y.Z` the registry does not list yet says so — the project's CI installs its engine from PyPI and stays red until the release is published. Said only when the registry answered.
+- **`nstack agent status` reads who the checkout commits as** (D202): without `NSTACK_AGENT`, a `user.name` or `user.email` naming a bot is an agent, never the person. An App not made by `nstack agent add` is said so, its `gh` and hooks unknown to nstack; an agent's own App, committed as without `nstack agent run`, is named with the command that starts it.
+- **A next cycle accepted while one runs** (D203): `accepted_on: YYYY-MM-DD` on a cycle still `proposed`. While a cycle runs, `nstack plan` no longer lists it under *Needs you* and says it starts at the running cycle's closure; with none running, it asks the decider to approve its `status: accepted` and its start, and K1's action names it. C3 refuses an `accepted_on` that is not a date; C5 is unchanged.
+
+**In your project** — 8 files, text
+
+- **`.copier-answers.yml`**: `_commit`.
+- **`.nstack/install-engine.sh`** (D201): a published version it cannot install is explained, with its page; never a fall back to the repository.
+- **`.nstack/handbook/INSTALL.md`** (D201): the registry's one other question.
+- **`.nstack/playbooks/framing.md`** (D203): §3, when to write `accepted_on`; §5, a completed or shipped closure accepts the next cycle and moves its `start` to the closure's day, a reframed or stopped one leaves it to the decider again.
+- **`.nstack/forms/cycle.md`**, **`.nstack/handbook/RULES.md`**, **`.nstack/handbook/project.md`**, **`.nstack/handbook/glossary.md`** (D203): the field, C3, *Needs you*, the cycle's states.
+
+**Migration**
+
+- **A next cycle the decider already accepted while the current one runs**, left `proposed` with their word quoted: add `accepted_on: <the day of the word>` to its front matter. `nstack plan` then stops asking for it.
+
+---
+
 ## v0.24.0 — 2026-11-03
 
 D199 and D200, from a reviewer agent on the third project: an agent knows who it is, and its tool works from the first run. D196 tried on the forge: two clicks.
