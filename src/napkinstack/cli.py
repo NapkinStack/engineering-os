@@ -200,7 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
                               "refused with no merge of it",
               lambda a: hold.deliver_command(a.root, a.deliverable, a.held or [], a.session, a.person, a.write_states))
     dl.add_argument("deliverable", nargs="?", help="the deliverable's identifier, D<n>")
-    dl.add_argument("--held", action="append", metavar="[N=]#PR", help="what holds a criterion: '#12' for every one, '2=#12' for the second; repeatable")
+    dl.add_argument("--held", action="append", metavar="[N=]#PR", help="what holds a criterion: '#12' for every one, '2=#12' for the second; repeatable, a criterion given again keeps each")
     dl.add_argument("--session", help="the agent's session, written on the record")
     dl.add_argument("--person", help="who records it, such as @alice (default: git's user)")
     dl.add_argument("--write-states", action="store_true", help="at a closure: writes the records' states in the cycle file, for its one pull request")

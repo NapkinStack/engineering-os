@@ -812,7 +812,7 @@ def _stands(root: Path, name: str | None, cycle: str, ident: str, found: Hold, m
         return True
     if ident in merges.earlier:
         live = live or [("", None)]
-    answers = {one.split(" ", 1)[1] for one in found.criteria if " " in one}
+    answers = {answer for one in found.criteria for answer in one.split()[1:]}  # a criterion may name several
     def cited(merge: tuple[str, str | None]) -> bool:
         return any(answer == f"#{merge[1]}" or merge[0].startswith(answer) for answer in answers)
     return bool(live) and not any(cited(merge) for merge in gone)
@@ -839,11 +839,12 @@ def _recorded_said(found: Hold) -> str:
     return f"delivered by {found.person}{sessions}, on {when(found.worked)}" + (f" — {held}" if held else "")
 
 
-def _answers(item: dict, given: list[str]) -> dict[int, str] | str:
-    """Each criterion's answer, or why not. `#12` answers every criterion; `2=#12` the second."""
+def _answers(item: dict, given: list[str]) -> dict[int, list[str]] | str:
+    """Each criterion's answers, or why not. `#12` answers every criterion; `2=#12` the second; a criterion
+    given more than once keeps each answer, in the order given, once (#346)."""
     listed = item.get("acceptance")
     criteria = listed if isinstance(listed, list) else [listed] if isinstance(listed, str) else []
-    answers: dict[int, str] = {}
+    answers: dict[int, list[str]] = {}
     for one in given:
         found = _ANSWER.fullmatch(one.strip())
         if not found:
@@ -853,7 +854,8 @@ def _answers(item: dict, given: list[str]) -> dict[int, str] | str:
             if not 1 <= number <= len(criteria):
                 return (f"criterion {number} does not exist: the deliverable has {len(criteria)}.\n"
                         "      Action: number them as the cycle lists them, from 1.")
-            answers[number] = found["answer"]
+            if found["answer"] not in answers.setdefault(number, []):
+                answers[number].append(found["answer"])
     missing = [number for number in range(1, len(criteria) + 1) if number not in answers]
     if missing:
         told = "\n".join(f"      criterion {number}: {criteria[number - 1]}" for number in missing)
@@ -908,7 +910,7 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
         return 1
     named = _named_for(path, ident)
     mine = seen.citable.get(ident, [])  # carried over, merged in an earlier cycle: only a person's answer is left to name
-    for number, answer in answers.items():
+    for number, answer in ((number, one) for number, ones in answers.items() for one in ones):
         pull = answer[1:] if answer.startswith("#") else None
         known = any(one[1] == pull for one in mine) or bool(re.search(rf"#{pull}\b", named)) if pull else \
             any(one[0].startswith(answer) for one in mine)
@@ -918,7 +920,7 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
                   "or the acceptance issue named beside its state, in its section, or in a table's row with its id.")
             return 1
     sha = _event(root, current.tip, ident, "deliver", person, session,
-                 criteria=[f"{number} {answers[number]}" for number in sorted(answers)])
+                 criteria=[f"{number} {' '.join(answers[number])}" for number in sorted(answers)])
     ok, where = _record(root, name, cycle, ident, sha)
     if not ok:
         print(f"FAIL [deliver] {ident}'s hold moved meanwhile: {where}\n      Action: run nstack plan, then again.")

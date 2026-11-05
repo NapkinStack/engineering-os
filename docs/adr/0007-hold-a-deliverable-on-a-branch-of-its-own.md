@@ -117,7 +117,7 @@ no service, and no forge required.
 ## Clarification of 2026-11-01 (D193, PDR-0022) — the record of a delivery
 
 `nstack deliver` commits a `deliver` event on the hold's branch, an empty commit as the others, with one
-`Hold-Criterion: <n> <answer>` trailer per criterion, an answer being `#<pull request>` or a commit. No
+`Hold-Criterion: <n> <answer>…` trailer per criterion, an answer being `#<pull request>` or a commit — each answer given, in order, once (D205, #346). No
 claim is needed first: with no hold, the event starts the branch. It ends the hold: `held` is false, and a
 `release` withdraws it. `delivered` is computed, never stored: a `deliver` event with at least one criterion, until a merge it
 names, or every merge of the deliverable, is seen reverted on the default branch's main line since the cycle's
