@@ -6,7 +6,8 @@ Rules:
   T1  a test sheet when the matrix asks one of a module the pull request changes — a
       user-facing one from standard up, any high or critical one — at the base or at the
       head, the stricter
-  T2  a verifier named who is not an author of the change, and every scenario row filled
+  T2  a verifier named who is not an author of the change — a person named, whose hand is on the
+      pull request: an edit of its description, a review or a comment —, and every scenario row filled
       in: id, given · when · then, a kind (automated, explored, human only — reason), a
       result (passed, failed, not verified); a | that splits a row is said (D187)
   T3  no scenario passed without its evidence and the commit it was verified on
@@ -37,15 +38,22 @@ committers and co-authors — read from GitHub's noreply addresses; another addr
 account — and the sessions its commits name in an `Agent-Session:` trailer.
 It is a declaration checked against the history, not a proof of identity: it refuses the
 session that verifies its own work, not one that lies about its name (ADR-0004, measurement).
+Each person named must have left a hand on the pull request, read in one GraphQL query from PR_NUMBER,
+GITHUB_REPOSITORY and GH_TOKEN or GITHUB_TOKEN (#363): an author who writes another's name over results
+of its own is refused. Without a number — a run on a workstation, or under nstack attest — it is not
+read; on the forge's run, unread is said as a warning, never failed.
 Output:  0 when every applicable rule passes, 1 otherwise.
 """
 
 from __future__ import annotations
 
 import datetime
+import json
 import os
 import re
 import subprocess
+import urllib.error
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -257,7 +265,48 @@ def summary(body: str, authorship: tuple[set[str], set[str], list[str]]) -> list
     return lines
 
 
-def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail) -> None:
+TRACES = """query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+    reviews(first: 100) { totalCount nodes { author { login } } }
+    comments(first: 100) { totalCount nodes { author { login } } }
+    userContentEdits(first: 100) { totalCount nodes { editor { login } } } } } }"""
+
+
+def traces(root: Path) -> set[str] | str | None:
+    """The accounts whose hand is on the pull request — its description's editors, its reviewers,
+    its commenters —, lower case and without `[bot]`; why they are not read; None with no pull
+    request number, on a workstation, and while `nstack attest` records the head: the hand is
+    judged on the forge's run, which a review or an edit of the description starts again."""
+    number = os.environ.get("PR_NUMBER", "").strip()
+    if not re.fullmatch(r"[0-9]+", number) or os.environ.get("NSTACK_ATTESTING"):
+        return None
+    repository = os.environ.get("GITHUB_REPOSITORY") or project.answer(root, "github_repo") or ""
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token or "/" not in repository:
+        return "no token (GH_TOKEN or GITHUB_TOKEN) or no repository"
+    owner, name = repository.split("/", 1)
+    request = urllib.request.Request(
+        os.environ.get("GITHUB_GRAPHQL_URL") or "https://api.github.com/graphql",
+        data=json.dumps({"query": TRACES, "variables": {"owner": owner, "name": name, "number": int(number)}}).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "nstack"})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            answer = json.loads(response.read())
+        if answer.get("errors"):  # a field refused leaves the rest of the answer partial
+            return f"the forge refused part of the query ({answer['errors'][0].get('type', 'error')})"
+        found = answer["data"]["repository"]["pullRequest"]
+        hands = [(found[kind], key) for kind, key in (("reviews", "author"), ("comments", "author"),
+                                                       ("userContentEdits", "editor"))]
+        if any(connection["totalCount"] > len(connection["nodes"]) for connection, _ in hands):
+            return "more traces than one page"
+        return {node[key]["login"].lower().removesuffix("[bot]") for connection, key in hands
+                for node in connection["nodes"] if node and node.get(key)}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
+        return f"the forge did not answer ({type(error).__name__})"
+
+
+def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail,
+                   hands: set[str] | None = None) -> None:
     """T2: the verifier is named — people as @handle anywhere on the line, an agent session as
     `session <id>` opening it — and none of the names is an author of the change."""
     opening = SESSION.match(verifier)
@@ -279,6 +328,12 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
     elif session and unnamed:
         fail("T2", f"Test sheet: an agent's commits name no session ({', '.join(unnamed)}): the verifier "
                    f"cannot be told from their author.\n      Action: {UNNAMED_ACTION}")
+    elif hands is not None and (absent := sorted(handles - hands)):
+        named = ", @".join(absent)
+        fail("T2", f"Test sheet: the verifier @{named} left no trace on this pull request — no edit of its "
+                   "description, no review, no comment: the sheet says who should have verified, not who did.\n"
+                   f"      Action: @{named} runs the sheet and writes it in the description, or reviews it; or the "
+                   "sheet names only who did (.nstack/playbooks/verification.md).")
 
 
 def _result(cell: str) -> str:
@@ -299,7 +354,8 @@ def _split(row: dict, width: int) -> bool:
 
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
-                strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False) -> list[str]:
+                strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False,
+                hands: set[str] | None = None) -> list[str]:
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
@@ -320,7 +376,7 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
         fail("T2", "Test sheet: no verifier named.\n      Action: \"Verifier: @<handle>\" or "
                    "\"Verifier: session <id>\", someone other than the author of the change.")
     else:
-        check_verifier(verifier, authorship, fail)
+        check_verifier(verifier, authorship, fail, hands)
     human_only, rerun, unconfirmed = [], [], []
     for row in rows:
         ident = row["#"] or "?"
@@ -595,8 +651,14 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
     # With no forge there is no pull request to carry a sheet: one filled in the form's file and
     # passed with --body-file is judged; none at all is said, not failed (ADR-0010 §6).
     carried = forge != "none" or bool(body.strip())
+    verifier = read_sheet(body)[0]
+    hands = traces(root) if forge == "github" and HANDLES.search(verifier) and not SESSION.match(verifier) else None
+    if isinstance(hands, str):
+        warnings.append(f"[T2] whether {', '.join(m[0] for m in HANDLES.finditer(verifier))}'s hand is on this pull "
+                        f"request is not read: {hands}.")
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
-                             lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head)) if carried else []
+                             lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head),
+                             hands if isinstance(hands, set) else None) if carried else []
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
