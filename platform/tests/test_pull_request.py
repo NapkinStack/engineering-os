@@ -539,6 +539,80 @@ def test_a_change_no_session_could_verify_is_said_before_one_tries(tmp_path, cap
     assert "FAIL [T2]" in refused and "or have a person run the sheet" in refused, refused
 
 
+HAND = {
+    "no trace of the person named": ({"alice"}, "@dana", "the verifier @dana left no trace on this pull request", 1),
+    "the person's edit, review or comment": ({"alice", "dana"}, "@dana", "Pull request rules: compliant.", 0),
+    "the bot named with its suffix": ({"dana-bot"}, "@dana-bot[bot]", "Pull request rules: compliant.", 0),
+    "one of two named": ({"erin"}, "@dana, with @erin", "Pull request rules: compliant.", 0),
+    "a session is no account": ({"alice"}, "session verifier-7", "Pull request rules: compliant.", 0),
+    "the traces not read": ("token refused (HTTP 401)", "@dana", "WARNING [T2] whether @dana's hand is on", 0),
+    "a pull request with more than one page": ("more traces than one page", "@dana", "not read: more traces", 0),
+}
+
+
+@pytest.mark.parametrize(("traces", "verifier", "expected", "code"), HAND.values(), ids=HAND.keys())
+def test_a_person_named_verifier_left_a_trace_on_the_pull_request(tmp_path, capsys, monkeypatch, traces,
+                                                                  verifier, expected, code):
+    """#363: an agent named `@napkinstack-admin` verifier and filled every result itself; that account
+    never touched the pull request. A person verifies by writing the sheet into the description, by a
+    review or by a comment: the forge keeps each one's author. None: the sheet says who should have
+    verified, not who did. Unread, it is said, never failed."""
+    base, head = change(tmp_path, USER_FACING)
+    monkeypatch.setenv("PR_AUTHOR", "alice")
+    monkeypatch.setattr(pull_request, "traces", lambda root: traces)
+    result = check(tmp_path, base, head, sheet(PASSED, verifier=verifier), monkeypatch)
+    output = capsys.readouterr().out
+    assert expected in output, output
+    assert result == code, output
+
+
+class Answer:
+    def __init__(self, data):
+        self.data = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def read(self):
+        import json
+        return json.dumps(self.data).encode()
+
+
+def test_the_traces_are_the_authors_of_reviews_comments_and_description_edits(tmp_path, monkeypatch):
+    """One GraphQL read, as CI gives it: the pull request's number, its repository and a token."""
+    sent = {}
+
+    def answer(request, timeout):
+        import json
+        sent.update(json.loads(request.data), auth=request.get_header("Authorization"), url=request.full_url)
+        return Answer({"data": {"repository": {"pullRequest": {
+            "reviews": {"totalCount": 1, "nodes": [{"author": {"login": "Dana"}}]},
+            "comments": {"totalCount": 2, "nodes": [{"author": {"login": "erin"}}, {"author": None}]},
+            "userContentEdits": {"totalCount": 1, "nodes": [{"editor": {"login": "frank"}}]}}}}})
+
+    for name in ("GH_TOKEN", "GITHUB_TOKEN", "PR_NUMBER", "GITHUB_REPOSITORY", "GITHUB_GRAPHQL_URL"):
+        monkeypatch.delenv(name, raising=False)
+    assert pull_request.traces(tmp_path) is None  # no pull request number: a run on a workstation
+    monkeypatch.setenv("PR_NUMBER", "643")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/app")
+    assert "no token" in pull_request.traces(tmp_path)
+    monkeypatch.setenv("GITHUB_TOKEN", "t0ken")
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", answer)
+    assert pull_request.traces(tmp_path) == {"dana", "erin", "frank"}
+    assert sent["variables"] == {"owner": "acme", "name": "app", "number": 643}, sent
+    assert sent["auth"] == "Bearer t0ken" and sent["url"] == "https://api.github.com/graphql", sent
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"data": {
+        "repository": {"pullRequest": {"reviews": {"totalCount": 101, "nodes": []},
+                                        "comments": {"totalCount": 0, "nodes": []},
+                                        "userContentEdits": {"totalCount": 0, "nodes": []}}}}}))
+    assert "more traces than one page" in pull_request.traces(tmp_path)
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer({"errors": [{}]}))
+    assert isinstance(pull_request.traces(tmp_path), str)
+
+
 def test_the_verifiers_remarks_have_a_line_and_are_not_the_verifier(tmp_path, capsys, monkeypatch):
     base, head = agent_change(tmp_path, "Agent-Session: author-1")
     body = sheet(PASSED, verifier="@dana").replace(
@@ -614,3 +688,13 @@ def test_k3_tells_a_ready_deliverable_to_move(tmp_path, capsys, monkeypatch):
     assert check(tmp_path, base, head, "A change.", monkeypatch) == 0
     output = capsys.readouterr().out
     assert "WARNING [K3]" in output and "nstack claim" in output and "01-first.md" in output, output
+
+
+def test_ci_gives_pr_check_the_pull_request_s_number_and_a_read_token():
+    """Without them the verifier's hand is never read, and nothing says so on a forged sheet (#363)."""
+    workflow = yaml.safe_load((Path(__file__).parents[2] / "skeleton/.github/workflows/pull-request.yml")
+                              .read_text(encoding="utf-8"))
+    assert workflow["permissions"] == {"contents": "read", "pull-requests": "read"}, workflow["permissions"]
+    step = next(step for step in workflow["jobs"]["description"]["steps"] if "pr-check" in step.get("run", ""))
+    assert step["env"]["PR_NUMBER"] == "${{ github.event.pull_request.number }}", step["env"]
+    assert step["env"]["GH_TOKEN"] == "${{ github.token }}", step["env"]

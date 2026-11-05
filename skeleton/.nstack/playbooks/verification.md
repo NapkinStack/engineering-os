@@ -24,7 +24,8 @@ still applies.
 The session that wrote the change cannot verify it: start another session, with a fresh
 context, or hand the sheet to a human. Sign the sheet with your session's identifier —
 `Verifier: session <id>` — or, as a person, `Verifier: @<handle>`. CI compares it with the
-change's authors and refuses a match.
+change's authors and refuses a match; a person named must have written the sheet into the
+description, reviewed or commented, under their own account.
 
 ### Your own ground
 
