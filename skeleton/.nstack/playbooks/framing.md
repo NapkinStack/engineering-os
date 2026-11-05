@@ -160,7 +160,7 @@ from then on the plan check refuses an accepted charter over a form left as it c
   answer in the acceptance issue the cycle names beside the state (`.nstack/handbook/05-workflow.md`
   §7); a criterion only a person can try waits for that answer. A spike outside the code is held
   by a decision record when it binds the project (*Decisions* below), otherwise by a line of the
-  project's log issue, which its section links: with no merge it has no record, and the closure
+  log issue it was run under — the project's, or its module's —, which its section links: with no merge it has no record, and the closure
   writes its `accepted` by hand beside the states `--write-states` wrote, citing that line. Where
   approval is waived (§3), the decider's word is quoted once, at the closure, for the cycle. A rule
   sees that a merge exists, not that a criterion holds: the closure reads the records before it
