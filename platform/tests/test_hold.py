@@ -1251,6 +1251,18 @@ def test_each_criterion_answers_or_none_is_recorded(shared, capsys):
     assert hold.read(alice, "03-the-window", "D1").criteria == ["1 #7", "2 #8"]
 
 
+def test_a_criterion_held_by_several_merges_keeps_each_one(shared, capsys):
+    """#346: a criterion held by three pull requests, given three times, kept the last and dropped the
+    others, saying nothing. Each is kept, in the order given, once."""
+    alice = clone(shared, "alice")
+    two_criteria(alice)
+    for number in (7, 8, 9):
+        landed(alice, f"part {number} (D1) (#{number})")
+    assert hold.deliver(alice, "D1", ["1=#7", "1=#8", "1=#7", "#9"], person="@alice") == 0
+    assert hold.read(alice, "03-the-window", "D1").criteria == ["1 #7 #8 #9", "2 #9"]
+    assert hold.delivered(alice, *hold.plan.accepted_cycle(alice)) == {"D1"}
+
+
 @pytest.mark.parametrize("given, said", [(["#99"], "#99"), (["nothing"], "nothing"), (["3=#7"], "criterion 3"),
                                          (["#7\nHold-Event: release"], "#7")])
 def test_an_answer_that_names_no_merge_of_the_deliverable_is_refused(shared, capsys, given, said):

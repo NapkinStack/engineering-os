@@ -414,8 +414,8 @@ def _rows(root: Path, path: Path, done: set[str], delivered: set[str]) -> list[s
         if idents and idents <= done:
             continue
         if idents and not more and idents <= done | delivered:
-            answers = {one.split(" ", 1)[1] for ident in idents - done
-                       for one in hold.read(root, path.stem, ident).criteria if " " in one}
+            answers = {answer for ident in idents - done  # a criterion may name several (#346)
+                       for one in hold.read(root, path.stem, ident).criteria for answer in one.split()[1:]}
             if answers and any(re.search(rf"{re.escape(answer)}\b", gesture) for answer in answers):
                 continue
         if len(gesture) > GESTURE:

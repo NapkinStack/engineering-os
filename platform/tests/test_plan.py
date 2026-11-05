@@ -728,6 +728,13 @@ def test_a_delivered_row_goes_only_when_its_gesture_names_what_the_record_answer
     assert "Run the app" in out, "a row saying more than its ids waits for a person"
 
 
+def test_a_criterion_held_by_several_answers_closes_the_row_any_of_them_names(tmp_path, capsys, monkeypatch):
+    """#346: a criterion records each answer given; the row whose gesture names one of them goes."""
+    with_table(tmp_path)
+    delivered_with(monkeypatch, "1 #7 #12 #13")
+    assert "Say yes in #12" not in needing(tmp_path, capsys)
+
+
 def test_a_delivery_answering_something_else_leaves_the_trial_listed(tmp_path, capsys, monkeypatch):
     with_table(tmp_path)
     delivered_with(monkeypatch, "1 #7")
