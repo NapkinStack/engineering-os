@@ -570,17 +570,18 @@ def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
             "correction that decides nothing needs none (.nstack/playbooks/framing.md, Decisions)."]
 
 
-def check_attested(root: Path, head: str, fail) -> str:
+def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> str:
     """Where the checks are judged, as the decider's answer `checks` says (A1, A2): on the forge's
     CI, or attested on a workstation by `nstack attest` — then a complete, passed record of the
-    head is required. Returns the line the summary prints."""
+    head is required, read from the remote's notes wherever it runs, CI included (#367). Returns
+    the line the summary prints."""
     from napkinstack import attest  # the record's reader, and the one list of checks
 
     try:
         answers = yaml.safe_load((root / ANSWERS).read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError):
         answers = {}
-    attest.fetch(root)
+    _, unread = attest.read_remote(root)
     record = attest.latest(root, head)
     if answers.get("checks", "forge") != "attested":
         shown = ""
@@ -590,13 +591,17 @@ def check_attested(root: Path, head: str, fail) -> str:
         return "the forge's CI" + shown
     if os.environ.get("NSTACK_ATTESTING") == head:
         return "attested — this run is the record being made"
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        # CI's checkout keeps no credential to fetch the notes: where the checks are attested, the
-        # record is read where the merge is decided, never failed here for want of a fetch.
-        return "attested — judged where nstack attest runs, not in CI"
+    if record is None and unread and os.environ.get("GITHUB_ACTIONS") == "true":
+        # The record may well be there, out of reach: said, never failed for want of a fetch — and
+        # never the silent line that let an unattested head through (#367).
+        warn(f"[A1] the record of the head is not read here ({unread}): whether {head[:7]} was attested is "
+             "unknown to this run.\n      Action: give the job a token that reads the repository "
+             "(GH_TOKEN, contents: read), or run nstack pr-check where the merge is decided.")
+        return "attested — the record of the head not read here"
     if record is None:
         fail("A1", f"no record of the head {head[:7]}: this project's checks are attested, and none ran on "
-                   "this commit.\n      Action: run nstack attest on the head, then push.")
+                   "this commit.\n      Action: run nstack attest on the head, then push — the forge's check reads the "
+                   "record again at its next run: a push, or an edit of the description.")
         return "attested — no record of the head"
     names = [check["name"] for check in record["checks"]]
     missing = [check.name for check in attest.CHECKS if check.name not in names]
@@ -662,7 +667,7 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
-    checks = check_attested(root, head, fail)
+    checks = check_attested(root, head, fail, warnings.append)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}"

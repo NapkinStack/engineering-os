@@ -5,6 +5,7 @@ platform/tests/run.sh.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -264,10 +265,132 @@ def test_attested_with_a_complete_passed_record_is_compliant_and_says_attested(t
     assert "Pull request rules: compliant." in out
 
 
-def test_in_ci_an_attested_project_is_not_judged_on_a_record_ci_cannot_fetch(tmp_path, monkeypatch, capsys):
+def with_remote(root: Path) -> Path:
+    """The project's remote, a bare repository holding its branch — as the forge would."""
+    remote = root.parent / f"{root.name}-remote.git"
+    git(root.parent, "init", "-q", "--bare", str(remote))
+    git(root, "remote", "add", "origin", str(remote))
+    git(root, "push", "-q", "origin", "main")
+    return remote
+
+
+def fresh_checkout(root: Path) -> None:
+    """CI's checkout: the branch, and none of the notes a workstation holds."""
+    git(root, "update-ref", "-d", f"refs/notes/{attest.NOTES}")
+
+
+def test_in_ci_the_record_is_read_from_the_remote_and_judged(tmp_path, monkeypatch, capsys):
+    """#367: on a fourth project, CI said "compliant" for a head nobody had attested — it never read the
+    record. Where the remote answers, the record pushed with the notes is the one judged."""
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    with_remote(project)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(project, base, None, "")  # pushes the record with the notes
+    fresh_checkout(project)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "attested on a workstation, by test <test@example.invalid>" in out, out
+
+
+def test_in_ci_a_head_with_no_record_on_the_remote_is_refused(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "p"
+    project.mkdir()
+    base, head = change(project, "attested")
+    with_remote(project)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 1 and f"FAIL [A1] no record of the head {head[:7]}" in out, out
+    assert "Pull request rules: compliant." not in out
+
+
+def test_in_ci_a_failed_record_on_the_remote_is_refused(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    with_remote(project)
+    monkeypatch.setattr(attest, "CHECKS", FAILING)
+    attest.run(project, base, None, "")
+    fresh_checkout(project)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 1 and "FAIL [A2]" in out, out
+
+
+def test_in_ci_a_record_that_cannot_be_read_is_said_never_called_compliant_silently(tmp_path, monkeypatch, capsys):
+    """No remote, or one that refuses: the record is unread — a warning, not a failure, and never the
+    silent line that let an unattested head through (#367)."""
     base, _ = change(tmp_path, "attested")
     code, out = judged(tmp_path, base, monkeypatch, capsys, ci=True)
-    assert code == 0 and "attested — judged where nstack attest runs, not in CI" in out
+    assert code == 0 and "WARNING [A1] the record of the head is not read here" in out, out
+    assert "judged where nstack attest runs" not in out
+
+
+def test_in_ci_a_remote_that_refuses_is_warned_with_git_s_reason(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    git(project, "remote", "add", "origin", str(tmp_path / "gone.git"))  # a remote that does not answer
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "WARNING [A1] the record of the head is not read here (origin did not answer: fatal:" in out, out
+    assert "FAIL [A1]" not in out
+
+
+SECRET = base64.b64encode(b"x-access-token:tok123").decode()
+
+
+def test_the_fetch_authenticates_with_the_job_token_in_the_environment_never_an_argument(monkeypatch, capsys):
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    env = attest.fetch_env("https://github.com/org/repo", "tok123")
+    assert env["GIT_CONFIG_COUNT"] == "1"
+    assert env["GIT_CONFIG_KEY_0"] == "http.https://github.com/.extraheader"
+    assert env["GIT_CONFIG_VALUE_0"] == f"AUTHORIZATION: basic {SECRET}"
+    assert f"::add-mask::{SECRET}" in capsys.readouterr().out  # the runner never prints it in clear
+    assert attest.fetch_env("https://github.com/org/repo", None) == {}
+    assert attest.fetch_env("/some/path.git", "tok123") == {}  # a token goes to GitHub only
+    monkeypatch.delenv("GITHUB_ACTIONS")
+    assert attest.fetch_env("https://github.com/org/repo", "tok123") == {}  # never on a workstation
+
+
+class Recorded:
+    """git as read_remote calls it: each call's arguments and environment, answered as asked."""
+
+    def __init__(self, answers):
+        self.calls, self.answers, self.real = [], answers, subprocess.run
+
+    def __call__(self, args, **kwargs):
+        if args[1] not in self.answers:  # the local reads go to git itself
+            return self.real(args, **kwargs)
+        self.calls.append((args, kwargs.get("env") or {}))
+        code, out, err = self.answers[args[1]]
+        return subprocess.CompletedProcess(args, code, out, err)
+
+
+def github_project(root: Path) -> None:
+    git(root, "init", "-q", "--initial-branch=main")
+    git(root, "remote", "add", "origin", "https://github.com/org/repo.git")
+
+
+@pytest.mark.parametrize("ci", [True, False])
+def test_the_token_reaches_git_in_ci_and_only_there(tmp_path, monkeypatch, ci):
+    """On a workstation a token in the environment, perhaps expired, would be sent before the
+    remote's own credential and refuse the fetch (#373's verifier)."""
+    github_project(tmp_path)
+    monkeypatch.setenv("GH_TOKEN", "tok123")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true") if ci else monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    recorded = Recorded({"ls-remote": (0, "", "")})
+    monkeypatch.setattr(attest.subprocess, "run", recorded)
+    assert attest.read_remote(tmp_path) == ("origin", None)
+    args, env = recorded.calls[0]
+    assert args[1] == "ls-remote" and "tok123" not in " ".join(args) and SECRET not in " ".join(args)
+    assert (env.get("GIT_CONFIG_VALUE_0") == f"AUTHORIZATION: basic {SECRET}") is ci
+
+
+def test_notes_listed_but_not_fetched_are_unread_not_read(tmp_path, monkeypatch):
+    github_project(tmp_path)
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    recorded = Recorded({"ls-remote": (0, "abc123\trefs/notes/nstack/checks\n", ""),
+                         "fetch": (128, "", "remote: some detail\nfatal: unable to access 'x': refused\nmore\n")})
+    monkeypatch.setattr(attest.subprocess, "run", recorded)
+    assert attest.read_remote(tmp_path) == ("origin", "origin's notes not fetched: fatal: unable to access 'x': refused")
 
 
 def test_attest_judges_the_pull_request_rules_without_asking_for_the_record_it_is_making(tmp_path, monkeypatch, capsys):

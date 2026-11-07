@@ -107,7 +107,7 @@ in git; elsewhere a record is shown, and the forge's CI judges.
 
 | Code | Refuses | Why |
 |---|---|---|
-| `A1` | In a project whose checks are attested, a head commit with no record | `07-governance.md` §7 |
+| `A1` | In a project whose checks are attested, a head commit with no record — read from the remote's notes, in CI too | `07-governance.md` §7 |
 | `A2` | A record of the head that misses a check the CI runs, or holds a failed one | `07-governance.md` §7 |
 
 ## K — the cycle a change belongs to

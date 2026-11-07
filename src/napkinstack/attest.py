@@ -15,6 +15,7 @@ Output:  0 when every check passed, 1 otherwise — the record is written either
 
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import json
@@ -153,16 +154,55 @@ def _remote(root: Path) -> str | None:
     return "origin" if "origin" in remotes else None
 
 
-def fetch(root: Path) -> str | None:
-    """Brings the remote's notes in, merged line by line with ours; returns the remote's name."""
+def fetch_env(url: str, token: str | None) -> dict[str, str]:
+    """In GitHub Actions only, the credential a fetch from GitHub carries — in git's environment,
+    never in an argument a log shows, and masked for the runner. CI's checkout keeps none
+    (`persist-credentials: false`); the job's token reads (#367). Never on a workstation: there the
+    remote's own credential answers, and a token in the environment, perhaps expired, would be sent
+    before it and refuse the fetch."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not token or not url.startswith("https://github.com/"):
+        return {}
+    secret = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    print(f"::add-mask::{secret}", flush=True)  # as actions/checkout does, and hold's own fetch
+    return {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+            "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {secret}"}
+
+
+def _why(stderr: str) -> str:
+    """git's reason, in one line: its `fatal:` line when it says one, else its last."""
+    lines = [line.strip() for line in stderr.strip().splitlines() if line.strip()]
+    fatal = [line for line in lines if line.startswith("fatal:")]
+    return (fatal or lines or ["no reason given"])[0 if fatal else -1]
+
+
+def read_remote(root: Path) -> tuple[str | None, str | None]:
+    """Brings the remote's notes in, merged line by line with ours. Returns the remote's name, and
+    why its notes were not read — None when they were, or when it holds none."""
     remote = _remote(root)
     if remote is None:
-        return None
+        return None, "no remote"
+    url = _git(root, "remote", "get-url", remote, check=False).stdout.strip()
+    env = dict(os.environ, **fetch_env(url, os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")))
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, env=env)
+
+    listed = git("ls-remote", remote, f"refs/notes/{NOTES}")
+    if listed.returncode != 0:
+        return remote, f"{remote} did not answer: {_why(listed.stderr)}"
+    if not listed.stdout.strip():
+        return remote, None  # read: the remote holds no record at all
     theirs = f"refs/notes/nstack-remote/{NOTES.split('/')[-1]}"
-    got = _git(root, "fetch", "--quiet", remote, f"+refs/notes/{NOTES}:{theirs}", check=False)
-    if got.returncode == 0:
-        _git(root, "notes", f"--ref={NOTES}", "merge", "--quiet", "--strategy=cat_sort_uniq", theirs, check=False)
-    return remote
+    got = git("fetch", "--quiet", remote, f"+refs/notes/{NOTES}:{theirs}")
+    if got.returncode != 0:
+        return remote, f"{remote}'s notes not fetched: {_why(got.stderr)}"
+    _git(root, "notes", f"--ref={NOTES}", "merge", "--quiet", "--strategy=cat_sort_uniq", theirs, check=False)
+    return remote, None
+
+
+def fetch(root: Path) -> str | None:
+    """Brings the remote's notes in, merged line by line with ours; returns the remote's name."""
+    return read_remote(root)[0]
 
 
 def _session(root: Path, commit: str) -> str | None:

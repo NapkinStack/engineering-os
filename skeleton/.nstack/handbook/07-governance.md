@@ -302,7 +302,10 @@ as `nstack / local checks`, a name no CI job has. Such a change is **attested**,
 *checked*: the record makes a claim traceable — who ran it, on which commit, with what output
 — not true. Whether a record stands in for the forge's CI is the decider's word, the project's
 answer `checks: attested` in `.copier-answers.yml`, changed in a pull request; `pr-check` then
-requires a complete, passed record of the head (A1, A2). Attesting again once the test sheet is filled keeps the
+requires a complete, passed record of the head (A1, A2) — on the workstation and in the forge's
+CI alike, which reads the record from the remote's notes with the job's token: an unattested head
+is red there too. A record CI cannot read — no token, a remote that refuses — is said as a
+warning, never called compliant in silence. Attesting again once the test sheet is filled keeps the
 module checks the commit's record passed — they read the tree and the base, never the description —
 when the base commit, the engine and the person are the same, and the engine is published or named
 by a commit with no change of its own — tracked or not. The record says which run they come from
