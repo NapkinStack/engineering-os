@@ -155,13 +155,24 @@ def _remote(root: Path) -> str | None:
 
 
 def fetch_env(url: str, token: str | None) -> dict[str, str]:
-    """The credential a fetch from GitHub carries, in git's environment — never in an argument a log
-    shows. CI's checkout keeps none (`persist-credentials: false`); the job's token reads (#367)."""
-    if not token or not url.startswith("https://github.com/"):
+    """In GitHub Actions only, the credential a fetch from GitHub carries — in git's environment,
+    never in an argument a log shows, and masked for the runner. CI's checkout keeps none
+    (`persist-credentials: false`); the job's token reads (#367). Never on a workstation: there the
+    remote's own credential answers, and a token in the environment, perhaps expired, would be sent
+    before it and refuse the fetch."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not token or not url.startswith("https://github.com/"):
         return {}
-    value = "AUTHORIZATION: basic " + base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    secret = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    print(f"::add-mask::{secret}", flush=True)  # as actions/checkout does, and hold's own fetch
     return {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
-            "GIT_CONFIG_VALUE_0": value}
+            "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {secret}"}
+
+
+def _why(stderr: str) -> str:
+    """git's reason, in one line: its `fatal:` line when it says one, else its last."""
+    lines = [line.strip() for line in stderr.strip().splitlines() if line.strip()]
+    fatal = [line for line in lines if line.startswith("fatal:")]
+    return (fatal or lines or ["no reason given"])[0 if fatal else -1]
 
 
 def read_remote(root: Path) -> tuple[str | None, str | None]:
@@ -178,13 +189,13 @@ def read_remote(root: Path) -> tuple[str | None, str | None]:
 
     listed = git("ls-remote", remote, f"refs/notes/{NOTES}")
     if listed.returncode != 0:
-        return remote, f"{remote} did not answer: {(listed.stderr.strip().splitlines() or ['no reason given'])[-1]}"
+        return remote, f"{remote} did not answer: {_why(listed.stderr)}"
     if not listed.stdout.strip():
         return remote, None  # read: the remote holds no record at all
     theirs = f"refs/notes/nstack-remote/{NOTES.split('/')[-1]}"
     got = git("fetch", "--quiet", remote, f"+refs/notes/{NOTES}:{theirs}")
     if got.returncode != 0:
-        return remote, f"{remote}'s notes not fetched: {(got.stderr.strip().splitlines() or ['no reason given'])[-1]}"
+        return remote, f"{remote}'s notes not fetched: {_why(got.stderr)}"
     _git(root, "notes", f"--ref={NOTES}", "merge", "--quiet", "--strategy=cat_sort_uniq", theirs, check=False)
     return remote, None
 
