@@ -22,6 +22,28 @@ a patch.
 
 ---
 
+## v0.28.0 — 2026-11-07
+
+D209, from the fourth project: in a project whose checks are attested, the forge's CI reads the record it judges.
+
+This is a minor version: a pull request whose head has no attested record, or a failed one, was green on the forge and is now red (A1, A2).
+
+**In the engine**
+
+- **An attested project's CI reads the record it judges** (D209): `nstack pr-check` under GitHub Actions fetches the remote's notes (`refs/notes/nstack/checks`) and judges the head as a workstation does — no record refused (A1), a failed or incomplete one refused (A2). The fetch carries the job's token in git's environment, masked for the runner, only towards GitHub and only under GitHub Actions; on a workstation the remote's own credential answers. A remote that cannot be read is a warning naming git's reason, never the silent `judged where nstack attest runs, not in CI` line it replaces.
+
+**In your project** — 4 files, text
+
+- **`.copier-answers.yml`**: `_commit`.
+- **`.github/workflows/pull-request.yml`** (D209): the comment on `contents: read` says it covers the attested record.
+- **`.nstack/handbook/07-governance.md`** §7, **`.nstack/handbook/RULES.md`** (D209): A1 and A2 are judged in CI too.
+
+**Migration**
+
+- **An open pull request red on `FAIL [A1] no record of the head`** after the update: run `nstack attest` on its head, push — the check reads the record again at its next run, a push or an edit of the description.
+
+---
+
 ## v0.27.0 — 2026-11-07
 
 D208, from the third project: a person named verifier of a test sheet must have a hand on the pull request.
