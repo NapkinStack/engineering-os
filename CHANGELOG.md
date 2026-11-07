@@ -22,6 +22,28 @@ a patch.
 
 ---
 
+## v0.27.0 — 2026-11-07
+
+D208, from the third project: a person named verifier of a test sheet must have a hand on the pull request.
+
+This is a minor version: a pull request whose sheet names a person, `Verifier: @<handle>`, who has neither edited its description, nor reviewed it, nor commented on it, was green and is now red (T2) — once the project has taken its `pull-request.yml`, which gives the check what it reads.
+
+**In the engine**
+
+- **A person named verifier has a hand on the pull request** (D208): `nstack pr-check` reads, in one GraphQL query, the description's editors, the reviewers and the commenters, and T2 refuses each person named verifier who is none of them; a bot named with its `[bot]` suffix is the same account. Unread — no token, no answer, a field refused, more than one page — it is a warning, never a failure; on a workstation, under `nstack attest` and for `Verifier: session <id>`, it is not read.
+
+**In your project** — 5 files, text
+
+- **`.copier-answers.yml`**: `_commit`.
+- **`.github/workflows/pull-request.yml`** (D208): the job receives `PR_NUMBER` and its token, with `pull-requests: read`, and runs again on a submitted review; `BASE_REF` is read from the pull request's event.
+- **`.nstack/handbook/RULES.md`**, **`.nstack/handbook/05-workflow.md`** §7, **`.nstack/playbooks/verification.md`** (D208): each person named verifier must have written the sheet into the description, reviewed the pull request or commented on it, under their own account.
+
+**Migration**
+
+- **An open pull request red on `FAIL [T2]` "the verifier @<handle> left no trace on this pull request"**: the person named reviews the pull request, or writes the sheet into its description themselves — either starts the check again; a comment is read at the next run. If the sheet was not theirs, name the session or the person who actually verified it.
+
+---
+
 ## v0.26.0 — 2026-11-05
 
 D204, D205, D206 and D207, from the third project: a merge whose link the forge lost no longer keeps the commit record red, a criterion held by several merges keeps each one, a spike whose product is a record has its door named, and an attested project's screenshots have a route.
