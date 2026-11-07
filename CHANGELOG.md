@@ -26,7 +26,7 @@ a patch.
 
 D208, from the third project: a person named verifier of a test sheet must have a hand on the pull request.
 
-This is a minor version: a pull request whose sheet names a person, `Verifier: @<handle>`, who has neither edited its description, nor reviewed it, nor commented on it, was green and is now red (T2).
+This is a minor version: a pull request whose sheet names a person, `Verifier: @<handle>`, who has neither edited its description, nor reviewed it, nor commented on it, was green and is now red (T2) — once the project has taken its `pull-request.yml`, which gives the check what it reads.
 
 **In the engine**
 
