@@ -14,7 +14,7 @@ on:
     types: [submitted]
 
 permissions:
-  contents: read
+  contents: read        # the head, and the attested record in the remote's notes (A1, A2)
   pull-requests: read   # whose hand is on the pull request: a person named verifier (T2)
 
 # Each event's run reads the description and the head as they were at that event: a later event
