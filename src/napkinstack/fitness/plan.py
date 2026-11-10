@@ -22,7 +22,7 @@ Rules:
       modules/README.md none of its own once a module holds more than its description
   C10 (a warning) a closure reads the decisions whose criterion is due: an accepted record of
       docs/pdr/ or docs/adr/ whose success criterion names a closed or stopped cycle, or a date
-      its end has reached, says so in a reading line (PDR-0020)
+      in bold its end has reached, says so in a reading line (PDR-0020, PDR-0023)
 
 Templates, whose file name starts with "_", are not checked. `nstack plan` then says the project
 across its cycles (`project`), a display that never fails.
@@ -673,7 +673,7 @@ def _check_discovery(path: Path, fail) -> str | None:
 RECORDS = (Path("docs") / "pdr", Path("docs") / "adr")
 CRITERION = re.compile(r"^## Success criterion[^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
 READING = re.compile(r"Read at `?(.+?)`?'s closure, (\d{4}-\d{2}-\d{2}): (?:met|missed|superseded)\b", re.I)
-DAY = re.compile(r"(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d-])")
+DAY = re.compile(r"\*\*(\d{4}-\d{2}-\d{2})\*\*")  # a due date is written in bold (PDR-0023); another is not read
 NUMBERED = re.compile(r"\bcycle\s+0*(\d+)\b", re.I)
 HEADER = re.compile(r"^[-*\s]*\**(Status|Date)\**\s*:\**\s*(\S+)", re.M | re.I)
 
@@ -688,7 +688,7 @@ def _names(text: str, stem: str) -> bool:
 def _due(root: Path, read: list[tuple[Path, dict | None]]) -> list[str]:
     """C10: each accepted decision record whose success criterion is due at a closure and says no
     reading of it (PDR-0020). Only the criterion section is read: a cycle named by its file or as
-    *cycle NN*, a date written YYYY-MM-DD. A named cycle is due at its closure; a date at the first
+    *cycle NN*, a date written in bold, **YYYY-MM-DD**. A named cycle is due at its closure; a date at the first
     closure that reaches it — read once, a later date waits for a later closure, and a reading on or
     after a date answers it, even at a cycle that stopped before it. A closure before the record's own
     date is not one it could be read at. Said, never refused."""
