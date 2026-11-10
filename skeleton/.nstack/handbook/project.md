@@ -177,7 +177,11 @@ nstack claim D30 --take-over --person @alice            # a hold nobody worked o
 
 Two agents one person runs are two holders: a session renews only a hold it is on. Another
 session of that person is refused like anyone else, and takes the hold with `--take-over` when
-the person says so, stale or not; a person with no `--session` renews their own.
+the person says so, stale or not; a person with no `--session` renews their own. A renewed
+hold with no work branch left gets its first one again, unless the deliverable is merged.
+
+A branch its claim started for another title of the same id — an earlier cycle's `D30` — is
+never this deliverable's work: the claim makes its own beside it.
 
 When a deliverable's work went on other branches, the empty branch its claim started stays:
 `nstack plan` names it once the default branch records the deliverable's delivery — its

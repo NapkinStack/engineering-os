@@ -890,6 +890,64 @@ def test_another_deliverable_s_branch_is_not_taken_for_this_one(shared, capsys):
     assert git(shared, "rev-parse", "--verify", "--quiet", "d1-resume-an-interrupted-recording")
 
 
+def _start_branch(shared: Path, branch: str, title: str) -> None:
+    """A branch `claim` started for a D1 titled otherwise — an earlier cycle's, never deleted."""
+    tree = git(shared, "rev-parse", "main^{tree}")
+    start = git(shared, "commit-tree", tree, "-p", "main", "-m", f"Start D1 — {title}")
+    git(shared, "update-ref", f"refs/heads/{branch}", start)
+
+
+def test_another_cycle_s_start_branch_of_the_same_id_is_not_taken_for_this_one(shared, capsys):
+    _start_branch(shared, "d1-an-older-title", "An older title")
+    capsys.readouterr()
+    assert hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "work continues on d1-an-older-title" not in out, out
+    assert "work branch d1-resume-an-interrupted-recording created" in out, out
+    assert git(shared, "rev-parse", "--verify", "--quiet", "d1-resume-an-interrupted-recording")
+
+
+def test_this_deliverable_s_own_start_branch_is_still_taken(shared, capsys):
+    _start_branch(shared, "d1-resume-an-interrupted-recording", "Resume an interrupted recording")
+    capsys.readouterr()
+    assert hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice") == 0
+    assert "work continues on d1-resume-an-interrupted-recording" in capsys.readouterr().out
+
+
+def test_a_renewed_hold_with_no_work_branch_makes_one(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    git(shared, "branch", "-D", "d1-resume-an-interrupted-recording")
+    git(alice, "branch", "-D", "d1-resume-an-interrupted-recording")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "D1 renewed" in out and "work branch d1-resume-an-interrupted-recording created" in out, out
+    assert git(shared, "rev-parse", "--verify", "--quiet", "d1-resume-an-interrupted-recording")
+
+
+def test_a_renewed_hold_whose_work_is_merged_makes_no_branch_again(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    git(alice, "commit", "-q", "--allow-empty", "-m", "Resume an interrupted recording (D1) (#5)")
+    git(alice, "push", "-q", "origin", "main")
+    git(shared, "branch", "-D", "d1-resume-an-interrupted-recording")
+    git(alice, "branch", "-D", "d1-resume-an-interrupted-recording")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert "work branch" not in capsys.readouterr().out
+    assert not git(shared, "for-each-ref", "refs/heads/d1-*")
+
+
+def test_a_renewed_hold_with_its_work_branch_says_nothing_of_it(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "D1 renewed" in out and "work branch" not in out and "work continues" not in out, out
+
+
 # --- D165: a hold lasts its cycle (#280) -------------------------------------------------------
 
 @pytest.mark.parametrize("after", ["between two cycles", "under the next cycle"])

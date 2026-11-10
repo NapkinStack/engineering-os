@@ -251,24 +251,40 @@ def slug(title: str) -> str:
     return "-".join(kept)[:40] or "work"
 
 
-def _work_branch(root: Path, name: str | None, ident: str, title: str, session: str | None) -> tuple[str, str | None]:
+def _started_for_another(root: Path, ref: str, base: str, ident: str, title: str) -> bool:
+    """The branch's first commit off the default branch is a start `claim` made for another title."""
+    first = _git(root, "log", "--reverse", "--format=%s", f"{base}..{ref}").stdout.splitlines()[:1]
+    start = f"Start {ident} — "
+    return bool(first) and first[0].startswith(start) and first[0] != start + title
+
+
+def _work_branch(root: Path, name: str | None, ident: str, title: str, session: str | None,
+                 renew: bool = False) -> tuple[str, str | None]:
     """The deliverable's first work branch, from the default branch, unless it exists: what is
-    said, and the branch when it was made and pushed."""
+    said, and the branch when it was made and pushed. A renewed hold says nothing of a branch that
+    exists, and starts none once the cycle's default branch has merged the deliverable."""
     branch = f"{ident.lower()}-{slug(title)}"
     # Any d<n>-… branch is the deliverable's work, as the hold's freshness reads it: the one checked
     # out first, then the remote's, then this checkout's — never a second one beside it (#232).
+    # A branch `claim` started for another title of the same id is an earlier cycle's, never this one's.
     current = _git(root, "branch", "--show-current").stdout.strip()
     pattern = f"{ident.lower()}-*"
-    shared = _git(root, "for-each-ref", "--format=%(refname:lstrip=3)", f"{MIRROR}/work/{pattern}").stdout.split() if name else []
-    local = _git(root, "for-each-ref", "--format=%(refname:short)", f"refs/heads/{pattern}").stdout.split()
+    base = f"{MIRROR}/base" if name else "refs/heads/main"
+    shared = [one for one in (_git(root, "for-each-ref", "--format=%(refname:lstrip=3)", f"{MIRROR}/work/{pattern}").stdout.split()
+                              if name else []) if not _started_for_another(root, f"{MIRROR}/work/{one}", base, ident, title)]
+    local = [one for one in _git(root, "for-each-ref", "--format=%(refname:short)", f"refs/heads/{pattern}").stdout.split()
+             if not _started_for_another(root, f"refs/heads/{one}", base, ident, title)]
     existing = [current] if current in local else shared + [one for one in local if one not in shared]
+    if existing and renew:
+        return "", None
     if existing:
         found = existing[0]
         if name and found not in shared:
             return (f"work continues on {found}, which exists here only: no other branch is made.\n"
                     f"      Next: git push -u {name} {found} — the hold stays fresh with the remote's work"), None
         return f"work continues on {found}, which exists: no other branch is made", None
-    base = f"{MIRROR}/base" if name else "refs/heads/main"
+    if renew and ident in _read_merges(root, name, plan.accepted_cycle(root)[1]).live:
+        return "", None
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode != 0:
         return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself.", None
     tree = _git(root, "rev-parse", f"{base}^{{tree}}", check=True).stdout.strip()
@@ -471,6 +487,12 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         made, branch = _work_branch(root, name, ident, title, session)
         print(made)
         print(_show(root, name, ident, title, person, branch, previous) + ".")
+    else:
+        made, branch = _work_branch(root, name, ident, title, session, renew=True)
+        if made:
+            print(made)
+        if branch:
+            print(_show(root, name, ident, title, person, branch, previous) + ".")
     return 0
 
 
