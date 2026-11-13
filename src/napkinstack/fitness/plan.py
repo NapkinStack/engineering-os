@@ -22,7 +22,8 @@ Rules:
       modules/README.md none of its own once a module holds more than its description
   C10 (a warning) a closure reads the decisions whose criterion is due: an accepted record of
       docs/pdr/ or docs/adr/ whose success criterion names a closed or stopped cycle, or a date
-      its end has reached, says so in a reading line (PDR-0020)
+      in bold its end has reached, says so in a reading line (PDR-0020, PDR-0023); one with neither,
+      holding a plain date its end reached, is told to bold its due date
 
 Templates, whose file name starts with "_", are not checked. `nstack plan` then says the project
 across its cycles (`project`), a display that never fails.
@@ -673,7 +674,10 @@ def _check_discovery(path: Path, fail) -> str | None:
 RECORDS = (Path("docs") / "pdr", Path("docs") / "adr")
 CRITERION = re.compile(r"^## Success criterion[^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
 READING = re.compile(r"Read at `?(.+?)`?'s closure, (\d{4}-\d{2}-\d{2}): (?:met|missed|superseded)\b", re.I)
-DAY = re.compile(r"(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d-])")
+DAY = re.compile(r"\*\*(\d{4}-\d{2}-\d{2})\*\*")  # a due date is written in bold (PDR-0023); another is not read
+# A plain date is never due; one the closure reached is said, so a due date left plain is not lost silently.
+PLAIN = re.compile(r"(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d-])")
+AMENDED = re.compile(r"\bamended\s+\d{4}-\d{2}-\d{2}", re.I)
 NUMBERED = re.compile(r"\bcycle\s+0*(\d+)\b", re.I)
 HEADER = re.compile(r"^[-*\s]*\**(Status|Date)\**\s*:\**\s*(\S+)", re.M | re.I)
 
@@ -688,10 +692,12 @@ def _names(text: str, stem: str) -> bool:
 def _due(root: Path, read: list[tuple[Path, dict | None]]) -> list[str]:
     """C10: each accepted decision record whose success criterion is due at a closure and says no
     reading of it (PDR-0020). Only the criterion section is read: a cycle named by its file or as
-    *cycle NN*, a date written YYYY-MM-DD. A named cycle is due at its closure; a date at the first
+    *cycle NN*, a date written in bold, **YYYY-MM-DD**. A named cycle is due at its closure; a date at the first
     closure that reaches it — read once, a later date waits for a later closure, and a reading on or
     after a date answers it, even at a cycle that stopped before it. A closure before the record's own
-    date is not one it could be read at. Said, never refused."""
+    date is not one it could be read at. A criterion with no bold date and no cycle named, holding a
+    plain date a closure reached and no reading after it — an amendment's date aside — is said too:
+    its due date, if that is one, is not read until it is bolded. Said, never refused."""
     closures = sorted(((ended, path.stem) for path, data in read
                        if data and one_of(data.get("status"), OUTCOMES)
                        and (ended := as_date(data.get("ended_on")))))
@@ -717,6 +723,17 @@ def _due(root: Path, read: list[tuple[Path, dict | None]]) -> list[str]:
             reached = next((closure for closure in open_ if closure[0] >= day), None)
             if reached and not any(on >= day for _, on in readings):
                 due.add(reached)
+        if not DAY.search(criterion) and not NUMBERED.search(criterion) \
+                and not any(_names(criterion, p.stem) for p, _ in read):
+            plain = [(day, reached) for day in filter(None, map(as_date, PLAIN.findall(AMENDED.sub("", criterion))))
+                     if not any(on >= day for _, on in readings)
+                     and (reached := next((closure for closure in open_ if closure[0] >= day), None))]
+            if plain:
+                day, (ended, stem) = min(plain)
+                said.append(f"[C10] {path.relative_to(root)}\n      its success criterion holds {day}, a date "
+                            f"{stem}'s closure ({ended}) reached, but no due date C10 can read: a plain date "
+                            "is never read as due (.nstack/handbook/06-decisions.md §5).\n      Action: put the due date in bold, "
+                            f"**YYYY-MM-DD** — **{day}** if it is this one — in its success criterion.")
         for ended, stem in sorted(due):
             if not any(_names(name, stem) and on >= ended for name, on in readings):
                 said.append(f"[C10] {path.relative_to(root)}\n      its success criterion is due at {stem}'s "

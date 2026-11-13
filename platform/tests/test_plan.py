@@ -589,10 +589,10 @@ def judged(root) -> str:
     return said.getvalue()
 
 
-BEFORE = "Observed before 2026-10-01."
+BEFORE = "Observed before **2026-10-01**."
 DUE_CASES = {
     "a date the closure reached": ("adr/0003-x.md", "Observed before **2026-10-01**.", {}, True),
-    "the closure's own day": ("pdr/0001-x.md", "Observed before 2026-10-17.", {}, True),
+    "the closure's own day": ("pdr/0001-x.md", "Observed before **2026-10-17**.", {}, True),
     "the cycle named by its file": ("adr/0003-x.md", "Observed by the end of 03-the-window.", {}, True),
     "the cycle named by its number": ("adr/0003-x.md", "Observed in cycle 3.", {}, True),
     "read at the closure": ("adr/0003-x.md", f"{BEFORE}\n\nRead at 03-the-window's closure, 2026-10-18: met", {}, False),
@@ -601,13 +601,21 @@ DUE_CASES = {
     "read, the cycle in backticks and words after": (
         "adr/0003-x.md", f"{BEFORE}\n\nRead at `03-the-window`'s closure, 2026-10-18: met; see 04-next", {}, False),
     "a reading dated before the closure": (
-        "adr/0003-x.md", "Observed before 2026-10-17.\n\nRead at 03-the-window's closure, 2026-10-16: met", {}, True),
+        "adr/0003-x.md", "Observed before **2026-10-17**.\n\nRead at 03-the-window's closure, 2026-10-16: met", {}, True),
     "a reading of another closure": ("adr/0003-x.md", "By the end of 03-the-window.\n\n"
                                                       "Read at 02-other's closure, 2026-10-18: met", {}, True),
-    "a date no closure reached yet": ("adr/0003-x.md", "Observed before 2026-10-18.", {}, False),
+    "a date no closure reached yet": ("adr/0003-x.md", "Observed before **2026-10-18**.", {}, False),
     "no date and no cycle": ("adr/0003-x.md", "Observed when users say so.", {}, False),
     "a date written otherwise": ("adr/0003-x.md", "Observed before 1 October 2026.", {}, False),
-    "a date only in a comment": ("adr/0003-x.md", "<!-- Observed before 2026-01-01 -->", {}, False),
+    "a date only in a comment": ("adr/0003-x.md", "<!-- Observed before **2026-01-01** -->", {}, False),
+    # PDR-0023: only a date written in bold is due; another is a reference, an amendment, a remark.
+    "a plain date": ("adr/0003-x.md", "Observed before 2026-10-01.", {}, False),
+    "an amendment date alone": ("pdr/0001-x.md", "Observed by users (PDR-0004, amended 2026-10-01).", {}, False),
+    "an amendment date beside a bold one not reached": (
+        "pdr/0001-x.md", "Observed (PDR-0004, amended 2026-10-01) before **2026-10-18**.", {}, False),
+    "an amendment date beside a bold one reached": (
+        "pdr/0001-x.md", "Observed (PDR-0004, amended 2026-10-20) before **2026-10-01**.", {}, True),
+    "a bold date inside words": ("adr/0003-x.md", "Observed **before 2026-10-01**.", {}, False),
     "a superseded record": ("adr/0003-x.md", BEFORE, {"status": "Superseded by ADR-0004"}, False),
     "a proposed record": ("pdr/0001-x.md", BEFORE, {"status": "Proposed"}, False),
     "a record dated after the closure": ("adr/0003-x.md", BEFORE, {"date": "2026-10-20"}, False),
@@ -619,15 +627,42 @@ def test_a_closure_is_told_which_decisions_are_due_and_nothing_fails(tmp_path, n
     framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": cycle()})
     decision(tmp_path, name, criterion, **header)
     said = judged(tmp_path)
-    assert said.count("WARNING [C10]") == (2 if warned else 0), said  # once by plan, once by fitness
+    assert said.count("its success criterion is due at") == (2 if warned else 0), said  # by plan, by fitness
     if warned:
         assert f"[C10] docs/{name}\n      its success criterion is due at 03-the-window's closure (2026-10-17)" in said
         assert "\"Read at 03-the-window's closure, <YYYY-MM-DD>: met | missed | superseded\"" in said
 
 
+PLAIN_CASES = {
+    "a plain date the closure reached": ("Observed before 2026-10-01.", True),
+    "a bold run holding words": ("Observed **before 2026-10-01**.", True),
+    "an amendment date alone": ("Observed by users (PDR-0004, amended 2026-10-01).", False),
+    "an amendment date beside a bold one": ("Observed (PDR-0004, amended 2026-10-01) before **2026-10-18**.", False),
+    "a bold date and a plain one": ("Observed from 2026-09-20 before **2026-10-18**.", False),
+    "a plain date no closure reached yet": ("Observed before 2026-10-18.", False),
+    "a plain date beside a named cycle": ("Observed by the end of cycle 04 (2026-10-01).", False),
+    "a plain date already read": ("Observed before 2026-10-01.\n\nRead at 03-the-window's closure, 2026-10-18: met",
+                                  False),
+}
+
+
+@pytest.mark.parametrize(("criterion", "noted"), PLAIN_CASES.values(), ids=PLAIN_CASES.keys())
+def test_a_plain_due_date_a_closure_reached_is_said_never_read(tmp_path, criterion, noted):
+    """PDR-0023: a plain date is not read as due; a record that held only one is told so, not dropped."""
+    framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": cycle()})
+    decision(tmp_path, "adr/0003-x.md", criterion)
+    said = judged(tmp_path)
+    assert "is due at" not in said, said
+    assert said.count("WARNING [C10]") == (2 if noted else 0), said
+    if noted:
+        assert ("[C10] docs/adr/0003-x.md\n      its success criterion holds 2026-10-01, a date 03-the-window's "
+                "closure (2026-10-17) reached, but no due date C10 can read") in said, said
+        assert "put the due date in bold, **YYYY-MM-DD**" in said, said
+
+
 def test_a_later_date_is_due_again_at_the_closure_that_reaches_it(tmp_path):
     framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": closed() | {"ended_on": "2026-11-07"}})
-    decision(tmp_path, "adr/0003-x.md", "First by 2026-10-01, then by 2026-11-01.\n\n"
+    decision(tmp_path, "adr/0003-x.md", "First by **2026-10-01**, then by **2026-11-01**.\n\n"
                                         "Read at 03-the-window's closure, 2026-10-18: met")
     said = judged(tmp_path)
     assert "due at 04-next's closure (2026-11-07)" in said and "due at 03-the-window's" not in said, said
