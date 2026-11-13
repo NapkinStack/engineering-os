@@ -485,15 +485,34 @@ def _hosts() -> list[str]:
     return sorted(hosts)
 
 
-def _claude_settings(name: str) -> Path:
+def _sockets(clone: Path) -> bool:
+    """The project's answer `agent_sockets` (D212), read from the default branch as last fetched —
+    the project's merged word, not the agent's own copy of the answers file."""
+    shown = _git("show", "origin/HEAD:.copier-answers.yml", cwd=clone)
+    try:
+        answers = yaml.safe_load(shown.stdout) if shown.returncode == 0 else None
+    except yaml.YAMLError:
+        return False
+    return isinstance(answers, dict) and answers.get("agent_sockets") is True
+
+
+def _claude_settings(name: str, sockets: bool = False) -> Path:
     """Claude Code's settings of the agent's own, added to the person's (D199): their sandbox, when
     on, cuts the forge — the agent's git and gh go nowhere — and lets it write nowhere outside its
-    clone, gh's folder included. This opens the agent's hosts and that folder; it never turns the
-    sandbox off, nor touches a hook or a permission of theirs."""
+    clone, gh's folder included. This opens the agent's hosts, that folder and a cache of its own
+    where builds and tests write (D212); Unix sockets only on the project's answer. It never turns
+    the sandbox off, nor touches a hook or a permission of theirs."""
     folder = home() / name
-    settings = {"sandbox": {"network": {"allowedDomains": _hosts()}, "filesystem": {"allowWrite": [str(folder / "gh")]}},
+    cache = folder / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    network = {"allowedDomains": _hosts(), **({"allowAllUnixSockets": True} if sockets else {})}
+    # uv and pre-commit keep the person's warm caches: the sandbox opens no package index to fill new ones
+    person = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
+    settings = {"sandbox": {"network": network, "filesystem": {"allowWrite": [str(folder / "gh"), str(cache)]}},
                 # git behind the sandbox's proxy fails "Proxy CONNECT aborted" without it
-                "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic"}}
+                "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(cache),
+                        "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR") or str(person / "uv"),
+                        "PRE_COMMIT_HOME": os.environ.get("PRE_COMMIT_HOME") or str(person / "pre-commit")}}
     path = folder / "claude-settings.json"
     path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     return path
@@ -572,19 +591,35 @@ def run(name: str, command: list[str]) -> int:
     if not command:
         _say(f"FAIL [agent] no command to start.\n      Action: nstack agent run {name} -- claude")
         return 1
+    # A sandbox write-protects .git/config: a tracking branch or `push -u` fails there (D212).
+    # Written only when it differs, so a run started inside one still starts once it is set.
+    for key, value in (("branch.autoSetupMerge", "false"), ("push.default", "current")):
+        if _git("config", "--local", "--get", key, cwd=app["clone"]).stdout.strip() == value:
+            continue
+        if _git("config", "--local", key, value, cwd=app["clone"]).returncode:
+            _say(f"FAIL [agent] git could not set {key} in {app['clone']}.\n"
+                 f"      Action: check that folder is agent {name}'s clone, or run nstack agent add {name} again.")
+            return 1
     _say(f"Agent {name}: {app['slug']}[bot] on {app['repo']}, in {app['clone']}.\n"
          "  - removed: your tokens, SSH agent and git configuration; git and gh act as the App.\n"
          "  - kept: your agent tool's own configuration (its sandbox, hooks and permissions), and your files: "
          "this is not a sandbox.\n"
+         "  - git: git switch -c <branch> origin/main tracks nothing, a plain git push names the branch: "
+         "no write to .git/config.\n"
          "  - the agent checks who it is with: nstack agent status", sys.stderr)
     if Path(command[0]).name.lower() in ("claude", "claude.exe", "claude.cmd"):
         if any(arg == "--settings" or arg.startswith("--settings=") for arg in command[1:]):
             _say(f"  - claude: your --settings is kept; if your sandbox is on, its sandbox.network.allowedDomains "
                  f"needs {', '.join(_hosts())}.", sys.stderr)
         else:
-            command = [command[0], "--settings", str(_claude_settings(name)), *command[1:]]
+            sockets = _sockets(Path(app["clone"]))
+            command = [command[0], "--settings", str(_claude_settings(name, sockets)), *command[1:]]
             _say(f"  - claude: --settings {home() / name / 'claude-settings.json'}, added to yours: your sandbox, "
-                 "if on, lets it reach the forge and write its gh folder, nothing more.", sys.stderr)
+                 "if on, lets it reach the forge and write its gh folder and its cache "
+                 f"({home() / name / 'cache'}), nothing more.", sys.stderr)
+            if sockets:
+                _say("  - Unix sockets: open (agent_sockets), for audio, display and bus tests: a socket such as "
+                     "docker.sock grants the agent the host.", sys.stderr)
     try:
         return subprocess.run(command, cwd=app["clone"], env=_environment(name)).returncode
     except FileNotFoundError:

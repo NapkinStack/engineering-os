@@ -879,7 +879,8 @@ def test_a_deliverable_s_branch_not_pushed_is_taken_and_said_to_push(shared, cap
     capsys.readouterr()
     assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
     out = capsys.readouterr().out
-    assert "work continues on d1-log-audit" in out and "git push -u origin d1-log-audit" in out, out
+    # no -u: an agent's sandbox write-protects .git/config, where the upstream is written (D212)
+    assert "work continues on d1-log-audit" in out and "Next: git push origin d1-log-audit" in out, out
     assert not git(shared, "for-each-ref", "refs/heads/d1-*")
 
 
