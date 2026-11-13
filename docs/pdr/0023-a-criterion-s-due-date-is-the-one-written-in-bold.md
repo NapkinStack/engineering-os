@@ -34,8 +34,8 @@ A closure is told a decision is due only by the date the criterion says it is du
 
 - **Reading the words around a date.** *Before*, *by*, *amended*, *see*: PDR-0020 §6 infers
   nothing from prose, and this keeps it so.
-- **Rewriting existing records.** A record whose due date is plain stops being named; its
-  author bolds it, at its next change or at the closure that reads it.
+- **Rewriting existing records.** A record whose due date is plain stops being read as due;
+  the closure that reaches it says so (Decision, 4), and its author bolds it.
 - **Cycles named in the criterion.** A cycle named by its file or as *cycle 03* stays due as
   PDR-0020 says.
 - **The reading line.** Its date stays plain: it records a reading, not a deadline.
@@ -78,6 +78,10 @@ field would be the strongest; the forms are prose sentences, and their due date 
    refusal.
 3. **The forms, the handbook, the playbook, `RULES.md` and the glossary say it**, where they
    state the rule.
+4. **A plain due date is reported, not read.** A criterion with no bold date and no cycle named,
+   holding a plain date a closure reached with no reading after it, gets a C10 warning of its
+   own: no due date C10 can read, put it in bold. A date written *amended YYYY-MM-DD* is left
+   out — the one phrase read, only to keep an amendment quiet; it never makes a date due. An update never silences a warning a project used to get.
 
 ---
 
@@ -89,8 +93,8 @@ whose end reaches 2027-01-31 names it.
 
 **Edge cases.** A criterion with only an amendment date, or only plain dates, is never due by a
 date. A criterion with a bold date and a named cycle is due at both, as before. A plain due date
-in a record written before this decision stops being named: the version's migration paragraph
-says to bold it.
+in a record written before this decision stops being read as due: the closure that reaches it
+warns that the criterion has no due date C10 can read, and says to bold it.
 
 **Acceptance criteria** *(testable)*:
 
@@ -98,7 +102,9 @@ says to bold it.
       bold date it did not reach, then no warning.
 - [ ] Given a criterion with only an amendment date the closure reached, then no warning.
 - [ ] Given a criterion with a bold date the closure reached, then C10 warns, as PDR-0020 says.
-- [ ] Given a plain date, or a bold run holding words, then no warning.
+- [ ] Given a plain date, or a bold run holding words, then no warning that it is due.
+- [ ] Given a plain date the closure reached, with no bold date and no cycle named, then C10
+      warns that the criterion has no due date it can read; with an amendment date only, nothing.
 
 ---
 
@@ -119,8 +125,8 @@ its own.
 
 ## Impacts
 
-- **Projects**: a criterion whose due date is plain stops being named at closures until it is
-  bolded; amendment and reference dates stop being named. No check turns red: C10 is a warning.
+- **Projects**: a criterion whose due date is plain stops being read as due; the closure that
+  reaches it says to bold it; amendment and reference dates stop being named. No check turns red: C10 is a warning.
 - **The engine**: the plan's rule C10 reads only bold dates.
 - **The skeleton**: the PDR and ADR forms' comment, `06-decisions.md` §5, `framing.md`'s
   closure, `RULES.md` and the glossary say it.

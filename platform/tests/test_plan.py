@@ -627,10 +627,37 @@ def test_a_closure_is_told_which_decisions_are_due_and_nothing_fails(tmp_path, n
     framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": cycle()})
     decision(tmp_path, name, criterion, **header)
     said = judged(tmp_path)
-    assert said.count("WARNING [C10]") == (2 if warned else 0), said  # once by plan, once by fitness
+    assert said.count("its success criterion is due at") == (2 if warned else 0), said  # by plan, by fitness
     if warned:
         assert f"[C10] docs/{name}\n      its success criterion is due at 03-the-window's closure (2026-10-17)" in said
         assert "\"Read at 03-the-window's closure, <YYYY-MM-DD>: met | missed | superseded\"" in said
+
+
+PLAIN_CASES = {
+    "a plain date the closure reached": ("Observed before 2026-10-01.", True),
+    "a bold run holding words": ("Observed **before 2026-10-01**.", True),
+    "an amendment date alone": ("Observed by users (PDR-0004, amended 2026-10-01).", False),
+    "an amendment date beside a bold one": ("Observed (PDR-0004, amended 2026-10-01) before **2026-10-18**.", False),
+    "a bold date and a plain one": ("Observed from 2026-09-20 before **2026-10-18**.", False),
+    "a plain date no closure reached yet": ("Observed before 2026-10-18.", False),
+    "a plain date beside a named cycle": ("Observed by the end of cycle 04 (2026-10-01).", False),
+    "a plain date already read": ("Observed before 2026-10-01.\n\nRead at 03-the-window's closure, 2026-10-18: met",
+                                  False),
+}
+
+
+@pytest.mark.parametrize(("criterion", "noted"), PLAIN_CASES.values(), ids=PLAIN_CASES.keys())
+def test_a_plain_due_date_a_closure_reached_is_said_never_read(tmp_path, criterion, noted):
+    """PDR-0023: a plain date is not read as due; a record that held only one is told so, not dropped."""
+    framed(tmp_path, cycles={"03-the-window.md": closed(), "04-next.md": cycle()})
+    decision(tmp_path, "adr/0003-x.md", criterion)
+    said = judged(tmp_path)
+    assert "is due at" not in said, said
+    assert said.count("WARNING [C10]") == (2 if noted else 0), said
+    if noted:
+        assert ("[C10] docs/adr/0003-x.md\n      its success criterion holds 2026-10-01, a date 03-the-window's "
+                "closure (2026-10-17) reached, but no due date C10 can read") in said, said
+        assert "put the due date in bold, **YYYY-MM-DD**" in said, said
 
 
 def test_a_later_date_is_due_again_at_the_closure_that_reaches_it(tmp_path):

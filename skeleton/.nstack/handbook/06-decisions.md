@@ -185,7 +185,8 @@ carries a sentence of this form:
 > observed before* **\<YYYY-MM-DD\>**.
 
 The due date is written in bold, `**2027-01-31**`, and only it: a plain date in the criterion —
-an amendment's, a reference's — is never read as one (C10).
+an amendment's, a reference's — is never read as one (C10). A criterion with no bold date and no
+cycle named, whose plain date a closure reached, is reported so its due date is bolded, not lost.
 
 Without a date nobody ever comes back to check, and `docs/adr/` becomes a graveyard —
 which is worse than no documentation at all, because it inspires false confidence.
