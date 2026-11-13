@@ -81,7 +81,9 @@ field would be the strongest; the forms are prose sentences, and their due date 
 4. **A plain due date is reported, not read.** A criterion with no bold date and no cycle named,
    holding a plain date a closure reached with no reading after it, gets a C10 warning of its
    own: no due date C10 can read, put it in bold. A date written *amended YYYY-MM-DD* is left
-   out — the one phrase read, only to keep an amendment quiet; it never makes a date due. An update never silences a warning a project used to get.
+   out — the one phrase read, only to keep an amendment quiet; it never makes a date due.
+   A criterion left with no due date C10 can read is reported; a plain date beside a bold due
+   date is no longer read, by design.
 
 ---
 
