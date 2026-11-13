@@ -510,10 +510,59 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
     settings = json.loads((home / "claude-settings.json").read_text())
     host = urllib.parse.urlsplit(forge).hostname  # the test's forge serves web and API on one host
     assert settings == {"sandbox": {"network": {"allowedDomains": [host]},
-                                    "filesystem": {"allowWrite": [str(home / "gh")]}},
-                        "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic"}}, \
-        "the forge's hosts and the agent's gh folder, nothing more; the sandbox never switched"
+                                    "filesystem": {"allowWrite": [str(home / "gh"), str(home / "cache")]}},
+                        "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(home / "cache")}}, \
+        "the forge's hosts, the agent's gh folder and its own cache, nothing more; no Unix socket; the sandbox never switched"
+    assert (home / "cache").is_dir(), "builds and tests write their caches there (D212)"
     assert "--settings" in done.stderr and "sandbox" in done.stderr
+    assert "Unix sockets" not in done.stderr
+
+
+def _answer_on_main(project: Path, text: str) -> None:
+    """The project's answers file changed on the remote's main, as a merged pull request would."""
+    (project / ".copier-answers.yml").write_text(text, encoding="utf-8")
+    _git("-c", "user.name=P", "-c", "user.email=p@example.com", "commit", "-qam", "answer", cwd=project)
+    _git("push", "-q", str(project.parent / "remote.git"), "main", cwd=project)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
+def test_unix_sockets_open_on_the_project_s_merged_answer_alone(forge, project, tmp_path, monkeypatch):
+    """D212: every AF_UNIX socket is refused in the sandbox — no audio, no display, no bus for an
+    end-to-end test. A project opens them by its answer, merged: the agent's own copy of the
+    answers file opens nothing. Their risk, a socket such as docker.sock, is said."""
+    _claude_stand_in(tmp_path, monkeypatch)
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
+    clone = project.parent / "demo-scout"
+    answers = "forge: github\ngithub_repo: acme/demo\nagent_sockets: true\n"
+    (clone / ".copier-answers.yml").write_text(answers, encoding="utf-8")  # the agent's word, not the project's
+    done = _run("run", "scout", "--", "claude")
+    assert done.returncode == 0, done.stderr
+    assert "allowAllUnixSockets" not in json.loads((home / "claude-settings.json").read_text())["sandbox"]["network"]
+    _git("checkout", "-q", "--", ".copier-answers.yml", cwd=clone)
+    _answer_on_main(project, answers)
+    _git("pull", "-q", cwd=clone)
+    done = _run("run", "scout", "--", "claude")
+    assert done.returncode == 0, done.stderr
+    assert json.loads((home / "claude-settings.json").read_text())["sandbox"]["network"]["allowAllUnixSockets"] is True
+    assert "Unix sockets: open (agent_sockets)" in done.stderr and "docker.sock" in done.stderr, \
+        "the person is told what the answer opens"
+
+
+def test_run_lets_the_agent_branch_and_push_without_writing_its_git_config(forge, project):
+    """D212: the sandbox write-protects .git/config, so a tracking branch or `push -u` fails there.
+    Set once by run, outside it: a branch made off origin/main tracks nothing, a plain push names it."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    clone = project.parent / "demo-scout"
+    for _ in range(2):  # idempotent
+        done = _run("run", "scout", "--", sys.executable, "-c", "")
+        assert done.returncode == 0, done.stderr
+    assert _git("config", "--local", "--get-all", "branch.autoSetupMerge", cwd=clone) == "false"
+    assert _git("config", "--local", "--get-all", "push.default", cwd=clone) == "current"
+    assert "git switch -c <branch> origin/main" in done.stderr and "git push" in done.stderr
+    before = (clone / ".git" / "config").read_text()
+    _git("switch", "-q", "-c", "d1-work", "origin/main", cwd=clone)
+    assert (clone / ".git" / "config").read_text() == before, "no branch section written"
 
 
 def test_on_github_com_the_agent_s_settings_also_open_the_ci_logs_host(forge, project, monkeypatch):

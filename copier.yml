@@ -102,3 +102,11 @@ approval:
   choices: [human, agent]
   default: human
   help: Who approves a prototype or standard module — a human code owner, or also another agent
+
+# Whether an agent's sandbox opens Unix sockets (D212): audio, display, the session bus — and any
+# socket on the host, docker.sock among them. The decider's word, changed in a pull request a human
+# approves; `nstack agent run` reads it from the default branch. Not asked at init.
+agent_sockets:
+  type: bool
+  default: false
+  help: Whether an agent's sandbox opens Unix sockets, for audio, display or bus tests — any host socket with them
