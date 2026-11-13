@@ -914,6 +914,26 @@ def test_this_deliverable_s_own_start_branch_is_still_taken(shared, capsys):
     assert "work continues on d1-resume-an-interrupted-recording" in capsys.readouterr().out
 
 
+def test_a_retitled_deliverable_s_worked_branch_is_still_its_own(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="alice-d1", person="@alice")
+    git(alice, "switch", "-q", "d1-resume-an-interrupted-recording")
+    (alice / "resume.txt").write_text("work\n", encoding="utf-8")
+    git(alice, "add", "resume.txt")
+    git(alice, "commit", "-q", "-m", "Resume from the last chunk")
+    git(alice, "push", "-q", "origin", "d1-resume-an-interrupted-recording")
+    git(alice, "switch", "-q", "main")
+    cycle = alice / "docs/project/cycles/03-the-window.md"
+    cycle.write_text(cycle.read_text(encoding="utf-8").replace("Resume an interrupted recording", "Resume a cut recording"),
+                     encoding="utf-8")
+    git(alice, "commit", "-q", "-am", "Retitle D1")
+    git(alice, "push", "-q", "origin", "main")
+    capsys.readouterr()
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert "work branch" not in capsys.readouterr().out
+    assert git(shared, "for-each-ref", "--format=%(refname:short)", "refs/heads/d1-*") == "d1-resume-an-interrupted-recording"
+
+
 def test_a_renewed_hold_with_no_work_branch_makes_one(shared, capsys):
     alice = clone(shared, "alice")
     hold.claim(alice, "D1", session="alice-d1", person="@alice")

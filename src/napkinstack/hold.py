@@ -251,11 +251,18 @@ def slug(title: str) -> str:
     return "-".join(kept)[:40] or "work"
 
 
+def _empty(root: Path, ref: str, base: str) -> bool:
+    """One commit off the default branch, with its parent's tree: nothing was worked on it."""
+    return (_git(root, "rev-list", "--count", f"{base}..{ref}").stdout.strip() == "1"
+            and _git(root, "rev-parse", f"{ref}^{{tree}}").stdout == _git(root, "rev-parse", f"{ref}~1^{{tree}}").stdout)
+
+
 def _started_for_another(root: Path, ref: str, base: str, ident: str, title: str) -> bool:
-    """The branch's first commit off the default branch is a start `claim` made for another title."""
-    first = _git(root, "log", "--reverse", "--format=%s", f"{base}..{ref}").stdout.splitlines()[:1]
+    """An empty start `claim` made for another title: a branch with work stays the deliverable's,
+    whatever its title has become since."""
+    subject = _git(root, "log", "-1", "--format=%s", ref).stdout.strip()
     start = f"Start {ident} — "
-    return bool(first) and first[0].startswith(start) and first[0] != start + title
+    return subject.startswith(start) and subject != start + title and _empty(root, ref, base)
 
 
 def _work_branch(root: Path, name: str | None, ident: str, title: str, session: str | None,
@@ -266,7 +273,7 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
     branch = f"{ident.lower()}-{slug(title)}"
     # Any d<n>-… branch is the deliverable's work, as the hold's freshness reads it: the one checked
     # out first, then the remote's, then this checkout's — never a second one beside it (#232).
-    # A branch `claim` started for another title of the same id is an earlier cycle's, never this one's.
+    # An empty branch `claim` started for another title of the same id is an earlier cycle's, never this one's.
     current = _git(root, "branch", "--show-current").stdout.strip()
     pattern = f"{ident.lower()}-*"
     base = f"{MIRROR}/base" if name else "refs/heads/main"
@@ -656,8 +663,7 @@ def _empty_starts(root: Path, name: str | None, items: list) -> list[str]:
             branch, ref, subject = (line.split("\t", 2) + ["", ""])[:3]
             ident = branch.split("-")[0]
             if (ident not in known or not subject.startswith(f"Start {ident.upper()} — ")
-                    or _git(root, "rev-list", "--count", f"{base}..{ref}").stdout.strip() != "1"
-                    or _git(root, "rev-parse", f"{ref}^{{tree}}").stdout != _git(root, "rev-parse", f"{ref}~1^{{tree}}").stdout):
+                    or not _empty(root, ref, base)):
                 continue
             if ident in states and plan.one_of(states[ident], TAKEABLE) and not _landed(root, ident, ref, base):
                 continue
