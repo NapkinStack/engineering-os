@@ -506,9 +506,13 @@ def _claude_settings(name: str, sockets: bool = False) -> Path:
     cache = folder / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     network = {"allowedDomains": _hosts(), **({"allowAllUnixSockets": True} if sockets else {})}
+    # uv and pre-commit keep the person's warm caches: the sandbox opens no package index to fill new ones
+    person = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
     settings = {"sandbox": {"network": network, "filesystem": {"allowWrite": [str(folder / "gh"), str(cache)]}},
                 # git behind the sandbox's proxy fails "Proxy CONNECT aborted" without it
-                "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(cache)}}
+                "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(cache),
+                        "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR") or str(person / "uv"),
+                        "PRE_COMMIT_HOME": os.environ.get("PRE_COMMIT_HOME") or str(person / "pre-commit")}}
     path = folder / "claude-settings.json"
     path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     return path
@@ -588,7 +592,10 @@ def run(name: str, command: list[str]) -> int:
         _say(f"FAIL [agent] no command to start.\n      Action: nstack agent run {name} -- claude")
         return 1
     # A sandbox write-protects .git/config: a tracking branch or `push -u` fails there (D212).
+    # Written only when it differs, so a run started inside one still starts once it is set.
     for key, value in (("branch.autoSetupMerge", "false"), ("push.default", "current")):
+        if _git("config", "--local", "--get", key, cwd=app["clone"]).stdout.strip() == value:
+            continue
         if _git("config", "--local", key, value, cwd=app["clone"]).returncode:
             _say(f"FAIL [agent] git could not set {key} in {app['clone']}.\n"
                  f"      Action: check that folder is agent {name}'s clone, or run nstack agent add {name} again.")

@@ -288,7 +288,7 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
         found = existing[0]
         if name and found not in shared:
             return (f"work continues on {found}, which exists here only: no other branch is made.\n"
-                    f"      Next: git push -u {name} {found} — the hold stays fresh with the remote's work"), None
+                    f"      Next: git push {name} {found} — the hold stays fresh with the remote's work"), None
         return f"work continues on {found}, which exists: no other branch is made", None
     if renew and ident in _read_merges(root, name, plan.accepted_cycle(root)[1]).live:
         return "", None
@@ -302,7 +302,7 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
         pushed = _git(root, "push", "--quiet", name, f"{branch}:refs/heads/{branch}")
         if pushed.returncode != 0:
             return (f"work branch {branch} created here, NOT pushed: {pushed.stderr.strip()}\n"
-                    f"      Next: git push -u {name} {branch}"), None
+                    f"      Next: git push {name} {branch}"), None
         _git(root, "update-ref", f"{MIRROR}/work/{branch}", start)
     return f"work branch {branch} created.\n      Next: git switch {branch}", branch if name else None
 

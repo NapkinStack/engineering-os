@@ -236,7 +236,10 @@ adds `--settings` with a file of the agent's own: when your sandbox is on, it le
 the forge — on github.com, the host of a run's logs too — and write its `gh` folder, and sets `GIT_HTTP_PROXY_AUTHMETHOD=basic` for git behind the
 sandbox's proxy — nothing more; it never turns the sandbox off, and settings your organisation
 manages still win over it. So that the agent builds and tests there, it also opens a cache of the
-agent's own (`~/.config/nstack/agents/scout/cache`, its `XDG_CACHE_HOME`), and sets the clone so
+agent's own (`~/.config/nstack/agents/scout/cache`, its `XDG_CACHE_HOME`) — uv and pre-commit keep
+your warm caches, `UV_CACHE_DIR` and `PRE_COMMIT_HOME`, since the sandbox opens no package index;
+builds that write elsewhere, such as Cargo's `~/.cargo`, need that folder in your sandbox's
+`allowWrite` — and sets the clone so
 that `git switch -c <branch> origin/main` and a plain `git push` never write `.git/config`, which
 the sandbox protects. Unix sockets — audio, display, the session bus — stay closed unless the
 project answers `agent_sockets: true` (`.nstack/handbook/07-governance.md` §7 says the risk).

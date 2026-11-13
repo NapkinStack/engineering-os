@@ -349,8 +349,10 @@ settings close that door, and they only hold together:
    `[[ -n "${NSTACK_AGENT:-}" && "$(command -v gh)" == "$(dirname "$GH_CONFIG_DIR")/bin/gh" ]] && exit 0`
    — the agent's `gh` folder sits beside its shim, wherever the agents' folder is.
    Inside that sandbox the agent writes its clone, `.git/config` excepted, and a cache of its own
-   (`XDG_CACHE_HOME`): it branches without tracking and pushes plainly — `git switch -c d4-export
-   origin/main`, then `git push` — and needs no worktree, its clone being its own. Unix sockets
+   (`XDG_CACHE_HOME`; uv and pre-commit keep the person's); a build writing elsewhere, such as
+   Cargo's `~/.cargo`, needs the person to add that folder to their sandbox's `allowWrite`. It
+   branches without tracking and pushes plainly — `git switch -c d4-export origin/main`, then
+   `git push` — and needs no worktree, its clone being its own. Unix sockets
    stay closed unless the project answers `agent_sockets: true` in `.copier-answers.yml`, read from
    the default branch: an end-to-end test of audio or a display needs them, and a socket such as
    `docker.sock` hands the agent the host.

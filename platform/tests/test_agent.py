@@ -501,6 +501,8 @@ def test_run_says_what_the_agent_gets_and_what_it_keeps_of_the_person(forge, pro
 @pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
 def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, project, tmp_path, monkeypatch):
     _claude_stand_in(tmp_path, monkeypatch)
+    for name in ("UV_CACHE_DIR", "PRE_COMMIT_HOME", "XDG_CACHE_HOME"):
+        monkeypatch.delenv(name, raising=False)
     assert agent.add(project, "scout", browser=Browser()) == 0
     done = _run("run", "scout", "--", "claude", "-p", "review #1")
     assert done.returncode == 0, done.stderr
@@ -509,13 +511,28 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
     assert args == ["--settings", str(home / "claude-settings.json"), "-p", "review #1"]
     settings = json.loads((home / "claude-settings.json").read_text())
     host = urllib.parse.urlsplit(forge).hostname  # the test's forge serves web and API on one host
+    person = Path.home() / ".cache"
     assert settings == {"sandbox": {"network": {"allowedDomains": [host]},
                                     "filesystem": {"allowWrite": [str(home / "gh"), str(home / "cache")]}},
-                        "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(home / "cache")}}, \
+                        "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(home / "cache"),
+                                "UV_CACHE_DIR": str(person / "uv"), "PRE_COMMIT_HOME": str(person / "pre-commit")}}, \
         "the forge's hosts, the agent's gh folder and its own cache, nothing more; no Unix socket; the sandbox never switched"
     assert (home / "cache").is_dir(), "builds and tests write their caches there (D212)"
     assert "--settings" in done.stderr and "sandbox" in done.stderr
     assert "Unix sockets" not in done.stderr
+
+
+def test_uv_and_pre_commit_keep_the_person_s_warm_caches(forge, project, monkeypatch, tmp_path):
+    """D212: the sandbox opens no package index; an empty cache would send uv and pre-commit there.
+    They keep the person's own: the value they set, else the one their XDG_CACHE_HOME gives."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    monkeypatch.setenv("UV_CACHE_DIR", str(tmp_path / "uv-of-the-person"))
+    monkeypatch.delenv("PRE_COMMIT_HOME", raising=False)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+    env = json.loads(agent._claude_settings("scout").read_text())["env"]
+    assert env["UV_CACHE_DIR"] == str(tmp_path / "uv-of-the-person")
+    assert env["PRE_COMMIT_HOME"] == str(tmp_path / "xdg" / "pre-commit")
+    assert env["XDG_CACHE_HOME"] == str(Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "cache")
 
 
 def _answer_on_main(project: Path, text: str) -> None:
@@ -563,6 +580,20 @@ def test_run_lets_the_agent_branch_and_push_without_writing_its_git_config(forge
     before = (clone / ".git" / "config").read_text()
     _git("switch", "-q", "-c", "d1-work", "origin/main", cwd=clone)
     assert (clone / ".git" / "config").read_text() == before, "no branch section written"
+
+
+@pytest.mark.skipif(os.name != "posix" or os.geteuid() == 0, reason="POSIX permissions, not root")
+def test_run_from_inside_a_sandbox_does_not_rewrite_a_config_already_set(forge, project):
+    """D212: a run started where .git/config cannot be written — a sandbox — still starts, once set."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    dot_git = project.parent / "demo-scout" / ".git"
+    assert _run("run", "scout", "--", sys.executable, "-c", "").returncode == 0
+    dot_git.chmod(0o555)  # git writes a config through a lock file beside it
+    try:
+        done = _run("run", "scout", "--", sys.executable, "-c", "print('started')")
+    finally:
+        dot_git.chmod(0o755)
+    assert done.returncode == 0 and done.stdout == "started\n", done.stderr
 
 
 def test_on_github_com_the_agent_s_settings_also_open_the_ci_logs_host(forge, project, monkeypatch):
