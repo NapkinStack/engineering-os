@@ -535,20 +535,44 @@ def _who_commits(agents: list[str]) -> str:
             "it is an agent, never the person")
 
 
-def status(name: str | None) -> int:
-    """`nstack agent status`: who the agent is, for the agent itself; the agents here, for a person."""
+def _project(root: Path) -> str | None:
+    """The GitHub repository of the project at root, from its answers: None outside a project,
+    "" for a project with no GitHub repository, or answers that cannot be read."""
+    answers_file = root / ".copier-answers.yml"
+    if not answers_file.is_file():
+        return None
+    try:
+        answers = yaml.safe_load(answers_file.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return ""
+    return str(answers["github_repo"]) if isinstance(answers, dict) and answers.get("github_repo") else ""
+
+
+def status(name: str | None, root: Path | None = None, everywhere: bool = False) -> int:
+    """`nstack agent status`: who the agent is, for the agent itself; for a person, this project's
+    agents — every project's only with --all, since one workstation may serve several clients (D213)."""
     session = os.environ.get("NSTACK_AGENT")
     name = name or session
     if not name:
         agents = sorted(path.parent.name for path in home().glob("*/app.json")) if home().is_dir() else []
-        print(f"The agents on this workstation — this session: {_who_commits(agents)}.")
-        if not agents:
-            print("No agent on this workstation.\n      Action: at a project's root, nstack agent add <name>")
-        for one in agents:
+        repo = None if everywhere else _project(root or Path.cwd())
+        shown = [one for one in agents if everywhere or (repo and (_load(one) or {}).get("repo") == repo)]
+        print(f"A person's view — this session: {_who_commits(agents)}.")
+        if not everywhere and not repo:
+            print(("This folder is not in a project" if repo is None else
+                   "This project has no GitHub repository in its answers") + ": no agent shown.\n"
+                  "      Action: run it in a project on GitHub, or nstack agent status --all for this workstation's.")
+            return 0
+        print("Agents on this workstation, every project:" if everywhere else f"Agents on {repo}:")
+        if not shown:
+            print("  none.\n      Action: at the project's root, nstack agent add <name>")
+        for one in shown:
             app = _load(one) or {}
             print(f"  {one}: {app.get('slug')}[bot] on {app.get('repo')}, clone {app.get('clone') or 'not made'}")
-        if agents:
+        if shown:
             print("Start one with: nstack agent run <name> -- <your agent's command>")
+        if not everywhere:
+            print("Other projects' agents are not shown: nstack agent status --all.")
         return 0
     app = _load(name)
     if app is None:

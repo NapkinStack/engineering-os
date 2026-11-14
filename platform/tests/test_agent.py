@@ -654,11 +654,35 @@ def test_status_tells_an_agent_who_it_is(forge, project):
 
 def test_status_lists_the_agents_for_a_person(forge, project, tmp_path):
     assert agent.add(project, "scout", browser=Browser()) == 0
-    done = _run("status", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"},
+    done = _run("status", "--all", env={k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"},
                 cwd=_checkout(tmp_path, "P", "p@example.com"))
     assert done.returncode == 0
     assert "scout" in done.stdout and "demo-scout[bot]" in done.stdout and "acme/demo" in done.stdout
     assert "this session: yours, not an agent's" in done.stdout
+
+
+# D213: a session at one project's root was shown every project's agents — their names,
+# repositories and folders — a leak between clients sharing a workstation. Scoped as
+# kubectl scopes to a namespace, with --all for the workstation, as kubectl -A.
+def test_status_shows_only_this_project_s_agents_unless_all(forge, project, tmp_path):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    other = agent._load("scout") | {"slug": "other-scout", "repo": "client/secret", "clone": str(tmp_path / "secret")}
+    (Path(os.environ["NSTACK_AGENTS_HOME"]) / "spy").mkdir()
+    (Path(os.environ["NSTACK_AGENTS_HOME"]) / "spy" / "app.json").write_text(json.dumps(other))
+    person = {k: v for k, v in os.environ.items() if k != "NSTACK_AGENT"}
+    here = _run("status", env=person, cwd=project).stdout
+    assert "demo-scout[bot]" in here and "acme/demo" in here
+    assert "client/secret" not in here and "spy" not in here and "secret" not in here, here
+    assert "Agents on acme/demo" in here and "--all" in here
+    everywhere = _run("status", "--all", env=person, cwd=project).stdout
+    assert "client/secret" in everywhere and "acme/demo" in everywhere
+    outside = _run("status", env=person, cwd=_checkout(tmp_path, "P", "p@example.com")).stdout
+    assert "client/secret" not in outside and "acme/demo" not in outside, outside
+    assert "not in a project" in outside and "--all" in outside
+    (project / ".copier-answers.yml").write_text("forge: gitlab\n", encoding="utf-8")
+    assert "no GitHub repository" in _run("status", env=person, cwd=project).stdout
+    (project / ".copier-answers.yml").write_text("forge: [", encoding="utf-8")
+    assert _run("status", env=person, cwd=project).returncode == 0
 
 
 # D202 (#352): a session under an App made by hand commits as a bot, NSTACK_AGENT unset; it was
