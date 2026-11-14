@@ -279,7 +279,7 @@ def traces(root: Path) -> set[str] | str | None:
     """The accounts whose hand is on the pull request — its description's editors, its reviewers,
     its commenters —, lower case and without `[bot]`; why they are not read; None with no pull
     request number, on a workstation, and while `nstack attest` records the head: the hand is
-    judged on the forge's run, which a review or an edit of the description starts again."""
+    judged on the forge's run, which an edit of the description starts again."""
     number = os.environ.get("PR_NUMBER", "").strip()
     if not re.fullmatch(r"[0-9]+", number) or os.environ.get("NSTACK_ATTESTING"):
         return None
@@ -336,7 +336,8 @@ def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str
         fail("T2", f"Test sheet: the verifier @{named} left no trace on this pull request — no edit of its "
                    "description, no review, no comment: the sheet says who should have verified, not who did.\n"
                    f"      Action: @{named} runs the sheet and writes it in the description, or reviews it; or the "
-                   "sheet names only who did (.nstack/playbooks/verification.md).")
+                   "sheet names only who did (.nstack/playbooks/verification.md). A review or a comment is read at "
+                   "the next run: an edit of the description starts one.")
 
 
 def _result(cell: str) -> str:
