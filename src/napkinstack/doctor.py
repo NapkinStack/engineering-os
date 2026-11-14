@@ -12,7 +12,7 @@ either: whether its default branch holds that commit (GITHUB_API_URL, otherwise
 https://api.github.com). No answer leaves L1 as it is.
 
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
-fine-grained, limited to the repository, Administration: read permission. Without a token,
+fine-grained, limited to the repository, Administration: read permission (Actions: read for N2). Without a token,
 or when the API refuses a read, the setting is "not verified", never compliant. No write.
 
 Rules:
@@ -38,6 +38,9 @@ Rules:
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. Elsewhere, only `nstack update` asks
       it, whether the version it lays is published yet (D201)
+  N2  information, never a gap (D219): a workflow whose last runs on the default branch all
+      failed — RED_STREAK or more in a row — named with its first failing run. A workflow outside
+      the required checks can stay red for weeks while every pull request merges green
   G1-G21  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, G21 outside `approval: agent`, and on a private one G1-G5, G12, G13, G17,
           G18, G20 and G21 name the GitHub plan or option required
@@ -607,6 +610,56 @@ def _newer(answers: dict) -> None:
           "--refresh-package napkinstack --with-executables-from pre-commit, then nstack update")
 
 
+RED_STREAK = 3  # failures in a row on the default branch before a workflow is said red: one is a flake
+RUNS = 10  # the last runs read per workflow
+FAILED = {"failure", "timed_out", "startup_failure"}
+PASSED = {"success", "neutral"}  # cancelled, skipped, stale and action_required say nothing either way
+OWN = {"push", "schedule", "workflow_dispatch"}  # the branch's own runs: never a pull request's, a fork's included
+
+
+def _default_branch_runs(client: GitHub) -> None:
+    """Says the workflows whose last runs on the default branch all failed (N2), read workflow by
+    workflow — a quiet one, a `paths:` filter or a schedule, never drops out of a window busier
+    workflows fill. Information: a workflow is the project's to keep or drop, never a gap."""
+    print("\nDefault branch")
+    try:
+        default = str(client.get("").get("default_branch") or "main")
+        workflows = [one for one in client.get("/actions/workflows?per_page=100").get("workflows") or []
+                     if isinstance(one, dict) and one.get("state") == "active"]
+        branch = urllib.parse.quote(default, safe="")
+        found = {one["id"]: (str(one.get("name") or one["id"]),
+                             client.get(f"/actions/workflows/{one['id']}/runs?branch={branch}&status=completed"
+                                        f"&per_page={RUNS}").get("workflow_runs") or [])
+                 for one in workflows if "id" in one}
+    except (NotVerified, AttributeError) as reason:
+        said = str(reason).split(":")[0]
+        print(f"  NOT READ       its workflow runs ({said})\n"
+              "                 Action: a token that may also read Actions (Actions: read), to be told of a workflow "
+              "that keeps failing there")
+        return
+    red = []
+    for name, runs in found.values():
+        own = sorted((run for run in runs if isinstance(run, dict) and run.get("event") in OWN),
+                     key=lambda run: str(run.get("created_at", "")), reverse=True)
+        failed, ended = [], False
+        for run in own:
+            if run.get("conclusion") in FAILED:
+                failed.append(run)
+            elif run.get("conclusion") in PASSED:
+                ended = True
+                break
+        if len(failed) >= RED_STREAK:
+            red.append((name, failed, ended))
+    for name, failed, ended in sorted(red, key=lambda one: one[0]):
+        first = failed[-1]
+        print(f"  RED            {name}: failed its last {len(failed)}{'' if ended else ' or more'} runs on {default}, "
+              f"since {str(first.get('created_at', ''))[:10]} — information, not a gap\n"
+              f"                 First failure: {first.get('html_url')}\n"
+              "                 It is no required check: pull requests merge green beside it.")
+    if not red:
+        print(f"  ok             no workflow failing on its last {RED_STREAK} runs on {default}")
+
+
 def _private(client: GitHub) -> bool:
     """Repository not public (private or internal); visibility unreadable: treated as public."""
     try:
@@ -734,6 +787,8 @@ def run(root: Path) -> int:
                 status, detail = OUT_OF_REACH, f"Reason: {PRIVATE_PLAN[rule]}"
         results.append((rule, setting, status, detail))
         _display(rule, setting, status, detail)
+    if client is not None:
+        _default_branch_runs(client)
 
     gaps = sum(status == GAP for _, _, status, _ in results)
     unknown = sum(status == UNKNOWN for _, _, status, _ in results)
