@@ -230,9 +230,12 @@ def build_parser() -> argparse.ArgumentParser:
     tk.add_argument("name")
     tk.set_defaults(func=lambda a: agent.token(a.name))
     st = ags.add_parser("status", help="who this agent is — its App, repository, clone, gh and hooks; "
-                                       "for a person, the agents on this workstation")
+                                       "for a person, this project's agents")
     st.add_argument("name", nargs="?", help="an agent's name (default: this session's agent, NSTACK_AGENT)")
-    st.set_defaults(func=lambda a: agent.status(a.name))
+    st.add_argument("--root", type=_root, default=_here(), help="project root (default: found from here)")
+    st.add_argument("--all", dest="everywhere", action="store_true",
+                    help="every project's agents on this workstation, not only this project's")
+    st.set_defaults(func=lambda a: agent.status(a.name, a.root, a.everywhere))
     ac = ags.add_parser("credential", help="git's credential helper, set in the agent's clone")
     ac.add_argument("name")
     ac.add_argument("operation")

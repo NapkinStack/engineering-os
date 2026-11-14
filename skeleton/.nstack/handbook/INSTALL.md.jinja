@@ -246,7 +246,9 @@ project answers `agent_sockets: true` (`.nstack/handbook/07-governance.md` §7 s
 Given your own `--settings`, it adds none and says so. A hook of yours that refuses `gh` — against your own
 account — lets an agent's session through only when its `gh` is the App's
 (`.nstack/handbook/07-governance.md` §7 has the test). The agent checks who it is with
-`nstack agent status`; you list the agents of this workstation with the same command.
+`nstack agent status`; in a project, the same command lists that project's agents, and
+`--all` every project's on the workstation — shown only when asked, since one workstation may
+serve several clients.
 When you cannot create an App for this repository's owner, `--mine` makes it on your account and
 asks the owner to approve its installation. What the App gets — set by the command, and read
 by no check afterwards:
