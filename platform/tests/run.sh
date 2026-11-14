@@ -872,6 +872,9 @@ commit_project "$A" "Adaptations and first module"
 SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
 
+# The person's skills, generated and git-ignored, from the playbooks as they are before the update.
+nstack skills --root "$A" >/dev/null || { echo "FAIL: nstack skills before the update."; exit 1; }
+
 echo "-> update: started from another branch, it MUST be refused and name both (D74)"
 # The pilot ran it from cycle/03-framing: the update branch carried a foreign commit and was
 # replanted by hand. Refused before anything is written, and the way back is a command.
@@ -899,6 +902,9 @@ grep -qF "_commit: v90.2.0" "$A/.copier-answers.yml" \
 # The kernel's trailer on the commit an agent's update makes (D135).
 [ "$(git -C "$A" log -1 --format='%(trailers:key=Agent-Session,valueonly)' | head -1)" = nstack-test-session ] \
   || { echo "FAIL: the update's commit does not carry the session it was given (D135)."; git -C "$A" log -1; exit 1; }
+# D220: a playbook the update moved left the generated skills behind, and the first attest failed S3.
+nstack skills --check --root "$A" >/dev/null && grep_text "$OUT" -qF "Skills regenerated from the updated playbooks" \
+  || { echo "FAIL: the update left the skills out of sync with its playbooks (D220)."; echo "$OUT"; exit 1; }
 grep -qx "checks: attested" "$A/.copier-answers.yml" \
   && grep -qF "The project's answers below" "$A/.copier-answers.yml" \
   || { echo "FAIL: the decider's answer was not kept, or the header forbids writing it (D134)."; head -5 "$A/.copier-answers.yml"; exit 1; }

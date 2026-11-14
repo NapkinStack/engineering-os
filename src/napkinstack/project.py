@@ -555,8 +555,8 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
         for path in conflicts:
             print(f"  - {path}")
         print("      Action: in each file, keep the right version between <<<<<<< and >>>>>>>, "
-              "then git add --all && git commit.\n      The check-merge-conflict hook and CI "
-              "reject any remaining marker.")
+              "then git add --all && git commit, and nstack skills — the generated skills follow the playbooks.\n"
+              "      The check-merge-conflict hook and CI reject any remaining marker.")
         return 1
     # An agent's update carries the kernel's trailer, as every commit it makes (D135).
     message = f"NapkinStack {previous} -> {current}" + (f"\n\nAgent-Session: {session}" if session else "")
@@ -591,8 +591,31 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
     if note := _not_yet_published(current):
         print(note)
+    if said := _refresh_skills(root):
+        print(said)
     print(f"\n{next_step(root, branch)}")
     return 0
+
+
+def _refresh_skills(root: Path) -> str | None:
+    """D220: the skills are generated from the playbooks and git-ignored, so an update that moves a
+    playbook leaves them behind, and the first check fails S3. Where the person generated them, the
+    update generates them again: derived files, nothing of anyone's lost. None where there are none."""
+    import contextlib
+    import io
+
+    from napkinstack import skills
+
+    if not (root / ".claude" / "skills").is_dir():
+        return None
+    said = io.StringIO()
+    with contextlib.redirect_stdout(said):
+        code = skills.run(root)
+    if code == 0:
+        return "Skills regenerated from the updated playbooks (.claude/skills/, not committed)."
+    return ("The skills could not be regenerated from the updated playbooks:\n"
+            + "".join(f"  {line}\n" for line in said.getvalue().splitlines())
+            + "      Action: fix what it says, then nstack skills.")
 
 
 def _not_yet_published(ref: str) -> str | None:
