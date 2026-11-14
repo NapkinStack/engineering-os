@@ -8,10 +8,15 @@ from it: the refusal is git's, on any forge. A hold is never merged; its work is
 `d<n>-…`, whose newest commit says when it was last worked on.
 
 Usage :  nstack claim D<n> [--session S] [--person P] [--take-over]
-         nstack unclaim D<n> [--session S] [--person P]
+         nstack claim '#<issue>' [...]   — work no cycle plans (D216)
+         nstack unclaim D<n> | '#<issue>' [--session S] [--person P]
          nstack deliver D<n> --held '#12' [--held '2=#13'] [--session S] [--person P]
          nstack deliver --write-states
 Output:  0 when the hold is taken, renewed or released; 1 when refused — saying who holds it.
+
+An issue — work no cycle plans: a bug found in review, a flaky test, a follow-up — is held the
+same way, on `nstack/hold/issues/issue-<n>`, its work on branches `issue-<n>-…`, in a framed project or
+not (D216, #385). A forge's assignee says who works on an issue and refuses nobody; the hold does.
 
 Two sessions of one person are two holders (D181, D185): a session renews only a hold it is on; a
 person's other session takes it with --take-over, on that person's word. A person with no session
@@ -49,6 +54,8 @@ MIRROR = "refs/nstack-remote"  # what the remote holds, as last fetched: holds, 
 LIMIT = 7  # days without work before a hold is stale, unless the project's answer hold_days says otherwise
 DAY = 86400
 TAKEABLE = {"ready", "in-progress"}
+ISSUES = "issues"  # the hold's namespace for issues, in place of a cycle's name
+ISSUE = re.compile(r"(?:#|issue-)?([1-9][0-9]{0,8})", re.I)  # #12, 12 or issue-12: # starts a shell comment
 
 
 @dataclass
@@ -95,6 +102,7 @@ def fetch(root: Path, again: bool = False) -> str | None:
         try:
             got = _git(root, *_ci_credential(root, name), "fetch", "--quiet", "--prune", "--no-tags", name, f"+HEAD:{MIRROR}/base",
                        f"+refs/heads/{PREFIX}/*:{MIRROR}/hold/*", f"+refs/heads/d*:{MIRROR}/work/d*",
+                       f"+refs/heads/issue-*:{MIRROR}/work/issue-*",
                        timeout=60)
         except subprocess.TimeoutExpired:
             raise Unreachable(f"no answer from {name} within a minute") from None
@@ -203,6 +211,24 @@ def _deliverable(root: Path, ident: str) -> tuple[str, str] | str:
     return path.stem, str(items[ident].get("title") or ident)
 
 
+def issue(ident: str) -> str | None:
+    """The issue's number when `ident` names one — `#12`, `12`, `issue-12`; None for a deliverable."""
+    found = ISSUE.fullmatch(ident.strip())
+    return found[1] if found else None
+
+
+def _issue_title(root: Path, name: str | None, number: str) -> str:
+    """The issue's title on the forge, for its work branch's name; `work` when it cannot be read."""
+    forge = _forge(root, name)
+    if forge is None:
+        return "work"
+    try:
+        found = _call(forge, "GET", f"/issues/{number}")
+    except Refused:
+        return "work"
+    return str(found.get("title") or "work") if isinstance(found, dict) else "work"
+
+
 def _person(root: Path, given: str | None) -> str:
     if given:
         return given
@@ -277,10 +303,13 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
     current = _git(root, "branch", "--show-current").stdout.strip()
     pattern = f"{ident.lower()}-*"
     base = f"{MIRROR}/base" if name else "refs/heads/main"
+    # An issue's number never comes back: any issue-<n>-… branch is its work, whatever its title.
+    another = (lambda ref: False) if ident.startswith("issue-") else \
+        (lambda ref: _started_for_another(root, ref, base, ident, title))
     shared = [one for one in (_git(root, "for-each-ref", "--format=%(refname:lstrip=3)", f"{MIRROR}/work/{pattern}").stdout.split()
-                              if name else []) if not _started_for_another(root, f"{MIRROR}/work/{one}", base, ident, title)]
+                              if name else []) if not another(f"{MIRROR}/work/{one}")]
     local = [one for one in _git(root, "for-each-ref", "--format=%(refname:short)", f"refs/heads/{pattern}").stdout.split()
-             if not _started_for_another(root, f"refs/heads/{one}", base, ident, title)]
+             if not another(f"refs/heads/{one}")]
     existing = [current] if current in local else shared + [one for one in local if one not in shared]
     if existing and renew:
         return "", None
@@ -290,7 +319,7 @@ def _work_branch(root: Path, name: str | None, ident: str, title: str, session: 
             return (f"work continues on {found}, which exists here only: no other branch is made.\n"
                     f"      Next: git push {name} {found} — the hold stays fresh with the remote's work"), None
         return f"work continues on {found}, which exists: no other branch is made", None
-    if renew and ident in _read_merges(root, name, plan.accepted_cycle(root)[1]).live:
+    if renew and not ident.startswith("issue-") and ident in _read_merges(root, name, plan.accepted_cycle(root)[1]).live:
         return "", None
     if _git(root, "rev-parse", "--verify", "--quiet", base).returncode != 0:
         return "no work branch created: the default branch cannot be read.\n      Next: create d<n>-… yourself.", None
@@ -424,11 +453,13 @@ def _show(root: Path, name: str | None, ident: str, title: str, person: str, bra
 
 def claim(root: Path, ident: str, session: str | None = None, person: str | None = None,
           take_over: bool = False) -> int:
-    found = _deliverable(root, ident)
+    number = issue(ident)
+    found = (ISSUES, "") if number else _deliverable(root, ident)
     if isinstance(found, str):
         print(f"FAIL [hold] {found}")
         return 1
     cycle, title = found
+    ident = f"issue-{number}" if number else ident
     person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character: it would "
@@ -441,6 +472,7 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
               f"      {error}\n      Action: check the network and the remote, then again.")
         return 1
     current = read(root, cycle, ident)
+    title = _issue_title(root, name, number) if number else title
     if _stands(root, name, cycle, ident, current):
         print(f"FAIL [hold] {ident} is already delivered: {_recorded_said(current)}.\n      Action: take another "
               f"ready deliverable — nstack plan lists them; a record found wrong is withdrawn with nstack unclaim {ident}.")
@@ -466,7 +498,8 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
                           *(["--session", session] if session else [])])
         print(f"FAIL [hold] {ident} is {said(current)}" + (f" — stale, no work for {days} days." if stale else ".")
               + (f"\n      Action: {again} — recorded, with its previous holder."
-                 if stale else "\n      Action: take another ready deliverable — nstack plan lists them; "
+                 if stale else "\n      Action: take another " + ("issue" if number else "ready deliverable")
+                               + " — nstack plan lists them; "
                                "or ask its holder to give it back (nstack unclaim)."
                                + (f"\n      Another session of the same person holds it: only if that person asks, "
                                   f"{again} — recorded, with the session it leaves." if mine else "")))
@@ -493,14 +526,31 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     if event != "renew":
         made, branch = _work_branch(root, name, ident, title, session)
         print(made)
-        print(_show(root, name, ident, title, person, branch, previous) + ".")
+        print((_show_issue(root, name, number, person, session) if number else
+               _show(root, name, ident, title, person, branch, previous)) + ".")
     else:
         made, branch = _work_branch(root, name, ident, title, session, renew=True)
         if made:
             print(made)
-        if branch:
+        if branch and not number:
             print(_show(root, name, ident, title, person, branch, previous) + ".")
     return 0
+
+
+def _show_issue(root: Path, name: str | None, number: str, person: str, session: str | None) -> str:
+    """The hold where people look for an issue's: a comment on the issue, as a person says « I take
+    it » — the forge's assignee is left to the person, who may set it; the hold is git's."""
+    forge = _forge(root, name)
+    if forge is None:
+        return unshown(root)
+    try:
+        _call(forge, "POST", f"/issues/{number}/comments", {"body": (
+            f"Held by {re.sub(r'\s*<[^>]*>', '', person) or 'a contributor'}"  # a public comment: never an address
+            + (f", session {session}" if session else "")
+            + f" (nstack claim '#{number}'): work on branches issue-{number}-….")})
+    except Refused as error:
+        return f"not shown on GitHub ({error})"
+    return f"shown on GitHub: #{number} told"
 
 
 def _another_session(current: Hold, session: str | None) -> bool:
@@ -521,8 +571,10 @@ def _ended(root: Path, ident: str, current: str | None) -> str | None:
 
 
 def release(root: Path, ident: str, session: str | None = None, person: str | None = None) -> int:
-    cycle = plan.accepted_cycle(root)
-    stem = cycle[0].stem if cycle else None
+    number = issue(ident)
+    cycle = None if number else plan.accepted_cycle(root)
+    stem = ISSUES if number else (cycle[0].stem if cycle else None)
+    ident = f"issue-{number}" if number else ident
     person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character.\n"
@@ -535,7 +587,7 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         return 1
     current = read(root, stem, ident) if stem else Hold()
     if not current.held and not current.recorded:
-        ended = _ended(root, ident, stem)
+        ended = None if number else _ended(root, ident, stem)
         if ended:
             print(ended)
             return 0
@@ -586,6 +638,7 @@ def refresh(root: Path) -> int:
 def show(root: Path) -> int:
     """Who holds what in the accepted cycle, for `nstack plan`: said, never a failure."""
     just_read = _fetched.pop(root, _NOT_READ)
+    _show_issues(root, just_read)
     cycle = plan.accepted_cycle(root)
     if cycle is None:
         return 0
@@ -640,6 +693,25 @@ def show(root: Path) -> int:
         print("\nEmpty start branches left — one empty commit each, nothing to lose, and git branch -d refuses them:")
         print("\n".join(left))
     return 0
+
+
+def _show_issues(root: Path, just_read) -> None:
+    """Who holds which issue: said when one is held, nothing otherwise."""
+    if just_read is _NOT_READ or isinstance(just_read, Unreachable):
+        return  # `show` says what could not be read
+    base = f"{MIRROR}/hold/{ISSUES}/" if remote(root) else f"refs/heads/{PREFIX}/{ISSUES}/"
+    names = _git(root, "for-each-ref", "--format=%(refname:lstrip=-1)", base).stdout.split()
+    numbers = sorted((name.removeprefix("issue-") for name in names if re.fullmatch(r"issue-[0-9]+", name)), key=int)
+    days, lines = limit(root), []
+    for number in numbers:
+        found = read(root, ISSUES, f"issue-{number}")
+        if found.held:
+            stale = time.time() >= found.worked + days * DAY
+            lines.append(f"  #{number}  " + ("STALE — " if stale else "") + said(found)
+                         + (f": anyone may nstack claim '#{number}' --take-over" if stale else ""))
+    if lines:
+        print(f"\nIssues held ({len(lines)}):")
+        print("\n".join(lines))
 
 
 def _empty_starts(root: Path, name: str | None, items: list) -> list[str]:

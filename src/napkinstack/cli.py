@@ -186,14 +186,15 @@ def build_parser() -> argparse.ArgumentParser:
     cl = _add(sub, "claim", "takes a ready deliverable for a session, before its first change; "
                             "the shared remote refuses a second taker",
               lambda a: hold.claim(a.root, a.deliverable, a.session, a.person, a.take_over))
-    cl.add_argument("deliverable", help="the deliverable's identifier, D<n>, in the accepted cycle")
+    cl.add_argument("deliverable", help="the deliverable's identifier, D<n>, in the accepted cycle — "
+                                        "or an issue no cycle plans: '#<n>' quoted (# starts a shell comment), or <n>")
     cl.add_argument("--session", help="the agent's session, written on the hold")
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
                     help="take a hold nobody has worked on for hold_days — recorded, with its previous holder")
     rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale; a closed cycle's hold has ended",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
-    rs.add_argument("deliverable", help="the deliverable's identifier, D<n>")
+    rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")
     rs.add_argument("--session", help="the agent's session, written on the release")
     rs.add_argument("--person", help="who releases it, such as @alice (default: git's user)")
     dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request; "
