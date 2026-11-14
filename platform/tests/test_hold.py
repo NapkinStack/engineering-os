@@ -1897,3 +1897,71 @@ def test_a_commit_git_cannot_decode_breaks_nothing(shared):
     sha = subprocess.run(["git", "hash-object", "-t", "commit", "-w", "--stdin"], cwd=alice, input=raw, capture_output=True, check=True).stdout.decode().strip()
     git(alice, "push", "-q", "origin", f"{sha}:refs/heads/main")
     assert "D1" in merges_of(alice).live
+
+
+# D216 (#385): work no cycle plans — a bug found in review, a flaky test — is held the same way.
+ISSUE_REF = "nstack/hold/issues/issue-14"
+
+
+def test_an_issue_is_held_once_and_the_second_taker_is_told_who(shared, capsys):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "#14", session="alice-14", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "issue-14 taken: held by @alice, session alice-14" in out, out
+    assert git(shared, "log", "-1", "--format=%(trailers:key=Hold-Event,valueonly)", ISSUE_REF) == "claim"
+    assert "issue-14-work" in git(shared, "branch", "--list", "issue-14-*")
+    assert hold.claim(clone(shared, "bob"), "#14", session="bob-14", person="@bob") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [hold] issue-14 is held by @alice, session alice-14" in out and "take another issue" in out, out
+
+
+def test_an_issue_is_held_in_a_project_with_no_cycle(tmp_path, capsys):
+    seed = tmp_path / "seed"
+    seed.mkdir()
+    (seed / "README.md").write_text("p\n", encoding="utf-8")
+    git(seed, "init", "-q", "--initial-branch=main")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "first")
+    remote = tmp_path / "remote.git"
+    git(tmp_path, "clone", "-q", "--bare", str(seed), str(remote))
+    assert hold.claim(clone(remote, "alice"), "#7", person="@alice") == 0, capsys.readouterr().out
+
+
+def test_an_issue_s_holder_gives_it_back_and_plan_lists_the_issues_held(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "#14", session="alice-14", person="@alice")
+    hold.claim(alice, "#9", session="alice-9", person="@alice")
+    assert hold.release(alice, "#9", session="alice-9", person="@alice") == 0
+    capsys.readouterr()
+    bob = clone(shared, "bob")
+    hold.refresh(bob)
+    hold.show(bob)
+    out = capsys.readouterr().out
+    assert "Issues held (1):\n  #14  held by @alice, session alice-14" in out, out
+    assert "#9" not in out
+
+
+def test_an_issue_s_hold_renewed_with_no_work_branch_left_starts_one(tmp_path, capsys):
+    """Unframed: no cycle to read merges from — the renew guard of a deliverable never applies."""
+    seed = tmp_path / "seed"
+    seed.mkdir()
+    (seed / "README.md").write_text("p\n", encoding="utf-8")
+    git(seed, "init", "-q", "--initial-branch=main")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "first")
+    remote = tmp_path / "remote.git"
+    git(tmp_path, "clone", "-q", "--bare", str(seed), str(remote))
+    alice = clone(remote, "alice")
+    assert hold.claim(alice, "7", session="a", person="@alice") == 0
+    git(alice, "push", "-q", "origin", "--delete", "issue-7-work")
+    git(alice, "branch", "-D", "issue-7-work")
+    assert hold.claim(alice, "issue-7", session="a", person="@alice") == 0, capsys.readouterr().out
+    assert "issue-7-work" in git(remote, "branch", "--list", "issue-7-*")
+
+
+def test_an_issue_s_comment_never_publishes_an_address(shared, monkeypatch):
+    posted = []
+    monkeypatch.setattr(hold, "_forge", lambda root, name: ("api", "acme/p", "t"))
+    monkeypatch.setattr(hold, "_call", lambda forge, method, path, body=None: posted.append(body) or {})
+    hold._show_issue(shared, "origin", "14", "Alice Doe <alice@example.org>", "s-1")
+    assert posted == [{"body": "Held by Alice Doe, session s-1 (nstack claim '#14'): work on branches issue-14-…."}]
