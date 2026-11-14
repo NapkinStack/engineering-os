@@ -164,7 +164,18 @@ def run(root: Path, check_only: bool = False) -> int:
         print(f"Skills: {len(mapping)} in sync with the playbooks.")
         return 0
 
-    print(f"Skills generated in .claude/skills/: {written}")
+    # A playbook gone leaves its skill behind, still loaded by the agent: removed when generated here,
+    # never a skill a person wrote (no banner).
+    removed = []
+    for folder in sorted(skill_dir.glob("*/")) if skill_dir.is_dir() else []:
+        made = folder / "SKILL.md"
+        if folder.name not in mapping and made.is_file() and "by nstack skills - DO NOT EDIT" in made.read_text(encoding="utf-8"):
+            made.unlink()
+            if not any(folder.iterdir()):
+                folder.rmdir()
+            removed.append(folder.name)
+    print(f"Skills generated in .claude/skills/: {written}"
+          + (f"; removed, their playbook gone: {', '.join(removed)}" if removed else ""))
     for name in sorted(mapping):
         print(f"  - {name}")
     print("\nThey trigger on their own from their description; an agent can also")
