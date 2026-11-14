@@ -356,6 +356,10 @@ settings close that door, and they only hold together:
    stay closed unless the project answers `agent_sockets: true` in `.copier-answers.yml`, read from
    the default branch: an end-to-end test of audio or a display needs them, and a socket such as
    `docker.sock` hands the agent the host.
+   Dispatching a workflow run needs Actions: write, which its App never has; changing a file under
+   `.github/workflows/` needs Workflows, which only `nstack agent add --workflows` grants. Both are
+   otherwise the person's gestures. The agent hands over the literal command (`gh workflow run <file> --ref <branch>`) and
+   never asks another session to make it — that would be one identity borrowing another's rights.
 2. **The merge requires a human code owner's approval**, and `CODEOWNERS` starts with a
    default owner: an App can approve, but it is never a code owner. On `approval: agent`, below,
    the code owners file names a human only where one must approve.

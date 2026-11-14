@@ -39,7 +39,10 @@ def test_pr_check_s_option_wins_over_the_environment(tmp_path, monkeypatch, caps
     monkeypatch.setenv("PR_HEAD_SHA", head)
     monkeypatch.setenv("PR_LABELS", "out-of-cycle")
     assert cli.main(["pr-check", "--root", str(tmp_path), "--base", base, "--labels", ""]) == 1
-    assert "FAIL [K3] no deliverable named" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "FAIL [K3] no deliverable named" in out
+    # D215: run without labels, K3 says so — an out-of-cycle change is not misread as missing its line
+    assert "This run read no label. If the pull request is out of cycle, it carries the out-of-cycle label" in out
 
 
 def test_pr_check_still_reads_the_environment(tmp_path, monkeypatch, capsys):
