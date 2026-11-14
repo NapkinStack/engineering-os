@@ -308,6 +308,20 @@ def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, 
     return {**found, "kept_from": found.get("kept_from") or previous.get("at")}
 
 
+def sheet_of(body: str) -> dict | None:
+    """The sheet's rows as this run read them (D214): what each claims — kind, result, commit — and a
+    digest of its evidence, never the evidence itself. pr-check compares a later description with
+    them: a row whose commit moved and whose evidence did not was never run again."""
+    from napkinstack.pull_request import read_sheet  # the one reader of the sheet
+
+    _, _, rows = read_sheet(body)
+    found = {row["#"]: {"kind": row.get("kind", "").lower(), "result": row.get("result", "").lower(),
+                        "commit": row.get("commit", "").strip().strip("`").lower(),
+                        "evidence": hashlib.sha256(row.get("evidence", "").strip().encode()).hexdigest()[:16]}
+             for row in rows if row.get("#")}
+    return found or None
+
+
 def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
         again: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
@@ -346,6 +360,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         body = body_file or Path(tmp, "body.md")
         if body_file is None:
             body.write_text("", encoding="utf-8")
+        body_text = Path(body).read_text(encoding="utf-8", errors="replace")
         # NSTACK_ATTESTING: pr-check, run as one of the checks, judges the pull request's rules
         # without asking for the record this run is making (A1, A2) — found rehearsing v0.10.0.
         env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
@@ -375,6 +390,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),
               "base": base, "base_commit": base_commit, "checks": results,
+              "sheet": sheet_of(body_text),
               # The audits of the run the module checks come from: kept with them, never read again (#275).
               "evidence": (previous.get("evidence") if isinstance(previous.get("evidence"), list) else [])
               if previous and any(r.get("kept_from") for r in results) else evidence_of(root, commit)}

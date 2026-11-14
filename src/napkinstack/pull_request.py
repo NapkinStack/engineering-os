@@ -12,7 +12,9 @@ Rules:
       result (passed, failed, not verified); a | that splits a row is said (D187)
   T3  no scenario passed without its evidence and the commit it was verified on
   T4  evidence at the head commit: an automated scenario is run again, one explored by hand
-      is confirmed at the head instead — and at criticality critical, run again like the rest
+      is confirmed at the head instead — and at criticality critical, run again like the rest;
+      an explored row whose Commit cell moved, its evidence unchanged since a record of the pull
+      request's commits read it, was not explored again (D214)
   T5  no scenario failed; none left not verified, unless it is human only
   K1  in a framed project, delivery work needs an accepted cycle, and says which of
       the two is missing
@@ -48,6 +50,7 @@ Output:  0 when every applicable rule passes, 1 otherwise.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -570,6 +573,59 @@ def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
             "correction that decides nothing needs none (.nstack/playbooks/framing.md, Decisions)."]
 
 
+def recorded_rows(root: Path, fork: str, head: str) -> list[tuple[str, str, dict]]:
+    """Every sheet row a record of this pull request's commits holds: (commit, at, row) — each run of
+    each note, since an author may attest one commit twice with two descriptions."""
+    from napkinstack import attest
+
+    commits = _git(root, "rev-list", f"{fork}..{head}").stdout.split()
+    found = []
+    for commit in commits:
+        shown = _git(root, "notes", f"--ref={attest.NOTES}", "show", commit)
+        for line in shown.stdout.splitlines() if shown.returncode == 0 else []:
+            try:
+                run = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            sheet = (run.get("sheet") if isinstance(run, dict) and run.get("record") == attest.RECORD
+                     and run.get("commit") == commit else None)
+            for ident, row in (sheet.items() if isinstance(sheet, dict) else []):
+                if isinstance(row, dict):
+                    found.append((commit, str(run.get("at", "")), {**row, "#": ident}))
+    return found
+
+
+def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, warn: Callable[[str], None],
+                same_files: Callable[[str, str], bool] = lambda one, other: False) -> None:
+    """T4, the sheet's history (D214, #384): the description is edited by author and verifier alike.
+    A row explored at one commit whose Commit cell now names another, its evidence unchanged, was
+    never explored again — as a forge dismisses an approval the head moved past. An automated row
+    may move: CI, or the head's record, ran it. A row a record held, gone from the sheet, is said."""
+    _, header, rows = read_sheet(body)
+    if any(column not in header for column in COLUMNS):
+        return  # T2 says which column is missing
+    now = {row["#"]: row for row in rows if row["#"]}
+    for ident, row in now.items():
+        commit = row.get("commit", "").strip().strip("`").lower()
+        if row.get("kind", "").lower() != "explored" or _result(row.get("result", "")) not in {"passed", "failed"} or not SHA.fullmatch(commit):
+            continue
+        evidence = hashlib.sha256(row.get("evidence", "").strip().encode()).hexdigest()[:16]
+        before = next((was for _, _, was in sorted(recorded, key=lambda r: r[1])
+                       if was["#"] == ident and was.get("evidence") == evidence and SHA.fullmatch(was.get("commit", ""))
+                       and not (was["commit"].startswith(commit) or commit.startswith(was["commit"]))
+                       and not same_files(was["commit"], commit)), None)
+        if before:
+            fail("T4", f"scenario {ident}: its Commit cell moved from {before['commit'][:7]} to {commit[:7]}, its "
+                       "evidence unchanged: nothing shows it was explored again.\n"
+                       f"      Action: the verifier explores it at the head and links that run's own evidence — or puts "
+                       f"{before['commit'][:7]} back and confirms the head in the Confirmed column.")
+    gone = sorted({was["#"] for _, _, was in recorded if was["#"] not in now and was.get("result") in {"passed", "failed"}})
+    if gone:
+        warn(f"[T5] scenario(s) {', '.join(gone)} were in the sheet a record of this pull request read, and are "
+             "gone from it.\n      Action: a scenario leaves the sheet by the decider's call, said in the "
+             "description; restore it from the description's history otherwise.")
+
+
 def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> str:
     """Where the checks are judged, as the decider's answer `checks` says (A1, A2): on the forge's
     CI, or attested on a workstation by `nstack attest` — then a complete, passed record of the
@@ -668,6 +724,9 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail, warnings.append)
+    if carried and reasons:
+        check_moved(body, recorded_rows(root, fork, head), fail, warnings.append,
+                    lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other))
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}"
