@@ -645,7 +645,8 @@ def status_required(root: Path) -> bool:
     if os.environ.get("GITHUB_ACTIONS") != "true" or not branch or not token or "/" not in repository:
         return False
     api = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
-    request = urllib.request.Request(f"{api}/repos/{repository}/rules/branches/{urllib.parse.quote(branch, safe='')}",
+    request = urllib.request.Request(f"{api}/repos/{repository}/rules/branches/{urllib.parse.quote(branch, safe='')}"
+                                     "?per_page=100",
                                      headers={"Accept": "application/vnd.github+json", "User-Agent": "nstack",
                                               "Authorization": f"Bearer {token}"})
     try:
@@ -681,6 +682,12 @@ def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> st
     if os.environ.get("NSTACK_ATTESTING") == head:
         return "attested — this run is the record being made"
     if status_required(root):
+        if record is not None and not all(check["passed"] for check in record["checks"]):
+            # The status is the last attest that could post one; a later run without a token is in the
+            # notes only — said, since the forge's green may be an earlier record's.
+            warn(f"[A2] the latest record of the head {head[:7]} does not pass, and the status "
+                 f"'{attest.CONTEXT}' may be an earlier record's.\n      Action: fix what failed, commit, and run "
+                 "nstack attest again with a token that may write commit statuses.")
         return (f"attested — judged by the required status '{attest.CONTEXT}', which nstack attest posts with "
                 "the record")
     if record is None and unread and os.environ.get("GITHUB_ACTIONS") == "true":

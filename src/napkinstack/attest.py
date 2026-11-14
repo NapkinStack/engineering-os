@@ -230,7 +230,8 @@ def _show(root: Path, commit: str, passed: int, total: int) -> str:
             return f"shown on GitHub as '{CONTEXT}'"
     except (OSError, ValueError) as error:
         return (f"not shown on GitHub ({error}) — a ruleset requiring '{CONTEXT}' waits for it: a token that "
-                "may write commit statuses, then nstack attest again")
+                "may write commit statuses — an older agent App gets Commit statuses: write in its "
+                "settings, accepted on its installation — then nstack attest again")
 
 
 def evidence_of(root: Path, commit: str) -> list[dict]:

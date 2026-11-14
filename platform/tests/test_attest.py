@@ -622,6 +622,7 @@ def test_in_ci_a_required_local_checks_status_judges_the_record_and_the_run_defe
     fresh_checkout(project)
     code, out = judged(project, base, monkeypatch, capsys, ci=True)
     assert code == 0 and "FAIL [A2]" not in out, "a failed record is the status's red, never a run's that stays"
+    assert "WARNING [A2] the latest record of the head" in out, "a failed record the status may not show is said"
 
 
 def test_in_ci_without_the_required_status_a_head_with_no_record_names_both_ways_out(tmp_path, monkeypatch, capsys):
@@ -638,7 +639,8 @@ def test_in_ci_without_the_required_status_a_head_with_no_record_names_both_ways
     ([{"type": "required_status_checks", "parameters": {"required_status_checks": [
         {"context": "Test sheet and cycle"}, {"context": attest.CONTEXT}]}}], True),
     ([{"type": "required_status_checks", "parameters": {"required_status_checks": [
-        {"context": "Test sheet and cycle"}]}}, {"type": "pull_request"}], False),
+        {"context": "Test sheet and cycle"}]}},
+      {"type": "pull_request", "parameters": {"required_status_checks": [{"context": attest.CONTEXT}]}}], False),
     (None, False),
 ])
 def test_the_base_branch_s_rules_say_whether_the_status_is_required(tmp_path, monkeypatch, rules, required):
@@ -666,6 +668,6 @@ def test_the_base_branch_s_rules_say_whether_the_status_is_required(tmp_path, mo
     monkeypatch.setenv("GH_TOKEN", "t")
     monkeypatch.delenv("GITHUB_API_URL", raising=False)
     assert pull_request.status_required(tmp_path) is required
-    assert read == ["https://api.github.com/repos/owner/p/rules/branches/release%2F1"]
+    assert read == ["https://api.github.com/repos/owner/p/rules/branches/release%2F1?per_page=100"]
     monkeypatch.delenv("GITHUB_ACTIONS")
     assert pull_request.status_required(tmp_path) is False, "a workstation's pr-check reads the record itself"
