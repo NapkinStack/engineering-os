@@ -486,7 +486,10 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
               if isinstance(item, dict)}
     if not match:
         fail("K3", f"no deliverable named.\n      Action: \"Deliverable: D<n>\" in the description, "
-                   f"a deliverable of {path.name}.")
+                   f"a deliverable of {path.name}."
+                   + ("" if labels else f"\n      This run read no label. If the pull request is out of cycle, it "
+                      f"carries the {LABEL} label; a run on a workstation is given it with --labels {LABEL} "
+                      "(or PR_LABELS), as the forge passes its labels."))
     elif match[1] not in states:
         fail("K3", f"deliverable {match[1]} is not in {path.name}.\n      Action: name one of "
                    f"{', '.join(states) or 'its deliverables'}, or re-frame the cycle with the decider.")

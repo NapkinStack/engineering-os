@@ -185,6 +185,8 @@ def test_one_command_makes_the_app_installs_it_and_configures_an_isolated_clone(
     assert helpers[0] == "" and "agent credential scout" in helpers[1]
     assert "nstack agent run scout --" in out
     assert "PEM" not in out and "ghs_" not in out
+    # D215 (#388): said before the agent meets a 403, not after
+    assert "the person's: dispatching a workflow run, and a change under .github/workflows/" in out
 
 
 def test_the_minted_token_reaches_only_this_repository_and_serves_git(forge, project, tmp_path):

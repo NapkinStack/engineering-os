@@ -470,6 +470,8 @@ def add(root: Path, name: str, mine: bool = False, workflows: bool = False, clon
          + ("  - gh: as the App, from the agent's own folder; gh auth refused.\n" if shim else
             "  - gh: not found on this workstation; once installed, run this command again.\n")
          + "  - a push to the repository, tried without writing: accepted.\n"
+         + "  - the person's: dispatching a workflow run" + ("" if workflows else ", and a change under .github/workflows/")
+         + " — the App has no permission for it; the agent hands over the literal command, never asks another session.\n"
          f"Start your agent there, always this way:\n  nstack agent run {name} -- <your agent's command>\n"
          "It removes your tokens and SSH agent from its environment; it is not a sandbox.")
     return 0
