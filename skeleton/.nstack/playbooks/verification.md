@@ -25,8 +25,9 @@ The session that wrote the change cannot verify it: start another session, with 
 context, or hand the sheet to a human. Sign the sheet with your session's identifier —
 `Verifier: session <id>` — or, as a person, `Verifier: @<handle>`. CI compares it with the
 change's authors and refuses a match; each person named must have written the sheet into the
-description or reviewed the pull request, under their own account — either starts the check
-again; a comment counts too, read at the next run.
+description or reviewed or commented on the pull request, under their own account. Writing the
+sheet starts the check again; a review or a comment is read at the next run, which any edit of the
+description starts.
 
 ### Your own ground
 

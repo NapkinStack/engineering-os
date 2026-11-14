@@ -728,7 +728,9 @@ def test_ci_gives_pr_check_the_pull_request_s_number_and_a_read_token():
     workflow = yaml.safe_load((Path(__file__).parents[2] / "skeleton/.github/workflows/pull-request.yml")
                               .read_text(encoding="utf-8"))
     assert workflow["permissions"] == {"contents": "read", "pull-requests": "read"}, workflow["permissions"]
-    assert workflow[True]["pull_request_review"] == {"types": ["submitted"]}, workflow[True]  # a review re-runs it
+    # D218 (#394): only the pull request's own events run it — a review's failed run stayed beside the
+    # later green one and blocked the merge; a review is read at the next run, which an edit starts
+    assert set(workflow[True]) == {"pull_request"}, workflow[True]
     step = next(step for step in workflow["jobs"]["description"]["steps"] if "pr-check" in step.get("run", ""))
     assert step["env"]["PR_NUMBER"] == "${{ github.event.pull_request.number }}", step["env"]
     assert step["env"]["GH_TOKEN"] == "${{ github.token }}", step["env"]
