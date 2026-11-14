@@ -7,7 +7,9 @@ test — on a clean tree at a commit, and appends the run to that commit's note 
 `refs/notes/nstack/checks`, one JSON line per run. The note travels with the branch's remote
 and is merged line by line; the latest line for a commit is its record. On GitHub, with a token
 that may write statuses, the run is also shown as `nstack / local checks` — a name no CI job
-has. A record is *attested*, never *checked*: it makes a claim traceable, not true.
+has. A ruleset that requires that name gates the merge on the record, and the forge's pull
+request run leaves the record to it (D221): notes start no run, a status is an event.
+A record is *attested*, never *checked*: it makes a claim traceable, not true.
 
 Usage :  nstack attest [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b] [--accept-identity]
 Output:  0 when every check passed, 1 otherwise — the record is written either way.
@@ -227,7 +229,8 @@ def _show(root: Path, commit: str, passed: int, total: int) -> str:
         with urllib.request.urlopen(request, timeout=10):
             return f"shown on GitHub as '{CONTEXT}'"
     except (OSError, ValueError) as error:
-        return f"not shown on GitHub ({error})"
+        return (f"not shown on GitHub ({error}) — a ruleset requiring '{CONTEXT}' waits for it: a token that "
+                "may write commit statuses, then nstack attest again")
 
 
 def evidence_of(root: Path, commit: str) -> list[dict]:

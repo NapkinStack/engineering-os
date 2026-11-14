@@ -56,6 +56,7 @@ import os
 import re
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -630,6 +631,34 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
              "description; restore it from the description's history otherwise.")
 
 
+def status_required(root: Path) -> bool:
+    """Whether the base branch's rules require the record's own status, `nstack / local checks`
+    (D221, #399): read on the forge's run only, from the rules that apply to the branch — readable
+    with the job's token. A record is made after the description's last edit (D214) and travels by
+    notes, which start no run; its status, posted by `nstack attest` with it, is the event that
+    says it. Unread — no token, a refusal — is False: the run judges the record itself, as before."""
+    from napkinstack import attest
+
+    branch = os.environ.get("GITHUB_BASE_REF", "")
+    repository = os.environ.get("GITHUB_REPOSITORY") or project.answer(root, "github_repo") or ""
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not branch or not token or "/" not in repository:
+        return False
+    api = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
+    request = urllib.request.Request(f"{api}/repos/{repository}/rules/branches/{urllib.parse.quote(branch, safe='')}",
+                                     headers={"Accept": "application/vnd.github+json", "User-Agent": "nstack",
+                                              "Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            rules = json.loads(response.read())
+    except (OSError, ValueError):
+        return False
+    return any(isinstance(rule, dict) and rule.get("type") == "required_status_checks"
+               and any(isinstance(check, dict) and check.get("context") == attest.CONTEXT
+                       for check in (rule.get("parameters") or {}).get("required_status_checks") or [])
+               for rule in rules if isinstance(rules, list))
+
+
 def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> str:
     """Where the checks are judged, as the decider's answer `checks` says (A1, A2): on the forge's
     CI, or attested on a workstation by `nstack attest` — then a complete, passed record of the
@@ -651,6 +680,9 @@ def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> st
         return "the forge's CI" + shown
     if os.environ.get("NSTACK_ATTESTING") == head:
         return "attested — this run is the record being made"
+    if status_required(root):
+        return (f"attested — judged by the required status '{attest.CONTEXT}', which nstack attest posts with "
+                "the record")
     if record is None and unread and os.environ.get("GITHUB_ACTIONS") == "true":
         # The record may well be there, out of reach: said, never failed for want of a fetch — and
         # never the silent line that let an unattested head through (#367).
@@ -661,7 +693,9 @@ def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> st
     if record is None:
         fail("A1", f"no record of the head {head[:7]}: this project's checks are attested, and none ran on "
                    "this commit.\n      Action: run nstack attest on the head, then push — the forge's check reads the "
-                   "record again at its next run: a push, or an edit of the description.")
+                   "record again at its next run: a push, or an edit of the description. Or require the status "
+                   f"'{attest.CONTEXT}' in the branch's ruleset: nstack attest posts it with the record, and this "
+                   "run leaves the record to it (07-governance.md §7).")
         return "attested — no record of the head"
     names = [check["name"] for check in record["checks"]]
     missing = [check.name for check in attest.CHECKS if check.name not in names]

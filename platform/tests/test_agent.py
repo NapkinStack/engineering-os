@@ -168,7 +168,8 @@ def test_one_command_makes_the_app_installs_it_and_configures_an_isolated_clone(
     assert action.startswith(f"{forge}/organizations/acme/settings/apps/new?state=")
     assert manifest["public"] is False
     assert manifest["default_permissions"] == {"contents": "write", "pull_requests": "write", "issues": "write",
-                                               "actions": "read", "checks": "read", "metadata": "read"}
+                                               "actions": "read", "checks": "read", "metadata": "read",
+                                               "statuses": "write"}  # the record's status (D221)
     assert "administration" not in manifest["default_permissions"]
     assert manifest["hook_attributes"]["active"] is False
     assert browser.opened[-1] == f"{forge}/apps/demo-scout/installations/new"

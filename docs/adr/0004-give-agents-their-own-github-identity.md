@@ -153,7 +153,7 @@ accepted result · red: the refusal · dotted cross: what the agent's session ne
 | Element | Choice | Verified fact |
 |---|---|---|
 | Identity | One GitHub App per organisation, installed only on the repositories where agents work | An App consumes no seat |
-| Permissions | Contents, Pull requests, Issues: read and write; Actions, Checks: read. Workflows: write only where agents maintain CI, as in this repository. Never Administration | The App's permissions bound every token |
+| Permissions | Contents, Pull requests, Issues: read and write; Actions, Checks: read; Commit statuses: write, the record's own status (D221). Workflows: write only where agents maintain CI, as in this repository. Never Administration | The App's permissions bound every token |
 | Credentials | The private key in the workstation's secret store or the CI's secrets, never in a repository; tokens limited to the repository | Tokens expire after 1 hour and can be narrowed |
 | The agent's session | Reaches no human credential: no SSH key, token or GitHub CLI login of a human (a sandbox, a container or a dedicated system user) | Otherwise the agent approves under a human's name |
 | Merge | Ruleset on the main branch: pull request, at least 1 approval, code owner review, required checks, **empty bypass list** | Administrators bypass only when listed: with an empty list, this repository's ruleset answers `current_user_can_bypass: never` to the organisation owner |
