@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -602,3 +603,71 @@ def test_an_engine_installed_from_a_path_under_the_home_keeps_its_check(tmp_path
     attest.run(root, "HEAD", None, "")
     attest.run(root, "HEAD", None, "")
     assert runs(root) == 1
+
+
+def test_in_ci_a_required_local_checks_status_judges_the_record_and_the_run_defers_to_it(tmp_path, monkeypatch, capsys):
+    """#399: the record is made after the description's last edit (D214) and travels by notes, which
+    start no run: the run before it stayed red. Where the base branch's rules require the record's
+    own status, that status — posted by nstack attest with the record — is the record's verdict."""
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    with_remote(project)
+    monkeypatch.setattr(pull_request, "status_required", lambda root: True)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "FAIL [A1]" not in out, out
+    assert f"judged by the required status '{attest.CONTEXT}'" in out, out
+    monkeypatch.setattr(attest, "CHECKS", FAILING)
+    attest.run(project, base, None, "")
+    fresh_checkout(project)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "FAIL [A2]" not in out, "a failed record is the status's red, never a run's that stays"
+    assert "WARNING [A2] the latest record of the head" in out, "a failed record the status may not show is said"
+
+
+def test_in_ci_without_the_required_status_a_head_with_no_record_names_both_ways_out(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    with_remote(project)
+    monkeypatch.setattr(pull_request, "status_required", lambda root: False)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 1 and "FAIL [A1]" in out and f"require the status '{attest.CONTEXT}'" in out, out
+
+
+@pytest.mark.parametrize(("rules", "required"), [
+    ([{"type": "required_status_checks", "parameters": {"required_status_checks": [
+        {"context": "Test sheet and cycle"}, {"context": attest.CONTEXT}]}}], True),
+    ([{"type": "required_status_checks", "parameters": {"required_status_checks": [
+        {"context": "Test sheet and cycle"}]}},
+      {"type": "pull_request", "parameters": {"required_status_checks": [{"context": attest.CONTEXT}]}}], False),
+    (None, False),
+])
+def test_the_base_branch_s_rules_say_whether_the_status_is_required(tmp_path, monkeypatch, rules, required):
+    read = []
+
+    class Answer:
+        def __init__(self, request):
+            read.append(request.full_url)
+
+        def __enter__(self):
+            if rules is None:
+                raise urllib.error.URLError("refused")
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return json.dumps(rules).encode()
+
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout=None: Answer(request))
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/p")
+    monkeypatch.setenv("GITHUB_BASE_REF", "release/1")
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.delenv("GITHUB_API_URL", raising=False)
+    assert pull_request.status_required(tmp_path) is required
+    assert read == ["https://api.github.com/repos/owner/p/rules/branches/release%2F1?per_page=100"]
+    monkeypatch.delenv("GITHUB_ACTIONS")
+    assert pull_request.status_required(tmp_path) is False, "a workstation's pr-check reads the record itself"

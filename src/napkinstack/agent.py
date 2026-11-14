@@ -41,7 +41,8 @@ from napkinstack import __version__
 POLL = 3.0  # seconds between two reads of the installation
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,24}$")
 PERMISSIONS = {"contents": "write", "pull_requests": "write", "issues": "write",
-               "actions": "read", "checks": "read", "metadata": "read"}
+               "actions": "read", "checks": "read", "metadata": "read",
+               "statuses": "write"}  # `nstack / local checks`, posted with the record (D221)
 # What would let the agent's environment act as the person: their tokens, their SSH agent and
 # commands, git configuration their shell injects, and the variables that point gh at another host.
 PERSONAL = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "GH_HOST",
