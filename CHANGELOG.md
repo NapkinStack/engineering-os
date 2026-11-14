@@ -22,6 +22,58 @@ a patch.
 
 ---
 
+## v0.29.0 — 2026-11-14
+
+D210–D219, from a multi-agent project: four agent sessions and a coordinator on one repository, and what they met.
+
+This is a minor version: a pull request whose explored sheet row was moved to a new head with its evidence unchanged was green and is now red (T4, D214). Two changes need a gesture without turning anything red:
+- C10's warning now reads a due date only in bold (D211);
+- a pull request blocked by a review's failed run is no longer unblocked by a new review, only by a new push (D218).
+
+**In the engine**
+
+- **`nstack claim` never takes an earlier cycle's start branch** (D210): an empty start branch a claim made for another title of the same id is that cycle's, and the claim makes its own; renewing a hold whose branch is gone starts one.
+- **A criterion's due date is the one written in bold** (D211, PDR-0023): C10 reads only `**YYYY-MM-DD**` as due. A plain date, an amendment's or a reference's, is not read; a reached plain date is warned: put the due date in bold.
+- **An agent builds and tests inside its sandbox** (D212):
+  - `nstack agent run` sets the clone's `branch.autoSetupMerge=false` and `push.default=current`, so the agent branches and pushes without writing `.git/config`;
+  - the agent's Claude Code settings open a cache of its own (`XDG_CACHE_HOME`), while uv and pre-commit keep the person's;
+  - Unix sockets open only on the project's answer `agent_sockets: true`, the risk said as the agent starts;
+  - `nstack claim`'s hints say `git push <remote> <branch>`, never `-u`.
+- **`nstack agent status` shows this project's agents** (D213); `--all` shows the workstation's. One workstation may serve several clients.
+- **A sheet row is bound to what was attested** (D214):
+  - `nstack attest` keeps in its record each sheet row's kind, result, commit and a digest of its evidence;
+  - `pr-check` fails T4 on an explored row whose Commit cell moved to another commit with the same evidence, and warns of a row a record held that the sheet no longer shows.
+- **The limits an agent meets are said ahead** (D215): `nstack agent add` says that a workflow dispatch, and without `--workflows` a workflow change, are the person's; K3 says when a run read no label.
+- **An issue no cycle plans is held as a deliverable is** (D216):
+  - `nstack claim '#<n>'` (or `<n>`, `issue-<n>`) holds it on `nstack/hold/issues/issue-<n>`, its work on branches `issue-<n>-…`, in a framed project or not;
+  - on GitHub, a comment on the issue names the holder, never an address;
+  - `nstack unclaim '#<n>'` gives it back, and `nstack plan` lists the issues held.
+- **`nstack doctor` says a workflow red on the default branch run after run** (D219, N2): read workflow by workflow, the branch's own events only. It is information that never changes the exit code, and it needs a token with Actions: read.
+
+**In your project** — 19 files, text
+
+- **`.copier-answers.yml`**: `_commit`, and the new answer `agent_sockets` (default `false`, D212).
+- **`.github/workflows/pull-request.yml`** (D218): « Test sheet and cycle » runs on `pull_request` events only, no longer on a submitted review.
+- **`.github/workflows/*.yml`**: `astral-sh/setup-uv` v10.3.3. **`.pre-commit-config.yaml`**: `check-jsonschema` 0.39.0.
+- **`AGENTS.md`** (D216): an issue no cycle plans is held with `nstack claim '#<n>'`, and unclaimed once its work is merged.
+- **`.nstack/handbook/`**:
+  - `05-workflow.md` §7 (D214): what the record keeps of the sheet, and that evidence names its run;
+  - `06-decisions.md`, `RULES.md`, `glossary.md` and `forms/adr.md`, `forms/pdr.md` (D211): the due date in bold;
+  - `07-governance.md` §7 (D212, D215): the agent's sandbox, and the workflow gestures that are the person's;
+  - `INSTALL.md` (D212, D213, D219): `~/.cargo` in the person's `allowWrite`, `agent status --all`, and Actions: read for doctor;
+  - `project.md` (D210, D216): issue holds.
+- **`.nstack/playbooks/`**: `verification.md` (D215, D218), a copy of one's own under a sandbox, and a review read at the next run; `framing.md` (D211).
+
+**Migration**
+
+- **A criterion whose due date is plain** (D211): `nstack plan` warns, C10 « no due date C10 can read ». Write the due date in bold: `**2026-12-19**`. A criterion that mixes a plain reference date and a due date needs the due one in bold, or the reference date is no longer mistaken for it.
+- **Agents in a sandbox** (D212): restart them with `nstack agent run <name> -- claude` to get the clone settings and their own cache. A Cargo build writing `~/.cargo` needs that folder in your own sandbox's `allowWrite`. Keep `agent_sockets: false` unless an end-to-end test needs audio or a display: `true` also opens every socket of the host, the person's audio and a container engine included.
+- **An open pull request whose explored row was moved to the head** (D214): it turns red on T4. The verifier explores it at the head with that run's own evidence, or puts the earlier commit back and confirms the head in the Confirmed column. The check needs the earlier state attested by this version: rows attested by 0.28.0 are not compared.
+- **A pull request already blocked by a review's failed run** (D218): after the update, no review starts the check any more. A new push unblocks it — `git commit --allow-empty -m "Re-run the pull request check" && git push` — and so does a new review, before you take this version. An edit of the description does not, nor does a re-run, which replays the old review's payload and fails again.
+- **`nstack doctor`** (D219): add Actions: read to its token to see the « Default branch » section.
+
+---
+
 ## v0.28.0 — 2026-11-07
 
 D209, from the fourth project: in a project whose checks are attested, the forge's CI reads the record it judges.
