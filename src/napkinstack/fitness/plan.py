@@ -636,7 +636,7 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
         fail("C3", path, f"status '{status}': expected one of {sorted(CYCLE_STATUSES)}")
     # The appetite in weeks, or in days for an engagement shorter than one (#370): one or the
     # other, never both — one decision, and the one date it sets.
-    given = [unit for unit in APPETITES if unit in data]
+    given = [unit for unit in APPETITES if data.get(unit) is not None]  # a key left empty is no appetite
     unit = given[0] if len(given) == 1 else None
     amount = data.get(unit) if unit else None
     if len(given) > 1:
@@ -644,8 +644,8 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
                          "      Action: keep one — appetite_days for a cycle shorter than a week")
         amount = None
     elif isinstance(amount, bool) or not isinstance(amount, int) or amount < 1:
-        fail("C3", path, "appetite_weeks, or appetite_days for a cycle shorter than a week: a whole number, "
-                         "decided rather than estimated")
+        fail("C3", path, "appetite_weeks, or appetite_days for a cycle counted in days: a whole number of at "
+                         "least 1, decided rather than estimated")
         amount = None
     start, end = as_date(data.get("start")), as_date(data.get("end"))
     if start is None or end is None:

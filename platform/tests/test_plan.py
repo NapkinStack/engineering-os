@@ -68,8 +68,8 @@ PLAN_CASES = {
     "C3 appetite as a boolean": (lambda r: framed(r, cycles={"01.md": cycle(appetite_weeks=True)}), "C3", True),
     "C3 end not set by the appetite": (lambda r: framed(r, cycles={"01.md": cycle(end=TODAY.isoformat())}), "C3", True),
     "C3 both appetites (#370)": (lambda r: framed(r, cycles={"01.md": cycle(appetite_days=21)}), "C3", True),
-    "C3 appetite in days zero": (lambda r: framed(r, cycles={"01.md": cycle(appetite_weeks=None, appetite_days=0)}),
-                                 "C3", True),
+    "C3 appetite in days zero": (lambda r: framed(r, cycles={"01.md": cycle(
+        appetite_weeks=None, appetite_days=0, end=(TODAY - datetime.timedelta(days=7)).isoformat())}), "C3", True),
     "C3 end not set by the appetite in days": (lambda r: framed(r, cycles={"01.md": cycle(appetite_weeks=None,
                                                                                           appetite_days=4)}), "C3", True),
     "C3 start not a date": (lambda r: framed(r, cycles={"01.md": {**cycle(), "start": "soon"}}), "C3", True),
@@ -102,6 +102,27 @@ def test_a_cycle_of_four_days_has_its_end_set_by_an_appetite_in_days(tmp_path, c
     start = TODAY - datetime.timedelta(days=1)
     framed(tmp_path, cycles={"01.md": cycle(start, appetite_weeks=None, appetite_days=4,
                                             end=(start + datetime.timedelta(days=4)).isoformat())})
+    assert plan.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize(("changes", "said"), [
+    ({"appetite_days": 21}, "both set: the appetite is one decision"),
+    ({"appetite_weeks": None, "appetite_days": 0, "end": (TODAY - datetime.timedelta(days=7)).isoformat()},
+     "a whole number of at least 1"),
+    ({"appetite_weeks": 0, "end": (TODAY - datetime.timedelta(days=7)).isoformat()}, "a whole number of at least 1"),
+], ids=["both", "zero days", "zero weeks"])
+def test_c3_says_which_appetite_is_wrong(tmp_path, capsys, changes, said):
+    framed(tmp_path, cycles={"01.md": cycle(**changes)})
+    assert plan.run(tmp_path) == 1
+    assert said in capsys.readouterr().out
+
+
+def test_an_appetite_key_left_empty_is_no_second_appetite(tmp_path, capsys):
+    start = TODAY - datetime.timedelta(days=1)
+    framed(tmp_path, cycles={"01.md": cycle(start, appetite_weeks="", appetite_days=4,
+                                            end=(start + datetime.timedelta(days=4)).isoformat())})
+    path = tmp_path / "docs" / "project" / "cycles" / "01.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("appetite_weeks: ''", "appetite_weeks:"), encoding="utf-8")
     assert plan.run(tmp_path) == 0, capsys.readouterr().out
 
 
