@@ -22,6 +22,40 @@ a patch.
 
 ---
 
+## v0.30.0 — 2026-11-17
+
+D222–D224, from the same multi-agent project: the checks that cost its team the most time, and the labels taken on the caller's word.
+
+This is a minor version: a workstation run of `pr-check` or `nstack attest` given a label its open pull request does not carry was green, and is now refused (D224). Nothing else turns red.
+
+**In the engine**
+
+- **A sealed end-to-end run neither waits for nor holds the machine** (D222, #402):
+  - a module declares `evidence.sealed: true` when its run brings its own session, sound server and ports; its run starts at once and says so;
+  - undeclared stays locked, one run at a time, as before;
+  - a run that waits says so again every minute, with the holder and how long.
+- **A passed module check is kept while what it reads is unchanged** (D223, #406, ADR-0006 amended):
+  - `nstack attest` records the digest of what `Module checks` reads: the modules it runs and those they consume from or assemble, every file outside the modules (`contracts/` and `platform/` included), the engine and the person;
+  - a merge of the default branch that touched none of it keeps the check, for 7 days and 20 default-branch commits at most; `--again` runs it;
+  - where checks are attested, T4 lets an automated sheet row run before such a merge stand.
+- **The labels judged are the pull request's own** (D224, #368): off the forge's own run, with a token and one open pull request at the head, `nstack attest` and `pr-check` read its labels. None given, they are used. A label given that it does not carry is refused, and nothing is recorded. Both say where their labels came from, and the record keeps it.
+
+**In your project** — 5 files, text
+
+- **`.nstack/handbook/05-workflow.md`** §7 (D223): an automated row stands when nothing its modules read moved.
+- **`.nstack/handbook/07-governance.md`** §7 (D223): module checks kept across commits on the same inputs.
+- **`.nstack/handbook/09-platform.md`** (D222): `e2e` one at a time unless sealed, the wait said every minute.
+- **`.nstack/handbook/INSTALL.md`** (D222, D223, D224): the `e2e`, `pr-check` and `attest` lines.
+- **`.nstack/playbooks/tests.md`** (D222): when to declare `evidence.sealed`, and why only then.
+
+**Migration**
+
+- **Labels on a workstation** (D224): put a label on the pull request, where the reviewer sees it, rather than passing it with `--labels` or `PR_LABELS`. A run given a label the open pull request lacks is refused; before the pull request exists, the labels given still stand.
+- **A sealed end-to-end run** (D222): add `sealed: true` under `evidence:` in a module's manifest only when its run shares no device of the machine. Two runs that share a sound server or a display would see each other's.
+- **Kept module checks** (D223): nothing to do. A module that reads another one outside `consumes` should declare it; the default branch's `Module checks` run catches what is missed. Records made before this version carry no digest and are never kept from across commits.
+
+---
+
 ## v0.29.1 — 2026-11-17
 
 D220–D221, from the same multi-agent project taking v0.29.0: an update and an attested record, each of which left a step to someone's memory.
