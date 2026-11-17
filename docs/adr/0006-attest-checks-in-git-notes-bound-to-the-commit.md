@@ -86,7 +86,9 @@ the workflows, and without a forge being required.
      end-to-end runs start or call. A module reaching another one's internals is already refused
      (`02-modules.md` §8): the declared graph is meant to be the whole of it;
    - the project's shared files — every tracked path outside the module folders: lockfiles,
-     workspace manifests, scripts, `.nstack/`, workflows;
+     workspace manifests, scripts, `.nstack/`, workflows — and the `contracts/` and `platform/`
+     modules, which every module reads: a contract version or a shared mechanism that moves
+     re-runs every check (an independent verifier's finding, before the code merged);
    - the engine and the person, as before.
 
    Their digest, SHA-256 over those ids in a fixed order, is kept in the record. The check is kept
@@ -120,7 +122,7 @@ the workflows, and without a forge being required.
    `checks: attested` — a record of the head is required: every check of the list present and
    passed; missing, older than the head, incomplete or failed, `pr-check` fails with a rule of its
    own and says which. Its summary says *attested on a workstation, by …, at …*.
-   *Amended (D223)*: T4 asks an automated sheet row run on another commit than the head to be
+   *Amended (D223)*: where checks are attested, T4 asks an automated sheet row run on another commit than the head to be
    run again. It stands, as a row whose commit has the head's tree already does (D93), when a
    record of that commit and the head's record hold the same `inputs` digest and the row's run
    is fresh as above. A row explored by hand is unchanged: a person's exploration follows the

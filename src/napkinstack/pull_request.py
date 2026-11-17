@@ -725,6 +725,12 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
     the digest it computed stands in for it."""
     from napkinstack import attest
 
+    try:
+        answers = yaml.safe_load((root / ANSWERS).read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        answers = {}
+    if not isinstance(answers, dict) or answers.get("checks") != "attested":
+        return lambda commit: False  # the forge's CI replays it: the relief is for attested checks
     cache: dict[str, str | None] = {}
 
     def head_digest() -> str | None:

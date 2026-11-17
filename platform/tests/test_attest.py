@@ -704,7 +704,13 @@ def modular(root: Path) -> str:
         (folder / "MANIFEST.yaml").write_text(yaml.safe_dump({"module": {"name": name}, "consumes": consumes}),
                                               encoding="utf-8")
         (folder / "code.py").write_text("x = 1\n", encoding="utf-8")
+    for shared in ("contracts", "platform"):
+        (root / shared).mkdir()
+        (root / shared / "MANIFEST.yaml").write_text(yaml.safe_dump({"module": {"name": shared}}), encoding="utf-8")
+        (root / shared / "doc.md").write_text("v1\n", encoding="utf-8")
     (root / "uv.lock").write_text("lock 1\n", encoding="utf-8")
+    (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6", "checks": "attested"}),
+                                              encoding="utf-8")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "first\n\nAgent-Session: a-session")
     git(root, "switch", "-q", "-c", "work")
@@ -746,7 +752,8 @@ def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counti
     assert f"kept from the run on {first_head[:7]}" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("path", ["modules/b/code.py", "uv.lock", "modules/a/code.py"])
+@pytest.mark.parametrize("path", ["modules/b/code.py", "uv.lock", "modules/a/code.py", "contracts/doc.md",
+                                  "platform/doc.md"])
 def test_a_merge_in_that_touches_what_the_module_reads_runs_it_again(counting, path):
     root = counting
     base = modular(root)
@@ -813,3 +820,51 @@ def test_pr_check_lets_an_automated_row_stand_across_a_merge_in_that_kept_the_mo
     assert same(first[:7]) and not same(git(root, "rev-parse", "main"))
     monkeypatch.setattr(attest, "FRESH_DAYS", -1)
     assert not pull_request.same_inputs(root, head, base)(first[:7]), "past the bound, the row is re-run"
+
+
+
+def test_a_head_attested_again_never_outlives_the_bound_of_the_run_it_kept(counting, monkeypatch):
+    """The verifier's finding on D223: a same-commit keep (D166) carried a result kept by inputs past
+    its seven days."""
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    assert runs(root) == 1
+    monkeypatch.setattr(attest, "FRESH_DAYS", -1)
+    attest.run(root, base, None, "")
+    assert runs(root) == 2
+
+
+def test_a_base_that_changes_the_modules_run_runs_the_check_again(counting):
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    attest.run(root, "HEAD~1", None, "")  # same module a; nothing else differs
+    assert runs(root) == 1
+    (root / "modules/c/code.py").write_text("x = 9\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "c too")
+    attest.run(root, base, None, "")  # modules a and c now: another set
+    assert runs(root) == 2
+
+
+def test_t4_s_relief_reads_attest_s_digest_while_it_makes_the_record_and_only_where_checks_are_attested(
+        counting, monkeypatch):
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    digest = records(root, first)[-1]["checks"][1]["inputs"]
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    monkeypatch.setenv("NSTACK_ATTESTING", head)
+    monkeypatch.setenv("NSTACK_INPUTS", digest)
+    assert pull_request.same_inputs(root, head, base)(first)
+    monkeypatch.setenv("NSTACK_INPUTS", "0" * 64)
+    assert not pull_request.same_inputs(root, head, base)(first)
+    monkeypatch.setenv("NSTACK_INPUTS", digest)
+    (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6"}), encoding="utf-8")
+    assert not pull_request.same_inputs(root, head, base)(first), "the forge's CI replays it"

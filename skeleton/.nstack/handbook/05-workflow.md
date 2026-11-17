@@ -318,7 +318,8 @@ the change, and the stricter applies:
     declares `e2e`, so it costs nothing; its Commit cell takes the head commit. Where checks are
     attested, it stands when nothing its modules read moved since its run: the records of its
     commit and of the head hold the same `inputs` digest — the modules run, those they consume
-    from or assemble, the files outside the modules, the engine and the person — and the run is at
+    from or assemble, the files outside the modules, `contracts/` and `platform/` included, the
+    engine and the person — and the run is at
     most 7 days old, the default branch moved by 20 commits at most. A module that reads something
     it does not declare is the risk: declare it in `consumes`, and the default branch's own
     `Module checks` run catches what was missed;
