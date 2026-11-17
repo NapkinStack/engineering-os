@@ -392,13 +392,17 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             # Its evidence: a folder of its own, its output kept, its logs read after (ADR-0009).
             from napkinstack import evidence
 
-            with evidence.one_at_a_time(root, target):
+            sealed = evidence.sealed(manifest)
+            # HELD says an ancestor holds the machine: a sealed run holds nothing, so what it starts
+            # does not inherit it — a run it nests waits as any other would (#402).
+            held_for_children = {} if sealed else {evidence.HELD: "1"}
+            with evidence.one_at_a_time(root, target, is_sealed=sealed):
                 folder = evidence.prepare(root, known[target])
                 if isinstance(folder, str):
                     print(f"FAIL [e2e] module '{target}': {folder}")
                     return 1
                 print(f"-> {target}: {command}", flush=True)
-                code, held = evidence.run(command, known[target], {**os.environ, evidence.HELD: "1",
+                code, held = evidence.run(command, known[target], {**os.environ, **held_for_children,
                                                                    "NSTACK_EVIDENCE": str(folder.resolve())}, folder)
                 passed = evidence.finish(root, target, known[target], folder, code, held)
             if code == evidence.NOT_RUN and passed:

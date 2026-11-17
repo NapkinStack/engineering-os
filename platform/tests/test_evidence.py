@@ -91,6 +91,7 @@ def module(root: Path, name="capture", criticality="standard", evidence_section=
     ({"provoked": [{"pattern": "x", "level": "error", "scenario": ""}]}, "scenario"),
     ({"provoked": [{"pattern": "x", "level": "error", "scenario": "S1", "why": "y"}]}, "exactly"),
     ({"levels": "^(\\w+)"}, "group named level"),
+    ({"sealed": "yes"}, "evidence.sealed must be true or false"),
 ])
 def test_m12_refuses_a_declaration_that_would_check_nothing(tmp_path, capsys, section, said):
     module(tmp_path, evidence_section=section)
@@ -101,7 +102,7 @@ def test_m12_refuses_a_declaration_that_would_check_nothing(tmp_path, capsys, se
 
 def test_m12_accepts_a_well_formed_declaration(tmp_path, capsys):
     module(tmp_path, evidence_section={"provoked": [{"pattern": "key refused", "level": "warning", "scenario": "S3"}],
-                                       "levels": r"^(?P<level>\w+)\|"})
+                                       "levels": r"^(?P<level>\w+)\|", "sealed": True})
     manifests.run(tmp_path)
     assert "[M12]" not in capsys.readouterr().out
 
@@ -487,3 +488,65 @@ def test_the_lock_is_never_opened_through_a_link(tmp_path, monkeypatch, judging,
     assert modules.run_verb(root, "e2e", "capture") == 0
     assert victim.read_text(encoding="utf-8") == "kept\n"
     assert "not kept apart from another end-to-end run" in capsys.readouterr().out
+
+
+def _holder(runtime: Path, seconds: float) -> subprocess.Popen:
+    holder = subprocess.Popen([sys.executable, "-c",
+                               "import fcntl, sys, time\n"
+                               "lock = open(sys.argv[1], 'a+')\n"
+                               "fcntl.flock(lock, fcntl.LOCK_EX)\n"
+                               "lock.write('shell, in /elsewhere, process 1, since then\\n'); lock.flush()\n"
+                               "print('held', flush=True)\n"
+                               f"time.sleep({seconds})\n",
+                               str(runtime / "nstack-e2e.lock")], stdout=subprocess.PIPE, text=True)
+    assert holder.stdout.readline().strip() == "held"
+    return holder
+
+
+def test_a_sealed_module_s_e2e_runs_beside_the_one_holding_the_machine(tmp_path, monkeypatch, judging, capsys):
+    """#402: an e2e with its own session, sound server and ports shares nothing of the machine's; the
+    lock was pure waiting for it. Declared sealed, it runs at once and says so; undeclared, it waits."""
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "print('ran', flush=True)\n", section={"sealed": True})
+    holder = _holder(runtime, 30)
+    try:
+        assert modules.run_verb(root, "e2e", "capture") == 0
+        said = capsys.readouterr().out
+        assert "-> capture: sealed (evidence.sealed): runs beside any other end-to-end run on this machine" in said, said
+        assert "waits for" not in said and "ran" in said
+    finally:
+        holder.kill()
+        holder.wait()
+
+
+def test_a_run_that_waits_says_so_again_while_it_waits(tmp_path, monkeypatch, judging, capsys):
+    """#402: a single line at the start was missed in a long output, and a caller's time limit spent
+    on the wait was read as a hang."""
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    monkeypatch.setattr(evidence, "WAIT_SAID_EVERY", 0.3)
+    root = e2e_project(tmp_path, "print('ran', flush=True)\n")
+    holder = _holder(runtime, 4)
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    holder.wait()
+    said = capsys.readouterr().out
+    assert "-> capture: still waits for the end-to-end run already on this machine" in said, said
+    assert "shell, in /elsewhere, process 1, since then" in said.split("still waits", 1)[1]
+
+
+def test_what_a_sealed_run_starts_does_not_inherit_a_lock_it_never_held(tmp_path, monkeypatch, judging, capsys):
+    """The verifier's finding on D222: HELD says an ancestor holds the machine. A sealed run holds
+    nothing; an unsealed e2e it starts must still wait its turn."""
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "import os\nprint('held by', os.environ.get('NSTACK_E2E_HELD'), flush=True)\n",
+                       section={"sealed": True})
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    assert "held by None" in capsys.readouterr().out
