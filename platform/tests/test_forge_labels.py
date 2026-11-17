@@ -67,3 +67,40 @@ def test_on_the_forge_s_run_and_under_attest_the_labels_given_are_the_pull_reque
     monkeypatch.setenv(where, "true" if where == "GITHUB_ACTIONS" else HEAD)
     labels, _, refused = pull_request.labels_for(tmp_path, HEAD, "out-of-cycle")
     assert labels == {"out-of-cycle"} and refused is None and asked == []
+
+
+def test_a_variable_left_from_another_attest_does_not_skip_the_forge(tmp_path, monkeypatch):
+    forge(monkeypatch, [pull(labels=())])
+    monkeypatch.setenv("NSTACK_ATTESTING", "1")
+    assert pull_request.labels_for(tmp_path, HEAD, "over-budget")[2], "only the commit attest records is its own"
+
+
+def test_two_open_pull_requests_at_the_head_leave_the_caller_s_labels(tmp_path, monkeypatch):
+    forge(monkeypatch, [pull(), pull(number=8)])
+    labels, said, refused = pull_request.labels_for(tmp_path, HEAD, "")
+    assert labels == set() and refused is None and "2 open pull requests have this head" in said, said
+
+
+def test_a_label_s_case_is_the_forge_s_business(tmp_path, monkeypatch):
+    forge(monkeypatch, [pull(labels=("cross-module",))])
+    assert pull_request.labels_for(tmp_path, HEAD, "Cross-Module")[2] is None
+
+
+def test_pr_check_says_where_its_labels_came_from_and_fails_on_one_the_pull_request_lacks(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    from napkinstack import cli
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q", "--initial-branch=main")
+    git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "base")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
+    forge(monkeypatch, [pull(labels=("cross-module",), sha=head)])
+    monkeypatch.setenv("PR_BODY", "A change.")
+    monkeypatch.delenv("PR_HEAD_SHA", raising=False)
+    assert cli.main(["pr-check", "--root", str(tmp_path), "--base", "HEAD"]) == 0
+    assert "Labels          : cross-module — read from pull request #7" in capsys.readouterr().out
+    assert cli.main(["pr-check", "--root", str(tmp_path), "--base", "HEAD", "--labels", "over-budget"]) == 1
+    assert "FAIL [labels] pull request #7 carries no label over-budget" in capsys.readouterr().out

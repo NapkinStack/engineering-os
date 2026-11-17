@@ -33,7 +33,7 @@ The out-of-cycle label lifts K1 to K3 and K5, visibly and countably (.nstack/han
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b]
 In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event;
          --labels, when given, takes the place of PR_LABELS, as for nstack attest. Elsewhere, with
-         a token and an open pull request at the head, its own labels are read, and a label
+         a token and one open pull request at the head, its own labels are read, and a label
          given that it does not carry is refused (#368).
 
 The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
@@ -492,8 +492,8 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         fail("K3", f"no deliverable named.\n      Action: \"Deliverable: D<n>\" in the description, "
                    f"a deliverable of {path.name}."
                    + ("" if labels else f"\n      This run read no label. If the pull request is out of cycle, it "
-                      f"carries the {LABEL} label; a run on a workstation is given it with --labels {LABEL} "
-                      "(or PR_LABELS), as the forge passes its labels."))
+                      f"carries the {LABEL} label, put on the pull request: a run on a workstation reads it there "
+                      f"with a token, or is given it with --labels {LABEL} (or PR_LABELS)."))
     elif match[1] not in states:
         fail("K3", f"deliverable {match[1]} is not in {path.name}.\n      Action: name one of "
                    f"{', '.join(states) or 'its deliverables'}, or re-frame the cycle with the decider.")
@@ -638,7 +638,7 @@ def _pull_labels(root: Path, head: str) -> tuple[int, set[str]] | str | None:
     when it was asked; None when nothing is asked: off GitHub or without a token, and where the
     labels given are already the pull request's — the forge's own run, and the checks nstack attest
     runs with the labels it read."""
-    if os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("NSTACK_ATTESTING"):
+    if os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("NSTACK_ATTESTING") == head:
         return None
     from napkinstack import attest, hold
 
@@ -665,14 +665,14 @@ def labels_for(root: Path, head: str, given: str) -> tuple[set[str], str, str | 
     found = _pull_labels(root, head)
     if isinstance(found, tuple):
         number, carried = found
-        if extra := sorted(named - carried):
+        if extra := sorted(name for name in named if name.lower() not in {label.lower() for label in carried}):
             return named, "", (f"pull request #{number} carries no label {', '.join(extra)}: a label is judged as the "
                                f"reviewer sees it on the forge.\n      Action: put it on pull request #{number}, or "
-                               "run without --labels: the pull request's own are read.")
+                               "run without --labels and with PR_LABELS unset: the pull request's own are read.")
         return carried, f"read from pull request #{number}", None
     if os.environ.get("GITHUB_ACTIONS") == "true":
         return named, "the pull request event's", None
-    if os.environ.get("NSTACK_ATTESTING"):
+    if os.environ.get("NSTACK_ATTESTING") == head:
         return named, "as nstack attest read them", None
     return named, ("given by the caller (--labels, PR_LABELS)" if named else "none given") + (
         f" — the pull request's not read: {found}" if found else ""), None
