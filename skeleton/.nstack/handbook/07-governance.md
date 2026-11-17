@@ -273,7 +273,7 @@ to use (GitHub wording, transposable elsewhere):
 | Merge queue | Avoids merges that break each other |
 | A dedicated identity for agents | An agent never merges around the approval the project asks for |
 | Rulesets with an empty bypass list | Nobody, administrators included, merges around a rule |
-| Stale approvals dismissed on push | An approval covers the commits its approver read |
+| Stale approvals dismissed on push | An approval covers the commits its approver read — where the plan has no ruleset, `pr-check` says each approval the head moved past (R1) |
 | A default code owner — on `approval: agent`, a human owner where one must approve | The code owner review covers every path a human must approve |
 | A record of what landed | Nothing reaches the protected branch in silence — it records, it never refuses |
 
@@ -377,7 +377,9 @@ settings close that door, and they only hold together:
    the code owners file names a human only where one must approve.
 3. **Nobody is on the rulesets' bypass list**, administrators included.
 4. **An approval is dismissed when new commits are pushed**: otherwise a force-push after
-   the approval merges content its approver never read.
+   the approval merges content its approver never read. Where the plan has no ruleset to
+   dismiss it, the forge still shows *approved*: `pr-check` says each approval the head moved
+   past (R1), and nobody merges on it until its approver has approved the head.
 
 The human who drove the agent may approve its pull request. A team that wants four eyes
 adds "require approval of the most recent reviewable push", or a second reviewer.

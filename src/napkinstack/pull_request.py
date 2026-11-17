@@ -278,11 +278,10 @@ TRACES = """query($owner: String!, $name: String!, $number: Int!) {
     userContentEdits(first: 100) { totalCount nodes { editor { login } } } } } }"""
 
 
-def traces(root: Path) -> set[str] | str | None:
-    """The accounts whose hand is on the pull request — its description's editors, its reviewers,
-    its commenters —, lower case and without `[bot]`; why they are not read; None with no pull
-    request number, on a workstation, and while `nstack attest` records the head: the hand is
-    judged on the forge's run, which an edit of the description starts again."""
+def _pull_request(root: Path, query: str) -> dict | str | None:
+    """The pull request as one GraphQL query reads it; why it is not read; None with no pull
+    request number, on a workstation, and while `nstack attest` records the head: what the forge
+    holds is judged on the forge's own run."""
     number = os.environ.get("PR_NUMBER", "").strip()
     if not re.fullmatch(r"[0-9]+", number) or os.environ.get("NSTACK_ATTESTING"):
         return None
@@ -293,22 +292,84 @@ def traces(root: Path) -> set[str] | str | None:
     owner, name = repository.split("/", 1)
     request = urllib.request.Request(
         os.environ.get("GITHUB_GRAPHQL_URL") or "https://api.github.com/graphql",
-        data=json.dumps({"query": TRACES, "variables": {"owner": owner, "name": name, "number": int(number)}}).encode(),
+        data=json.dumps({"query": query, "variables": {"owner": owner, "name": name, "number": int(number)}}).encode(),
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "nstack"})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             answer = json.loads(response.read())
         if answer.get("errors"):  # a field refused leaves the rest of the answer partial
             return f"the forge refused part of the query ({answer['errors'][0].get('type', 'error')})"
-        found = answer["data"]["repository"]["pullRequest"]
+        return answer["data"]["repository"]["pullRequest"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
+        return f"the forge did not answer ({type(error).__name__})"
+
+
+def traces(root: Path) -> set[str] | str | None:
+    """The accounts whose hand is on the pull request — its description's editors, its reviewers,
+    its commenters —, lower case and without `[bot]`; why they are not read; None where the pull
+    request is not read (`_pull_request`): the hand is judged on the forge's run, which an edit of
+    the description starts again."""
+    found = _pull_request(root, TRACES)
+    if not isinstance(found, dict):
+        return found
+    try:
         hands = [(found[kind], key) for kind, key in (("reviews", "author"), ("comments", "author"),
                                                        ("userContentEdits", "editor"))]
         if any(connection["totalCount"] > len(connection["nodes"]) for connection, _ in hands):
             return "more traces than one page"
         return {node[key]["login"].lower().removesuffix("[bot]") for connection, key in hands
                 for node in connection["nodes"] if node and node.get(key)}
-    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
+    except (KeyError, TypeError, AttributeError) as error:
         return f"the forge did not answer ({type(error).__name__})"
+
+
+# Each reviewer's latest review that approved or asked for changes: a dismissed one is not there,
+# so where the forge dismisses stale approvals (G13) none is ever read here as covering the head.
+APPROVALS = """query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+    latestOpinionatedReviews(first: 100) { totalCount nodes { state author { login } commit { oid } } } } } }"""
+
+
+def approvals(root: Path) -> list[tuple[str, str]] | str | None:
+    """Each approving reviewer's login and the commit their approval was given on; why they are not
+    read; None where the pull request is not read (`_pull_request`)."""
+    found = _pull_request(root, APPROVALS)
+    if not isinstance(found, dict):
+        return found
+    try:
+        reviews = found["latestOpinionatedReviews"]
+        if reviews["totalCount"] > len(reviews["nodes"]):
+            return "more reviewers than one page"
+        return [(node["author"]["login"] if node.get("author") else "a deleted account",
+                 str((node.get("commit") or {}).get("oid") or "").lower())
+                for node in reviews["nodes"] if node and node.get("state") == "APPROVED"]
+    except (KeyError, TypeError, AttributeError) as error:
+        return f"the forge did not answer ({type(error).__name__})"
+
+
+def check_approvals(root: Path, base: str, head: str, found: list[tuple[str, str]] | str | None,
+                    warn: Callable[[str], None]) -> None:
+    """R1 (#377): where the forge keeps an approval once new commits are pushed — no ruleset, or
+    stale approvals not dismissed —, "approved" no longer says the head was read. An approval on
+    an earlier commit covers the head when only the base branch was merged in since; otherwise it
+    is said, with whom and which commits. A warning, never a failure: a review starts no run (D218),
+    so a check failed on it would stay red after the approver read the head and approved again."""
+    if isinstance(found, str):
+        warn(f"[R1] whether each approval covers the head is not read: {found}.")
+        return
+    for login, commit in found or []:
+        if commit == head:
+            continue
+        known = bool(commit) and not _git(root, "merge-base", "--is-ancestor", commit, head).returncode
+        since = _git(root, "rev-list", "--no-merges", f"{commit}..{head}", f"^{base}").stdout.split() if known else []
+        if known and not since:
+            continue  # only the base branch merged in: nothing the approver has not read
+        what = (f"{len(since)} commit(s) pushed since" if known
+                else "a commit the head no longer holds — the branch was rewritten since")
+        warn(f"[R1] @{login} approved {commit[:7] or 'an unknown commit'}, not the head {head[:7]}: {what}, which "
+             f"the approval does not cover.\n        Action: @{login} reads them and approves again before the merge; "
+             "where the forge dismisses stale approvals on push (a ruleset), it does this itself "
+             "(.nstack/handbook/07-governance.md §7).")
 
 
 def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail,
@@ -865,6 +926,8 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail, warnings.append)
+    if forge == "github":
+        check_approvals(root, base, head, approvals(root), warnings.append)
     if carried and reasons:
         check_moved(body, recorded_rows(root, fork, head), fail, warnings.append,
                     lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other))
