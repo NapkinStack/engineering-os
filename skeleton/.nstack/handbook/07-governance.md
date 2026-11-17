@@ -333,6 +333,17 @@ often personal — is refused before any check runs; set the checkout's identity
 record of a new contributor, `nstack attest --accept-identity`. GitHub's noreply address is always
 accepted, and enough. A repository with no remote is never refused: nothing travels.
 
+**A dependency bot's pull request, where checks are attested.** Dependabot's — or Renovate's —
+pull requests carry no record, and the bot takes commands only from people with push access: an
+agent's App asking it to rebase is refused. Nothing is re-applied by hand. When the branch is
+behind and the ruleset asks it to be up to date, the agent updates it on the forge
+(`gh api --method PUT repos/<owner>/<repo>/pulls/<number>/update-branch`, which the App's
+contents permission allows — where the update touches workflow files, an App without the
+workflows permission is refused, and a person comments `@dependabot rebase`); then it checks the
+head out as it stands (`git fetch origin pull/<number>/head && git checkout --detach FETCH_HEAD`)
+and runs `nstack attest`: the record names who ran the checks, never who wrote the commit. A later
+push of the bot's moves the head, and the record is made again.
+
 **A record is published with the repository**: the notes are pushed, and every step's output
 travels in them. `nstack attest` writes the checkout's root as `<root>` and the home folder as `~`,
 whole folders only. Anything else a step prints travels as printed, and is the step's to keep out:

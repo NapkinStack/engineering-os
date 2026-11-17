@@ -868,3 +868,30 @@ def test_t4_s_relief_reads_attest_s_digest_while_it_makes_the_record_and_only_wh
     monkeypatch.setenv("NSTACK_INPUTS", digest)
     (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6"}), encoding="utf-8")
     assert not pull_request.same_inputs(root, head, base)(first), "the forge's CI replays it"
+
+
+def test_a_dependency_bot_s_head_is_attested_as_it_stands_by_the_project_s_identity(tmp_path, monkeypatch, capsys):
+    """#371: on attested checks, a dependency update opened by a bot carries no record, and an agent's
+    App cannot ask the bot to rebase. The route: the agent checks the bot's head out as it stands and
+    attests it — the record names who ran the checks, never who wrote the commit."""
+    project = tmp_path / "p"
+    project.mkdir()
+    base, _ = change(project, "attested")
+    with_remote(project)
+    git(project, "checkout", "-q", "-b", "dependabot/pre-commit/x", base)
+    (project / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+    git(project, "add", "-A")
+    bot = {"GIT_AUTHOR_NAME": "dependabot[bot]", "GIT_AUTHOR_EMAIL": "49699333+dependabot[bot]@users.noreply.github.com",
+           "GIT_COMMITTER_NAME": "GitHub", "GIT_COMMITTER_EMAIL": "noreply@github.com"}
+    subprocess.run(["git", "commit", "-q", "-m", "Bump the pre-commit group"], cwd=project, check=True,
+                   env={**os.environ, **bot})
+    head = git(project, "rev-parse", "HEAD")
+    git(project, "push", "-q", "origin", "HEAD")
+    git(project, "checkout", "-q", "--detach", head)  # as `git fetch origin pull/<n>/head` leaves it
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    assert attest.run(project, base, None, "") == 0, capsys.readouterr().out
+    [record] = records(project, head)
+    assert record["by"] == "test <test@example.invalid>" and record["commit"] == head
+    fresh_checkout(project)
+    code, out = judged(project, base, monkeypatch, capsys, ci=True)
+    assert code == 0 and "attested on a workstation, by test <test@example.invalid>" in out, out
