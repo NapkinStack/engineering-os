@@ -146,6 +146,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 | `L7` | A project created from a path on one machine | `INSTALL.md` |
 | `L8` | Off GitHub, `checks: forge`: no CI is shipped there, so nothing would run the checks | `INSTALL.md` |
 | `L9` | A `forge` answer the project's files were not written for — changed by hand; `nstack update --forge` changes it. A remote on another known forge is said, never a gap | `INSTALL.md` |
+| `L10` | On GitHub, a line of the code owners file naming an owner GitHub does not know — an organisation by its bare name, a deleted user, a team without access — read from GitHub's own validation of the default branch's file. Unread, it is said, never counted | `07-governance.md` §7 |
 
 ## G — the forge's settings
 

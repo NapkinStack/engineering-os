@@ -299,7 +299,9 @@ on PyPI yet, since the project's CI installs it from there and stays red until i
 `nstack doctor` reads the token from `GH_TOKEN`, otherwise `GITHUB_TOKEN`: a fine-grained
 token, limited to the repository, with the **Administration: read** permission — and
 **Actions: read**, to be told of a workflow failing run after run on the default branch, which
-no required check shows. Without a token, the GitHub part stays "not verified", never compliant.
+no required check shows — and, on a private repository, **Contents: read**, to read GitHub's own
+validation of the code owners file: an owner GitHub does not know, such as an organisation named
+alone, leaves the paths it names with no owner. Without a token, the GitHub part stays "not verified", never compliant.
 {% elif forge == "none" %}## No forge — nothing refuses a change
 
 Without a forge, nothing stands between a commit and the main branch but the team's habits:

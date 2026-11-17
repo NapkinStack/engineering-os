@@ -70,7 +70,7 @@ owner_team:
   help: >-
     Owner of the foundation: a team at the forge —
     organisation/team{{ ', or group/subgroup/team' if forge != 'github' else '' }} —
-    or a user when the project has no organisation
+    or a user when the project has no organisation — never the organisation's name alone
   validator: >-
     {% set team = '[A-Za-z0-9-]+(/[A-Za-z0-9._-]+)+' if forge != 'github' else '[A-Za-z0-9-]+/[A-Za-z0-9._-]+' %}
     {% set user = '(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(-[A-Za-z0-9]+)*' %}

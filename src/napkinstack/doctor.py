@@ -12,7 +12,8 @@ either: whether its default branch holds that commit (GITHUB_API_URL, otherwise
 https://api.github.com). No answer leaves L1 as it is.
 
 GitHub is read with a token supplied by a human (GH_TOKEN, otherwise GITHUB_TOKEN):
-fine-grained, limited to the repository, Administration: read permission (Actions: read for N2). Without a token,
+fine-grained, limited to the repository, Administration: read permission (Actions: read for N2,
+Contents: read for L10 on a private repository). Without a token,
 or when the API refuses a read, the setting is "not verified", never compliant. No write.
 
 Rules:
@@ -35,6 +36,10 @@ Rules:
   L9  the `forge` answer is the one the project's files were written for — never changed by
       hand, which Copier would misread; `nstack update --forge` changes it. A remote on another
       known public forge is said, never judged: a mirror is a choice
+  L10 on GitHub, every owner the code owners file names is one GitHub knows, read from GitHub's
+      own validation of the default branch's file (#382): an organisation by its bare name, a
+      deleted user or a team without access is no owner. Unread — a private repository and a token
+      without Contents: read — it is said, never counted
   N1  information, never a gap (D91): a published version newer than the project's, read from
       the registry — the one place a project learns of it. Elsewhere, only `nstack update` asks
       it, whether the version it lays is published yet (D201)
@@ -79,6 +84,7 @@ from napkinstack.project import ANSWERS
 OK, GAP, UNKNOWN, NOT_APPLICABLE = "OK", "FAIL", "NOT VERIFIED", "NOT APPLICABLE"
 SOURCES = "SOURCES"  # a contributor's checkout holding the project's version: said, not a gap (D136)
 OUT_OF_REACH = "OUT OF REACH"      # the plan forbids it: a state, not a fault (PDR-0006)
+NOT_READ = "NOT READ"  # an optional read that did not answer: said, never counted (L10)
 # The settings that make the forge refuse a merge. A repository is guarded when they are
 # all in force; the others matter and none of them stops a merge.
 BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13", "G21")
@@ -390,6 +396,40 @@ def _default_owner(root: Path) -> tuple[str, str]:
                  "its first rule: the code owner review then covers every path (.nstack/handbook/07-governance.md §7).")
 
 
+SHOWN_ERRORS = 5  # lines of GitHub's validation said one by one; the rest counted
+
+
+def _owners_known(repo: str) -> tuple[str, str]:
+    """L10: the ownership file as GitHub validates it on the default branch (#382). An owner GitHub
+    does not know — an organisation by its bare name, a deleted user, a team without access — is
+    no owner: the paths it names have none. GitHub's own reading, not a second one: no syntax check
+    tells a user from an organisation. Unread, it is said and counted neither as a gap nor as
+    not verified: the token doctor asks for reads settings, not contents."""
+    api = (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": API_VERSION,
+               "User-Agent": f"nstack/{__version__}"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"{api}/repos/{repo}/codeowners/errors", headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            errors = json.load(response)["errors"]
+        lines = [f"line {error['line']}: {error['kind']} — {str(error['source']).strip()}" for error in errors]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        said = f"HTTP {error.code}" if isinstance(error, urllib.error.HTTPError) else type(error).__name__
+        return NOT_READ, (f"Reason: GitHub's validation of the file did not answer ({said}): no file on the "
+                          "default branch, or a private repository out of the token's reach.\nTo read it: a "
+                          "token that may also read the repository's contents (Contents: read).")
+    if not lines:
+        return OK, ""
+    more = f"\n…and {len(lines) - SHOWN_ERRORS} more" if len(lines) > SHOWN_ERRORS else ""
+    return GAP, ("GitHub reads no valid owner on these lines of the default branch's file:\n"
+                 + "\n".join(lines[:SHOWN_ERRORS]) + more
+                 + "\nAction: name a user, or a team written organisation/team, with write access to the "
+                 "repository — never an organisation by its name (.nstack/handbook/07-governance.md §7).")
+
+
 def _kept_for_a_human(root: Path, shown: str, text: str) -> tuple[str, str]:
     """L6 on `approval: agent`: no default owner, and every path a human must approve ends on a
     rule with an owner (`owners.py`; in CI, rule M13)."""
@@ -522,13 +562,17 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
                      if answers.get("approval") == "agent" else "CODEOWNERS starts with a default owner",
                      *_default_owner(root)))
 
+    from napkinstack.project import forge, remote_forge, written_for
+
+    if forge(root) == "github":
+        results.append(("L10", "Every owner CODEOWNERS names is one GitHub knows",
+                        *_owners_known(str(answers.get("github_repo") or ""))))
+
     source = str(answers.get("_src_path") or "")
     local = not REMOTE.match(source)
     results.append(("L7", "Template source reachable by anyone", GAP if local else OK,
                     f"The project was generated from '{source}', a path on one machine: nobody else can "
                     "update it.\nAction: nstack update, from the published source." if local else ""))
-
-    from napkinstack.project import forge, remote_forge, written_for
 
     name = forge(root)
     written, remote = written_for(root), remote_forge(root)

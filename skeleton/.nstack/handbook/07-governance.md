@@ -263,7 +263,7 @@ to use (GitHub wording, transposable elsewhere):
 |---|---|
 | Pull requests required | No direct change on the protected branch |
 | Required checks | A red CI blocks the merge, without exception |
-| CODEOWNERS | The right owner is asked automatically |
+| CODEOWNERS | The right owner is asked automatically — a user, or a team written organisation/team; GitHub reads an organisation named alone as no owner at all |
 | Rulesets / branch protection | The rules do not depend on goodwill |
 | Issue forms | What nobody planned arrives with what is needed to judge it |
 | PR template | The DoD is visible at review time |

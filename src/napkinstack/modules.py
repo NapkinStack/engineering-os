@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 from napkinstack import assurance
-from napkinstack.project import answer, forge, ownership
+from napkinstack.project import answer, forge, organisation_owner, ownership
 from napkinstack.fitness.manifests import (changed_files, contract_entries, find_manifests,
                                            module_content)
 
@@ -72,6 +72,8 @@ def create(root: Path, name: str, owner: str, criticality: str, user_facing: boo
         print(f"FAIL [new-module] invalid owner '{owner}': a team at the forge — organisation/team, or a "
               "GitLab group/subgroup off GitHub — or a user when the project has no organisation, for "
               "example acme/billing (CODEOWNERS, .nstack/handbook/07-governance.md §7).")
+        return 1
+    if forge(root) == "github" and organisation_owner(owner, "new-module", f"{owner}/<team>"):
         return 1
     folder = root / "modules" / name
     if folder.exists():
@@ -164,6 +166,8 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
         print(f"FAIL [new-contract] no valid owner for the contracts module ('{owner}').\n"
               "      Action: pass --owner organisation/team — a boundary is never orphaned "
               "(.nstack/handbook/03-contracts.md §2).")
+        return 1
+    if forge(root) == "github" and organisation_owner(owner, "new-contract", f"--owner {owner}/<team>"):
         return 1
     module, folder = root / "contracts", root / "contracts" / name
     if folder.exists():
