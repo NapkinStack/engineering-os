@@ -602,3 +602,19 @@ def test_a_closed_cycle_counts_no_record_of_the_accepted_one(tmp_path):
                              | {"status": "closed", "outcome": "completed", "ended_on": "2026-09-20"}})
     shown = by_key(board.desired(tmp_path, today=TODAY, delivered={"D2"}))
     assert "delivered" not in shown["02"].body
+
+
+def test_a_dry_run_shows_what_a_proposed_cycle_s_acceptance_would_create(tmp_path, capsys):
+    """#372: a decider reviewing a proposed cycle saw its breakdown only as a markdown file; the
+    issues appeared once the acceptance merged. The dry run shows them first, marked, and nothing
+    is made for a proposed cycle."""
+    root = project(tmp_path, **{"04-next.md": cycle(status="proposed", goal="The export", deliverables=[
+        deliverable(id="D7", state="ready", title="Export to CSV"), deliverable(id="D8", state="proposed",
+                                                                                 title="Export to PDF", acceptance=None)])})
+    board.run(root, dry_run=True, today=TODAY)
+    out = capsys.readouterr().out
+    assert "On acceptance of cycle 04" in out, out
+    assert "milestone Cycle 04-next, due" in out and "issue D7 — Export to CSV" in out and "issue D8 — Export to PDF" in out, out
+    assert "04" not in by_key(board.desired(root, today=TODAY)), "a proposed cycle still makes no forge object"
+    board.run(root, today=TODAY)
+    assert "On acceptance" not in capsys.readouterr().out, "only a dry run says it"
