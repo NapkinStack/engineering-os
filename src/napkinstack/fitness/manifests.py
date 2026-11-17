@@ -385,7 +385,7 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
             continue  # absent, or not a mapping: M2 says it
         name, at = manifest.parent.name, f"{manifest.relative_to(root).as_posix()}:{line_of(text, 'evidence')}"
         action = "      Action: evidence.provoked — a list of {pattern, level: warning|error, scenario} (.nstack/playbooks/tests.md)."
-        for key in sorted(set(section) - {"provoked", "levels"}):
+        for key in sorted(set(section) - {"provoked", "levels", "sealed"}):
             fail(name, "M12", f"evidence has an unknown key '{key}': it declares nothing.\n{action}", at)
         provoked = section.get("provoked", [])
         if not isinstance(provoked, list):
@@ -410,6 +410,10 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
                 fail(name, "M12", f"level {item['level']!r}: warning or error.\n{action}", at)
             if not isinstance(item["scenario"], str) or not item["scenario"].strip():
                 fail(name, "M12", f"the declaration of {item['pattern']!r} names no scenario: say which provokes it.\n{action}", at)
+        if "sealed" in section and not isinstance(section["sealed"], bool):
+            fail(name, "M12", "evidence.sealed must be true or false: true when the module's end-to-end run brings its "
+                              "own session, sound server and ports, and reads nothing of the machine's another run "
+                              "reads.", at)
         if "levels" in section and not isinstance(section["levels"], str):
             fail(name, "M12", "evidence.levels must be text, a regular expression.\n"
                               "      Action: an expression whose group named level captures the line's level word.", at)

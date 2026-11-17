@@ -105,7 +105,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack pr-scope` | One PR = one module, review budget |
 | `nstack modules [--changed-since <base>]` | The project's modules, or those with a file changed since a base |
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
-| `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared — one run at a time on a machine |
+| `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared — one run at a time on a machine, unless the module declares it sealed |
 | `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
 | `nstack pr-check` | The test sheet, the cycle and the attested checks, read from the pull request description |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |

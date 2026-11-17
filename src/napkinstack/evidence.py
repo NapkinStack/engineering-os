@@ -266,15 +266,33 @@ def prepare(root: Path, module: Path) -> Path | str:
 
 
 HELD = "NSTACK_E2E_HELD"  # set for what the run starts: an e2e inside an e2e waits for nothing
+WAIT_SAID_EVERY = 60.0  # seconds between two lines of a run that waits: a long wait is never read as a hang (#402)
+
+
+def sealed(manifest: Path) -> bool:
+    """Whether the module declares its end-to-end run sealed, `evidence.sealed: true` (#402): its own
+    session, sound server and ports — nothing of the machine's that another run reads."""
+    try:
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return False
+    section = data.get("evidence") if isinstance(data, dict) else None
+    return isinstance(section, dict) and section.get("sealed") is True
 
 
 @contextlib.contextmanager
-def one_at_a_time(root: Path, target: str):
+def one_at_a_time(root: Path, target: str, sealed: bool = False):
     """One e2e at a time on this machine, for this user, whichever project or command starts it —
     `nstack e2e`, or `nstack attest` through it: what an end-to-end run drives (a sound server, a
     display, a port) is the machine's, and two runs reading it see each other's (#287). An advisory
     lock, `flock(2)`, released by the system when the holder exits however it exits; the one that
-    waits says for whom."""
+    waits says for whom, and again every WAIT_SAID_EVERY seconds. A sealed run shares nothing of the
+    machine's: it neither waits nor holds the lock (#402)."""
+    if sealed:
+        print(f"-> {target}: sealed (evidence.sealed): runs beside any other end-to-end run on this machine",
+              flush=True)
+        yield
+        return
     try:
         import fcntl
     except ImportError:  # no flock on this system: the runs are not kept apart
@@ -299,7 +317,19 @@ def one_at_a_time(root: Path, target: str):
             handle.seek(0)
             holder = handle.read().strip() or "another run"
             print(f"-> {target}: waits for the end-to-end run already on this machine — {holder}", flush=True)
-            fcntl.flock(handle, fcntl.LOCK_EX)
+            began = said = time.monotonic()
+            while True:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    time.sleep(min(1.0, WAIT_SAID_EVERY / 3))
+                if time.monotonic() - said >= WAIT_SAID_EVERY:
+                    said = time.monotonic()
+                    handle.seek(0)
+                    holder = handle.read().strip() or holder
+                    print(f"-> {target}: still waits for the end-to-end run already on this machine, "
+                          f"{int(said - began) // 60} min {int(said - began) % 60} s so far — {holder}", flush=True)
         handle.seek(0)
         handle.truncate()
         started = datetime.datetime.now().astimezone().isoformat(timespec="seconds")

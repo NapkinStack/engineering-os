@@ -392,7 +392,7 @@ def run_verb(root: Path, verb: str, name: str | None, arguments: list[str] | Non
             # Its evidence: a folder of its own, its output kept, its logs read after (ADR-0009).
             from napkinstack import evidence
 
-            with evidence.one_at_a_time(root, target):
+            with evidence.one_at_a_time(root, target, evidence.sealed(known[target] / "MANIFEST.yaml")):
                 folder = evidence.prepare(root, known[target])
                 if isinstance(folder, str):
                     print(f"FAIL [e2e] module '{target}': {folder}")
