@@ -12,11 +12,14 @@ hook and CI reject any remaining marker.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import yaml
@@ -28,6 +31,47 @@ ANSWERS = ".copier-answers.yml"
 DOWNGRADE = re.compile(r"You are downgrading from (\S+) to (\S+)\.")
 # The forms of a GitHub source Copier records, from which a release page can be named.
 GITHUB = re.compile(r"^(?:https://github\.com/|git@github\.com:|gh:)(?P<repo>[^/]+/[^/]+?)(?:\.git)?/?$")
+
+
+def organisation_owner(owner: str, command: str, instead: str) -> bool:
+    """True, with the refusal printed, when a bare handle written as a code owner on GitHub names an
+    organisation (#382): GitHub takes a user, or a team as organisation/team — never an organisation
+    by its name, and every CODEOWNERS line naming it would have no valid owner. A team needs no
+    asking; a forge that does not answer lets the owner pass, said: `nstack doctor` reads the file as
+    GitHub validates it (L10). A token is sent when there is one: a server in private mode answers
+    no one without it."""
+    import http.client
+    import urllib.error
+
+    if "/" in owner:
+        return False
+    api = (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": f"nstack/{__version__}"}
+    if token := os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"{api}/users/{urllib.parse.quote(owner, safe='')}", headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            kind = (json.load(response) or {}).get("type")
+    except urllib.error.HTTPError as error:
+        kind = "unknown" if error.code == 404 else None
+    except (OSError, ValueError, AttributeError, http.client.HTTPException):
+        kind = None
+    if kind == "unknown":
+        print(f"NOTE [{command}] GitHub knows no user or organisation '{owner}': written as given — check the "
+              "spelling; nstack doctor reads the file as GitHub validates it.")
+        return False
+    if kind == "Organization":
+        print(f"FAIL [{command}] '{owner}' is an organisation: GitHub takes as a code owner a user, or a team "
+              f"written organisation/team — never an organisation by its name. Every CODEOWNERS line naming "
+              f"it would name no valid owner.\n      Action: pass {instead} — a team of {owner} with write "
+              "access to the repository — or a user (.nstack/handbook/07-governance.md §7).")
+        return True
+    if kind is None:
+        print(f"NOTE [{command}] GitHub did not say what '{owner}' names: written as given. A code owner is a "
+              "user or organisation/team, never an organisation's name; nstack doctor reads the file as GitHub "
+              "validates it.")
+    return False
 
 
 def default_ref() -> str:
@@ -233,6 +277,11 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     # Not asked at init (Copier would ask): a project on GitHub starts on its CI; elsewhere no CI
     # is shipped, and its checks are attested (PDR-0018) — settled after the copy when the forge
     # was asked by Copier itself.
+    # Asked by Copier instead — the owner, or the forge —, the owner is read by nstack doctor (L10):
+    # a prompt cannot ask the forge.
+    owner = str(data.get("owner_team") or "")
+    if data.get("forge") == "github" and owner and organisation_owner(owner, "init", f"--owner-team {owner}/<team>"):
+        return 1
     data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
     data.setdefault("approval", "human")  # a code owner approves, until the decider says otherwise (PDR-0021)

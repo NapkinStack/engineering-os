@@ -1152,6 +1152,7 @@ compliant = {
     "/actions/permissions/selected-actions": {"github_owned_allowed": True, "patterns_allowed": ["astral-sh/setup-uv@*"]},
     "/actions/permissions/fork-pr-contributor-approval": {"approval_policy": "all_external_contributors"},
     "/actions/permissions/workflow": {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": False},
+    "/codeowners/errors": {"errors": []},  # L10: every owner one GitHub knows (D225)
     **labels, **ruleset,
 }
 inactive = {"status": "disabled"}
@@ -1400,7 +1401,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-grep_text "$OUT" -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
+grep_text "$OUT" -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 27 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 grep_text "$OUT" -qF "This repository: guarded" && ! grep_text "$OUT" -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1453,7 +1454,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 grep_text "$OUT" -qF "nstack doctor: compliant" && grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 25 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"
