@@ -52,7 +52,7 @@ subject at a time, asking only what you cannot infer:
 | Risks | What could make it fail, or cause harm? | The risks, and the criticality they imply — what a failure of each module would cost, which the decider settles and `.nstack/handbook/05-workflow.md` §7 prices |
 | Vocabulary | The domain's words, and what each one means | The vocabulary |
 | Not this project | What it will deliberately not do | Out of scope |
-| Outside the team | What has already been asked of, or promised to, someone outside the team — a client, a vendor, a partner —, by any channel? Asked at the discovery's intake, only what changed since | Nothing: each answer is an entry of the project's log issue (`06-decisions.md` §9) |
+| Outside the team | What has already been asked of, promised to, or received from someone outside the team — a client, a vendor, a partner — by any channel? When the discovery asked it, only what changed since; otherwise, in full | Nothing in the charter: each answer is an entry of the project's log issue (`06-decisions.md` §9) |
 
 A domain that moves money, handles personal data or acts on someone's behalf raises the
 criticality of the modules concerned, and `security.md` applies from the first cycle — to
@@ -124,8 +124,10 @@ Write `docs/project/cycles/NN-<slug>.md` from `.nstack/forms/cycle.md`, with
 
 A cycle's *What needs a person* holds what only a person can do, each with its literal gesture: fill it
 while framing, and keep it true. It is what `nstack plan` opens with. A request to someone outside
-the team starts from the log issue's entries: nothing already asked is asked again, nothing is
-asked more broadly than before without saying why, and each new request becomes an entry.
+the team starts from the log issue's entries, and from the decider's answer to what has been asked,
+promised or received outside since the last one — every cycle, not only the first: nothing already
+asked is asked again, nothing is asked more broadly than before without saying why, and each new
+request becomes an entry. One still awaiting a reply that a deliverable needs is a dependency with a date.
 
 Present the charter, the cycle, the open questions, what went to *later*, and what you are
 unsure of. The decider amends; the framer sets `status: accepted` — on the charter, then on the

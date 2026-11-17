@@ -194,3 +194,14 @@ def test_the_platform_page_names_every_rule_doctor_holds():
 def test_a_fitness_function_nothing_ships_says_whose_it_is():
     governance = " ".join((SKELETON / "handbook/07-governance.md").read_text(encoding="utf-8").split())
     assert "the project's to build" in governance, "07-governance.md announces budgets and layering as if checked"
+
+
+def test_the_intake_asks_what_was_already_asked_outside_the_team() -> None:
+    """#369: a fresh session framing a client engagement asked the client again, and more broadly,
+    for accesses the decider had already requested by a messaging app."""
+    intake = stage(DISCOVERY, "1. Intake")
+    assert "outside the" in intake and "log issue" in intake and "never a secret" in intake, intake
+    assert "Outside the team" in stage(FRAMING, "1. Frame the project")
+    handover = stage(FRAMING, "3. Hand over to the decider")
+    assert "already\nasked is asked again" in handover and "every cycle" in handover, handover
+    assert "titled `Log`" in (ROOT / "skeleton/.nstack/handbook/06-decisions.md").read_text(encoding="utf-8")
