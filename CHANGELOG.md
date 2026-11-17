@@ -33,8 +33,9 @@ This is a patch: nothing green turns red. D221 helps only once a gesture at the 
 - **`nstack update` generates the skills again** (D220): where the person generated skills (`.claude/skills/`), the update regenerates them from the updated playbooks and says so. A first `nstack attest` no longer fails Fitness on S3. `nstack skills` removes a generated skill whose playbook is gone, and never removes one a person wrote.
 - **A required record status keeps an attested pull request moving** (D221, #399): the record is made after the description's last edit, and its notes start no run. Where the base branch's ruleset requires `nstack / local checks`, the status `nstack attest` posts with the record, the pull request's run leaves A1 and A2 to that status and says so. Otherwise it judges the record as before, and A1's action names both ways out. An agent's App made by `nstack agent add` gets Commit statuses: write.
 
-**In your project** — 2 files, text
+**In your project** — 3 files, text
 
+- **`.pre-commit-config.yaml`**: `zizmor` 1.32.0.
 - **`.github/workflows/pull-request.yml`**: a comment, the record's status as its event (D221).
 - **`.nstack/handbook/07-governance.md`** §7 (D221): requiring `nstack / local checks` in an attested project, and the token that posts it.
 
