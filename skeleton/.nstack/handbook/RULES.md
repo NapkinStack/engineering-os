@@ -10,7 +10,7 @@ why, and the action.
 flowchart LR
     W["Workstation<br/>and forge settings"]:::place --> L["L · G"]:::rule
     C["Every commit<br/>and every CI run"]:::place --> F["M · B · S · C · H"]:::rule
-    P["A pull request"]:::place --> R["P · T · K · V · A · C9"]:::rule
+    P["A pull request"]:::place --> R["P · T · K · V · A · R · C9"]:::rule
     D["The default branch"]:::place --> X["W"]:::rule
 
     classDef place fill:#374151,color:#fff
@@ -109,6 +109,15 @@ in git; elsewhere a record is shown, and the forge's CI judges.
 |---|---|---|
 | `A1` | In a project whose checks are attested, a head commit with no record — read from the remote's notes, in CI too | `07-governance.md` §7 |
 | `A2` | A record of the head that misses a check the CI runs, or holds a failed one | `07-governance.md` §7 |
+
+## R — the approvals a pull request carries
+
+On GitHub, read from the pull request by `nstack pr-check` on the forge's run. Where the forge
+dismisses stale approvals on push, it never has one to say.
+
+| Code | Refuses | Why |
+|---|---|---|
+| `R1` | *(warning)* An approval given on an earlier commit than the head, when commits other than the base branch's followed it — a merge that carries content of its own included —: the approver has not read them. A review starts no run, so it is said, as an annotation on the check, never failed. Unread, it is said | `07-governance.md` §7 |
 
 ## K — the cycle a change belongs to
 
