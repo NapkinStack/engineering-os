@@ -9,7 +9,7 @@ Rules:
   C1  front matter readable: a YAML mapping at the top of the file
   C2  charter: status proposed or accepted, a decider who is one named person, at least
       one success criterion
-  C3  cycle: a goal, a known status, appetite_weeks, start and end, end = start + appetite;
+  C3  cycle: a goal, a known status, appetite_weeks or appetite_days, start and end, end = start + appetite;
       accepted_on, when written, a date: the next cycle's acceptance while another runs
   C4  deliverables: ids D1, D2… unique, a title, a known state, acceptance criteria once ready
   C5  at most one accepted cycle, and only under an accepted charter
@@ -621,6 +621,9 @@ def _check_success(path: Path, data: dict, status, numbers: list[int] | None, fa
             fail("C6", path, f"{where}: observing since when? {action}")
 
 
+APPETITES = {"appetite_weeks": "weeks", "appetite_days": "days"}  # a cycle's key, and its unit
+
+
 def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | None:
     data, reason = read_front_matter(path)
     if data is None:
@@ -631,16 +634,25 @@ def _check_cycle(path: Path, fail, numbers: list[int] | None = None) -> str | No
     status = data.get("status")
     if not one_of(status, CYCLE_STATUSES):
         fail("C3", path, f"status '{status}': expected one of {sorted(CYCLE_STATUSES)}")
-    weeks = data.get("appetite_weeks")
-    if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks < 1:
-        fail("C3", path, "appetite_weeks: a whole number of weeks, decided rather than estimated")
-        weeks = None
+    # The appetite in weeks, or in days for an engagement shorter than one (#370): one or the
+    # other, never both — one decision, and the one date it sets.
+    given = [unit for unit in APPETITES if unit in data]
+    unit = given[0] if len(given) == 1 else None
+    amount = data.get(unit) if unit else None
+    if len(given) > 1:
+        fail("C3", path, "appetite_weeks and appetite_days both set: the appetite is one decision.\n"
+                         "      Action: keep one — appetite_days for a cycle shorter than a week")
+        amount = None
+    elif isinstance(amount, bool) or not isinstance(amount, int) or amount < 1:
+        fail("C3", path, "appetite_weeks, or appetite_days for a cycle shorter than a week: a whole number, "
+                         "decided rather than estimated")
+        amount = None
     start, end = as_date(data.get("start")), as_date(data.get("end"))
     if start is None or end is None:
         fail("C3", path, "start and end: dates, YYYY-MM-DD")
-    elif weeks is not None and end != start + datetime.timedelta(weeks=weeks):
-        fail("C3", path, f"end {end}: the appetite sets it, start + {weeks} week(s) = "
-                         f"{start + datetime.timedelta(weeks=weeks)}")
+    elif amount is not None and end != start + datetime.timedelta(**{APPETITES[unit]: amount}):
+        fail("C3", path, f"end {end}: the appetite sets it, start + {amount} {APPETITES[unit][:-1]}(s) = "
+                         f"{start + datetime.timedelta(**{APPETITES[unit]: amount})}")
     if "accepted_on" in data and as_date(data.get("accepted_on")) is None:
         fail("C3", path, "accepted_on: the day the decider accepted this cycle, YYYY-MM-DD")
     _check_deliverables(path, data.get("deliverables"), fail)
