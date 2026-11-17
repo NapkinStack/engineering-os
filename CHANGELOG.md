@@ -22,7 +22,7 @@ a patch.
 
 ---
 
-## v0.29.1 — 2026-11-14
+## v0.29.1 — 2026-11-17
 
 D220–D221, from the same multi-agent project taking v0.29.0: an update and an attested record, each of which left a step to someone's memory.
 
