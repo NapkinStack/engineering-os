@@ -7,7 +7,10 @@ test — on a clean tree at a commit, and appends the run to that commit's note 
 `refs/notes/nstack/checks`, one JSON line per run. The note travels with the branch's remote
 and is merged line by line; the latest line for a commit is its record. On GitHub, with a token
 that may write statuses, the run is also shown as `nstack / local checks` — a name no CI job
-has. A ruleset that requires that name gates the merge on the record, and the forge's pull
+has. A passed `Module checks` is kept, not run again, while the digest of what it reads is
+unchanged — the modules it runs and those they consume from or assemble, the files outside the
+modules, `contracts/` and `platform/` included, the engine and the person — for 7 days and 20 commits of the default branch at most (ADR-0006,
+D223). A ruleset that requires that name gates the merge on the record, and the forge's pull
 request run leaves the record to it (D221): notes start no run, a status is an event.
 A record is *attested*, never *checked*: it makes a claim traceable, not true.
 
@@ -293,6 +296,93 @@ def why(output: str) -> list[str]:
 NAMED = re.compile(r".* \(commit [0-9a-f]{7,}\)|.*@[0-9a-f]{7,}|a local checkout at (?!an unknown commit)\S+(?<!-dirty)")
 
 
+FRESH_DAYS = 7  # a check kept by its inputs, at most this old (ADR-0006, D223)
+FRESH_COMMITS = 20  # and the default branch moved by at most this many commits since its run
+
+
+SHARED_MODULES = ("contracts", "platform")  # read by every module: counted as shared files (D223)
+
+
+def inputs(root: Path, base: str, identity: str = "") -> str | None:
+    """The digest of what `Module checks` reads at HEAD (ADR-0006 decision 2, D223): the folders of
+    the modules it runs, of those they consume from or assemble, every tracked path outside the
+    module folders — `contracts/` and `platform/` included, which every module reads — and who runs
+    it with which engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
+    import yaml
+
+    from napkinstack import modules
+
+    ran = modules.listing(root, base, with_contract_sides=True)
+    every = {module["name"]: module["folder"] for module in modules.listing(root) or []}
+    if ran is None:
+        return None
+    folders = {module["folder"] for module in ran}
+    for module in ran:
+        try:
+            data = yaml.safe_load((root / module["folder"] / "MANIFEST.yaml").read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return None
+        consumes = data.get("consumes") if isinstance(data, dict) else None
+        assembles = data.get("assembles") if isinstance(data, dict) else None
+        named = [entry.get("module") for entry in consumes if isinstance(entry, dict) and entry.get("module")] \
+            if isinstance(consumes, list) else []
+        named += [name for name in assembles if isinstance(name, str)] if isinstance(assembles, list) else []
+        for name in named:
+            if name not in every:
+                return None  # a dependency the project does not hold: what it reads is unknown
+            folders.add(every[name])
+    lines = [f"ran {' '.join(sorted(module['name'] for module in ran))}", f"identity {identity}"]
+    for folder in sorted(folders):
+        tree = _git(root, "rev-parse", "--verify", "--quiet", f"HEAD:{folder}", check=False).stdout.strip()
+        if not tree:
+            return None
+        lines.append(f"{folder} {tree}")
+    inside = tuple(f"{folder}/" for folder in every.values() if folder.split("/", 1)[0] not in SHARED_MODULES)
+    listed = _git(root, "ls-tree", "-r", "--full-tree", "HEAD", check=False)
+    if listed.returncode:
+        return None
+    lines += [line for line in listed.stdout.splitlines() if not line.split("\t", 1)[-1].startswith(inside)]
+    return hashlib.sha256("\n".join(lines).encode("utf-8", "surrogateescape")).hexdigest()
+
+
+def _fresh(root: Path, at: str, run_base: str | None, base_commit: str | None) -> bool:
+    """Whether a run kept by its inputs is recent enough (ADR-0006, D223)."""
+    try:
+        when = datetime.datetime.fromisoformat(at)
+    except (TypeError, ValueError):
+        return False
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if when.tzinfo is None or now - when > datetime.timedelta(days=FRESH_DAYS) or when - now > datetime.timedelta(minutes=5):
+        return False  # too old, or from a clock ahead: never fresh for longer than the bound
+    if not run_base or not base_commit:
+        return False
+    moved = _git(root, "rev-list", "--count", f"{run_base}..{base_commit}", check=False)
+    return moved.returncode == 0 and int(moved.stdout.strip() or 0) <= FRESH_COMMITS
+
+
+def _by_inputs(root: Path, base: str, digest: str | None, check: Check, engine: str, origin: str | None,
+               base_commit: str | None, who: str, said: str | None) -> dict | None:
+    """The check as a passed run on this branch's history left it, when what it reads is the same
+    — the digest of its inputs, whatever the commit — and the run is fresh (ADR-0006, D223)."""
+    if digest is None or not check.kept or base_commit is None or not (origin is None or NAMED.fullmatch(origin)):
+        return None
+    for commit in _git(root, "rev-list", f"{base_commit}..HEAD", check=False).stdout.split():
+        record = latest(root, commit)
+        if record is None or (record.get("engine"), record.get("origin"), record.get("published"),
+                              record.get("by")) != (engine, said, origin is None, who):
+            continue
+        checks = record.get("checks") if isinstance(record.get("checks"), list) else []
+        found = next((c for c in checks if isinstance(c, dict) and c.get("name") == check.name), None)
+        if not found or found.get("passed") is not True or found.get("inputs") != digest:
+            continue
+        first = str(found.get("kept_from") or record.get("at", ""))
+        run_base = found.get("kept_base") or record.get("base_commit")
+        if not _fresh(root, first, run_base, base_commit):
+            continue
+        return {**found, "kept_from": first, "kept_commit": found.get("kept_commit") or commit, "kept_base": run_base}
+    return None
+
+
 def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, base_commit: str | None,
           who: str, said: str | None = None) -> dict | None:
     """The check as the commit's record last passed it, when what it reads is the same: the commit,
@@ -307,8 +397,8 @@ def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, 
         return None
     checks = previous.get("checks") if isinstance(previous.get("checks"), list) else []
     found = next((c for c in checks if isinstance(c, dict) and c.get("name") == check.name), None)
-    if not found or found.get("passed") is not True:
-        return None
+    if not found or found.get("passed") is not True or found.get("kept_commit"):
+        return None  # kept by its inputs from another commit: its freshness is _by_inputs' to judge (D223)
     return {**found, "kept_from": found.get("kept_from") or previous.get("at")}
 
 
@@ -377,12 +467,22 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         # without asking for the record this run is making (A1, A2) — found rehearsing v0.10.0.
         env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
                    NSTACK_ATTESTING=commit)
+        digest = inputs(root, base, json.dumps([engine, unplaced(origin, root), origin is None, who]))
+        env["NSTACK_INPUTS"] = digest or ""  # the head's, for pr-check's T4 while this record is made (D223)
         for check in CHECKS:
             kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root))
             if kept is not None:
                 results.append(kept)
                 print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
                       "and engine (nstack attest --again runs it)", flush=True)
+                continue
+            kept = None if again else _by_inputs(root, base, digest, check, engine, origin, base_commit, who,
+                                                  unplaced(origin, root))
+            if kept is not None:
+                results.append(kept)
+                print(f"ok   [attest] {check.name}: kept from the run on {kept['kept_commit'][:7]} at {kept['kept_from']} — "
+                      f"same inputs ({digest[:12]}), within {FRESH_DAYS} days and {FRESH_COMMITS} commits of the "
+                      "default branch (nstack attest --again runs it)", flush=True)
                 continue
             steps = []
             for step in check.steps:
@@ -392,7 +492,8 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
                               "output": capped(done.stdout),
                               "sha256": hashlib.sha256(done.stdout.encode("utf-8", "replace")).hexdigest()})
             passed = all(step["exit"] == 0 for step in steps)
-            results.append({"name": check.name, "passed": passed, "steps": steps})
+            results.append({"name": check.name, "passed": passed, "steps": steps,
+                            **({"inputs": digest} if check.kept and digest else {})})
             failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
             print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
             for step in steps:

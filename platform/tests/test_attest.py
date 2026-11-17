@@ -531,7 +531,7 @@ def test_a_passed_module_check_is_kept_for_the_same_commit_base_and_engine(tmp_p
     assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 3
 
 
-@pytest.mark.parametrize("change", ["the base", "a failure", "an engine from a dirty checkout"])
+@pytest.mark.parametrize("change", ["a failure", "an engine from a dirty checkout"])
 def test_a_module_check_runs_again_when_anything_it_read_may_differ(tmp_path, monkeypatch, change):
     root = tmp_path / "p"
     root.mkdir()
@@ -690,3 +690,181 @@ def test_attest_refuses_a_label_the_pull_request_does_not_carry_and_records_wher
     assert attest.latest(tmp_path, head) is None, "nothing recorded on a refused label"
     assert attest.run(tmp_path, base, None, None) == 0
     assert attest.latest(tmp_path, head)["labels"] == {"names": ["cross-module"], "from": "read from pull request #7"}
+
+
+
+# --- D223: a passed module check is kept while its inputs are unchanged (#406) ----------------
+
+def modular(root: Path) -> str:
+    """main holds modules a (consumes b), b and c; branch `work` changes a. Returns main's name."""
+    git(root, "init", "-q", "--initial-branch=main")
+    for name, consumes in (("a", [{"contract": "b-api", "version": "v1", "module": "b"}]), ("b", []), ("c", [])):
+        folder = root / "modules" / name
+        folder.mkdir(parents=True)
+        (folder / "MANIFEST.yaml").write_text(yaml.safe_dump({"module": {"name": name}, "consumes": consumes}),
+                                              encoding="utf-8")
+        (folder / "code.py").write_text("x = 1\n", encoding="utf-8")
+    for shared in ("contracts", "platform"):
+        (root / shared).mkdir()
+        (root / shared / "MANIFEST.yaml").write_text(yaml.safe_dump({"module": {"name": shared}}), encoding="utf-8")
+        (root / shared / "doc.md").write_text("v1\n", encoding="utf-8")
+    (root / "uv.lock").write_text("lock 1\n", encoding="utf-8")
+    (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6", "checks": "attested"}),
+                                              encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "first\n\nAgent-Session: a-session")
+    git(root, "switch", "-q", "-c", "work")
+    (root / "modules/a/code.py").write_text("x = 2\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "a moves\n\nAgent-Session: a-session")
+    return "main"
+
+
+def main_moves(root: Path, path: str) -> None:
+    """Another change lands on main, and the branch merges main in."""
+    git(root, "switch", "-q", "main")
+    target = root / path
+    target.write_text(target.read_text(encoding="utf-8") + "more\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", f"{path} moves")
+    git(root, "switch", "-q", "work")
+    git(root, "merge", "-q", "--no-edit", "main")
+
+
+@pytest.fixture
+def counting(tmp_path, monkeypatch):
+    root = tmp_path / "p"
+    root.mkdir()
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    return root
+
+
+def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counting, capsys):
+    root = counting
+    base = modular(root)
+    first_head = git(root, "rev-parse", "HEAD")
+    assert attest.run(root, base, None, "") == 0 and runs(root) == 1
+    main_moves(root, "modules/c/code.py")
+    capsys.readouterr()
+    assert attest.run(root, base, None, "") == 0 and runs(root) == 1
+    head = git(root, "rev-parse", "HEAD")
+    kept = records(root, head)[-1]["checks"][1]
+    assert kept["kept_commit"] == first_head and kept["inputs"] == records(root, first_head)[-1]["checks"][1]["inputs"]
+    assert f"kept from the run on {first_head[:7]}" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("path", ["modules/b/code.py", "uv.lock", "modules/a/code.py", "contracts/doc.md",
+                                  "platform/doc.md"])
+def test_a_merge_in_that_touches_what_the_module_reads_runs_it_again(counting, path):
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    if path == "modules/a/code.py":  # the module itself moves on the branch
+        (root / path).write_text("x = 3\n", encoding="utf-8")
+        git(root, "commit", "-q", "-am", "a again")
+    else:
+        main_moves(root, path)
+    attest.run(root, base, None, "")
+    assert runs(root) == 2
+
+
+@pytest.mark.parametrize("bound", ["FRESH_DAYS", "FRESH_COMMITS"])
+def test_a_kept_result_expires(counting, monkeypatch, bound):
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    monkeypatch.setattr(attest, bound, 0 if bound == "FRESH_COMMITS" else -1)
+    attest.run(root, base, None, "")
+    assert runs(root) == 2
+
+
+def test_a_kept_result_keeps_its_first_run_s_age(counting, monkeypatch):
+    """Kept from a kept one, the age is the first run's: keeping never makes a result younger."""
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    first = records(root, git(root, "rev-parse", "HEAD"))[-1]["at"]
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    main_moves(root, "README.md" if (root / "README.md").exists() else "modules/c/code.py")
+    attest.run(root, base, None, "")
+    assert runs(root) == 1
+    assert records(root, git(root, "rev-parse", "HEAD"))[-1]["checks"][1]["kept_from"] == first
+
+
+def test_a_consumes_naming_no_module_is_no_key(counting):
+    root = counting
+    base = modular(root)
+    manifest = root / "modules/a/MANIFEST.yaml"
+    manifest.write_text(yaml.safe_dump({"module": {"name": "a"}, "consumes": [{"contract": "z", "version": "v1",
+                                                                               "module": "nowhere"}]}), encoding="utf-8")
+    git(root, "commit", "-q", "-am", "a consumes from nowhere")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    assert runs(root) == 2
+
+
+def test_pr_check_lets_an_automated_row_stand_across_a_merge_in_that_kept_the_module_check(counting, monkeypatch, capsys):
+    """D223, end to end: the row was run at the first head; main merged in changed only module c."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    head = git(root, "rev-parse", "HEAD")
+    same = pull_request.same_inputs(root, head, base)
+    assert same(first[:7]) and not same(git(root, "rev-parse", "main"))
+    monkeypatch.setattr(attest, "FRESH_DAYS", -1)
+    assert not pull_request.same_inputs(root, head, base)(first[:7]), "past the bound, the row is re-run"
+
+
+
+def test_a_head_attested_again_never_outlives_the_bound_of_the_run_it_kept(counting, monkeypatch):
+    """The verifier's finding on D223: a same-commit keep (D166) carried a result kept by inputs past
+    its seven days."""
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    assert runs(root) == 1
+    monkeypatch.setattr(attest, "FRESH_DAYS", -1)
+    attest.run(root, base, None, "")
+    assert runs(root) == 2
+
+
+def test_a_base_that_changes_the_modules_run_runs_the_check_again(counting):
+    root = counting
+    base = modular(root)
+    attest.run(root, base, None, "")
+    attest.run(root, "HEAD~1", None, "")  # same module a; nothing else differs
+    assert runs(root) == 1
+    (root / "modules/c/code.py").write_text("x = 9\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "c too")
+    attest.run(root, base, None, "")  # modules a and c now: another set
+    assert runs(root) == 2
+
+
+def test_t4_s_relief_reads_attest_s_digest_while_it_makes_the_record_and_only_where_checks_are_attested(
+        counting, monkeypatch):
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    digest = records(root, first)[-1]["checks"][1]["inputs"]
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    monkeypatch.setenv("NSTACK_ATTESTING", head)
+    monkeypatch.setenv("NSTACK_INPUTS", digest)
+    assert pull_request.same_inputs(root, head, base)(first)
+    monkeypatch.setenv("NSTACK_INPUTS", "0" * 64)
+    assert not pull_request.same_inputs(root, head, base)(first)
+    monkeypatch.setenv("NSTACK_INPUTS", digest)
+    (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6"}), encoding="utf-8")
+    assert not pull_request.same_inputs(root, head, base)(first), "the forge's CI replays it"
