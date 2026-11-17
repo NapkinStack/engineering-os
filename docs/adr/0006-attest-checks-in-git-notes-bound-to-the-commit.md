@@ -3,7 +3,11 @@
 - **Status**: Accepted (2026-10-20, by the maintainer, approving #196); built in D129.
   **Clarified 2026-10-26 (D166, #275)**: a passed module check is kept for the same commit, base
   and engine — decisions 2 and 3. **Clarified 2026-10-27 (D173, #295)**: an output over the cap
-  is cut log group by log group, so that each module keeps its own results — decision 3
+  is cut log group by log group, so that each module keeps its own results — decision 3.
+  **Amended 2026-11-17 (D223, #406)**: a passed module check is kept while what it reads is
+  unchanged — the digest of its inputs, not the commit and base — for seven days and twenty
+  commits of the default branch at most; an automated sheet row stands on the same digest —
+  decisions 2, 3 and 7
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier
@@ -71,6 +75,29 @@ the workflows, and without a forge being required.
    the same person, it is kept with that run's evidence, not run again, so a sheet filled after a
    first attest costs no second end-to-end run. Ignored files, the environment and the tools outside
    the tree are not compared. `--again` runs it.
+   *Amended (D223, #406)*: the key is what the check reads, no longer the commit and the base. A
+   pull request that merges the default branch in, for another module's change, moved both, and
+   every end-to-end run of the change was paid again for nothing it reads; on a project of four
+   authors that was the bottleneck. The **inputs** of `Module checks` at a commit are, as git's tree
+   ids, never hashed by hand:
+   - the folder of each module the check ran — the changed ones and, for a changed contract, its
+     provider and its consumers, as the check selects them;
+   - the folder of each module those consume from (`consumes[].module`): what their tests and
+     end-to-end runs start or call. A module reaching another one's internals is already refused
+     (`02-modules.md` §8): the declared graph is meant to be the whole of it;
+   - the project's shared files — every tracked path outside the module folders: lockfiles,
+     workspace manifests, scripts, `.nstack/`, workflows;
+   - the engine and the person, as before.
+
+   Their digest, SHA-256 over those ids in a fixed order, is kept in the record. The check is kept
+   when the digest at the new head equals the one a passed run recorded — whatever the commit — and
+   the run is **fresh**: made at most seven days ago, and the default branch has moved by at most
+   twenty commits between that run's base and this one's. Past either bound it runs again in full,
+   so an input nobody declared costs at most that long. A digest that cannot be computed — a module
+   folder unreadable, a `consumes` naming no module of the project — is no key: the check runs.
+   Where the forge also runs `Module checks` on the default branch after each merge (the
+   skeleton's `module-checks.yml` does, on push), an undeclared input is caught there within the
+   day; that run is what the bound leans on, never what replaces it.
 3. **The record.** One JSON line per run, appended to the note of `HEAD` under
    `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, the engine's
    version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the
@@ -79,7 +106,8 @@ the workflows, and without a forge being required.
    whole. *Clarified (D173)*: an output with log groups — `Module checks` prints one per module —
    is cut within each group, a quarter from its head and the rest from its tail, the room a small
    group leaves going to the others; one cut across the whole hid the middle module's results. A check kept from an earlier run carries `kept_from`, that run's time. The latest line for
-   a commit is its record.
+   a commit is its record. *Amended (D223)*: `Module checks` carries `inputs`, the digest of
+   decision 2, and a kept one also `kept_commit`, the commit its run was made on.
 4. **Its travel.** `nstack attest` pushes the notes ref to the branch's remote when there is one,
    fetching and merging it first with `cat_sort_uniq`; no remote, it says the record is local.
    `pr-check` fetches the ref before reading it.
@@ -92,6 +120,12 @@ the workflows, and without a forge being required.
    `checks: attested` — a record of the head is required: every check of the list present and
    passed; missing, older than the head, incomplete or failed, `pr-check` fails with a rule of its
    own and says which. Its summary says *attested on a workstation, by …, at …*.
+   *Amended (D223)*: T4 asks an automated sheet row run on another commit than the head to be
+   run again. It stands, as a row whose commit has the head's tree already does (D93), when a
+   record of that commit and the head's record hold the same `inputs` digest and the row's run
+   is fresh as above. A row explored by hand is unchanged: a person's exploration follows the
+   commit and is confirmed at the head (D71, D214); a module at criticality `critical` re-runs at
+   the head whatever the digest.
 
 - **Expected user value**: a project whose forge cannot run the checks merges on evidence bound
   to the merged commit, with no hand-pasted output; a project off GitHub is judged the same way.
