@@ -299,7 +299,8 @@ def _pull_request(root: Path, query: str) -> dict | str | None:
             answer = json.loads(response.read())
         if answer.get("errors"):  # a field refused leaves the rest of the answer partial
             return f"the forge refused part of the query ({answer['errors'][0].get('type', 'error')})"
-        return answer["data"]["repository"]["pullRequest"]
+        found = answer["data"]["repository"]["pullRequest"]
+        return found if isinstance(found, dict) else "the forge did not answer (no pull request)"
     except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
         return f"the forge did not answer ({type(error).__name__})"
 
@@ -323,7 +324,7 @@ def traces(root: Path) -> set[str] | str | None:
         return f"the forge did not answer ({type(error).__name__})"
 
 
-# Each reviewer's latest review that approved or asked for changes: a dismissed one is not there,
+# Each reviewer's latest review that approved or asked for changes: a dismissed one is not APPROVED,
 # so where the forge dismisses stale approvals (G13) none is ever read here as covering the head.
 APPROVALS = """query($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) { pullRequest(number: $number) {
@@ -361,15 +362,21 @@ def check_approvals(root: Path, base: str, head: str, found: list[tuple[str, str
         if commit == head:
             continue
         known = bool(commit) and not _git(root, "merge-base", "--is-ancestor", commit, head).returncode
-        since = _git(root, "rev-list", "--no-merges", f"{commit}..{head}", f"^{base}").stdout.split() if known else []
+        since = _git(root, "rev-list", f"{commit}..{head}", f"^{base}").stdout.split() if known else []
+        # A merge counts when it carries content of its own — a conflict resolved, an edit made
+        # while merging —: what a clean merge of the base would not have written.
+        since = [one for one in since if _git(root, "rev-list", "--no-walk", "--merges", one).stdout.strip() == ""
+                 or _git(root, "show", "--remerge-diff", "--format=", one).stdout.strip()]
         if known and not since:
             continue  # only the base branch merged in: nothing the approver has not read
         what = (f"{len(since)} commit(s) pushed since" if known
-                else "a commit the head no longer holds — the branch was rewritten since")
-        warn(f"[R1] @{login} approved {commit[:7] or 'an unknown commit'}, not the head {head[:7]}: {what}, which "
-             f"the approval does not cover.\n        Action: @{login} reads them and approves again before the merge; "
-             "where the forge dismisses stale approvals on push (a ruleset), it does this itself "
-             "(.nstack/handbook/07-governance.md §7).")
+                else "a commit this branch does not hold — rewritten since, or not found here")
+        line = (f"[R1] @{login} approved {commit[:7] or 'an unknown commit'}, not the head {head[:7]}, at this run: "
+                f"{what}, which the approval does not cover.")
+        warn(f"{line}\n        Action: @{login} reads them and approves again before the merge; where the forge "
+             "dismisses stale approvals on push, it does this itself (.nstack/handbook/07-governance.md §7).")
+        if os.environ.get("GITHUB_ACTIONS") == "true":  # seen on the check, not only in its log
+            print(f"::warning title=R1 approval behind the head::{line.removeprefix('[R1] ')}")
 
 
 def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail,

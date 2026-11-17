@@ -56,10 +56,37 @@ def test_only_the_base_branch_merged_in_since_leaves_the_approval_covering_the_h
     assert _said(tmp_path, moved, head, [("dana", approved)]) == []
 
 
+def test_a_merge_that_carries_content_of_its_own_is_not_covered(tmp_path):
+    """An agent resolving a conflict, or editing while it merges, writes content inside the merge
+    commit: no commit of its own, and nothing the approver read."""
+    base, approved = change(tmp_path, USER_FACING)
+    git(tmp_path, "checkout", "-q", "-b", "trunk", base)
+    (tmp_path / "elsewhere.txt").write_text("main moved\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "main moved")
+    moved = git(tmp_path, "rev-parse", "HEAD")
+    git(tmp_path, "checkout", "-q", "-")
+    git(tmp_path, "merge", "-q", "--no-commit", "trunk")
+    (tmp_path / "modules" / "login" / "src" / "page.txt").write_text("changed while merging\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "--no-edit")
+    head = git(tmp_path, "rev-parse", "HEAD")
+    said = _said(tmp_path, moved, head, [("dana", approved)])
+    assert len(said) == 1 and "1 commit(s) pushed since" in said[0], said
+
+
+def test_on_the_forge_s_run_the_warning_is_an_annotation_of_the_check(tmp_path, capsys, monkeypatch):
+    base, approved = change(tmp_path, USER_FACING)
+    head = _commit(tmp_path, "pushed after the approval")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    _said(tmp_path, base, head, [("dana", approved)])
+    assert f"::warning title=R1 approval behind the head::@dana approved {approved[:7]}" in capsys.readouterr().out
+
+
 def test_an_approval_of_a_commit_the_branch_no_longer_holds_is_said(tmp_path):
     base, head = change(tmp_path, USER_FACING)
     said = _said(tmp_path, base, head, [("dana", "f" * 40)])
-    assert len(said) == 1 and "the branch was rewritten since" in said[0], said
+    assert len(said) == 1 and "rewritten since, or not found here" in said[0], said
 
 
 def test_approvals_not_read_are_said_never_judged(tmp_path):
@@ -108,5 +135,8 @@ def test_the_approvals_are_each_reviewer_s_latest_approving_review_and_its_commi
     assert "latestOpinionatedReviews" in sent["query"] and "commit { oid }" in sent["query"], sent
     monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: _reviews(total=101))
     assert pull_request.approvals(tmp_path) == "more reviewers than one page"
+    monkeypatch.setattr(pull_request.urllib.request, "urlopen", lambda request, timeout: Answer(
+        {"data": {"repository": {"pullRequest": None}}}))
+    assert pull_request.approvals(tmp_path) == "the forge did not answer (no pull request)"
     monkeypatch.setenv("NSTACK_ATTESTING", "abc1234")
     assert pull_request.approvals(tmp_path) is None, "attest records the head: the forge's run judges"

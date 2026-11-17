@@ -145,7 +145,8 @@ things the forge and the sheet do then, to know before the first merge:
   carries the old ones: it conflicts with what it already holds. Note the merged branch's last
   commit before the branch goes, move the next one onto the default branch, `git rebase --onto
   <default> <that commit>`, and push it with `--force-with-lease`: a forced push dismisses an
-  approval it already had (`07-governance.md` §7).
+  approval it already had — where the plan has no ruleset to dismiss it, `pr-check` says it
+  (R1) (`07-governance.md` §7).
 
 **Once merged, a branch is gone.** A merged branch is history, not a place to work: left
 there, it is one more name to read past, and one day somebody builds on it. The forge
