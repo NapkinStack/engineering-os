@@ -734,3 +734,16 @@ def test_ci_gives_pr_check_the_pull_request_s_number_and_a_read_token():
     step = next(step for step in workflow["jobs"]["description"]["steps"] if "pr-check" in step.get("run", ""))
     assert step["env"]["PR_NUMBER"] == "${{ github.event.pull_request.number }}", step["env"]
     assert step["env"]["GH_TOKEN"] == "${{ github.token }}", step["env"]
+
+
+
+def test_t4_an_automated_row_stands_on_the_same_inputs_and_an_explored_or_critical_one_does_not():
+    """D223 (#406): an automated row run before a merge-in that changed nothing its module reads."""
+    row = ("S1", "Given x", "automated", "passed", "https://ci.example/run/1", OLD)
+    for same, strict, kind, expected in ((True, False, "automated", False), (False, False, "automated", True),
+                                         (True, True, "automated", True), (True, False, "explored", True)):
+        failures = []
+        body = sheet((*row[:2], kind, *row[3:]))
+        pull_request.check_sheet(body, "a" * 40, ["a reason"], lambda rule, message: failures.append(rule),
+                                 strict=strict, same_inputs=lambda commit: same and commit == OLD)
+        assert ("T4" in failures) is expected, (same, strict, kind, failures)

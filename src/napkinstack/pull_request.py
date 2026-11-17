@@ -362,7 +362,7 @@ def _split(row: dict, width: int) -> bool:
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
                 strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False,
-                hands: set[str] | None = None) -> list[str]:
+                hands: set[str] | None = None, same_inputs: Callable[[str], bool] = lambda commit: False) -> list[str]:
     """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
@@ -418,7 +418,9 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             # joins an earlier one after a `;`, never replacing it (#288).
             confirmed = [clause.strip().split(" ", 1)[0].strip("`").lower()
                          for clause in row.get(CONFIRMED, "").split(";")]
-            if kind.lower() == "automated" or strict:
+            if kind.lower() == "automated" and not strict and same_inputs(commit):
+                pass  # what its module reads is unchanged since that run, and the run is fresh (D223)
+            elif kind.lower() == "automated" or strict:
                 rerun.append(ident)
             elif not any(SHA.fullmatch(commit) and head.startswith(commit) for commit in confirmed):
                 unconfirmed.append(ident)
@@ -707,6 +709,44 @@ def status_required(root: Path) -> bool:
                for rule in rules if isinstance(rules, list))
 
 
+def _module_inputs(record: dict | None) -> tuple[str, str, str | None] | None:
+    """A record's `Module checks` digest, its first run's time and base (ADR-0006, D223)."""
+    checks = record.get("checks") if isinstance(record, dict) and isinstance(record.get("checks"), list) else []
+    found = next((c for c in checks if isinstance(c, dict) and c.get("name") == "Module checks"), None)
+    if not found or found.get("passed") is not True or not found.get("inputs"):
+        return None
+    return str(found["inputs"]), str(found.get("kept_from") or record.get("at", "")), \
+        found.get("kept_base") or record.get("base_commit")
+
+
+def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
+    """T4's relief for an automated row (D223): the record of the row's commit and the head's hold
+    the same inputs digest, and the row's run is fresh. While nstack attest makes the head's record,
+    the digest it computed stands in for it."""
+    from napkinstack import attest
+
+    cache: dict[str, str | None] = {}
+
+    def head_digest() -> str | None:
+        if "head" not in cache:
+            if os.environ.get("NSTACK_ATTESTING") == head:
+                cache["head"] = os.environ.get("NSTACK_INPUTS") or None
+            else:
+                attest.read_remote(root)
+                found = _module_inputs(attest.latest(root, head))
+                cache["head"] = found[0] if found else None
+        return cache["head"]
+
+    def same(commit: str) -> bool:
+        full = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").stdout.strip()
+        digest = head_digest()
+        found = _module_inputs(attest.latest(root, full)) if full and digest else None
+        base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").stdout.strip() or None
+        return bool(found and found[0] == digest and attest._fresh(root, found[1], found[2], base_commit))
+
+    return same
+
+
 def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> str:
     """Where the checks are judged, as the decider's answer `checks` says (A1, A2): on the forge's
     CI, or attested on a workstation by `nstack attest` — then a complete, passed record of the
@@ -814,7 +854,7 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
                         f"request is not read: {hands}.")
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head),
-                             hands if isinstance(hands, set) else None) if carried else []
+                             hands if isinstance(hands, set) else None, same_inputs(root, head, base)) if carried else []
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
