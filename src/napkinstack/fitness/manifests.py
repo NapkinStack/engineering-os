@@ -413,7 +413,8 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
         if "sealed" in section and not isinstance(section["sealed"], bool):
             fail(name, "M12", "evidence.sealed must be true or false: true when the module's end-to-end run brings its "
                               "own session, sound server and ports, and reads nothing of the machine's another run "
-                              "reads.", at)
+                              "reads.\n      Action: evidence.sealed: true or false, or no key: the run then waits "
+                              "its turn (.nstack/playbooks/tests.md).", at)
         if "levels" in section and not isinstance(section["levels"], str):
             fail(name, "M12", "evidence.levels must be text, a regular expression.\n"
                               "      Action: an expression whose group named level captures the line's level word.", at)

@@ -531,9 +531,22 @@ def test_a_run_that_waits_says_so_again_while_it_waits(tmp_path, monkeypatch, ju
     monkeypatch.delenv(evidence.HELD, raising=False)
     monkeypatch.setattr(evidence, "WAIT_SAID_EVERY", 0.3)
     root = e2e_project(tmp_path, "print('ran', flush=True)\n")
-    holder = _holder(runtime, 1.2)
+    holder = _holder(runtime, 4)
     assert modules.run_verb(root, "e2e", "capture") == 0
     holder.wait()
     said = capsys.readouterr().out
     assert "-> capture: still waits for the end-to-end run already on this machine" in said, said
     assert "shell, in /elsewhere, process 1, since then" in said.split("still waits", 1)[1]
+
+
+def test_what_a_sealed_run_starts_does_not_inherit_a_lock_it_never_held(tmp_path, monkeypatch, judging, capsys):
+    """The verifier's finding on D222: HELD says an ancestor holds the machine. A sealed run holds
+    nothing; an unsealed e2e it starts must still wait its turn."""
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    monkeypatch.delenv(evidence.HELD, raising=False)
+    root = e2e_project(tmp_path, "import os\nprint('held by', os.environ.get('NSTACK_E2E_HELD'), flush=True)\n",
+                       section={"sealed": True})
+    assert modules.run_verb(root, "e2e", "capture") == 0
+    assert "held by None" in capsys.readouterr().out

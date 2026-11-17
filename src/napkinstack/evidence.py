@@ -281,14 +281,14 @@ def sealed(manifest: Path) -> bool:
 
 
 @contextlib.contextmanager
-def one_at_a_time(root: Path, target: str, sealed: bool = False):
+def one_at_a_time(root: Path, target: str, is_sealed: bool = False):
     """One e2e at a time on this machine, for this user, whichever project or command starts it —
     `nstack e2e`, or `nstack attest` through it: what an end-to-end run drives (a sound server, a
     display, a port) is the machine's, and two runs reading it see each other's (#287). An advisory
     lock, `flock(2)`, released by the system when the holder exits however it exits; the one that
     waits says for whom, and again every WAIT_SAID_EVERY seconds. A sealed run shares nothing of the
     machine's: it neither waits nor holds the lock (#402)."""
-    if sealed:
+    if is_sealed:
         print(f"-> {target}: sealed (evidence.sealed): runs beside any other end-to-end run on this machine",
               flush=True)
         yield
