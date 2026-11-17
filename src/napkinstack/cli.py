@@ -169,7 +169,8 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
-    pc.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS)")
+    pc.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS); with a "
+                                         "token and an open pull request at the head, its own are read")
     ld = _add(sub, "landed", "what reached this branch outside a pull request, recorded (W1)",
               lambda a: landed.run(a.root, a.span, landed.from_environment(a.root)))
     ld.add_argument("--span", default="HEAD~1..HEAD",
@@ -178,7 +179,8 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity, a.again))
     at.add_argument("--base", default="origin/main")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
-    at.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS)")
+    at.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS); with a "
+                                         "token and an open pull request at the head, its own are read")
     at.add_argument("--accept-identity", action="store_true",
                     help="record under an identity the project's history does not show yet — a first record of yours")
     at.add_argument("--again", action="store_true",

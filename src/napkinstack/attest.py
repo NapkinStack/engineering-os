@@ -355,8 +355,16 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     engine, origin = provenance.engine()
     base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False).stdout.strip() or None
     previous = None if again else latest(root, commit)
-    # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147).
-    env = dict(os.environ, PR_LABELS=os.environ.get("PR_LABELS", "") if labels is None else labels)
+    # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147) — and the
+    # pull request's own when the forge answers, a label it does not carry refused (#368).
+    from napkinstack.pull_request import labels_for
+
+    judged, labels_from, refused = labels_for(root, commit, os.environ.get("PR_LABELS", "") if labels is None else labels)
+    if refused:
+        print(f"FAIL [attest] {refused}")
+        return 1
+    print(f"Labels: {', '.join(sorted(judged)) or 'none'} — {labels_from}", flush=True)
+    env = dict(os.environ, PR_LABELS=",".join(sorted(judged)))
     # The engine that runs this command runs the checks: its folder first on the path.
     env["PATH"] = os.pathsep.join([str(Path(sys.argv[0]).resolve().parent), env.get("PATH", "")])
     results = []
@@ -395,6 +403,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
               "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),
               "base": base, "base_commit": base_commit, "checks": results,
               "sheet": sheet_of(body_text),
+              "labels": {"names": sorted(judged), "from": labels_from},
               # The audits of the run the module checks come from: kept with them, never read again (#275).
               "evidence": (previous.get("evidence") if isinstance(previous.get("evidence"), list) else [])
               if previous and any(r.get("kept_from") for r in results) else evidence_of(root, commit)}
