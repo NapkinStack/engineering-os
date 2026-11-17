@@ -32,7 +32,9 @@ The out-of-cycle label lifts K1 to K3 and K5, visibly and countably (.nstack/han
 
 Usage :  nstack pr-check [--root ROOT] [--base BASE] [--body-file FILE] [--labels a,b]
 In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_request event;
-         --labels, when given, takes the place of PR_LABELS, as for nstack attest.
+         --labels, when given, takes the place of PR_LABELS, as for nstack attest. Elsewhere, with
+         a token and one open pull request at the head, its own labels are read, and a label
+         given that it does not carry is refused (#368).
 
 The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
 authors are the pull request's author, the GitHub accounts behind its commits' authors,
@@ -490,8 +492,8 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         fail("K3", f"no deliverable named.\n      Action: \"Deliverable: D<n>\" in the description, "
                    f"a deliverable of {path.name}."
                    + ("" if labels else f"\n      This run read no label. If the pull request is out of cycle, it "
-                      f"carries the {LABEL} label; a run on a workstation is given it with --labels {LABEL} "
-                      "(or PR_LABELS), as the forge passes its labels."))
+                      f"carries the {LABEL} label, put on the pull request: a run on a workstation reads it there "
+                      f"with a token, or is given it with --labels {LABEL} (or PR_LABELS)."))
     elif match[1] not in states:
         fail("K3", f"deliverable {match[1]} is not in {path.name}.\n      Action: name one of "
                    f"{', '.join(states) or 'its deliverables'}, or re-frame the cycle with the decider.")
@@ -631,6 +633,51 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
              "description; restore it from the description's history otherwise.")
 
 
+def _pull_labels(root: Path, head: str) -> tuple[int, set[str]] | str | None:
+    """The open pull request whose head is `head`, and its labels, read on the forge (#368); why not,
+    when it was asked; None when nothing is asked: off GitHub or without a token, and where the
+    labels given are already the pull request's — the forge's own run, and the checks nstack attest
+    runs with the labels it read."""
+    if os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("NSTACK_ATTESTING") == head:
+        return None
+    from napkinstack import attest, hold
+
+    forge = hold._forge(root, attest._remote(root) or "origin")
+    if forge is None:
+        return None
+    try:
+        answer = hold._call(forge, "GET", f"/commits/{head}/pulls")
+    except hold.Refused as error:
+        return str(error)
+    pulls = [pull for pull in answer if isinstance(pull, dict) and pull.get("state") == "open"
+             and isinstance(pull.get("head"), dict) and pull["head"].get("sha") == head] if isinstance(answer, list) else []
+    if len(pulls) != 1:
+        return "no open pull request has this head" if not pulls else f"{len(pulls)} open pull requests have this head"
+    names = {str(label["name"]) for label in pulls[0].get("labels") or [] if isinstance(label, dict) and label.get("name")}
+    return int(pulls[0].get("number") or 0), names
+
+
+def labels_for(root: Path, head: str, given: str) -> tuple[set[str], str, str | None]:
+    """The labels judged, where they come from, and a refusal: the pull request's own when it is read
+    — a label given that it does not carry is refused, since a label is what the reviewer sees on the
+    forge (#368); else the ones given, said as the caller's."""
+    named = {label.strip() for label in given.split(",") if label.strip()}
+    found = _pull_labels(root, head)
+    if isinstance(found, tuple):
+        number, carried = found
+        if extra := sorted(name for name in named if name.lower() not in {label.lower() for label in carried}):
+            return named, "", (f"pull request #{number} carries no label {', '.join(extra)}: a label is judged as the "
+                               f"reviewer sees it on the forge.\n      Action: put it on pull request #{number}, or "
+                               "run without --labels and with PR_LABELS unset: the pull request's own are read.")
+        return carried, f"read from pull request #{number}", None
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return named, "the pull request event's", None
+    if os.environ.get("NSTACK_ATTESTING") == head:
+        return named, "as nstack attest read them", None
+    return named, ("given by the caller (--labels, PR_LABELS)" if named else "none given") + (
+        f" — the pull request's not read: {found}" if found else ""), None
+
+
 def status_required(root: Path) -> bool:
     """Whether the base branch's rules require the record's own status, `nstack / local checks`
     (D221, #399): read on the forge's run only, from the rules that apply to the branch — readable
@@ -738,13 +785,16 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
     modules = touched_modules(root, fork, files)
     # The option, else PR_LABELS: one way for pr-check and attest alike (D147).
     given = os.environ.get("PR_LABELS", "") if labels_given is None else labels_given
-    labels = {label.strip() for label in given.split(",") if label.strip()}
+    labels, labels_from, refused = labels_for(root, head, given)
 
     failures: list[str] = []
     warnings = charter_without_pdr(root, base, files)
 
     def fail(rule: str, message: str) -> None:
         failures.append(f"[{rule}] {message}")
+
+    if refused:
+        fail("labels", refused)
 
     reasons = [reason for folder, found in modules.items() if (reason := sheet_reason(folder, found))]
     authorship = authors(root, base, head, os.environ.get("PR_AUTHOR", ""))
@@ -778,6 +828,7 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
           + ("" if carried or not reasons else " — no carrier: forge none has no pull request. T1 to T5 "
              "judge a sheet filled in docs/pull_request_template.md — with its Deliverable line — passed by "
              "nstack attest --body-file <file>"))
+    print(f"Labels          : {', '.join(sorted(labels)) or 'none'} — {labels_from}")
     print(f"Checks          : {checks}")
     for line in summary(body, authorship) if reasons and carried else []:
         print(line)

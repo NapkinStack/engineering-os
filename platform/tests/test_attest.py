@@ -671,3 +671,22 @@ def test_the_base_branch_s_rules_say_whether_the_status_is_required(tmp_path, mo
     assert read == ["https://api.github.com/repos/owner/p/rules/branches/release%2F1?per_page=100"]
     monkeypatch.delenv("GITHUB_ACTIONS")
     assert pull_request.status_required(tmp_path) is False, "a workstation's pr-check reads the record itself"
+
+
+def test_attest_refuses_a_label_the_pull_request_does_not_carry_and_records_where_labels_came_from(
+        tmp_path, monkeypatch, capsys):
+    """#368: a record held "justified by label" of a label no pull request carried."""
+    from napkinstack import hold
+
+    base, head = change(tmp_path, "attested")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    monkeypatch.setattr(hold, "_forge", lambda root, name: ("https://api.example", "owner/p", "t"))
+    monkeypatch.setattr(hold, "_call", lambda forge, method, path, body=None: [
+        {"number": 7, "state": "open", "head": {"sha": head}, "labels": [{"name": "cross-module"}]}])
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    assert attest.run(tmp_path, base, None, "over-budget") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [attest] pull request #7 carries no label over-budget" in out, out
+    assert attest.latest(tmp_path, head) is None, "nothing recorded on a refused label"
+    assert attest.run(tmp_path, base, None, None) == 0
+    assert attest.latest(tmp_path, head)["labels"] == {"names": ["cross-module"], "from": "read from pull request #7"}
