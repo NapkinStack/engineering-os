@@ -64,6 +64,7 @@ Output:  0 when everything is verified and compliant; 1 when a setting is missin
 from __future__ import annotations
 
 import fnmatch
+import http.client
 import json
 import os
 import re
@@ -416,7 +417,7 @@ def _owners_known(repo: str) -> tuple[str, str]:
         with urllib.request.urlopen(request, timeout=10) as response:
             errors = json.load(response)["errors"]
         lines = [f"line {error['line']}: {error['kind']} — {str(error['source']).strip()}" for error in errors]
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException) as error:
         said = f"HTTP {error.code}" if isinstance(error, urllib.error.HTTPError) else type(error).__name__
         return NOT_READ, (f"Reason: GitHub's validation of the file did not answer ({said}): no file on the "
                           "default branch, or a private repository out of the token's reach.\nTo read it: a "
@@ -842,6 +843,8 @@ def run(root: Path) -> int:
     suffix = f", {skipped} not applicable" if skipped else ""
     if not gaps and not unknown:
         reach = f"; {out_of_reach} setting(s) out of reach on this plan" if out_of_reach else ""
+        unread = [rule for rule, _, status, _ in results if status == NOT_READ]
+        reach += f"; {', '.join(unread)} not read" if unread else ""
         print(f"\nnstack doctor: compliant{suffix}{reach}.")
         return 0
     print(f"\nnstack doctor: {gaps} gap(s), {unknown} not verified{suffix}.\nWorkflows inform; "

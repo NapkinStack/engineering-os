@@ -162,20 +162,20 @@ def create_contract(root: Path, name: str, owner: str | None = None) -> int:
     except (OSError, yaml.YAMLError):
         answers = {}
     owner = owner or str(answers.get("owner_team") or "")
-    if not owner_valid(root, owner):
+    module, folder = root / "contracts", root / "contracts" / name
+    created = not (module / "MANIFEST.yaml").is_file()  # the owner is written only with the module
+    if created and not owner_valid(root, owner):
         print(f"FAIL [new-contract] no valid owner for the contracts module ('{owner}').\n"
               "      Action: pass --owner organisation/team — a boundary is never orphaned "
               "(.nstack/handbook/03-contracts.md §2).")
         return 1
-    if forge(root) == "github" and organisation_owner(owner, "new-contract", f"--owner {owner}/<team>"):
+    if created and forge(root) == "github" and organisation_owner(owner, "new-contract", f"--owner {owner}/<team>"):
         return 1
-    module, folder = root / "contracts", root / "contracts" / name
     if folder.exists():
         print(f"FAIL [new-contract] contracts/{name} already exists.\n      Action: a change to it is a new "
               "version beside the first, never an edit of it (.nstack/handbook/03-contracts.md §4).")
         return 1
 
-    created = not (module / "MANIFEST.yaml").is_file()
     if created:
         shutil.copytree(CONTRACTS, module, dirs_exist_ok=True)
         # The contact: the project's discussions on GitHub; elsewhere, the module's owner (ADR-0010).

@@ -121,7 +121,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
     nm.add_argument("name", help="module name, kebab-case")
     nm.add_argument("owner", help="GitHub team, organisation/team, or a user when the project has "
-                                  "no organisation — never an organisation's name alone")
+                                  "no organisation — on GitHub, never an organisation's name alone")
     nm.add_argument("criticality", choices=list(assurance.CRITICALITIES),
                     help="what a failure of this module costs — prototype: nothing, it is "
                          "thrown away and nothing depends on it · standard: real code, no "
@@ -252,8 +252,8 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--repository", help="the repository's path at another forge, group/name or "
                                           "group/subgroup/name (asked when absent)")
     ini.add_argument("--owner-team", help="owner of the foundation: organisation/team, or a user "
-                                          "when the project has no organisation — never an organisation's "
-                                          "name alone (asked when absent)")
+                                          "when the project has no organisation — on GitHub, never an "
+                                          "organisation's name alone (asked when absent)")
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
     ini.add_argument("--ref", help="skeleton version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
     ini.set_defaults(func=_init)

@@ -120,6 +120,36 @@ def test_init_refuses_an_organisation_s_name_as_the_foundation_s_owner(tmp_path,
     assert not (tmp_path / "demo").exists()
 
 
+def test_a_contract_beside_others_writes_no_owner_and_asks_nothing(tmp_path, capsys, forge):
+    """The owner is written once, with the contracts module: a project that already holds it is
+    not refused for an answer it no longer reads."""
+    table, asked = forge
+    table["/users/alice"] = USER
+    _project(tmp_path, "alice")
+    assert cli.main(["new-contract", "session-audio", "--root", str(tmp_path)]) == 0, capsys.readouterr().out
+    answers = tmp_path / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("owner_team: alice", "owner_team: acme"),
+                       encoding="utf-8")
+    table["/users/acme"] = ORGANISATION
+    asked.clear()
+    assert cli.main(["new-contract", "billing-events", "--root", str(tmp_path)]) == 0, capsys.readouterr().out
+    assert asked == []
+
+
+def test_init_asks_github_only_when_the_forge_is_given_as_github(tmp_path, capsys, forge):
+    """A forge left to Copier's prompt may be one where a bare group is an owner: doctor reads it."""
+    table, asked = forge
+    table["/users/acme"] = ORGANISATION
+    project.init(tmp_path / "demo", {"project_name": "Demo", "owner_team": "acme"}, "unused", "unused")
+    assert asked == [] and "is an organisation" not in capsys.readouterr().out
+
+
+def test_a_handle_github_does_not_know_is_said_as_such(tmp_path, capsys, forge):
+    _project(tmp_path, "acme/platform")
+    assert cli.main(["new-module", "billing", "alcie", "standard", "--root", str(tmp_path)]) == 0
+    assert "GitHub knows no user or organisation 'alcie'" in capsys.readouterr().out
+
+
 def _l10(root: Path) -> tuple[str, str]:
     said = {rule: (status, detail) for rule, _, status, detail in
             doctor._workstation(root, project._answers(root))}

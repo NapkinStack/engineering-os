@@ -38,17 +38,29 @@ def organisation_owner(owner: str, command: str, instead: str) -> bool:
     organisation (#382): GitHub takes a user, or a team as organisation/team — never an organisation
     by its name, and every CODEOWNERS line naming it would have no valid owner. A team needs no
     asking; a forge that does not answer lets the owner pass, said: `nstack doctor` reads the file as
-    GitHub validates it (L10). Asked without a token: a user's or an organisation's page is public."""
+    GitHub validates it (L10). A token is sent when there is one: a server in private mode answers
+    no one without it."""
+    import http.client
+    import urllib.error
+
     if "/" in owner:
         return False
     api = (os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
-    request = urllib.request.Request(f"{api}/users/{urllib.parse.quote(owner, safe='')}", headers={
-        "Accept": "application/vnd.github+json", "User-Agent": f"nstack/{__version__}"})
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": f"nstack/{__version__}"}
+    if token := os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"{api}/users/{urllib.parse.quote(owner, safe='')}", headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             kind = (json.load(response) or {}).get("type")
-    except (OSError, ValueError, AttributeError):
+    except urllib.error.HTTPError as error:
+        kind = "unknown" if error.code == 404 else None
+    except (OSError, ValueError, AttributeError, http.client.HTTPException):
         kind = None
+    if kind == "unknown":
+        print(f"NOTE [{command}] GitHub knows no user or organisation '{owner}': written as given — check the "
+              "spelling; nstack doctor reads the file as GitHub validates it.")
+        return False
     if kind == "Organization":
         print(f"FAIL [{command}] '{owner}' is an organisation: GitHub takes as a code owner a user, or a team "
               f"written organisation/team — never an organisation by its name. Every CODEOWNERS line naming "
@@ -265,9 +277,10 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     # Not asked at init (Copier would ask): a project on GitHub starts on its CI; elsewhere no CI
     # is shipped, and its checks are attested (PDR-0018) — settled after the copy when the forge
     # was asked by Copier itself.
-    # Asked by Copier instead, the owner is read by nstack doctor (L10): a prompt cannot ask the forge.
+    # Asked by Copier instead — the owner, or the forge —, the owner is read by nstack doctor (L10):
+    # a prompt cannot ask the forge.
     owner = str(data.get("owner_team") or "")
-    if named == "github" and owner and organisation_owner(owner, "init", f"--owner-team {owner}/<team>"):
+    if data.get("forge") == "github" and owner and organisation_owner(owner, "init", f"--owner-team {owner}/<team>"):
         return 1
     data.setdefault("checks", "forge" if named == "github" else "attested")
     data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
