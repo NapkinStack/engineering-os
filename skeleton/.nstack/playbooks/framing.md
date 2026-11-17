@@ -131,8 +131,8 @@ request becomes an entry. One still awaiting a reply that a deliverable needs is
 
 Present the charter, the cycle, the open questions, what went to *later*, and what you are
 unsure of — the cycle also as the board will show it: `nstack board --dry-run` previews the
-milestone and the issues its acceptance would create, and makes none; put its output in the
-framing pull request's description. The decider amends; the framer sets `status: accepted` — on the charter, then on the
+milestone and the issues its acceptance would create, and what it would collide with, and makes
+none; put the lines under *On acceptance of cycle …* in the framing pull request's description. The decider amends; the framer sets `status: accepted` — on the charter, then on the
 cycle — in a pull request the decider approves, and that approval is their gesture; accepted after `start`, the cycle's `start` and `end`
 move in the same pull request. **The next cycle, accepted while one runs**, stays `proposed` — one
 accepted cycle at a time (C5) — and gains `accepted_on: <the day of the word>`: `nstack plan` stops asking

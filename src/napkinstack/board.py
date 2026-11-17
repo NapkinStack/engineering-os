@@ -247,13 +247,32 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
 def _preview(root: Path, today: datetime.date | None) -> None:
     """What a proposed cycle's acceptance would create, said on a dry run and never made (#372): the
     decider reviews the breakdown as the board will show it, before the acceptance decides it."""
-    coming, _ = desired(root, today=today, statuses={"proposed"})
-    for item in coming:
-        if item.kind == "cycle":
-            print(f"On acceptance of cycle {item.key} — previewed, nothing made:\n"
-                  f"  milestone {item.title}, due {item.due or 'with no end'}")
-        else:
-            print(f"  issue {item.title}" + (" (closed)" if item.state == "closed" else ""))
+    numbers, idents = set(), set()
+    for path in plan.cycle_files(root):
+        data = plan.read_front_matter(path)[0]
+        found = NUMBER.match(path.stem)
+        if data and data.get("status") == "proposed" and found:
+            numbers.add(found[1])
+            items = data.get("deliverables")
+            idents |= {str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")} \
+                if isinstance(items, list) else set()
+    if not numbers:
+        return
+    # Read beside the cycles already shown: what their acceptance would collide with is said too.
+    every, said = desired(root, today=today, statuses=SHOWN | {"proposed"})
+    for number in sorted(numbers):
+        cycle = next((item for item in every if item.kind == "cycle" and item.key == number), None)
+        if cycle is None:
+            continue
+        print(f"On acceptance of cycle {number} — previewed, nothing made:\n"
+              f"  milestone {cycle.title}, ends {cycle.due or 'with no end date'}")
+        for item in every:
+            if item.kind == "deliverable" and item.cycle == number:
+                state = item.labels[-1].removeprefix("state: ") if item.labels else ""
+                print(f"  issue {item.title} — {state}" + (", shown closed" if item.state == "closed" else ""))
+    for line in said:
+        if any(re.search(rf"\b{re.escape(key)}\b", line) for key in numbers | idents):
+            print(f"  NOTE on acceptance: {line}")
 
 
 def _tell(lines: list[str], head: str) -> None:
