@@ -313,7 +313,14 @@ by a commit with no change of its own — tracked or not. The record says which 
 outside it hold is not compared: `nstack attest --again` runs them. They are also kept
 across commits — a merge of the default branch that touched nothing they read: their modules,
 those they consume from, `contracts/`, `platform/` and the files outside the modules — while the
-digest of what they read is unchanged, for 7 days and 20 default-branch commits at most. Where the answer is `forge`, a record is
+digest of what they read is unchanged, for 7 days and 20 default-branch commits at most. A record
+known to be unsound — two runs that shared what a run must not share, a tool found lying — is
+voided: `nstack attest --void <commit> --reason "<why>"` adds a line naming who, why and every
+run the commit's note holds. None of them is a record afterwards, nor kept from — on its commit, or
+through another commit's record that kept from it —, and `pr-check` refuses a head whose record
+is voided or keeps a check from a voided run, until it is attested again. The runs stay in the
+note: evidence is never rewritten. A void travels as a record does, under the same identity
+rule; the status on the forge turns to *voided* only with a token that may write it. Where the answer is `forge`, a record is
 information, and on a guarded repository the forge's required checks stay the barrier — a
 decider who wants the record to gate a protected branch requires its name at the forge.
 Where the answer is `attested`, requiring it is what keeps a pull request moving: the record

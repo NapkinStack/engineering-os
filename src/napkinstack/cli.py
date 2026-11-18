@@ -176,7 +176,8 @@ def build_parser() -> argparse.ArgumentParser:
     ld.add_argument("--span", default="HEAD~1..HEAD",
                     help="the commits to read, BEFORE..AFTER (default: the last commit)")
     at = _add(sub, "attest", "runs the CI's checks here and records the run on the commit, in git",
-              lambda a: attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity, a.again))
+              lambda a: attest.void(a.root, a.void, a.reason or "", a.base, a.accept_identity) if a.void
+              else attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity, a.again))
     at.add_argument("--base", default="origin/main")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
     at.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS); with a "
@@ -185,6 +186,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="record under an identity the project's history does not show yet — a first record of yours")
     at.add_argument("--again", action="store_true",
                     help="runs every check, even the module checks this commit's record passed with the same base and engine")
+    at.add_argument("--void", metavar="COMMIT",
+                    help="marks COMMIT's record as known unsound, with --reason: no check is kept from it any more, "
+                         "and pr-check reads it unattested until attested again; nothing runs")
+    at.add_argument("--reason", help="why the record is unsound, with --void")
     cl = _add(sub, "claim", "takes a ready deliverable for a session, before its first change; "
                             "the shared remote refuses a second taker",
               lambda a: hold.claim(a.root, a.deliverable, a.session, a.person, a.take_over))
@@ -314,7 +319,12 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.pop(name, None)
     if late := provenance.behind(_named_root(argv)):
         print(late, file=sys.stderr, flush=True)
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "attest" and (bool(args.void) != bool(args.reason) or (args.void and (args.again or args.body_file
+                                                                                            or args.labels))):
+        parser.error("attest: --void and --reason go together, and with no run: never with --again, "
+                     "--body-file or --labels")
     if args.command in JUDGES:
         print(provenance.judged_by(args.root), flush=True)
         if said := plan.stage_line(args.root):

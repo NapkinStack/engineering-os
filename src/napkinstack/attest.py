@@ -132,20 +132,92 @@ def unplaced(value, root: Path):
     return value
 
 
-def latest(root: Path, commit: str) -> dict | None:
-    """The record of a commit: the latest run its note holds, or None."""
+def _lines(root: Path, commit: str) -> list[dict]:
+    """The runs and voids a commit's note holds, in no order: notes merge line by line, sorted."""
     shown = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False)
-    if shown.returncode != 0:
-        return None
-    runs = []
-    for line in shown.stdout.splitlines():
+    found = []
+    for line in shown.stdout.splitlines() if shown.returncode == 0 else []:
         try:
             run = json.loads(line)
         except json.JSONDecodeError:
             continue
         if isinstance(run, dict) and run.get("record") == RECORD and run.get("commit") == commit:
-            runs.append(run)
-    return max(runs, key=lambda run: str(run.get("at", "")), default=None)
+            found.append(run)
+    return found
+
+
+def voided_runs(root: Path, commit: str) -> set[str]:
+    """The runs of a commit a void named, by their time (#429): each void lists the runs the note
+    held when it was made, so a clock ahead or a merge of notes never brings one back."""
+    return {str(at) for line in _lines(root, commit) if line.get("void") and isinstance(line.get("voids"), list)
+            for at in line["voids"]}
+
+
+def latest(root: Path, commit: str) -> dict | None:
+    """The record of a commit: the latest run its note holds that no void named; else its latest
+    void, when every run was voided; else None."""
+    lines = _lines(root, commit)
+    gone = voided_runs(root, commit)
+    runs = [line for line in lines if not line.get("void") and str(line.get("at", "")) not in gone]
+    voids = [line for line in lines if line.get("void")]
+    return max(runs or voids, key=lambda run: str(run.get("at", "")), default=None)
+
+
+def kept_from_voided(root: Path, check: dict, commit: str) -> bool:
+    """Whether a check a record kept comes from a run since voided (#429): its first run, on the
+    commit it was kept from, or on this one."""
+    first = check.get("kept_from") if isinstance(check, dict) else None
+    return bool(first) and str(first) in voided_runs(root, str(check.get("kept_commit") or commit))
+
+
+def void(root: Path, ref: str, reason: str, base: str = "origin/main", accept_identity: bool = False) -> int:
+    """Marks a commit's record as known unsound — a run that shared what it must not, a tool that
+    lied (#429): a line of its own in the note naming every run the note holds. None of them is a
+    record afterwards, nor kept from, on its commit or through another commit's record (D223), and
+    pr-check reads the head unattested until it is attested again. The runs stay in the note:
+    evidence is never rewritten."""
+    reason = " ".join(reason.split())
+    if not reason:
+        print("FAIL [attest] a void says why: the next reader of the record is owed the reason.\n"
+              '      Action: nstack attest --void <commit> --reason "<what made it unsound>".')
+        return 1
+    who, refused = _publishable(root, base, accept_identity)
+    if refused:
+        print(refused.replace("the record would", "the void would"))
+        return 1
+    commit = _git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}", check=False).stdout.strip()
+    remote, unread = read_remote(root)
+    if remote is not None and unread:
+        print(f"FAIL [attest] the notes of {remote} are not read ({unread}): a void names every run they hold, "
+              "and one unread would stay a record.\n      Action: fix the access, then again.")
+        return 1
+    runs = [line for line in _lines(root, commit) if not line.get("void")] if commit else []
+    if not runs:
+        print(f"FAIL [attest] no record of {ref} to void: nothing is kept from a run that was never recorded.\n"
+              "      Action: name the commit whose record is unsound (git notes --ref=nstack/checks list).")
+        return 1
+    line = {"record": RECORD, "commit": commit,
+            "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
+            "by": who, "void": unplaced(reason, root), "voids": sorted(str(run.get("at", "")) for run in runs),
+            "checks": []}
+    before = _git(root, "notes", f"--ref={NOTES}", "show", commit, check=False).stdout.rstrip("\n")
+    subprocess.run(["git", "notes", f"--ref={NOTES}", "add", "--force", "--file=-", commit], cwd=root,
+                   input=before + "\n" + json.dumps(line, separators=(",", ":"), ensure_ascii=False) + "\n",
+                   text=True, capture_output=True, check=True)
+    if not (latest(root, commit) or {}).get("void"):
+        print(f"FAIL [attest] the void of {commit[:12]} is written, yet a run stays its record.\n"
+              "      Action: report it: git notes --ref=nstack/checks show " + commit[:12])
+        return 1
+    where, pushed = "local only: no remote", True
+    if remote is not None:
+        sent = _git(root, "push", "--quiet", remote, f"refs/notes/{NOTES}", check=False)
+        pushed = sent.returncode == 0
+        where = f"pushed to {remote}" if pushed else f"NOT pushed to {remote}: {sent.stderr.strip()}"
+    print(f"Record of {commit[:12]}: voided by {who} — {line['void']}; {where}; {_show(root, commit, 0, 0, line['void'])}.\n"
+          + ("      Nothing is kept from it any more; the commit is attested again by nstack attest on it."
+             if pushed else "      Action: push again (git push " + str(remote) + " refs/notes/" + NOTES
+             + "): until then only this clone knows."))
+    return 0 if pushed else 1
 
 
 def _remote(root: Path) -> str | None:
@@ -215,7 +287,7 @@ def _session(root: Path, commit: str) -> str | None:
     return trailers.strip().splitlines()[0] if trailers.strip() else None
 
 
-def _show(root: Path, commit: str, passed: int, total: int) -> str:
+def _show(root: Path, commit: str, passed: int, total: int, voided: str | None = None) -> str:
     """The forge's display, when there is one and a token: never a judgement, a view of the record."""
     from napkinstack import hold  # the one reading of the project's GitHub
 
@@ -223,8 +295,9 @@ def _show(root: Path, commit: str, passed: int, total: int) -> str:
     if forge is None:
         return hold.unshown(root)
     api, repo, token = forge
-    body = json.dumps({"state": "success" if passed == total else "failure", "context": CONTEXT,
-                       "description": f"attested: {passed} of {total}"}).encode()
+    body = json.dumps({"state": "success" if passed == total and voided is None else "failure", "context": CONTEXT,
+                       "description": f"voided: {voided}"[:140] if voided is not None
+                       else f"attested: {passed} of {total}"}).encode()
     request = urllib.request.Request(f"{api}/repos/{repo}/statuses/{commit}", data=body, method="POST",
                                      headers={"Accept": "application/vnd.github+json",
                                               "Authorization": f"Bearer {token}"})
@@ -398,7 +471,7 @@ def _by_inputs(root: Path, base: str, digest: str | None, check: Check, engine: 
     if digest is None or not check.kept or base_commit is None or not (origin is None or NAMED.fullmatch(origin)):
         return None
     for commit in _git(root, "rev-list", f"{base_commit}..HEAD", check=False).stdout.split():
-        record = latest(root, commit)
+        record = latest(root, commit)  # a voided commit's latest line is its void: no check is kept from it
         if record is None or (record.get("engine"), record.get("origin"), record.get("published"),
                               record.get("by")) != (engine, said, origin is None, who):
             continue
@@ -406,6 +479,8 @@ def _by_inputs(root: Path, base: str, digest: str | None, check: Check, engine: 
         found = next((c for c in checks if isinstance(c, dict) and c.get("name") == check.name), None)
         if not found or found.get("passed") is not True or found.get("inputs") != digest:
             continue
+        if kept_from_voided(root, found, commit):
+            continue  # kept, through this record, from a run since voided (#429)
         first = str(found.get("kept_from") or record.get("at", ""))
         run_base = found.get("kept_base") or record.get("base_commit")
         if not _fresh(root, first, run_base, base_commit):
@@ -415,7 +490,7 @@ def _by_inputs(root: Path, base: str, digest: str | None, check: Check, engine: 
 
 
 def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, base_commit: str | None,
-          who: str, said: str | None = None) -> dict | None:
+          who: str, said: str | None = None, root: Path | None = None) -> dict | None:
     """The check as the commit's record last passed it, when what it reads is the same: the commit,
     the base commit, the engine — published, or one whose commit names its code — and the person who
     ran it. A sheet filled in between changes the description, which this check never reads (#275).
@@ -430,6 +505,8 @@ def _kept(previous: dict | None, check: Check, engine: str, origin: str | None, 
     found = next((c for c in checks if isinstance(c, dict) and c.get("name") == check.name), None)
     if not found or found.get("passed") is not True or found.get("kept_commit"):
         return None  # kept by its inputs from another commit: its freshness is _by_inputs' to judge (D223)
+    if root is not None and kept_from_voided(root, found, str(previous.get("commit", ""))):
+        return None  # kept, on this commit, from a run since voided: a clone that had not seen the void (#429)
     return {**found, "kept_from": found.get("kept_from") or previous.get("at")}
 
 
@@ -447,26 +524,34 @@ def sheet_of(body: str) -> dict | None:
     return found or None
 
 
-def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
-        again: bool = False) -> int:
-    print(provenance.judged_by(root), flush=True)
+def _publishable(root: Path, base: str, accept_identity: bool) -> tuple[str, str | None]:
+    """Who a line of the notes will name, and why it may not travel: the notes go to the remote, and
+    never publish an address the project does not already show (#235) — a run's record, or a void."""
     who, address = _identity(root)
     remote = _remote(root)
     if remote is not None and not accept_identity and not NOREPLY.fullmatch(address):
         if _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False).returncode != 0:
-            print(f"FAIL [attest] base '{base}' not found: the identities the project already shows cannot be "
-                  f"read, and the record would travel to {remote}.\n"
-                  "      Action: fetch the base (git fetch), or pass --base with a commit of the shared history.")
-            return 1
+            return who, (f"FAIL [attest] base '{base}' not found: the identities the project already shows cannot "
+                         f"be read, and the record would travel to {remote}.\n"
+                         "      Action: fetch the base (git fetch), or pass --base with a commit of the shared history.")
     # No remote: nothing travels — the record stays in this repository, whoever ran it.
     if remote is not None and not accept_identity and not NOREPLY.fullmatch(address) and address not in _shown(root, base):
         # A record travels with the notes to the remote: it never publishes an address the project
         # does not already show — a fresh clone falls back on a workstation's personal identity (#235).
-        print(f"FAIL [attest] the record would name {who or 'no one'}, an identity this project's history does not "
-              f"show — it travels with the notes to {remote}.\n"
-              "      Action: set this checkout's identity to the one the project works under "
-              "(git config user.name / user.email), or, for a first record of your own, "
-              "nstack attest --accept-identity.")
+        return who, (f"FAIL [attest] the record would name {who or 'no one'}, an identity this project's history "
+                     f"does not show — it travels with the notes to {remote}.\n"
+                     "      Action: set this checkout's identity to the one the project works under "
+                     "(git config user.name / user.email), or, for a first record of your own, "
+                     "nstack attest --accept-identity.")
+    return who, None
+
+
+def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
+        again: bool = False) -> int:
+    print(provenance.judged_by(root), flush=True)
+    who, refused = _publishable(root, base, accept_identity)
+    if refused:
+        print(refused)
         return 1
     if _git(root, "status", "--porcelain", "--untracked-files=normal").stdout.strip():
         print("FAIL [attest] the tree holds changes: a record names one commit, and this tree is none.\n"
@@ -476,6 +561,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     engine, origin = provenance.engine()
     base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False).stdout.strip() or None
     previous = None if again else latest(root, commit)
+    previous = None if previous and previous.get("void") else previous  # a void keeps nothing, evidence included
     # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147) — and the
     # pull request's own when the forge answers, a label it does not carry refused (#368).
     from napkinstack.pull_request import labels_for
@@ -501,7 +587,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         digest = inputs(root, base, json.dumps([engine, unplaced(origin, root), origin is None, who]))
         env["NSTACK_INPUTS"] = digest or ""  # the head's, for pr-check's T4 while this record is made (D223)
         for check in CHECKS:
-            kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root))
+            kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root), root)
             if kept is not None:
                 results.append(kept)
                 print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
