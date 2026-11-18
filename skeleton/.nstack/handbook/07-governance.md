@@ -358,6 +358,13 @@ recomputed from the record. A record an earlier
 version pushed keeps its paths: notes are history, and rewriting them rewrites the evidence
 `pr-check` reads.
 
+**A failed check says what failed, and keeps its output on the workstation.** Under the check's
+FAIL line, `nstack attest` shows the last lines a module's own command wrote before it exited — a
+test runner's summary names the test that failed — and the path of the check's whole output, in
+the clone's git folder (`.git/nstack/attest/<commit>-<check>.log`, a worktree's own git folder in a
+worktree), never in the tree and never pushed. A test that fails once and passes again is named there: quarantine it by that name
+(`.nstack/playbooks/tests.md`).
+
 ### Agents and approval
 
 A pull request's author cannot approve it. An agent working with a human's credentials

@@ -276,20 +276,51 @@ def _shown(root: Path, base: str) -> set[str]:
 REASON = 8  # lines of a failed step shown when it says no FAIL line of its own
 
 
+EXITED = re.compile(r"FAIL \[\w+\] module '[^']+': `.*` exited with \d+\.")
+
+
 def why(output: str) -> list[str]:
     """A failed step's reason: its FAIL lines and the indented lines under each (the action), or,
-    when it says none, its last lines — a check that failed says why without its whole output (#244)."""
+    when it says none, its last lines — a check that failed says why without its whole output (#244).
+    A module command that exited non-zero says no more than its code: the last lines its own tool
+    wrote before it come first — a test runner's summary names the test that failed (#428)."""
     lines = output.splitlines()
-    said, under = [], False
+    said, under, tool, audit = [], False, [], False
     for line in lines:
         if line.startswith("FAIL"):
+            if EXITED.match(line):
+                said.extend(tool[-REASON:])
+                tool = []
             said.append(line)
             under = True
         elif under and line.startswith(" "):
             said.append(line)
         else:
             under = False
+        if line.startswith(("::group::", "-> ")):
+            tool, audit = [], False  # a module's own command writes after the engine says it runs it
+        elif line.startswith("Evidence of "):
+            audit = True  # and before the engine audits its evidence: those lines are the engine's
+        elif line.strip() and not audit and not line.startswith(("FAIL", "::")):
+            tool.append(line)
     return said or [line for line in lines if line.strip()][-REASON:]
+
+
+LOG_KEPT = 8 * 1024 * 1024  # bytes of a failed step's output kept in its log, the last ones
+
+
+def keep_log(root: Path, commit: str, check: str, steps: list[tuple[str, str]]) -> Path:
+    """A failed check's whole output, in the clone's git folder — never in the tree, where it would
+    leave changes the next attest refuses: the record keeps 64 KiB of it and a FAIL line a few
+    lines; a test that fails once and passes again is named here, or nowhere (#428). Its last
+    8 MiB when longer; the next failure of the same commit and check replaces it."""
+    folder = (root / _git(root, "rev-parse", "--git-path", "nstack/attest").stdout.strip()).resolve()
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{commit[:12]}-{re.sub(r'[^a-z0-9]+', '-', check.lower()).strip('-')}.log"
+    text = steps[0][1] if len(steps) == 1 else "".join(f"== {label}\n{output.rstrip(chr(10))}\n" for label, output in steps)
+    data = text.encode("utf-8", "replace")
+    path.write_bytes(data if len(data) <= LOG_KEPT else data[-LOG_KEPT:])
+    return path
 
 
 # An engine whose code a string names: published, a forge's commit, or a checkout's own commit.
@@ -484,21 +515,30 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
                       f"same inputs ({digest[:12]}), within {FRESH_DAYS} days and {FRESH_COMMITS} commits of the "
                       "default branch (nstack attest --again runs it)", flush=True)
                 continue
-            steps = []
+            steps, outputs = [], []
             for step in check.steps:
-                done = subprocess.run(["bash", "-c", step.command], cwd=root, env=env,
-                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                done = subprocess.run(["bash", "-c", step.command], cwd=root, env=env, stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT, text=True, errors="replace")
                 steps.append({"label": step.label, "command": step.command, "exit": done.returncode,
                               "output": capped(done.stdout),
                               "sha256": hashlib.sha256(done.stdout.encode("utf-8", "replace")).hexdigest()})
+                outputs.append(done.stdout)
             passed = all(step["exit"] == 0 for step in steps)
             results.append({"name": check.name, "passed": passed, "steps": steps,
                             **({"inputs": digest} if check.kept and digest else {})})
             failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
             print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
-            for step in steps:
+            for step, whole in zip(steps, outputs):
                 if step["exit"]:
-                    print("\n".join(f"       {line}" for line in why(step["output"])), flush=True)
+                    print("\n".join(f"       {line}" for line in why(whole)), flush=True)
+            if failed:
+                try:
+                    log = keep_log(root, commit, check.name, [(s["label"], o) for s, o in zip(steps, outputs)])
+                except OSError as error:  # a full or read-only disk never costs the record
+                    print(f"       whole output: not kept ({error.strerror})", flush=True)
+                else:
+                    shown = log.relative_to(root) if log.is_relative_to(root) else log
+                    print(f"       whole output: {shown}", flush=True)
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),

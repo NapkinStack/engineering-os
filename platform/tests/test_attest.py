@@ -895,3 +895,72 @@ def test_a_dependency_bot_s_head_is_attested_as_it_stands_by_the_project_s_ident
     fresh_checkout(project)
     code, out = judged(project, base, monkeypatch, capsys, ci=True)
     assert code == 0 and "attested on a workstation, by test <test@example.invalid>" in out, out
+
+
+# --- A failed module check names what failed, and keeps its whole output (D237, #428) ---
+# Measured downstream on 2026-11-18: a flaky test failed under `nstack attest`, which said only
+# "`cargo test --locked` exited with 101"; run again by hand it passed, and its name was lost.
+
+CARGO = "\n".join([
+    "::group::shell",
+    "Criticality: standard",
+    "-> shell: cargo test --locked",
+    *[f"test tests::case_{n} ... ok" for n in range(400)],
+    "test tests::flaky_window ... FAILED",
+    "failures:",
+    "    tests::flaky_window",
+    "test result: FAILED. 400 passed; 1 failed; 0 ignored",
+    "FAIL [test] module 'shell': `cargo test --locked` exited with 101.",
+    "::endgroup::",
+    "Module checks failed: shell. Each one's log group above names the verb and its output.",
+])
+
+
+def test_a_failed_module_check_says_its_tool_s_last_lines_and_keeps_its_output(tmp_path, monkeypatch, capsys):
+    head = project(tmp_path)
+    script = tmp_path.parent / f"{tmp_path.name}-say.txt"  # outside the tree: a record names a clean commit
+    script.write_text(CARGO + "\n", encoding="utf-8")
+    monkeypatch.setattr(attest, "CHECKS", (attest.Check("Module checks", (
+        attest.Step("bash .nstack/check-modules.sh", "Every changed module", f"cat {script}; exit 1"),)),))
+    assert attest.run(tmp_path, "HEAD", None, "") == 1
+    out = capsys.readouterr().out
+    assert "test tests::flaky_window ... FAILED" in out and "test result: FAILED. 400 passed; 1 failed" in out, out
+    assert "test tests::case_7 ... ok" not in out, "the whole output printed"
+    log = tmp_path / ".git" / "nstack" / "attest" / f"{head[:12]}-module-checks.log"
+    assert f"whole output: {log.relative_to(tmp_path)}" in out, out
+    assert log.read_text(encoding="utf-8") == CARGO + "\n"
+    assert git(tmp_path, "status", "--porcelain") == "", "the log left a change in the tree"
+
+
+def test_a_passed_check_leaves_no_log(tmp_path, monkeypatch):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    assert attest.run(tmp_path, "HEAD", None, "") == 0
+    assert not (tmp_path / ".git" / "nstack" / "attest").exists()
+
+
+def test_each_module_s_failure_says_its_own_tool_lines_and_never_the_engine_s():
+    """Its neighbours: a module that passed before says nothing under another's failure, an e2e's
+    evidence audit is the engine's, and a nested run's lines are said once."""
+    output = "\n".join([
+        "::group::calendar", "-> calendar: pytest", "calendar passed line", "::endgroup::",
+        "::group::shell", "-> shell: run-scenarios", "scenario login ... FAILED", "summary: 1 failed",
+        "Evidence of shell: .evidence/e2e/shell — 3 undeclared (output.txt)",
+        "  undeclared: something the engine says",
+        "FAIL [e2e] module 'shell': `run-scenarios` exited with 1.",
+        "::endgroup::",
+    ])
+    said = attest.why(output)
+    assert said[:2] == ["scenario login ... FAILED", "summary: 1 failed"], said
+    assert "calendar passed line" not in said and not any("undeclared" in line for line in said), said
+    nested = "\n".join(["-> outer: nstack test inner", "-> inner: cargo test", "test x ... FAILED",
+                        "FAIL [test] module 'inner': `cargo test` exited with 101.",
+                        "FAIL [test] module 'outer': `nstack test inner` exited with 101."])
+    assert attest.why(nested).count("test x ... FAILED") == 1
+
+
+def test_a_step_that_prints_bytes_not_utf_8_is_recorded(tmp_path, monkeypatch):
+    head = project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", (attest.Check("Bytes", (attest.Step("bytes", "latin", r"printf 'caf\351\n'; exit 1"),)),))
+    assert attest.run(tmp_path, "HEAD", None, "") == 1
+    assert "caf" in records(tmp_path, head)[0]["checks"][0]["steps"][0]["output"]
