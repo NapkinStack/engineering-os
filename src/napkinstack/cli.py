@@ -209,7 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
     dl.add_argument("--write-states", action="store_true", help="at a closure: writes the records' states in the cycle file, for its one pull request")
     bd = _add(sub, "board", "shows the cycles and their deliverables on the forge, one way: milestones and issues",
               lambda a: board.run(a.root, a.dry_run))
-    bd.add_argument("--dry-run", action="store_true", help="say what would change, change nothing")
+    bd.add_argument("--dry-run", action="store_true", help="say what would change, change nothing — and preview what a proposed cycle's acceptance would create")
     ds = _add(sub, "discover", "starts a discovery from an idea file, for the team's agent",
               lambda a: discovery.run(a.root, a.idea))
     ds.add_argument("idea", type=Path, help="the idea, a .md or .txt file")

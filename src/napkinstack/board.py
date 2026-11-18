@@ -2,7 +2,8 @@
 The plan shown on the forge, one way (PDR-0016, ADR-0008).
 
 The cycle files are the plan; this command shows them on GitHub — a milestone per accepted,
-closed or stopped cycle, an issue per deliverable — and keeps the display equal to them. Its own
+closed or stopped cycle, an issue per deliverable — and keeps the display equal to them. A dry
+run also previews what a proposed cycle's acceptance would create, and makes none of it. Its own
 objects carry a marker in their body; an object without one is never touched. What the forge
 holds decides nothing but whether the display must be rewritten.
 
@@ -72,7 +73,8 @@ def _reason(state: str) -> str:
 
 
 def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, list[int]] | None = None,
-            today: datetime.date | None = None, delivered: set[str] | None = None) -> tuple[list[Shown], list[str]]:
+            today: datetime.date | None = None, delivered: set[str] | None = None,
+            statuses: set[str] = SHOWN) -> tuple[list[Shown], list[str]]:
     """The display the cycle files call for, and what cannot be shown and why. `holders`:
     deliverable identifier to the hold's person; `pulls`: identifier to the pull requests whose
     description names it."""
@@ -81,7 +83,7 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
     for path in plan.cycle_files(root):
         data = plan.read_front_matter(path)[0]
         found = NUMBER.match(path.stem)
-        if data and plan.one_of(data.get("status"), SHOWN) and found:
+        if data and plan.one_of(data.get("status"), statuses) and found:
             cycles.setdefault(found[1], []).append((path, data))
     said = [f"cycle {number} not shown: {len(files)} cycle files carry its number "
             f"({', '.join(path.name for path, _ in files)})" for number, files in cycles.items() if len(files) > 1]
@@ -99,7 +101,7 @@ def desired(root: Path, holders: dict[str, str] | None = None, pulls: dict[str, 
             continue
         path, data = files[0]
         relative = path.relative_to(root).as_posix()
-        closed = data.get("status") != "accepted"
+        closed = data.get("status") not in ("accepted", "proposed")  # proposed: only ever previewed
         text = path.read_text(encoding="utf-8", errors="replace")
         front = plan.FRONT_MATTER.match(text)
         heading = HEADING.search(text[front.end():] if front else text)
@@ -206,6 +208,8 @@ def _clean(text) -> str:
 def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -> int:
     from napkinstack import hold
 
+    if dry_run:
+        _preview(root, today)
     first, said = desired(root, today=today)
     if not first:
         _tell(said, "Plan on the forge: nothing to show — no accepted, closed or stopped cycle")
@@ -238,6 +242,37 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
         lines.append(f"not shown further: {type(error).__name__}: {error}")
     _tell(lines, f"Plan on the forge ({forge[1]})" + (" — dry run, nothing applied" if dry_run else ""))
     return 0
+
+
+def _preview(root: Path, today: datetime.date | None) -> None:
+    """What a proposed cycle's acceptance would create, said on a dry run and never made (#372): the
+    decider reviews the breakdown as the board will show it, before the acceptance decides it."""
+    numbers, idents = set(), set()
+    for path in plan.cycle_files(root):
+        data = plan.read_front_matter(path)[0]
+        found = NUMBER.match(path.stem)
+        if data and data.get("status") == "proposed" and found:
+            numbers.add(found[1])
+            items = data.get("deliverables")
+            idents |= {str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")} \
+                if isinstance(items, list) else set()
+    if not numbers:
+        return
+    # Read beside the cycles already shown: what their acceptance would collide with is said too.
+    every, said = desired(root, today=today, statuses=SHOWN | {"proposed"})
+    for number in sorted(numbers):
+        cycle = next((item for item in every if item.kind == "cycle" and item.key == number), None)
+        if cycle is None:
+            continue
+        print(f"On acceptance of cycle {number} — previewed, nothing made:\n"
+              f"  milestone {cycle.title}, ends {cycle.due or 'with no end date'}")
+        for item in every:
+            if item.kind == "deliverable" and item.cycle == number:
+                state = item.labels[-1].removeprefix("state: ") if item.labels else ""
+                print(f"  issue {item.title} — {state}" + (", shown closed" if item.state == "closed" else ""))
+    for line in said:
+        if any(re.search(rf"\b{re.escape(key)}\b", line) for key in numbers | idents):
+            print(f"  NOTE on acceptance: {line}")
 
 
 def _tell(lines: list[str], head: str) -> None:

@@ -378,7 +378,7 @@ nstack plan          # what needs a person first; then the discovery, the charte
 nstack claim D<n> --session <s> --person @<you>   # takes a deliverable before its first change; nstack unclaim gives it back
 nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered; --write-states at the closure
 {% if forge == "github" %}nstack agent add <name> · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
-{% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
+{% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
 nstack skills        # generates the Claude Code skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
 nstack settings      # the calls that would bring the forge's settings to the checklist; --apply: yours makes them
