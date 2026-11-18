@@ -153,13 +153,15 @@ default branch red together — one starts reading what the other starts providi
 ruleset merges a branch only once it carries the default branch: what the checks judged is what
 lands. Three habits keep that from costing the team:
 
-- **update at the last moment**: only the pull request about to merge — approved, green — takes
+- **update at the last moment**: only the pull request about to merge — reviewed, green — takes
   the default branch in; the others wait their turn untouched. One update per merge, not one per
-  open pull request each time another merges;
+  open pull request each time another merges. Where stale approvals are dismissed (G13), the
+  approval comes after that update, not before it;
 - **update by merging the default branch in, never by a rebase**: a rebase rewrites what was
   approved; a merge adds one commit that brings the default branch, which the approver reads as
   that, and `pr-check`'s R1 counts as covered when it carries nothing of its own. Where stale
-  approvals are dismissed (G13), the forge may still ask the approval again after an update: the
+  approvals are dismissed (G13), GitHub asks the approval again after an update — measured: a
+  merge of the default branch whose tree equalled the approved head's still dismissed it —; the
   approver then reads only what the default branch brought. Where an agent approves, the update is
   the last push, and another identity than its pusher's approves it (G21). The squash keeps the
   default branch's history one commit per pull request;
