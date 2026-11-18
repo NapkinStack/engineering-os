@@ -28,6 +28,10 @@ runbook, tests and configuration.
 | `src/napkinstack/fitness/pr_scope.py` | One pull request, one module; the review budget |
 | `src/napkinstack/compat.py` | `nstack compat`: a contract version someone relies on changes only with a proof |
 | `src/napkinstack/discovery.py` | `nstack discover`: a discovery started from an idea file, no model called |
+| `src/napkinstack/attest.py` | `nstack attest`: the CI's checks run on a workstation, recorded on the commit in git notes; kept, voided, and a failure's output kept |
+| `src/napkinstack/hold.py` | `nstack claim`, `unclaim`, `deliver`: who holds a deliverable, on a branch the remote refuses to a second taker |
+| `src/napkinstack/board.py` | `nstack board`: the cycles shown as milestones and issues; a dry run previews a proposed cycle |
+| `audit_lock.py` | The verdict on `pip-audit`'s report of this repository's lock, in CI |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |
 | `tests/test_guardrails.py` | Rules M, B, S, P, H: one failing case per rule (pytest, run by `run.sh`) |
 | `tests/test_pull_request.py` | Rules T and K: one failing case per rule |
@@ -45,7 +49,7 @@ runbook, tests and configuration.
 | `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment; C10, a warning: the decisions due at a closure and not yet read; then the project across its cycles, and who holds each deliverable, said and never failed |
-| `nstack pr-check` | T1-T5, K1-K5, A1-A2, C9: the test sheet, the cycle, who holds the deliverable and the attested checks, read from the pull request description; an accepted charter changed with no decision record, warned |
+| `nstack pr-check` | T1-T5, K1-K5, A1-A2, C9, and R1, a warning — an approval given before commits other than the base branch's: the test sheet, the cycle, who holds the deliverable and the attested checks, read from the pull request description; an accepted charter changed with no decision record, warned |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
 | `nstack doctor` | L1-L3, L6-L10 and G1-G22: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |
