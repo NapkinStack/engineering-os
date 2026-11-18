@@ -709,6 +709,10 @@ def modular(root: Path) -> str:
         (root / shared / "MANIFEST.yaml").write_text(yaml.safe_dump({"module": {"name": shared}}), encoding="utf-8")
         (root / shared / "doc.md").write_text("v1\n", encoding="utf-8")
     (root / "uv.lock").write_text("lock 1\n", encoding="utf-8")
+    (root / "docs/project").mkdir(parents=True)
+    (root / "docs/project/rules.md").write_text("rule 1\n", encoding="utf-8")
+    (root / "docs/project/résumé.md").write_text("résumé 1\n", encoding="utf-8")
+    (root / "docs/privacy.md").write_text("paths 1\n", encoding="utf-8")
     (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6", "checks": "attested"}),
                                               encoding="utf-8")
     git(root, "add", "-A")
@@ -738,12 +742,15 @@ def counting(tmp_path, monkeypatch):
     return root
 
 
-def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counting, capsys):
+@pytest.mark.parametrize("path", ["modules/c/code.py", "docs/project/rules.md", "docs/project/résumé.md"])
+def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counting, capsys, path):
+    """#441 (D242): the project's records under the root `docs/` are read by no module check; a line
+    of a rules document merged on main cost every open pull request its end-to-end runs again."""
     root = counting
     base = modular(root)
     first_head = git(root, "rev-parse", "HEAD")
     assert attest.run(root, base, None, "") == 0 and runs(root) == 1
-    main_moves(root, "modules/c/code.py")
+    main_moves(root, path)
     capsys.readouterr()
     assert attest.run(root, base, None, "") == 0 and runs(root) == 1
     head = git(root, "rev-parse", "HEAD")
@@ -753,7 +760,7 @@ def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counti
 
 
 @pytest.mark.parametrize("path", ["modules/b/code.py", "uv.lock", "modules/a/code.py", "contracts/doc.md",
-                                  "platform/doc.md"])
+                                  "platform/doc.md", "docs/privacy.md"])
 def test_a_merge_in_that_touches_what_the_module_reads_runs_it_again(counting, path):
     root = counting
     base = modular(root)

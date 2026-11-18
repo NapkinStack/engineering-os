@@ -89,6 +89,12 @@ the workflows, and without a forge being required.
      workspace manifests, scripts, `.nstack/`, workflows — and the `contracts/` and `platform/`
      modules, which every module reads: a contract version or a shared mechanism that moves
      re-runs every check (an independent verifier's finding, before the code merged);
+     *amended (D242, #441)*: but the project's records — `docs/project/` (charter, cycles, rules,
+     log), `docs/adr/`, `docs/pdr/` —, which no module check is meant to read. Under G22 a line of
+     a rules document merged on the default branch cost every open pull request its end-to-end runs
+     again. The rest of the root `docs/` stays an input: downstream, an end-to-end run checks that
+     the privacy page states the paths the package leaves. A check that does read a record is an
+     undeclared input, bounded as below;
    - the engine and the person, as before.
 
    Their digest, SHA-256 over those ids in a fixed order, is kept in the record. The check is kept
@@ -98,8 +104,10 @@ the workflows, and without a forge being required.
    so an input nobody declared costs at most that long. A digest that cannot be computed — a module
    folder unreadable, a `consumes` naming no module of the project — is no key: the check runs.
    Where the forge also runs `Module checks` on the default branch after each merge (the
-   skeleton's `module-checks.yml` does, on push), an undeclared input is caught there within the
-   day; that run is what the bound leans on, never what replaces it.
+   skeleton's `module-checks.yml` does, on push), an undeclared input is caught there the next time
+   that run selects the module — *clarified (D242)*: it runs the modules a merge changed, so an
+   input outside every module may wait for the bound; that run is what the bound leans on, never
+   what replaces it.
 3. **The record.** One JSON line per run, appended to the note of `HEAD` under
    `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, the engine's
    version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the
