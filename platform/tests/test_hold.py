@@ -486,6 +486,28 @@ def test_k5_through_pr_check_refuses_another_session(shared, monkeypatch, capsys
     assert "FAIL [K5]" in capsys.readouterr().out
 
 
+def test_k5_reads_the_holder_s_session_on_the_merge_that_brings_the_former_work(shared, monkeypatch, capsys):
+    """#439: a deliverable taken over on the decider's word; the new session merges the default branch
+    into the former session's branch and opens the pull request. Its only commit is the merge, which
+    K5 never read: the holder's own pull request was refused, and the way out K5 offered — moving the
+    hold back to the former session — would have undone the take-over."""
+    from napkinstack import pull_request
+
+    hold.claim(clone(shared, "alice"), "D1", session="alice-new", person="@alice")
+    holder = clone(shared, "holder")
+    assert delivery(holder, "Deliverable: D1", "", monkeypatch, session="alice-old") == 1  # the former work alone
+    carol = clone(shared, "carol")
+    (carol / "elsewhere.txt").write_text("main moved\n", encoding="utf-8")
+    git(carol, "add", "-A")
+    git(carol, "commit", "-q", "-m", "main moved")
+    git(carol, "push", "-q", "origin", "HEAD:main")
+    git(holder, "fetch", "-q")
+    git(holder, "merge", "-q", "--no-ff", "origin/main", "-m", "Merge main\n\nAgent-Session: alice-new")
+    capsys.readouterr()
+    pull_request.run(holder, "origin/main")
+    assert "[K5]" not in capsys.readouterr().out
+
+
 def test_the_out_of_cycle_label_lifts_k5(shared, monkeypatch, capsys):
     hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
     body = "Deliverable: D1\n\nOut of cycle: a production incident"
