@@ -964,3 +964,154 @@ def test_a_step_that_prints_bytes_not_utf_8_is_recorded(tmp_path, monkeypatch):
     monkeypatch.setattr(attest, "CHECKS", (attest.Check("Bytes", (attest.Step("bytes", "latin", r"printf 'caf\351\n'; exit 1"),)),))
     assert attest.run(tmp_path, "HEAD", None, "") == 1
     assert "caf" in records(tmp_path, head)[0]["checks"][0]["steps"][0]["output"]
+
+
+# --- A record known unsound is voided, and never kept from (D238, #429) ---
+# Measured downstream on 2026-11-18: two attests shared one build folder for half an hour; a later
+# attest on the same commit kept the module checks of one of their records, and only an operator's
+# memory of --again stood between an unsound record and its reuse.
+
+def test_a_voided_record_is_never_kept_from_on_its_commit(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 1
+    capsys.readouterr()
+    assert attest.void(root, "HEAD", "two attests shared one build folder") == 0
+    out = capsys.readouterr().out
+    assert f"Record of {head[:12]}: voided by test <test@example.invalid> — two attests shared one build folder" in out, out
+    last = records(root, head)[-1]
+    assert last["void"] == "two attests shared one build folder" and last["checks"] == []
+    assert attest.run(root, "HEAD", None, "") == 0 and runs(root) == 2, "kept from a voided record"
+
+
+def test_a_check_kept_by_its_inputs_from_a_voided_commit_runs_again(counting):
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")  # kept from the first commit's run
+    assert runs(root) == 1
+    assert attest.void(root, first, "unsound run") == 0
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    assert runs(root) == 2, "a check kept, through another commit's record, from a voided one"
+
+
+def test_void_needs_a_reason_and_a_record(tmp_path, capsys):
+    project(tmp_path)
+    assert attest.void(tmp_path, "HEAD", " ") == 1
+    assert "FAIL [attest] a void says why" in capsys.readouterr().out
+    assert attest.void(tmp_path, "HEAD", "why") == 1
+    assert "no record of" in capsys.readouterr().out
+
+
+def test_pr_check_reads_a_voided_head_as_voided_until_attested_again(tmp_path, monkeypatch, capsys):
+    base, head = change(tmp_path, "attested")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(tmp_path, base, None, "")
+    attest.void(tmp_path, "HEAD", "shared a build folder")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 1 and f"FAIL [A2] the record of the head {head[:7]} was voided by test <test@example.invalid>" in out, out
+    assert "shared a build folder" in out and "nstack attest" in out
+    attest.run(tmp_path, base, None, "")
+    code, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert code == 0, out
+
+
+def test_a_head_that_kept_a_check_from_a_voided_run_is_refused_and_keeps_it_no_more(counting, monkeypatch, capsys):
+    """The verifier's: Y kept X's module check; X voided — pr-check and the next keep both refuse Y's."""
+    root = counting
+    base = modular(root)  # its answers say checks: attested
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")  # kept from the first
+    head = git(root, "rev-parse", "HEAD")
+    assert runs(root) == 1
+    assert attest.void(root, first, "shared a build folder", base) == 0
+    capsys.readouterr()
+    code, out = judged(root, base, monkeypatch, capsys)
+    assert code == 1 and f"FAIL [A2] the record of the head {head[:7]} keeps Module checks from a run since voided" in out, out
+    attest.run(root, base, None, "", again=False)
+    assert runs(root) == 2, "kept again, through its own record, from the voided run"
+
+
+def test_attesting_a_voided_commit_again_never_brings_its_old_run_back(counting):
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")  # Y keeps from X
+    voided = records(root, first)[0]["at"]
+    attest.void(root, first, "unsound", base)
+    git(root, "switch", "-q", "--detach", first)
+    attest.run(root, base, None, "", again=True)  # X attested again: a sound run of its own
+    sound = attest.latest(root, first)["at"]
+    git(root, "switch", "-q", "work")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    kept = attest.latest(root, git(root, "rev-parse", "HEAD"))["checks"][1]
+    assert kept["kept_from"] == sound != voided, "Z kept, through Y's record, X's voided run"
+
+
+def test_a_voided_run_with_a_clock_ahead_stays_voided(tmp_path, monkeypatch):
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    attest.run(root, "HEAD", None, "")
+    lines = git(root, "notes", f"--ref={attest.NOTES}", "show", head).strip().splitlines()
+    ahead = json.loads(lines[-1]) | {"at": "2999-01-01T00:00:00+00:00"}
+    git(root, "notes", f"--ref={attest.NOTES}", "add", "-f", "-m", json.dumps(ahead), head)
+    assert attest.void(root, "HEAD", "its clock lied") == 0
+    assert attest.latest(root, head)["void"] == "its clock lied"
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 2
+
+
+def test_a_void_never_publishes_an_identity_the_project_does_not_show(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "p"
+    root.mkdir()
+    project(root)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(root, "HEAD", None, "")
+    git(root, "remote", "add", "origin", str(tmp_path / "nowhere.git"))
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "someone@personal.example")
+    capsys.readouterr()
+    assert attest.void(root, "HEAD", "why", "HEAD") == 1
+    assert "FAIL [attest] the void would name" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("argv", [["attest", "--reason", "x"], ["attest", "--void", "HEAD"],
+                                  ["attest", "--void", "HEAD", "--reason", "x", "--again"]])
+def test_void_and_its_reason_go_together_and_with_no_run(argv, capsys):
+    from napkinstack import cli
+    with pytest.raises(SystemExit):
+        cli.main(argv)
+    assert "--void and --reason go together" in capsys.readouterr().err
+
+
+def test_a_run_kept_on_its_commit_from_a_run_voided_meanwhile_is_kept_from_no_more(tmp_path, monkeypatch):
+    """The verifier's: another clone, before seeing the void, kept R1 in R2 on the same commit; the
+    notes merge, R2 is the latest — the next attest must run, not keep R1 again through R2."""
+    root = tmp_path / "p"
+    root.mkdir()
+    head = project(root)
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.17.0", None))
+    attest.run(root, "HEAD", None, "")
+    attest.run(root, "HEAD", None, "")  # R2 keeps R1
+    r1, r2 = records(root, head)
+    void = {"record": attest.RECORD, "commit": head, "at": "2000-01-01T00:00:00+00:00", "by": "x",
+            "void": "unsound", "voids": [r1["at"]], "checks": []}  # the other clone's void, R1 only
+    lines = git(root, "notes", f"--ref={attest.NOTES}", "show", head).rstrip("\n") + "\n" + json.dumps(void)
+    git(root, "notes", f"--ref={attest.NOTES}", "add", "-f", "-m", lines, head)
+    assert attest.latest(root, head)["at"] == r2["at"]
+    attest.run(root, "HEAD", None, "")
+    assert runs(root) == 2, "R1 kept again, through R2"

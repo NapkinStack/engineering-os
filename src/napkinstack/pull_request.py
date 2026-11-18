@@ -777,11 +777,16 @@ def status_required(root: Path) -> bool:
                for rule in rules if isinstance(rules, list))
 
 
-def _module_inputs(record: dict | None) -> tuple[str, str, str | None] | None:
-    """A record's `Module checks` digest, its first run's time and base (ADR-0006, D223)."""
+def _module_inputs(record: dict | None, root: Path | None = None, commit: str = "") -> tuple[str, str, str | None] | None:
+    """A record's `Module checks` digest, its first run's time and base (ADR-0006, D223); none when
+    it was kept from a run since voided (#429)."""
+    from napkinstack import attest
+
     checks = record.get("checks") if isinstance(record, dict) and isinstance(record.get("checks"), list) else []
     found = next((c for c in checks if isinstance(c, dict) and c.get("name") == "Module checks"), None)
     if not found or found.get("passed") is not True or not found.get("inputs"):
+        return None
+    if root is not None and attest.kept_from_voided(root, found, commit):
         return None
     return str(found["inputs"]), str(found.get("kept_from") or record.get("at", "")), \
         found.get("kept_base") or record.get("base_commit")
@@ -807,14 +812,14 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
                 cache["head"] = os.environ.get("NSTACK_INPUTS") or None
             else:
                 attest.read_remote(root)
-                found = _module_inputs(attest.latest(root, head))
+                found = _module_inputs(attest.latest(root, head), root, head)
                 cache["head"] = found[0] if found else None
         return cache["head"]
 
     def same(commit: str) -> bool:
         full = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").stdout.strip()
         digest = head_digest()
-        found = _module_inputs(attest.latest(root, full)) if full and digest else None
+        found = _module_inputs(attest.latest(root, full), root, full) if full and digest else None
         base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").stdout.strip() or None
         return bool(found and found[0] == digest and attest._fresh(root, found[1], found[2], base_commit))
 
@@ -838,12 +843,14 @@ def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> st
         shown = ""
         if record:
             passed = sum(1 for check in record["checks"] if check["passed"])
-            shown = f"; a record of the head: attested {passed} of {len(record['checks'])} (information)"
+            shown = (f"; a record of the head: voided — {record['void']} (information)" if record.get("void")
+                     else f"; a record of the head: attested {passed} of {len(record['checks'])} (information)")
         return "the forge's CI" + shown
     if os.environ.get("NSTACK_ATTESTING") == head:
         return "attested — this run is the record being made"
     if status_required(root):
-        if record is not None and not all(check["passed"] for check in record["checks"]):
+        if record is not None and (record.get("void") or not all(check["passed"] for check in record["checks"])
+                                   or any(attest.kept_from_voided(root, check, head) for check in record["checks"])):
             # The status is the last attest that could post one; a later run without a token is in the
             # notes only — said, since the forge's green may be an earlier record's.
             warn(f"[A2] the latest record of the head {head[:7]} does not pass, and the status "
@@ -865,6 +872,16 @@ def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> st
                    f"'{attest.CONTEXT}' in the branch's ruleset: nstack attest posts it with the record, and this "
                    "run leaves the record to it (07-governance.md §7).")
         return "attested — no record of the head"
+    if record.get("void"):
+        fail("A2", f"the record of the head {head[:7]} was voided by {record.get('by')} at {record.get('at')}: "
+                   f"{record['void']}.\n      Action: run nstack attest on the head again — nothing is kept from a "
+                   "voided record.")
+        return "attested — the record of the head was voided"
+    unsound = [check["name"] for check in record["checks"] if attest.kept_from_voided(root, check, head)]
+    if unsound:
+        fail("A2", f"the record of the head {head[:7]} keeps {', '.join(unsound)} from a run since voided.\n"
+                   "      Action: run nstack attest on the head again — nothing is kept from a voided run.")
+        return "attested — the record of the head keeps a voided run"
     names = [check["name"] for check in record["checks"]]
     missing = [check.name for check in attest.CHECKS if check.name not in names]
     failed = [check["name"] for check in record["checks"] if not check["passed"]]
