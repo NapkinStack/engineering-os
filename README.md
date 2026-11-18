@@ -89,11 +89,11 @@ Each project then pins its version and changes it through `nstack update`.
 
 | Command | Role |
 |---|---|
-| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default) |
+| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default); each answer given as an option or asked (`--project-name`, `--github-repo` or `--repository`, `--owner-team` — on GitHub, never an organisation's name alone) |
 | `nstack doctor` | Checks the workstation and, on GitHub, its settings, read-only; off GitHub says what it cannot verify; names a newer published version |
 | `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential, then reads the result back — never an agent's, never in CI |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
-| `nstack new-contract <name>` | Creates a contract and, the first time, the module that holds them all |
+| `nstack new-contract <name> [--owner <owner>]` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap`, `clean` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
 | `nstack discover <idea-file>` | Starts a discovery for your agent: the idea kept, its document created |
 | `nstack plan` | Opens with what needs a person, or says nothing does; then the discovery, the charter and the cycles: formats, one cycle at a time, closures, and the decisions due at a closure; the project across its cycles, and who holds what |
@@ -109,7 +109,7 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
 | `nstack pr-check` | The test sheet, the cycle and the attested checks, read from the pull request description |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
-| `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks`; attesting the same commit again keeps the module checks it passed (`--again` runs them) |
+| `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks`; the module checks a run passed are kept while what they read is unchanged (`--again` runs them); a failed check names its tool's last lines and keeps its whole output under `.git/nstack/attest/`; `--void <commit> --reason <why>` marks a record known unsound, never kept from again |
 | `nstack skills` | Exposes the playbooks as skills for the agent |
 | `nstack update [--session <id>] [--forge <name>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer; `--forge` moves the project to another forge, its own lines kept |
 
