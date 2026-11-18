@@ -46,9 +46,9 @@ Rules:
   N2  information, never a gap (D219): a workflow whose last runs on the default branch all
       failed — RED_STREAK or more in a row — named with its first failing run. A workflow outside
       the required checks can stay red for weeks while every pull request merges green
-  G1-G21  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
+  G1-G22  the GitHub settings of CHECKLIST; G6 is not applicable outside a public
           repository, G21 outside `approval: agent`, and on a private one G1-G5, G12, G13, G17,
-          G18, G20 and G21 name the GitHub plan or option required
+          G18 and G20-G22 name the GitHub plan or option required
 
 Off GitHub (the project's `forge` answer, ADR-0010) no G rule is read: the forge-neutral
 PROTECTIONS are said as information — the same list as INSTALL.md's, bound by a test — and the
@@ -88,7 +88,7 @@ OUT_OF_REACH = "OUT OF REACH"      # the plan forbids it: a state, not a fault (
 NOT_READ = "NOT READ"  # an optional read that did not answer: said, never counted (L10)
 # The settings that make the forge refuse a merge. A repository is guarded when they are
 # all in force; the others matter and none of them stops a merge.
-BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13", "G21")
+BLOCKING = ("G1", "G2", "G3", "G4", "G12", "G13", "G21", "G22")
 API_VERSION = "2026-03-10"
 JOBS = ("Fitness functions", "PR scope and review budget", "Hooks and secrets", "Test sheet and cycle",
         "Module checks")
@@ -169,6 +169,10 @@ CHECKLIST = [  # (rule, setting, action)
     # approves what they pushed — the author's own fix included.
     ("G21", "The most recent push approved by someone other than its pusher (approval: agent)",
      f"{RULESET}: require approval of the most recent reviewable push"),
+    # G22: two pull requests each green on its own base can turn main red together (#430): the
+    # checks pass on what will land only when a branch is up to date with main before it merges.
+    ("G22", "Branches up to date before merging: the checks judged what will land, main included",
+     f"{RULESET}: require status checks — require branches to be up to date before merging"),
 ]
 
 # Asked of a project only on one of its answers: elsewhere not applicable, and said why.
@@ -187,7 +191,7 @@ def unasked(rule: str, answers: dict) -> str | None:
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
                      "state an internal channel in SECURITY.md"}
-PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20", "G21"),
+PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20", "G21", "G22"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
 PRIVATE_PLAN["G5"] = ("Private repository: Secret Protection is a paid option; without it, only the "
@@ -248,6 +252,12 @@ def _rules(client: GitHub) -> list[dict]:
 
 def _rule(client: GitHub, kind: str) -> dict | None:
     return next((rule for rule in _rules(client) if rule.get("type") == kind), None)
+
+
+def _status_rules(client: GitHub) -> list[dict]:
+    """Every required-checks rule that applies, from every ruleset: GitHub layers them and the
+    strictest holds, so one rule read alone can say less than the branch gets (D239)."""
+    return [rule.get("parameters") or {} for rule in _rules(client) if rule.get("type") == "required_status_checks"]
 
 
 # A name at a hold's depth, nstack/hold/<cycle>/<id>: GitHub answers for a branch that need not
@@ -347,8 +357,8 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G1": lambda c: _rule(c, "pull_request") is not None,
     "G2": lambda c: _parameters(c, "pull_request").get("required_approving_review_count", 0) >= 1,
     "G3": lambda c: _parameters(c, "pull_request").get("require_code_owner_review") is True,
-    "G4": lambda c: set(JOBS) <= {check.get("context") for check in _parameters(
-        c, "required_status_checks").get("required_status_checks", [])},
+    "G4": lambda c: set(JOBS) <= {check.get("context") for rule in _status_rules(c)
+                                  for check in rule.get("required_status_checks", [])},
     "G5": _security,
     "G6": lambda c: c.get("/private-vulnerability-reporting").get("enabled") is True,
     "G7": _allowed_actions,
@@ -367,6 +377,8 @@ CHECKS: dict[str, Callable[[GitHub], bool]] = {
     "G19": lambda c: _merges(c, "default_branch").get("default_branch") == "main",
     "G20": _holds_kept,
     "G21": lambda c: _parameters(c, "pull_request").get("require_last_push_approval") is True,
+    "G22": lambda c: (any(rule.get("strict_required_status_checks_policy") is True for rule in _status_rules(c))
+                      or _rule(c, "merge_queue") is not None),  # a queue checks what will land, too
 }
 
 
