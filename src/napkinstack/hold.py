@@ -259,10 +259,36 @@ def _record(root: Path, name: str | None, cycle: str, ident: str, sha: str) -> t
         _git(root, "update-ref", f"refs/heads/{branch}", sha, check=True)
         return True, "local only: no remote, nobody else sees it"
     pushed = _git(root, "push", "--quiet", name, f"{sha}:refs/heads/{branch}")
-    if pushed.returncode != 0:
-        return False, pushed.stderr.strip()
+    if pushed.returncode != 0:  # a hook may give its reason on either stream (#427)
+        return False, "\n      ".join(line for line in (pushed.stdout + pushed.stderr).strip().splitlines() if line.strip())
     _git(root, "update-ref", f"{MIRROR}/hold/{cycle}/{ident}", sha, check=True)
     return True, f"pushed to {name}"
+
+
+def _after_refusal(root: Path, cycle: str, ident: str, before: str | None, sha: str) -> str:
+    """After a refused push, what the remote holds now (#427): "recorded" when it has this event
+    after all (git failed after the remote took it), "moved" when another event came first, "same"
+    when nothing moved — the push itself was refused —, "unknown" when it cannot be read again."""
+    try:
+        fetch(root, again=True)
+    except Unreachable:
+        return "unknown"
+    tip = read(root, cycle, ident).tip
+    return "recorded" if tip == sha else "same" if tip == before else "moved"
+
+
+def _refusal(command: str, ident: str, where: str, state: str) -> str | None:
+    """What a refused push is said as; None when the event is on the remote after all."""
+    if state == "recorded":
+        return None
+    if state == "moved":
+        return f"FAIL [{command}] {ident}'s hold moved meanwhile: {where}\n      Action: run nstack plan, then again."
+    said = ("and the hold did not move: nothing was recorded" if state == "same"
+            else "and the remote cannot be read again: whether the hold moved is not known")
+    # A hook, a protection or a credential said no: running `nstack plan` again changes none of it.
+    return (f"FAIL [{command}] {ident}: the push was refused, {said}.\n      {where}\n"
+            "      Action: fix what the refusal above names (the clone's own pre-push hook, a protection "
+            "of the remote, its credentials), then again.")
 
 
 def slug(title: str) -> str:
@@ -507,18 +533,17 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     sha = _event(root, current.tip, ident, event, person, session, previous)
     ok, where = _record(root, name, cycle, ident, sha)
     if not ok:
-        try:
-            fetch(root, again=True)
-        except Unreachable:
-            pass
-        winner = read(root, cycle, ident)
-        if winner.tip != current.tip:
+        state = _after_refusal(root, cycle, ident, current.tip, sha)
+        if state == "moved":
+            winner = read(root, cycle, ident)
             print(f"FAIL [hold] {ident} was taken first: "
                   f"{said(winner) if winner.held else 'given back meanwhile'}.\n"
                   "      Action: take another ready deliverable — nstack plan lists them; or run again.")
-        else:
-            print(f"FAIL [hold] {ident}: the remote refused the hold.\n      {where}")
-        return 1
+            return 1
+        if refused := _refusal("hold", ident, where, state):
+            print(refused)
+            return 1
+        where = f"pushed to {name}"  # git failed after the remote took it: the event is on record
     left = f"{previous.person}, session {', '.join(previous.sessions)}" if previous and previous.sessions \
         else (previous.person if previous else "")
     done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {left}"}
@@ -613,9 +638,10 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         return 1
     sha = _event(root, current.tip, ident, "release", person, session)
     ok, where = _record(root, name, stem, ident, sha)
-    if not ok:
-        print(f"FAIL [hold] {ident}'s hold moved meanwhile: {where}\n      Action: run nstack plan, then again.")
+    if not ok and (refused := _refusal("hold", ident, where, _after_refusal(root, stem, ident, current.tip, sha))):
+        print(refused)
         return 1
+    where = where if ok else f"pushed to {name}"
     print(f"{ident} released by {person}; {where}. Its branches are kept.")
     return 0
 
@@ -1025,9 +1051,10 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
     sha = _event(root, current.tip, ident, "deliver", person, session,
                  criteria=[f"{number} {' '.join(answers[number])}" for number in sorted(answers)])
     ok, where = _record(root, name, cycle, ident, sha)
-    if not ok:
-        print(f"FAIL [deliver] {ident}'s hold moved meanwhile: {where}\n      Action: run nstack plan, then again.")
+    if not ok and (refused := _refusal("deliver", ident, where, _after_refusal(root, cycle, ident, current.tip, sha))):
+        print(refused)
         return 1
+    where = where if ok else f"pushed to {name}"
     print(f"{ident} delivered, on record; {where}. No pull request: nstack plan says it, and the closure writes the state.")
     return 0
 
