@@ -22,6 +22,47 @@ a patch.
 
 ---
 
+## v0.31.0 — 2026-11-18
+
+D225–D231, from a fourth project's first cycles: what its team had to catch by hand, written where the next one reads it.
+
+This is a minor version: it adds the shorter appetite, R1 and the board's preview. No check that was green turns red. `nstack init`, `new-module` and `new-contract` now refuse an owner they used to write (D225), and `nstack doctor` may report a new gap (L10).
+
+**In the engine**
+
+- **An organisation's name is no code owner** (D225, #382):
+  - on GitHub, `nstack init --owner-team`, `new-module` and `new-contract` refuse a bare handle that GitHub says is an organisation, before anything is written, and name `organisation/<team>` or a user instead;
+  - a forge that does not answer lets the handle pass, and says so;
+  - `nstack doctor` L10 reads GitHub's own validation of the code owners file: each owner GitHub does not know is a gap; unread, it is said and never counted.
+- **An update opened right after a release** (D226, #376): when uv says the version is not listed yet, `install-engine.sh` asks again, 6 attempts 30 s apart, each said, then fails as before. Any other failure fails at once.
+- **An approval the head moved past is said** (D227, #377):
+  - on GitHub, `nstack pr-check` reads each reviewer's latest approval and its commit;
+  - as R1, it warns about each approval given before commits other than the base branch's, and the forge shows the warning as an annotation on the check;
+  - a warning, never a failure: a review starts no run, so a red check would outlive the approval of the head.
+- **A cycle shorter than a week** (D228, #370): a cycle sets `appetite_weeks` or `appetite_days`, never both (C3), and `end` = `start` + the appetite in either unit.
+- **A proposed cycle previewed as a board** (D231, #372): `nstack board --dry-run` also shows each proposed cycle's milestone and issues, and what its acceptance would collide with, marked *previewed, nothing made*. It needs no forge.
+
+**In your project** — 11 files, text and the engine's install script
+
+- **`.nstack/install-engine.sh`** (D226): the retry while PyPI's index lags.
+- **`.github/workflows/pull-request.yml`** (D227): a permission comment.
+- **`.nstack/forms/cycle.md`** (D228) and **`.nstack/handbook/glossary.md`** (D228): `appetite_days`.
+- **`.nstack/handbook/RULES.md`** (D225, D227): L10, and the new R family with R1.
+- **`.nstack/handbook/INSTALL.md`** (D225, D226, D231): the doctor token's Contents: read, the index retry, `board --dry-run`.
+- **`.nstack/handbook/05-workflow.md`** (D227): where a forced push dismisses an approval, and where R1 says it.
+- **`.nstack/handbook/06-decisions.md`** §9 (D229): the log issue defined, titled `Log`, or `docs/project/log.md` with no forge.
+- **`.nstack/handbook/07-governance.md`** §7 (D225, D227, D230): code owners GitHub knows, approvals behind the head, and the route for a dependency bot's pull request under attested checks.
+- **`.nstack/playbooks/discovery.md`** (D229): the intake asks what was already asked of, promised to or received from someone outside the team.
+- **`.nstack/playbooks/framing.md`** (D228, D229, D231): the appetite in days, requests that start from the log, the board's preview in the framing pull request.
+
+**Migration**
+
+- **Code owners on GitHub** (D225): run `nstack doctor`. If L10 names an unknown owner, such as `@<organisation>` alone, replace it in `.github/CODEOWNERS` with `@<organisation>/<team>` or a user. On a private repository, doctor's token needs Contents: read to read it.
+- **A short cycle** (D228): a cycle written `appetite_weeks: 1` for fewer days may take `appetite_days: N` and the `end` it sets, in the pull request that changes it.
+- **The log** (D229): nothing to do. Where requests to outside parties live elsewhere, copy them into the `Log` issue as its first entries, never a secret.
+
+---
+
 ## v0.30.0 — 2026-11-17
 
 D222–D224, from the same multi-agent project: the checks that cost its team the most time, and the labels taken on the caller's word.
