@@ -110,7 +110,9 @@ on.
    module — has none (`module: null`): no merge carries it, so `nstack deliver` has nothing to read. Propose a new module only against the tree of
    `.nstack/handbook/02-modules.md` §3: one module is often enough to start.
 5. **Appetite** — ask the decider how many weeks they **want** to spend, not how long it
-   will take. When the deliverables do not fit, cut the scope; never stretch the appetite.
+   will take — in days for a cycle shorter than a week, such as an engagement whose date an outside
+   party sets (`appetite_days`), never rounded up to a week nobody agreed to. When the deliverables
+   do not fit, cut the scope; never stretch the appetite.
 6. **Out of scope and later** — out of scope is not done even if time remains; *later* holds
    the candidates for the next framing.
 
