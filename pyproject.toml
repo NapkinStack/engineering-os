@@ -17,7 +17,7 @@ Issues = "https://github.com/NapkinStack/engineering-os/issues"
 nstack = "napkinstack.cli:main"
 
 [dependency-groups]
-dev = ["pytest==9.1.1"]
+dev = ["pytest==9.1.1", "pip-audit==2.10.1"]
 
 [tool.uv]
 required-version = ">=0.12.14,<0.13"

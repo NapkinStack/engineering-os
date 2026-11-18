@@ -21,6 +21,13 @@ Target time to first response: **7 days**.
 
 Operational detail: `skeleton/.nstack/playbooks/security.md`.
 
+## A known vulnerability in a dependency
+
+The CI check `Hooks and secrets` audits everything `uv.lock` installs with `pip-audit`, transitive
+dependencies included: a known vulnerability fails it, on every pull request, until the lock
+moves past it. Dependabot's security updates open that pull request; the published package
+carries no lock, so a project installing it resolves current versions.
+
 ## An exposed secret
 
 A secret exposed, even briefly, even in a commit since rewritten: **rotate it

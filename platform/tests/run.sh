@@ -512,6 +512,12 @@ for f in .github/workflows/governance.yml skeleton/.github/workflows/governance.
     || { echo "FAIL: $f does not read the commit messages and the description."; exit 1; }
 done
 
+echo "-> CI: the framework's lock is audited for known vulnerabilities, hashes and all (D234)"
+grep -qF 'uv export --locked --all-groups --no-emit-project' .github/workflows/governance.yml \
+  && grep -qF 'uv run pip-audit --require-hashes --disable-pip --strict -r' .github/workflows/governance.yml \
+  && grep -qE '"pip-audit==[0-9.]+"' pyproject.toml \
+  || { echo "FAIL: CI does not audit uv.lock with a pip-audit the lock pins."; exit 1; }
+
 echo "-> hooks: same gitleaks version at commit time and in the history scan"
 V_HOOK=$(grep -A1 'repo: https://github.com/gitleaks/gitleaks' .pre-commit-config.yaml | grep -oE 'frozen: v[0-9.]+' | cut -d' ' -f2 || true)
 V_HISTORY=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 || true)

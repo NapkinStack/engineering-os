@@ -95,6 +95,15 @@ jobs:
           SKIP: gitleaks
         run: uv run pre-commit run --all-files --show-diff-on-failure
 
+      # No known vulnerability in what the lock installs: Dependabot's version updates move
+      # what pyproject.toml declares, never a transitive dependency (32 advisories sat on
+      # filelock and virtualenv, under pre-commit, for a month). The lock's hashes go with it.
+      - name: Known vulnerabilities in the lock
+        run: |
+          locked="$RUNNER_TEMP/locked.txt"
+          uv export --locked --all-groups --no-emit-project --quiet -o "$locked"
+          uv run pip-audit --require-hashes --disable-pip --strict -r "$locked"
+
       # Rule S1: no secret in the repository. Output redacted, the logs are public.
       - name: Secrets in the whole git history
         run: uv run pre-commit run gitleaks-history --hook-stage manual --all-files
