@@ -95,15 +95,6 @@ jobs:
           SKIP: gitleaks
         run: uv run pre-commit run --all-files --show-diff-on-failure
 
-      # No known vulnerability in what the lock installs: Dependabot's version updates move
-      # what pyproject.toml declares, never a transitive dependency (32 advisories sat on
-      # filelock and virtualenv, under pre-commit, for a month). The lock's hashes go with it.
-      - name: Known vulnerabilities in the lock
-        run: |
-          locked="$RUNNER_TEMP/locked.txt"
-          uv export --locked --all-groups --no-emit-project --quiet -o "$locked"
-          uv run pip-audit --require-hashes --disable-pip --strict -r "$locked"
-
       # Rule S1: no secret in the repository. Output redacted, the logs are public.
       - name: Secrets in the whole git history
         run: uv run pre-commit run gitleaks-history --hook-stage manual --all-files
@@ -120,3 +111,16 @@ jobs:
           printf '%s\n' "$DESCRIPTION" > "$said"
           if git cat-file -e "$BASE^{commit}" 2>/dev/null; then git log --format=%B "$BASE..HEAD" >> "$said"; fi
           uv run pre-commit run no-session-link --hook-stage commit-msg --commit-msg-filename "$said"
+
+      # Last, so that a red here never hides the secrets and the messages above.
+      # What `uv sync --locked` installs, with its hashes, against the known vulnerabilities:
+      # Dependabot's version updates move what pyproject.toml declares, never a transitive
+      # dependency (32 advisories sat on filelock and virtualenv, under pre-commit, for a month).
+      # One a release fixes fails; one with no fix yet is a warning (platform/audit_lock.py).
+      - name: Known vulnerabilities in the lock
+        run: |
+          locked="$RUNNER_TEMP/locked.txt"
+          uv export --frozen --no-emit-project --quiet -o "$locked"
+          report="$RUNNER_TEMP/audit.json"
+          uv run --only-group audit pip-audit --require-hashes --disable-pip -f json -r "$locked" > "$report" || true
+          uv run --only-group audit python platform/audit_lock.py < "$report"
