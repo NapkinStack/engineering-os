@@ -205,3 +205,19 @@ def test_the_intake_asks_what_was_already_asked_outside_the_team() -> None:
     handover = stage(FRAMING, "3. Hand over to the decider")
     assert "already\nasked is asked again" in handover and "every cycle" in handover, handover
     assert "titled `Log`" in (ROOT / "skeleton/.nstack/handbook/06-decisions.md").read_text(encoding="utf-8")
+
+
+def test_a_sealed_run_names_everything_it_must_not_share_and_how_to_check_it() -> None:
+    """#419: a project read "its own session, sound server and ports" and declared its runs sealed;
+    two parallel runs then swapped each other's binaries in a shared build folder, and one run's
+    teardown, killing by executable path, killed the other's processes. A third module, whose run
+    waits for a quiet machine, was nearly declared sealed: the opposite of it."""
+    tests = (SKELETON / "playbooks/tests.md").read_text(encoding="utf-8")
+    sealed = tests[tests.index("**One run at a time, unless sealed.**"):tests.index("## 2. The oracle")]
+    for shared in ("build output", "processes", "load"):
+        assert shared in sealed.lower(), (shared, sealed)
+    for advice in ("never by name or executable path", "the opposite of sealed", "binds port 0 itself", "never a fixed path"):
+        assert advice in sealed, advice
+    assert "its own headless session and sound server" not in sealed, "the example still says the narrow reading"
+    rows = [line for line in sealed.splitlines() if line.strip().startswith("|")][2:]
+    assert len(rows) == 5 and all(row.count("|") == 3 and row.split("|")[2].strip() for row in rows), rows  # each with its check
