@@ -22,6 +22,56 @@ a patch.
 
 ---
 
+## v0.32.0 — 2026-11-18
+
+D234–D239. Four come from the same multi-agent project's day on v0.30.0; two come from the framework's own repository.
+
+This is a minor version.
+- **What it adds:** `nstack attest --void`, and `doctor`'s G22.
+- **What changes for a project:**
+  - `nstack doctor` reports a new gap where the ruleset does not ask branches to be up to date before merging (G22);
+  - `nstack settings` now asks for it.
+- No check that was green turns red.
+
+**In the engine**
+
+- **Branches up to date before merging** (D239, #430). Two pull requests each green on their own base turned main red together, and no check ever judged them together.
+  - `nstack doctor` G22 reads whether the ruleset asks branches to be up to date (`strict_required_status_checks_policy`), or has a merge queue. It reads every ruleset GitHub layers on the branch; G4 now does too.
+  - `nstack settings` asks for the required checks up to date. It asked for them not up to date before.
+- **A record known to be unsound is voided** (D238, #429). `nstack attest --void <commit> --reason "<why>"` adds a line to the commit's note naming who, why and every run it voids.
+  - None of those runs is a record any more, and no check is kept from them, on the commit or through another commit's record.
+  - `pr-check` refuses a head whose record is voided, or that keeps a check from a voided run, until it is attested again.
+  - A void passes the record's identity rule, and fails when it is not pushed.
+- **A failed module check says what failed** (D237, #428).
+  - Under its FAIL line, `nstack attest` shows the last lines the module's own command wrote, where a test runner names the failed test.
+  - It keeps the check's whole output in `.git/nstack/attest/<commit>-<check>.log`, never in the tree and never pushed.
+  - Output that is not UTF-8 no longer crashes the attest.
+- **A refused push is said as refused** (D236, #427). After a refused push, `claim`, `unclaim` and `deliver` read the remote again. A hold that did not move gets the refusal's own words, on both streams, and what can refuse it, instead of « hold moved meanwhile … run nstack plan ». A remote that cannot be read again is said as not known.
+- The framework's own CI audits its lock for known vulnerabilities (D234), and the lock moved past 32 advisories (#425). The published package carries no lock, so no project was exposed.
+
+**In your project** — 5 files, text and the pre-push script
+
+- **`.nstack/fitness-before-push.sh`** (D236): nstack's own records go through without judging the project: a hold's event on `refs/heads/nstack/hold/…`, and an attested record on `refs/notes/nstack/…`. A red default branch no longer stops a deliverable from being given back.
+- **`.nstack/handbook/05-workflow.md`** (D239): *Up to date before merging*, three habits that keep it cheap:
+  - update at the last moment;
+  - update by merging the default branch in, never by a rebase;
+  - one merge at a time.
+- **`.nstack/handbook/07-governance.md`** §7 (D237, D238, D239):
+  - a failed check's output and where it is kept;
+  - voiding a record;
+  - the up-to-date row, which replaces the merge queue's.
+- **`.nstack/handbook/INSTALL.md`** (D238, D239): the `attest --void` line, and the checklist's new line.
+- **`.nstack/handbook/RULES.md`** (D239): G22.
+
+**Migration**
+
+- **Branches up to date** (D239): run `nstack doctor`. Where it reports G22, run `nstack settings --apply`, or tick the setting by hand: Settings → Rules → the ruleset of the default branch → Require status checks → Require branches to be up to date before merging. Then follow the three habits in `05-workflow.md`.
+  - Where stale approvals are dismissed, the forge may ask for the approval again after an update; the approver then reads only what the update brought.
+  - Where checks are attested, the updated head is attested again. A module's checks are kept while nothing they read moved.
+- **A record known to be unsound** (D238): `nstack attest --void <commit> --reason "<why>"` on each affected commit, then attest the heads again.
+
+---
+
 ## v0.31.0 — 2026-11-18
 
 D225–D233, from a fourth project's first cycles: what its team had to catch by hand, written where the next one reads it.
