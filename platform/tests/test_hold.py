@@ -1965,3 +1965,94 @@ def test_an_issue_s_comment_never_publishes_an_address(shared, monkeypatch):
     monkeypatch.setattr(hold, "_call", lambda forge, method, path, body=None: posted.append(body) or {})
     hold._show_issue(shared, "origin", "14", "Alice Doe <alice@example.org>", "s-1")
     assert posted == [{"body": "Held by Alice Doe, session s-1 (nstack claim '#14'): work on branches issue-14-…."}]
+
+
+# --- A push the clone's own hook refuses is no hold that moved (D236, #427) ---
+# Measured downstream on 2026-11-18: the default branch red, the pre-push hook refused every push,
+# and `unclaim` said twice "hold moved meanwhile" while the hold was the same here and on origin.
+
+def test_a_release_refused_by_a_pre_push_hook_says_the_hook_s_reason_not_a_moved_hold(shared, capsys):
+    """Reproducer of #427: a push the clone's own pre-push hook refuses is said as a hold that moved."""
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    hook = alice / ".git/hooks/pre-push"
+    hook.write_text("#!/bin/sh\necho 'fitness: B1 the default branch is red'\necho 'and on stderr' >&2\nexit 1\n",
+                    encoding="utf-8")
+    hook.chmod(0o755)
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="alice-d1", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert remote_events(shared) == ["claim"]
+    assert "moved meanwhile" not in out and "run nstack plan" not in out, out
+    assert "B1 the default branch is red" in out and "and on stderr" in out, out
+    assert "FAIL [hold] D1: the push was refused" in out, out
+
+
+def test_a_hold_that_really_moved_keeps_its_message(shared, monkeypatch, capsys):
+    """Its neighbour: the remote's hold moved between this clone's read and its push."""
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="agent-one", person="@alice") == 0
+    assert hold.claim(clone(shared, "other"), "D1", session="agent-two", person="@alice", take_over=True) == 0
+    stale = hold.fetch  # alice's read is the one before the take-over: the race, held still
+    monkeypatch.setattr(hold, "fetch", lambda root, again=False: stale(root) if again else hold.remote(root))
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="agent-one", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [hold] D1's hold moved meanwhile" in out and "run nstack plan, then again" in out, out
+    assert remote_events(shared) == ["take-over", "claim"]
+
+
+def test_a_delivery_refused_by_a_pre_push_hook_says_the_hook_s_reason(shared, capsys):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    landed(alice, "the work (D1) (#7)")
+    hook = alice / ".git/hooks/pre-push"
+    hook.write_text("#!/bin/sh\necho 'the hook says no'\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    capsys.readouterr()
+    assert hold.deliver(alice, "D1", ["#7"], session="alice-d1", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "moved meanwhile" not in out and "FAIL [deliver] D1: the push was refused" in out, out
+    assert "the hook says no" in out, out
+
+
+def test_a_claim_refused_by_a_pre_push_hook_says_the_hook_s_reason(shared, capsys):
+    alice = clone(shared, "alice")
+    hook = alice / ".git/hooks/pre-push"
+    hook.write_text("#!/bin/sh\necho 'the hook says no'\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [hold] D1: the push was refused, and the hold did not move" in out and "the hook says no" in out
+    assert "taken first" not in out and git(shared, "for-each-ref", "refs/heads/nstack/hold").strip() == ""
+
+
+def test_a_remote_unreadable_after_a_refusal_is_not_said_unmoved(shared, monkeypatch, capsys):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    (alice / ".git/hooks/pre-push").write_text("#!/bin/sh\necho 'no route to host' >&2\nexit 1\n", encoding="utf-8")
+    (alice / ".git/hooks/pre-push").chmod(0o755)
+    first = hold.fetch
+
+    def gone(root, again=False):
+        if again:
+            raise hold.Unreachable("no answer")
+        return first(root)
+    monkeypatch.setattr(hold, "fetch", gone)
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="alice-d1", person="@alice") == 1
+    out = capsys.readouterr().out
+    assert "whether the hold moved is not known" in out and "did not move" not in out, out
+
+
+def test_an_event_the_remote_took_before_git_failed_is_said_recorded(shared, monkeypatch, capsys):
+    """git can fail after the remote took the ref (a connection cut on the answer): the event is on record."""
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    pushed = hold._record
+    monkeypatch.setattr(hold, "_record", lambda *args: (pushed(*args), (False, "connection reset"))[1])
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="alice-d1", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert "D1 released by @alice" in out and "moved meanwhile" not in out, out
+    assert remote_events(shared) == ["release", "claim"]

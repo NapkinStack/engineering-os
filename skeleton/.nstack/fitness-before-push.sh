@@ -8,6 +8,13 @@
 # file, a pre-release — leaves the judging to the engine here, as before, and to CI.
 #
 # Plain sh, with sed and awk: the workstation's engine may predate this file.
+# What nstack records beside the code — a hold's event (claim, unclaim, deliver) on
+# refs/heads/nstack/hold/…, an attested record in refs/notes/nstack/… — moves no file of the
+# project: a red default branch never stops it being recorded (#427). Every other hook still
+# runs on it, and CI judges every pull request.
+case "${PRE_COMMIT_REMOTE_BRANCH:-}" in
+  refs/heads/nstack/hold/*|refs/notes/nstack/*) echo "nstack's own record: no file of the project to judge."; exit 0 ;;
+esac
 command -v nstack >/dev/null 2>&1 || { echo "nstack is not installed: CI judges"; exit 0; }
 
 RECORDED=$([ -f .copier-answers.yml ] && tr -d '\r' < .copier-answers.yml |

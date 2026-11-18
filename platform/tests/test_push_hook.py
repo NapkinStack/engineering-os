@@ -29,7 +29,8 @@ def _entry() -> str:
     raise AssertionError("no nstack-fitness hook")
 
 
-def _push(tmp_path: Path, engine: str | None, commit: str) -> tuple[subprocess.CompletedProcess, list[str]]:
+def _push(tmp_path: Path, engine: str | None, commit: str, branch: str = "refs/heads/d1-work") \
+        -> tuple[subprocess.CompletedProcess, list[str]]:
     """The hook's entry run as pre-commit runs it, in a project recording `commit`, with an
     `nstack` that answers `--version` as `engine` and logs every check it is asked for."""
     bin_ = tmp_path / "bin"
@@ -48,7 +49,7 @@ echo "$1" >> "{tmp_path}/checks"
                                                  encoding="utf-8")
     path = f"{bin_}:/usr/bin:/bin"
     result = subprocess.run(["sh", "-c", _entry()], cwd=project, capture_output=True, text=True,
-                            env={**os.environ, "PATH": path}, timeout=60)
+                            env={**os.environ, "PATH": path, "PRE_COMMIT_REMOTE_BRANCH": branch}, timeout=60)
     checks = (tmp_path / "checks").read_text(encoding="utf-8").split() if (tmp_path / "checks").exists() else []
     return result, checks
 
@@ -111,3 +112,20 @@ def test_a_project_without_answers_is_judged_without_noise(tmp_path):
 def test_a_workstation_without_nstack_lets_ci_judge(tmp_path):
     result, checks = _push(tmp_path, None, "v0.30.0")
     assert result.returncode == 0 and "CI judges" in result.stdout, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("branch, judged", [
+    ("refs/heads/nstack/hold/03-the-window/D1", False),   # a hold's event: metadata only (#427)
+    ("refs/notes/nstack/checks", False),                  # an attested record
+    ("refs/heads/nstack/hold-not-a-hold", True),
+    ("refs/heads/main", True),
+])
+def test_a_hold_s_event_is_pushed_without_judging_the_project(tmp_path, branch, judged):
+    """#427: the default branch red, the hook refused every push, a hold's event included —
+    `nstack unclaim` could not give a deliverable back. An event moves no file of the project."""
+    result, checks = _push(tmp_path, "nstack 0.29.0", "v0.30.0", branch)
+    if judged:
+        assert result.returncode == 1 and checks == [], result.stdout
+    else:
+        assert result.returncode == 0 and checks == [], result.stdout + result.stderr
+        assert "nstack's own record" in result.stdout
