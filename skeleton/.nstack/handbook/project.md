@@ -200,7 +200,9 @@ project, 7 by default) it is **stale**, and anyone may take it over — recorded
 taken from; the previous work is kept. The pull request check refuses delivery work for a
 deliverable someone else holds (K5): its commits name none of the hold's sessions, and no
 author, committer or opener is its person; nobody holds it, it asks nothing. A holder working
-from a new session takes it first, on the person's word — `nstack claim D30 --take-over --person @alice --session <it>`. A hold says who is
+from a new session takes it first, on the person's word — `nstack claim D30 --take-over --person @alice --session <it>`. The
+previous session's work goes on with the new one: its commits — a merge of the default branch into
+the former branch is enough — name the new session, and K5 reads it there. A hold says who is
 accountable; it proves nobody's identity.
 
 **A hold lasts its cycle.** Once the cycle is closed or stopped, nothing it guarded can be delivered, and

@@ -130,7 +130,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 | `K2` | Delivery work from the cycle's end date — its first day over: the circuit breaker | `.nstack/handbook/project.md` |
 | `K3` | Delivery work that names no ready or in-progress deliverable | `.nstack/handbook/project.md` |
 | `K4` | The out-of-cycle label with no justification | `.nstack/handbook/project.md` |
-| `K5` | Delivery work for a deliverable someone else holds — from none of the hold's sessions, nor its person's account | `.nstack/handbook/project.md`, *Who holds a deliverable* |
+| `K5` | Delivery work for a deliverable someone else holds — from none of the hold's sessions (a merge counts), nor its person's account | `.nstack/handbook/project.md`, *Who holds a deliverable* |
 
 ## V — a contract version someone relies on
 

@@ -22,7 +22,8 @@ Rules:
   K3  delivery work names a ready or in-progress deliverable of the cycle
   K4  the out-of-cycle label carries its justification
   K5  delivery work for a deliverable someone holds comes from its holder: one of the hold's
-      sessions, or its person's account (`nstack claim`)
+      sessions — named by any commit it brings, a merge included, as after a take-over — or its
+      person's account (`nstack claim`)
 
 Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
 beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24) — or whose manifest
@@ -600,6 +601,15 @@ def _held(root: Path, ident: str) -> bool:
     return found is not None and not isinstance(found, str)
 
 
+def merge_sessions(root: Path, base: str, head: str) -> set[str]:
+    """The agent sessions named by the merges the pull request brings. For K5 alone (#439): a
+    deliverable taken over, its new session merges the default branch into the former session's
+    branch, and that merge may be its only commit. A sheet's authors stay the non-merge commits'."""
+    log = _git(root, "log", "--merges", f"--format=%(trailers:key={SESSION_TRAILER},valueonly,separator=%x1d)%x1e",
+               f"{base}..{head}").stdout
+    return {value.strip().casefold() for record in log.split("\x1e") for value in record.split("\x1d") if value.strip()}
+
+
 def identities(root: Path, base: str, head: str) -> set[str]:
     """The git identities, `Name <email>`, of the authors and committers of the commits the pull
     request brings."""
@@ -948,7 +958,9 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
                              hands if isinstance(hands, set) else None, same_inputs(root, head, base)) if carried else []
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
-        check_hold(root, body, labels, authorship, fail, warnings.append, identities(root, base, head))
+        logins, sessions, unnamed = authorship
+        check_hold(root, body, labels, (logins, sessions | merge_sessions(root, base, head), unnamed),
+                   fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail, warnings.append)
     if forge == "github":
         check_approvals(root, base, head, approvals(root), warnings.append)
