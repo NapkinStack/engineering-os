@@ -152,7 +152,8 @@ def test_a_github_project_s_update_writes_forge_github_and_changes_nothing_else(
     after = {path.relative_to(old).as_posix() for path in old.rglob("*") if path.is_file() and ".git" not in path.parts}
     updated = yaml.safe_load((old / ".copier-answers.yml").read_text(encoding="utf-8"))
     assert updated["forge"] == "github" and updated["github_repo"] == "acme/demo"
-    assert after == before, f"files added or removed: {sorted(after ^ before)}"
+    added_since = {".nstack/fitness-before-push.sh"}  # the skeleton's files new since v0.14.0 (D232)
+    assert before <= after and after - before == added_since, f"files added or removed: {sorted(after ^ before)}"
 
 
 def test_a_github_project_s_update_keeps_its_own_lines_in_the_github_folder(tmp_path, capsys):
