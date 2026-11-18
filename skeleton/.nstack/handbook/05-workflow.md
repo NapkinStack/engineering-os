@@ -148,6 +148,26 @@ things the forge and the sheet do then, to know before the first merge:
   approval it already had — where the plan has no ruleset to dismiss it, `pr-check` says it
   (R1) (`07-governance.md` §7).
 
+**Up to date before merging** (G22). Two pull requests each green on its own base can turn the
+default branch red together — one starts reading what the other starts providing —, so the
+ruleset merges a branch only once it carries the default branch: what the checks judged is what
+lands. Three habits keep that from costing the team:
+
+- **update at the last moment**: only the pull request about to merge — approved, green — takes
+  the default branch in; the others wait their turn untouched. One update per merge, not one per
+  open pull request each time another merges;
+- **update by merging the default branch in, never by a rebase**: a rebase rewrites what was
+  approved; a merge adds one commit that brings the default branch, which the approver reads as
+  that, and `pr-check`'s R1 counts as covered when it carries nothing of its own. Where stale
+  approvals are dismissed (G13), the forge may still ask the approval again after an update: the
+  approver then reads only what the default branch brought. Where an agent approves, the update is
+  the last push, and another identity than its pusher's approves it (G21). The squash keeps the
+  default branch's history one commit per pull request;
+- **one merge at a time**, then the next pull request's turn: it takes the default branch in, its
+  checks run again — where they are attested, `nstack attest` on the updated head, whose status
+  the ruleset waits for, and which keeps a module's checks while nothing they read moved (§7) —
+  and it merges.
+
 **Once merged, a branch is gone.** A merged branch is history, not a place to work: left
 there, it is one more name to read past, and one day somebody builds on it. The forge
 deletes it at the merge when it is set to (`G16`, `07-governance.md` §7) — a guardrail worth

@@ -270,7 +270,7 @@ to use (GitHub wording, transposable elsewhere):
 | Labels | Exceptions are visible and counted |
 | Protected environments | Deployment goes through an approval |
 | Dependency / security automation | CVEs do not depend on manual watching |
-| Merge queue | Avoids merges that break each other |
+| Branches up to date before merging (G22) — or a merge queue, where the forge offers one (organisation repositories) and the checks run on it | Two changes each green on its own base never turn main red together: what was checked is what lands. Updating a branch costs the cheap checks — attested, `nstack attest` on the updated head; a module's are kept while nothing they read moved. How to keep it cheap: `05-workflow.md`, *Up to date before merging* |
 | A dedicated identity for agents | An agent never merges around the approval the project asks for |
 | Rulesets with an empty bypass list | Nobody, administrators included, merges around a rule |
 | Stale approvals dismissed on push | An approval covers the commits its approver read — where the plan has no ruleset, `pr-check` says each approval the head moved past (R1) |

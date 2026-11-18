@@ -1148,7 +1148,8 @@ rules = [
                                                              "dismiss_stale_reviews_on_push": True}},
     {"type": "required_status_checks", "ruleset_id": 1, "parameters": {"required_status_checks": [
         {"context": "Fitness functions"}, {"context": "PR scope and review budget"}, {"context": "Hooks and secrets"},
-        {"context": "Test sheet and cycle"}, {"context": "Module checks"}]}},
+        {"context": "Test sheet and cycle"}, {"context": "Module checks"}],
+        "strict_required_status_checks_policy": True}},  # G22
 ]
 labels = {f"/labels/{name}": {"name": name} for name in ("cross-module", "over-budget", "out-of-cycle",
                                                           "request", "bug", "architecture", "debt", "acceptance")}
@@ -1283,7 +1284,7 @@ PY
 }
 
 echo "-> init: GitHub checklist printed, identical to the foundation manual and to the CI jobs"
-[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 20 ] && grep_text "$INIT_OUT" -qF "nstack doctor" \
+[ "$(echo "$INIT_OUT" | grep -cF -- '- [ ] ')" -eq 21 ] && grep_text "$INIT_OUT" -qF "nstack doctor" \
   || { echo "FAIL: checklist missing from the init output."; echo "$INIT_OUT"; exit 1; }
 echo "$INIT_OUT" | grep -F -- '- [ ] ' | sed 's/^ *//' | while IFS= read -r line; do
   grep -qF -- "$line" skeleton/.nstack/handbook/INSTALL.md.jinja \
@@ -1405,7 +1406,7 @@ fi
   && grep_text "$OUT" -qF "To start: follow .nstack/playbooks/framing.md" \
   && grep_text "$OUT" -qE "^  UNFRAMED +no accepted charter — a stage, not a gap" \
   || { echo "FAIL: doctor does not say once what framing buys."; echo "$OUT"; exit 1; }
-for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19 G20; do
+for rule in G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 G14 G15 G16 G17 G18 G19 G20 G22; do
   grep_text "$OUT" -qE "FAIL +\[$rule\]" \
     || { echo "FAIL: gap $rule not reported."; echo "$OUT"; exit 1; }
 done
@@ -1422,7 +1423,7 @@ repo_c acme/compliant
 if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant project refused."; echo "$OUT"; exit 1
 fi
-grep_text "$OUT" -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 27 ] \
+grep_text "$OUT" -qF "nstack doctor: compliant, 1 not applicable." && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 28 ] \
   || { echo "FAIL: compliance badly reported."; echo "$OUT"; exit 1; }
 grep_text "$OUT" -qF "This repository: guarded" && ! grep_text "$OUT" -qF "unguarded" \
   || { echo "FAIL: a repository whose barriers are in force must read guarded (PDR-0006)."; echo "$OUT"; exit 1; }
@@ -1459,7 +1460,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "$OUT"; exit 1
 fi
 grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 10 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 11 ] \
   && grep_text "$OUT" -qF "Secret Protection is a paid option" \
   && grep_text "$OUT" -qE "OK +\[G7\]" \
   || { echo "FAIL: private repository on the Free plan badly reported."; echo "$OUT"; exit 1; }
@@ -1475,7 +1476,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 grep_text "$OUT" -qF "nstack doctor: compliant" && grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 27 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"

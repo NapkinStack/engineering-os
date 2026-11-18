@@ -46,7 +46,7 @@ from napkinstack.project import ANSWERS
 
 RULESET_NAME = "nstack-checklist"
 HOLDS_RULESET = "nstack-holds"  # the holds of deliverables: never forced, never deleted (G20)
-IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18", "G21")
+IN_RULESET = ("G1", "G2", "G3", "G4", "G13", "G17", "G18", "G21", "G22")
 PULL_REQUEST = ("G1", "G2", "G3", "G13", "G21")
 LABEL_COLOURS = {"cross-module": "d93f0b", "over-budget": "fbca04", "out-of-cycle": "5319e7",
                  "request": "0e8a16", "bug": "d73a4a", "architecture": "1d76db", "debt": "c5def5",
@@ -76,10 +76,11 @@ def ruleset(missing: set[str]) -> dict:
             "required_approving_review_count": 1, "require_code_owner_review": True,
             "dismiss_stale_reviews_on_push": True, "require_last_push_approval": "G21" in missing,
             "required_review_thread_resolution": False}})
-    if "G4" in missing:
+    if missing & {"G4", "G22"}:
+        # Up to date before merging (G22, #430): what the checks judged is what lands, main included.
         rules.append({"type": "required_status_checks", "parameters": {
             "required_status_checks": [{"context": job} for job in doctor.JOBS],
-            "strict_required_status_checks_policy": False}})
+            "strict_required_status_checks_policy": True}})
     return {"name": RULESET_NAME, "target": "branch", "enforcement": "active",
             "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
             "bypass_actors": [], "rules": rules}
@@ -281,8 +282,10 @@ def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str]) -> in
             if rest:
                 again, answer_again = client.send(method, path, {**body, "rules": rest})
                 if again:
-                    print(f"  applied  {closed.replace('G4, ', '').replace(', G4', '')}: {method} {path or '/'} "
-                          f"({answer_again}); G4 refused ({answer}): open a first pull request, let the checks "
+                    kept = ", ".join(rule for rule in closed.split(", ") if rule not in ("G4", "G22"))
+                    refused = " and ".join(rule for rule in closed.split(", ") if rule in ("G4", "G22"))
+                    print(f"  applied  {kept}: {method} {path or '/'} "
+                          f"({answer_again}); {refused} refused ({answer}): open a first pull request, let the checks "
                           "run, then run nstack settings --apply again")
                     failed += 1
                     continue

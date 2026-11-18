@@ -186,3 +186,4 @@ repository *unguarded*; `W1` does not run.
 | `G19` | A default branch other than `main`, which no workflow watches | `07-governance.md` §7 |
 | `G20` | A hold of a deliverable that can be force-pushed or deleted: the one way past its refusal | `project.md`, *Who holds a deliverable* |
 | `G21` | Where another agent approves, the one who pushed last approving what they pushed | `07-governance.md` §7 |
+| `G22` | A branch merged without being up to date with main: two changes green apart, red together | `07-governance.md` §7 |
