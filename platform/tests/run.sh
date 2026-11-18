@@ -512,6 +512,27 @@ for f in .github/workflows/governance.yml skeleton/.github/workflows/governance.
     || { echo "FAIL: $f does not read the commit messages and the description."; exit 1; }
 done
 
+echo "-> CI: the framework's lock is audited; a vulnerability a release fixes MUST fail (D234)"
+W=.github/workflows/governance.yml
+grep -qF 'uv run --only-group audit pip-audit --require-hashes --disable-pip -f json -r "$locked"' "$W" \
+  && grep -qF 'python platform/audit_lock.py < "$report"' "$W" \
+  && grep -qE '^audit = \["pip-audit==[0-9.]+"\]' pyproject.toml \
+  && [ "$(python3 -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["jobs"]["hooks"]["steps"][-1]["name"])' "$W")" = "Known vulnerabilities in the lock" ] \
+  && ! grep -qE 'continue-on-error' "$W" \
+  || { echo "FAIL: CI does not audit uv.lock, last in its job, with a pip-audit the lock pins."; exit 1; }
+audit() { python3 platform/audit_lock.py <<<"$1"; }
+FIXED='{"dependencies":[{"name":"filelock","version":"3.32.6","vulns":[{"id":"CVE-1","fix_versions":["4.2.1"]}]}]}'
+if OUT=$(audit "$FIXED"); then echo "FAIL: a vulnerability a release fixes passed."; echo "$OUT"; exit 1; fi
+grep_text "$OUT" -qF "FAIL filelock 3.32.6: CVE-1, fixed in 4.2.1" || { echo "FAIL: the fixed vulnerability is not named."; echo "$OUT"; exit 1; }
+UNFIXED='{"dependencies":[{"name":"pip","version":"25.0","vulns":[{"id":"CVE-2","fix_versions":[]}]}]}'
+OUT=$(audit "$UNFIXED") || { echo "FAIL: a vulnerability with no fix yet stopped every pull request."; echo "$OUT"; exit 1; }
+grep_text "$OUT" -qF "::warning title=No fix yet::pip 25.0: CVE-2" || { echo "FAIL: an unfixed vulnerability is not said."; echo "$OUT"; exit 1; }
+for broken in '' 'not json' '{"dependencies":[{"name":"x","version":"1","skip_reason":"unreadable"}]}'; do
+  if OUT=$(audit "$broken"); then echo "FAIL: an audit that read nothing passed: '$broken'."; echo "$OUT"; exit 1; fi
+done
+audit '{"dependencies":[{"name":"pyyaml","version":"6.0","vulns":[]}]}' >/dev/null \
+  || { echo "FAIL: a clean lock failed the audit."; exit 1; }
+
 echo "-> hooks: same gitleaks version at commit time and in the history scan"
 V_HOOK=$(grep -A1 'repo: https://github.com/gitleaks/gitleaks' .pre-commit-config.yaml | grep -oE 'frozen: v[0-9.]+' | cut -d' ' -f2 || true)
 V_HISTORY=$(grep -oE 'gitleaks/v8@v[0-9.]+' .pre-commit-config.yaml | cut -d@ -f2 || true)
