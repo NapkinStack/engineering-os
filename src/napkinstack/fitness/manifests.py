@@ -412,8 +412,8 @@ def declared_evidence(manifests: list[Path], root: Path) -> None:
                 fail(name, "M12", f"the declaration of {item['pattern']!r} names no scenario: say which provokes it.\n{action}", at)
         if "sealed" in section and not isinstance(section["sealed"], bool):
             fail(name, "M12", "evidence.sealed must be true or false: true when the module's end-to-end run shares "
-                              "nothing with another run — session, devices, ports, files it writes, processes — and "
-                              "passes whatever the machine's load.\n      Action: evidence.sealed: true or false, or no key: the run then waits "
+                              "nothing with another run — session, devices, ports, files it writes, processes —, stays under the "
+                              "user's kernel limits and passes whatever the machine's load.\n      Action: evidence.sealed: true or false, or no key: the run then waits "
                               "its turn (.nstack/playbooks/tests.md).", at)
         if "levels" in section and not isinstance(section["levels"], str):
             fail(name, "M12", "evidence.levels must be text, a regular expression.\n"

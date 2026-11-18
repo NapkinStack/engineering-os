@@ -271,8 +271,8 @@ WAIT_SAID_EVERY = 60.0  # seconds between two lines of a run that waits: a long 
 
 def sealed(manifest: Path) -> bool:
     """Whether the module declares its end-to-end run sealed, `evidence.sealed: true` (#402): its own
-    session, devices, ports, the files it writes and its processes, and timings that hold whatever the load
-    (#419) — nothing another run shares."""
+    session, devices, ports, the files it writes and its processes, the user's kernel limits it stays under, and
+    timings that hold whatever the load (#419) — nothing another run shares."""
     try:
         data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError):

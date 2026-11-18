@@ -211,13 +211,17 @@ def test_a_sealed_run_names_everything_it_must_not_share_and_how_to_check_it() -
     """#419: a project read "its own session, sound server and ports" and declared its runs sealed;
     two parallel runs then swapped each other's binaries in a shared build folder, and one run's
     teardown, killing by executable path, killed the other's processes. A third module, whose run
-    waits for a quiet machine, was nearly declared sealed: the opposite of it."""
+    waits for a quiet machine, was nearly declared sealed: the opposite of it. Then (D240) one exhausted
+    per-user limit, inotify instances, cost several runs in a week: no folder of its own run isolates it."""
     tests = (SKELETON / "playbooks/tests.md").read_text(encoding="utf-8")
     sealed = tests[tests.index("**One run at a time, unless sealed.**"):tests.index("## 2. The oracle")]
-    for shared in ("build output", "processes", "load"):
+    for shared in ("build output", "processes", "load", "per-user kernel limits"):
         assert shared in sealed.lower(), (shared, sealed)
-    for advice in ("never by name or executable path", "the opposite of sealed", "binds port 0 itself", "never a fixed path"):
+    for advice in ("never by name or executable path", "the opposite of sealed", "binds port 0 itself", "never a fixed path", "max_user_watches", "max_user_instances", "ulimit -u"):
         assert advice in sealed, advice
+    assert "ulimit -n" not in sealed, "the open-files limit is per process: runs never share it"
+    m12 = (ROOT / "src/napkinstack/fitness/manifests.py").read_text(encoding="utf-8")
+    assert "user's kernel limits" in m12, "M12 gives the same list as tests.md"
     assert "its own headless session and sound server" not in sealed, "the example still says the narrow reading"
     rows = [line for line in sealed.splitlines() if line.strip().startswith("|")][2:]
-    assert len(rows) == 5 and all(row.count("|") == 3 and row.split("|")[2].strip() for row in rows), rows  # each with its check
+    assert len(rows) == 6 and all(row.count("|") == 3 and row.split("|")[2].strip() for row in rows), rows  # each with its check
