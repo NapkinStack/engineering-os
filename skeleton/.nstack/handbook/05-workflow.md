@@ -340,10 +340,11 @@ the change, and the stricter applies:
     attested, it stands when nothing its modules read moved since its run: the records of its
     commit and of the head hold the same `inputs` digest — the modules run, those they consume
     from or assemble, the files outside the modules, `contracts/` and `platform/` included, the
-    engine and the person — and the run is at
-    most 7 days old, the default branch moved by 20 commits at most. A module that reads something
-    it does not declare is the risk: declare it in `consumes`, and the default branch's own
-    `Module checks` run catches what was missed;
+    project's records (`docs/project/`, `docs/adr/`, `docs/pdr/`) left out, the engine and the
+    person — and the run is at most 7 days old, the default branch moved by 20 commits at most. A
+    module that reads something it does not declare is the risk: declare it in `consumes` — a
+    record cannot be declared: a check never reads one —, and the default branch's own `Module
+    checks` run catches what was missed once it runs that module;
   - one **explored** by hand keeps the commit its evidence was produced on, and the verifier
     adds a **`Confirmed`** column on the head commit saying **what moved since and why it leaves
     the result standing**. Reading three fixes is not the same work as driving six scenarios

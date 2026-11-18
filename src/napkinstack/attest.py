@@ -9,7 +9,8 @@ and is merged line by line; the latest line for a commit is its record. On GitHu
 that may write statuses, the run is also shown as `nstack / local checks` — a name no CI job
 has. A passed `Module checks` is kept, not run again, while the digest of what it reads is
 unchanged — the modules it runs and those they consume from or assemble, the files outside the
-modules, `contracts/` and `platform/` included, the engine and the person — for 7 days and 20 commits of the default branch at most (ADR-0006,
+modules, `contracts/` and `platform/` included, the project's records (`docs/project/`, `docs/adr/`,
+`docs/pdr/`) left out, the engine and the person — for 7 days and 20 commits of the default branch at most (ADR-0006,
 D223). A ruleset that requires that name gates the merge on the record, and the forge's pull
 request run leaves the record to it (D221): notes start no run, a status is an event.
 A record is *attested*, never *checked*: it makes a claim traceable, not true.
@@ -405,13 +406,17 @@ FRESH_COMMITS = 20  # and the default branch moved by at most this many commits 
 
 
 SHARED_MODULES = ("contracts", "platform")  # read by every module: counted as shared files (D223)
+# The project's records — charter, cycles, rules, log; ADRs; PDRs: no module check reads them (D242).
+# The rest of the root `docs/` stays an input: a module's end-to-end run may check a page it ships.
+RECORDS = ("docs/project/", "docs/adr/", "docs/pdr/")
 
 
 def inputs(root: Path, base: str, identity: str = "") -> str | None:
     """The digest of what `Module checks` reads at HEAD (ADR-0006 decision 2, D223): the folders of
     the modules it runs, of those they consume from or assemble, every tracked path outside the
-    module folders — `contracts/` and `platform/` included, which every module reads — and who runs
-    it with which engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
+    module folders — `contracts/` and `platform/` included, which every module reads — but the
+    project's records, `docs/project/`, `docs/adr/` and `docs/pdr/` (D242), and who runs it with which
+    engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
     import yaml
 
     from napkinstack import modules
@@ -442,10 +447,12 @@ def inputs(root: Path, base: str, identity: str = "") -> str | None:
             return None
         lines.append(f"{folder} {tree}")
     inside = tuple(f"{folder}/" for folder in every.values() if folder.split("/", 1)[0] not in SHARED_MODULES)
-    listed = _git(root, "ls-tree", "-r", "--full-tree", "HEAD", check=False)
+    # -z: a path git would quote — a record whose name is not ASCII, `résumé.md` — is read as it is.
+    listed = _git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD", check=False)
     if listed.returncode:
         return None
-    lines += [line for line in listed.stdout.splitlines() if not line.split("\t", 1)[-1].startswith(inside)]
+    lines += [line for line in listed.stdout.split("\0")
+              if line and not line.split("\t", 1)[-1].startswith((*inside, *RECORDS))]
     return hashlib.sha256("\n".join(lines).encode("utf-8", "surrogateescape")).hexdigest()
 
 

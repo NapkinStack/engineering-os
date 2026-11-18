@@ -312,7 +312,8 @@ by a commit with no change of its own — tracked or not. The record says which 
 (`kept_from`), with that run's evidence; what the tree's ignored files, the environment or the tools
 outside it hold is not compared: `nstack attest --again` runs them. They are also kept
 across commits — a merge of the default branch that touched nothing they read: their modules,
-those they consume from, `contracts/`, `platform/` and the files outside the modules — while the
+those they consume from, `contracts/`, `platform/` and the files outside the modules but the
+project's records (`docs/project/`, `docs/adr/`, `docs/pdr/`) — while the
 digest of what they read is unchanged, for 7 days and 20 default-branch commits at most. A record
 known to be unsound — two runs that shared what a run must not share, a tool found lying — is
 voided: `nstack attest --void <commit> --reason "<why>"` adds a line naming who, why and every
