@@ -24,9 +24,9 @@ a patch.
 
 ## v0.31.0 — 2026-11-18
 
-D225–D231, from a fourth project's first cycles: what its team had to catch by hand, written where the next one reads it.
+D225–D233, from a fourth project's first cycles: what its team had to catch by hand, written where the next one reads it.
 
-This is a minor version: it adds the shorter appetite, R1 and the board's preview. No check that was green turns red. `nstack init`, `new-module` and `new-contract` now refuse an owner they used to write (D225), and `nstack doctor` may report a new gap (L10).
+This is a minor version: it adds the shorter appetite, R1 and the board's preview. No check that was green turns red. `nstack init`, `new-module` and `new-contract` now refuse an owner they used to write (D225), and `nstack doctor` may report a new gap (L10). The pre-push hook now refuses a workstation whose engine is behind the project's version (D232): run `bash .nstack/install-engine.sh` once after taking it.
 
 **In the engine**
 
@@ -41,9 +41,13 @@ This is a minor version: it adds the shorter appetite, R1 and the board's previe
   - a warning, never a failure: a review starts no run, so a red check would outlive the approval of the head.
 - **A cycle shorter than a week** (D228, #370): a cycle sets `appetite_weeks` or `appetite_days`, never both (C3), and `end` = `start` + the appetite in either unit.
 - **A proposed cycle previewed as a board** (D231, #372): `nstack board --dry-run` also shows each proposed cycle's milestone and issues, and what its acceptance would collide with, marked *previewed, nothing made*. It needs no forge.
+- **What sealed means, in M12's message** (D233, #419): the same list as `tests.md`.
 
-**In your project** — 11 files, text and the engine's install script
+**In your project** — 15 files: text, the engine's install script, and one new script for the pre-push hook
 
+- **`.nstack/fitness-before-push.sh`**, new, and **`.pre-commit-config.yaml`** (D232, #420): the pre-push hook compares the workstation's `nstack --version` with the `_commit` the project records, an unpublished pin included, and refuses an engine behind it before any check, naming both versions and `bash .nstack/install-engine.sh`. Level or ahead judges as before. It is plain sh in the project, so it holds for an engine older than this version.
+- **`CONTRIBUTING.md`** (D232): run `install-engine.sh` again after each update.
+- **`.nstack/playbooks/tests.md`** (D233, #419): what a sealed end-to-end run does not share — session and devices, ports, the files it writes, processes, timings whatever the load — each with its check; the lock keeps unsealed runs apart, not sealed ones.
 - **`.nstack/install-engine.sh`** (D226): the retry while PyPI's index lags.
 - **`.github/workflows/pull-request.yml`** (D227): a permission comment.
 - **`.nstack/forms/cycle.md`** (D228) and **`.nstack/handbook/glossary.md`** (D228): `appetite_days`.
@@ -59,6 +63,8 @@ This is a minor version: it adds the shorter appetite, R1 and the board's previe
 
 - **Code owners on GitHub** (D225): run `nstack doctor`. If L10 names an unknown owner, such as `@<organisation>` alone, replace it in `.github/CODEOWNERS` with `@<organisation>/<team>` or a user. On a private repository, doctor's token needs Contents: read to read it.
 - **A short cycle** (D228): a cycle written `appetite_weeks: 1` for fewer days may take `appetite_days: N` and the `end` it sets, in the pull request that changes it.
+- **Every workstation** (D232): run `bash .nstack/install-engine.sh` after the update merges. Until then the pre-push hook refuses the push and says so; a workstation without nstack still pushes, and CI judges.
+- **A module declared `evidence.sealed: true`** (D233): read it against the table in `tests.md`. A row that does not hold — a shared build folder, a teardown by executable path, a wait for a quiet machine — means removing `sealed` until it does.
 - **The log** (D229): nothing to do. Where requests to outside parties live elsewhere, copy them into the `Log` issue as its first entries, never a secret.
 
 ---
