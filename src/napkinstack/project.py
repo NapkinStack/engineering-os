@@ -311,7 +311,8 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     named = str(created.get("forge") or "github")
     if named == "github":
         print(f"  2. Create the GitHub repository {created.get('github_repo')}, push main to it, then apply "
-              "these settings:")
+              "these settings — nstack settings prints the calls, nstack settings --apply makes them under "
+              "your own token (.nstack/handbook/INSTALL.md):")
         for rule, setting, _ in CHECKLIST:
             if not unasked(rule, created):  # G21 on `approval: agent` alone
                 print(f"     - [ ] {setting}")

@@ -1,8 +1,8 @@
 # PDR-0023 — A criterion's due date is the one written in bold
 
-- **Status**: Proposed (2026-11-10), option B chosen by the decider who assigned the defect;
-  accepted when a maintainer approves the pull request that carries it. It amends PDR-0020 §1
-  and §6 on one point, what a date of the criterion is; the rest of PDR-0020 stands
+- **Status**: Accepted (2026-11-13, when a maintainer approved the pull request that carried it,
+  built as D211); proposed 2026-11-10, option B chosen by the decider who assigned the defect.
+  It amends PDR-0020 §1 and §6 on one point, what a date of the criterion is; the rest of PDR-0020 stands
 - **Date**: 2026-11-10
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: the engine (the plan's rule C10), the decision forms, the framing

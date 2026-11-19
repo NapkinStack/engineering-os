@@ -206,7 +206,7 @@ and leaves a counted trace.
 
 **Two things are read before any rule fires, and neither is declared by whoever is judged.**
 The project's *stage* — unframed until its charter is accepted, framed after — decides
-whether the three rules that bound work inside a cycle apply at all
+whether the rules that bound work inside a cycle — K1 to K3 and K5 — apply at all
 (`.nstack/handbook/project.md`). The module's *criticality* decides which checks a change pays
 for, in either stage. One never stands in for the other.
 
@@ -312,7 +312,7 @@ by a commit with no change of its own — tracked or not. The record says which 
 (`kept_from`), with that run's evidence; what the tree's ignored files, the environment or the tools
 outside it hold is not compared: `nstack attest --again` runs them. They are also kept
 across commits — a merge of the default branch that touched nothing they read: their modules,
-those they consume from, `contracts/`, `platform/` and the files outside the modules but the
+those they consume from or assemble, `contracts/`, `platform/` and the files outside the modules but the
 project's records (`docs/project/`, `docs/adr/`, `docs/pdr/`) — while the
 digest of what they read is unchanged, for 7 days and 20 default-branch commits at most. A record
 known to be unsound — two runs that shared what a run must not share, a tool found lying — is
@@ -456,12 +456,13 @@ reported in practice; a project's first cross-approved pull request is its own p
 
 ### The approval is one gesture, not three
 
-Approving and merging are two different acts, and only the first needs a human. With
+Approving and merging are two different acts, and only the first is a judgement. With
 **auto-merge** allowed on the repository, the author arms it on the pull request when opening
 it (`gh pr merge <number> --auto --squash`), and the pull request merges itself the moment it
 is approved and its required checks go green: nobody waits on the reviewer to come back and
 press a button, and no agent is told to merge on their behalf. The barrier is untouched — the approval is still
-required, still human, still dismissed when new commits are pushed.
+required, still a human's or, under `approval: agent`, another agent's (above), still dismissed
+when new commits are pushed, a merge of the default branch included (`05-workflow.md`).
 
 What it removes is the round trip: **the approval message that carries no judgement at
 all**, and exists only to tell an agent that a merge could now happen.

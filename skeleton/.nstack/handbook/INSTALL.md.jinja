@@ -254,8 +254,9 @@ When you cannot create an App for this repository's owner, `--mine` makes it on 
 asks the owner to approve its installation. What the App gets — set by the command, and read
 by no check afterwards:
 
-- [ ] Permissions: Contents, Pull requests and Issues read and write; Actions and Checks
-      read; Workflows write only when agents maintain CI (`--workflows`); never Administration
+- [ ] Permissions: Contents, Pull requests and Issues read and write; Commit statuses write,
+      for the attested record's status; Actions and Checks read; Workflows write only when
+      agents maintain CI (`--workflows`); never Administration
 - [ ] No webhook; private, unless `--mine`
 - [ ] Its private key stored outside any repository; in CI, the CI's secrets
 - [ ] The agent's session reaches no human credential: `nstack agent run` keeps them out of its
@@ -377,8 +378,10 @@ nstack fitness       # manifests + boundaries + skills + plan + hygiene — befo
 nstack discover <idea-file>   # starts a discovery, for your agent
 nstack plan          # what needs a person first; then the discovery, the charter and the cycles (docs/project/), the decisions due at a closure, the project across its cycles, who holds what
 nstack claim D<n> --session <s> --person @<you>   # takes a deliverable before its first change; nstack unclaim gives it back
+                                                  # --take-over: a stale hold, or your own from another session
 nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered; --write-states at the closure
-{% if forge == "github" %}nstack agent add <name> · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
+{% if forge == "github" %}nstack agent add <name> [--clone <dir>] · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
+nstack agent status  # who this agent is — its App, repository, clone, gh and hooks; for a person, this project's agents
 {% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
 nstack skills        # generates the Claude Code skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
@@ -391,14 +394,19 @@ nstack bootstrap [module]   # commands.bootstrap, when declared
 nstack run <module>     # local start, when commands.run is declared
 nstack e2e [module]     # end-to-end scenarios, when commands.e2e is declared — one run at a time on a machine, unless sealed
 nstack clean [module]   # removes a module's build outputs, when commands.clean is declared
+nstack release [module]   # a module's artefacts into dist/<module>, when commands.release is declared
 nstack pr-check --body-file <file> [--labels a,b]   # test sheet and cycle, as CI reads them from the pull request
                                                     # with a token and one open pull request at the head, its own labels are read
 nstack attest --body-file <file> [--labels a,b]     # the CI's checks run here, recorded on the commit; labels as pr-check takes them
                                                     # module checks kept while what they read is unchanged, 7 days at most (--again runs them)
 nstack attest --void <commit> --reason "<why>"     # a record known unsound: never kept from again, the head attested again
+                                                    # --accept-identity: a first record under an identity the history does not show yet
+nstack pr-scope --base <base>   # one pull request = one module, within the review budget, as CI reads it
+nstack landed [--span <before>..<after>]   # what reached this branch outside a pull request, recorded
 nstack modules --changed-since <base>   # the modules with a file changed, as CI lists them
 nstack modules --changed-since <base> --with-contract-sides   # ... and both sides of a changed contract
 nstack compat [module] --base <base>    # a contract version consumed or stable: the merged proof
+nstack update [--ref <tag>]   # brings the project to another version of NapkinStack; --forge moves it to another forge
 # check, test and run of a module: the `commands` section of its MANIFEST.yaml
 ```
 

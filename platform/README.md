@@ -12,6 +12,7 @@ runbook, tests and configuration.
 
 | Path | Role |
 |---|---|
+| `src/napkinstack/cli.py` | The single entry point `nstack`: every command and its help |
 | `src/napkinstack/fitness/` | The architecture checks, not bypassable |
 | `src/napkinstack/modules.py` | Module and contract creation, and the standard verbs read from a MANIFEST |
 | `src/napkinstack/templates/` | A module's template, with no imposed stack, and the contracts module's |
@@ -30,6 +31,9 @@ runbook, tests and configuration.
 | `src/napkinstack/discovery.py` | `nstack discover`: a discovery started from an idea file, no model called |
 | `src/napkinstack/attest.py` | `nstack attest`: the CI's checks run on a workstation, recorded on the commit in git notes; kept, voided, and a failure's output kept |
 | `src/napkinstack/hold.py` | `nstack claim`, `unclaim`, `deliver`: who holds a deliverable, on a branch the remote refuses to a second taker |
+| `src/napkinstack/agent.py` | `nstack agent`: an agent's own GitHub App, clone and token, none of the person's credentials (PDR-0022) |
+| `src/napkinstack/owners.py` | Who must approve a change, read from the code owners file as the forge reads it (PDR-0021) |
+| `src/napkinstack/evidence.py` | What a module's end-to-end run said: its folder, its output, its level (PDR-0017) |
 | `src/napkinstack/board.py` | `nstack board`: the cycles shown as milestones and issues; a dry run previews a proposed cycle |
 | `audit_lock.py` | The verdict on `pip-audit`'s report of this repository's lock, in CI |
 | `tests/run.sh` | The oracle: every guardrail proves it can fail |

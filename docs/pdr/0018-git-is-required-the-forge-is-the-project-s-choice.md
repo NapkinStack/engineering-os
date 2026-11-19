@@ -36,7 +36,7 @@ forge is called an operator (PDR-0013). The product still assumes GitHub as its 
   - a test sheet's verifier is compared with the change's authors through GitHub's noreply
     addresses only — elsewhere no person is recognised as an author, and T2 passes any `@handle`
     silently; only agent sessions stay compared.
-- `nstack doctor` (G1–G20) and `nstack settings` read GitHub's settings only; elsewhere `doctor`
+- `nstack doctor` (its G lines) and `nstack settings` read GitHub's settings only; elsewhere `doctor`
   ends on a permanent *not verified*, and nothing says which protections are missing.
 - The displays — an attested record's status, a hold's draft pull request, the plan's milestones
   (ADR-0008) — are GitHub's.

@@ -531,7 +531,7 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         return
     stage = plan.stage(root)
     if stage == plan.UNREADABLE:
-        # Never a silent fall back to unframed: a broken file would then switch three rules off.
+        # Never a silent fall back to unframed: a broken file would then switch K1 to K3 and K5 off.
         fail("C1", f"{plan.CHARTER} cannot be read: the project's stage is unknown, and nothing is "
                    "assumed.\n      Action: fix its front matter — nstack plan says what is wrong.")
         return
