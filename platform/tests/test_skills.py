@@ -105,3 +105,31 @@ def test_an_update_says_a_skill_folder_git_would_track(tmp_path):
     (tmp_path / ".agents" / "skills").mkdir(parents=True)  # only the open layout generated so far
     said = project._refresh_skills(tmp_path)
     assert said and "WARNING: .agents/skills/ is not ignored by git" in said and "not committed" not in said, said
+
+
+def test_a_folder_holding_only_a_person_s_skills_is_not_read_by_s3(tmp_path, capsys):
+    """D248: a project that keeps skills of its own in .agents/skills/, tracked, has that folder in a
+    fresh clone with no generated skill in it: S3 does not ask for every playbook there."""
+    from napkinstack import skills
+
+    _project(tmp_path)
+    mine = tmp_path / ".agents" / "skills" / "mine"
+    mine.mkdir(parents=True)
+    (mine / "SKILL.md").write_text("---\nname: mine\n---\n\nWritten by a person.\n", encoding="utf-8")
+    assert skills.run(tmp_path, check_only=True) == 0, capsys.readouterr().out
+    assert skills.run(tmp_path) == 0  # generated there too, beside the person's
+    assert (mine / "SKILL.md").read_text(encoding="utf-8").endswith("Written by a person.\n")
+    capsys.readouterr()
+    assert skills.run(tmp_path, check_only=True) == 0, "generated there, and in sync"
+
+
+def test_a_folder_with_a_generated_skill_of_no_playbook_is_read(tmp_path, capsys):
+    """The banner alone marks the folder as nstack's: a skill left from a playbook gone, beside a person's."""
+    from napkinstack import skills
+
+    _project(tmp_path)
+    for name, text in (("gone", "<!-- GENERATED from x by nstack skills - DO NOT EDIT.\n"), ("mine", "Mine.\n")):
+        (tmp_path / ".agents/skills" / name).mkdir(parents=True)
+        (tmp_path / ".agents/skills" / name / "SKILL.md").write_text(text, encoding="utf-8")
+    assert skills.run(tmp_path, check_only=True) == 1
+    assert "[S3] skill 'kept' missing from .agents/skills/" in capsys.readouterr().out

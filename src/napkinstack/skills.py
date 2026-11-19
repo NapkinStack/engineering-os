@@ -18,7 +18,9 @@ Rules (--check mode, run in CI):
   S3  generated skills match the current playbooks
   S4  name and description follow the Agent Skills specification
 
-S3 reads each of those folders that exists, and only those. Skills are gitignored: a fresh
+S3 reads each of those folders that holds a skill nstack generates — named after a playbook, or
+with its banner —, and only those: a folder of a person's own skills, tracked, is not asked for
+every playbook (D248). Skills are gitignored: a fresh
 clone, and therefore CI, has none, and none can be out of sync there.
 
 A root with neither .nstack/playbooks/ nor .nstack/skills.yaml, such as the NapkinStack
@@ -44,6 +46,7 @@ BANNER = (
     "     Edit the playbook, then run `nstack skills` again. -->"
 )
 MAPPING = Path(".nstack") / "skills.yaml"
+MARK = "by nstack skills - DO NOT EDIT"  # in every generated skill's banner, never in a person's
 # Where each agent tool looks for skills: Claude Code, then Codex and the open layout (D245).
 FOLDERS = (Path(".claude") / "skills", Path(".agents") / "skills")
 
@@ -140,10 +143,10 @@ def run(root: Path, check_only: bool = False) -> int:
         return 1
 
     # S3 - generation or comparison, in each folder an agent tool reads
-    present = [folder for folder in FOLDERS if (root / folder).is_dir()]
+    present = [folder for folder in FOLDERS if _generated(root / folder, set(mapping))]
     if check_only and not present:
         print("Skills: S1, S2 and S4 compliant. S3 not applicable: "
-              f"{' and '.join(f'{folder.as_posix()}/' for folder in FOLDERS)} missing, no skill generated here.")
+              f"no skill generated here, in {' or '.join(f'{folder.as_posix()}/' for folder in FOLDERS)}.")
         return 0
 
     if check_only:
@@ -173,7 +176,7 @@ def run(root: Path, check_only: bool = False) -> int:
         # here, never a skill a person wrote (no banner).
         for made_dir in sorted((root / folder).glob("*/")):
             made = made_dir / "SKILL.md"
-            if made_dir.name not in mapping and made.is_file() and "by nstack skills - DO NOT EDIT" in made.read_text(encoding="utf-8"):
+            if made_dir.name not in mapping and made.is_file() and MARK in made.read_text(encoding="utf-8", errors="replace"):
                 made.unlink()
                 if not any(made_dir.iterdir()):
                     made_dir.rmdir()
@@ -188,6 +191,14 @@ def run(root: Path, check_only: bool = False) -> int:
     print("\nThey trigger on their own from their description; an agent can also")
     print("invoke them by name. The kernel stays in AGENTS.md.")
     return 0
+
+
+def _generated(folder: Path, names: set[str]) -> bool:
+    """A folder holding a skill nstack generates — named after a playbook, or carrying its banner —
+    rather than a person's own skills alone."""
+    return folder.is_dir() and any(
+        made.parent.name in names or MARK in made.read_text(encoding="utf-8", errors="replace")
+        for made in folder.glob("*/SKILL.md"))
 
 
 def _tracked(root: Path) -> list[str]:
