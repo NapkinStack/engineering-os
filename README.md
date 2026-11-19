@@ -5,7 +5,7 @@ modules, contracts, guardrails in CI. On the Django or Rails model, one command 
 the project, which then receives new versions on demand; no application stack is imposed.
 Positioning and vocabulary: [`PRODUCT.md`](PRODUCT.md) §1.
 
-> **Status: v0.32.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
+> **Status: v0.33.0, published** on [PyPI](https://pypi.org/project/napkinstack/).
 > What each version changes, engine and project apart: [`CHANGELOG.md`](CHANGELOG.md).
 > What is open: [`docs/governance/workstreams.md`](docs/governance/workstreams.md).
 
@@ -69,8 +69,8 @@ To try it without installing anything, or to install it from this repository ins
 registry — always pinned to a release tag:
 
 ```bash
-uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.32.0" nstack init my-project
-uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.32.0"
+uvx --from "git+https://github.com/NapkinStack/engineering-os@v0.33.0" nstack init my-project
+uv tool install "napkinstack @ git+https://github.com/NapkinStack/engineering-os@v0.33.0"
 ```
 
 **Two channels, one published artefact.** The registry publishes: the PyPI artefact of a
@@ -91,7 +91,7 @@ Each project then pins its version and changes it through `nstack update`.
 |---|---|
 | `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default); each answer given as an option or asked (`--project-name`, `--github-repo` or `--repository`, `--owner-team` — on GitHub, never an organisation's name alone) |
 | `nstack doctor` | Checks the workstation and, on GitHub, its settings, read-only; off GitHub says what it cannot verify; names a newer published version |
-| `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential, then reads the result back — never an agent's, never in CI |
+| `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential — `GH_TOKEN`, or else their `gh` login — once they confirm the plan at the keyboard, then reads the result back — never an agent's, never in CI |
 | `nstack new-module <name> <owner> <criticality>` | Creates a module, with no imposed stack |
 | `nstack new-contract <name> [--owner <owner>]` | Creates a contract and, the first time, the module that holds them all |
 | `nstack check`, `test`, `bootstrap`, `clean` `[module]`; `nstack run <module>` | Run the commands declared in the module's manifest |
@@ -107,10 +107,10 @@ Each project then pins its version and changes it through `nstack update`.
 | `nstack compat [module] --base <base>` | A contract version consumed or stable changes only with the project's merged comparator |
 | `nstack e2e [module]` | Runs the module's end-to-end scenarios, when declared — one run at a time on a machine, unless the module declares it sealed |
 | `nstack release [module] [args]` | Makes each module's artefacts into `dist/<module>/`, each after what it assembles; what follows a named module goes to its command |
-| `nstack pr-check` | The test sheet, the cycle and the attested checks, read from the pull request description |
+| `nstack pr-check` | The test sheet, the cycle and the attested checks, read from the pull request description; on GitHub, an approval behind the head (R1) or by Copilot's code review alone (R2) is warned |
 | `nstack landed --span <before>..<after>` | What reached this branch outside a pull request, recorded |
 | `nstack attest --base <base> --body-file <description>` | The CI's checks run here, on a clean head; the run recorded on the commit, in git (`refs/notes/nstack/checks`), and shown on GitHub as `nstack / local checks`; the module checks a run passed are kept while what they read is unchanged (`--again` runs them); a failed check names its tool's last lines and keeps its whole output under `.git/nstack/attest/`; `--void <commit> --reason <why>` marks a record known unsound, never kept from again |
-| `nstack skills` | Exposes the playbooks as skills for the agent |
+| `nstack skills` | Exposes the playbooks as skills for the agents: `.claude/skills/` for Claude Code, `.agents/skills/` for Codex and the open layout |
 | `nstack update [--session <id>] [--forge <name>]` | Lays the new version on a branch to review; an agent's session as the commit's `Agent-Session` trailer; `--forge` moves the project to another forge, its own lines kept |
 
 **Prerequisites**: uv and git. The guardrails really block on a public GitHub repository,
