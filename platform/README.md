@@ -53,7 +53,7 @@ runbook, tests and configuration.
 | `nstack boundaries` | B1-B9: the contracts each module reads against those it declares, references to another module's code, cycles, data access, contracts provided and consumed, another module's release artefacts read without assembling it |
 | `nstack pr-scope` | P1-P2: one PR = one module — changed beyond its description, `contracts/` included — review budget |
 | `nstack plan` | C1-C8: charter, cycles, deliverables, closures, discovery, and each document due at its moment; C10, a warning: the decisions due at a closure and not yet read; then the project across its cycles, and who holds each deliverable, said and never failed |
-| `nstack pr-check` | T1-T5, K1-K5, A1-A2, C9, and R1, a warning — an approval given before commits other than the base branch's: the test sheet, the cycle, who holds the deliverable and the attested checks, read from the pull request description; an accepted charter changed with no decision record, warned |
+| `nstack pr-check` | T1-T5, K1-K5, A1-A2, C9, and R1-R2, warnings — an approval given before commits other than the base branch's, an approval by Copilot's code review alone: the test sheet, the cycle, who holds the deliverable and the attested checks, read from the pull request description; an accepted charter changed with no decision record, warned |
 | `nstack compat` | V1: a version consumed or stable changes only with the merged `commands.compat`'s proof |
 | `nstack hygiene` | H1: no path rooted in one person's home directory, in any tracked file |
 | `nstack doctor` | L1-L3, L6-L10 and G1-G22: the workstation — an unpublished framework is a gap, never compliance — and the GitHub settings, read-only |

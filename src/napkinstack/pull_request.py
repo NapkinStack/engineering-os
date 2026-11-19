@@ -381,6 +381,27 @@ def check_approvals(root: Path, base: str, head: str, found: list[tuple[str, str
             print(f"::warning title=R1 approval behind the head::{line.removeprefix('[R1] ')}")
 
 
+# Copilot's code review, as the forge names it: GraphQL's author login, REST's user login
+# (measured on public pull requests it approved, 2026-11-19).
+COPILOT_REVIEWER = {"copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
+
+
+def check_copilot(found: list[tuple[str, str]] | str | None, warn: Callable[[str], None]) -> None:
+    """R2 (D246): GitHub lets a repository count Copilot's approval toward the required ones — a
+    setting its API does not expose, so doctor cannot read it. Where every approval is Copilot's,
+    the merge may rest on it alone, though it ran no test sheet and names no session: said, as R1
+    is, never failed."""
+    if isinstance(found, str) or not found:
+        return
+    if all(login.lower() in COPILOT_REVIEWER for login, _ in found):
+        line = ("[R2] the only approval is Copilot's code review: GitHub counts it where the repository lets "
+                "it, yet it ran no test sheet and names no session.")
+        warn(f"{line}\n        Action: a human code owner approves — or, on approval: agent, the verifying "
+             "agent under its own identity (.nstack/handbook/07-governance.md §7).")
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(f"::warning title=R2 approval by Copilot alone::{line.removeprefix('[R2] ')}")
+
+
 def check_verifier(verifier: str, authorship: tuple[set[str], set[str], list[str]], fail: Fail,
                    hands: set[str] | None = None) -> None:
     """T2: the verifier is named — people as @handle anywhere on the line, an agent session as
@@ -966,7 +987,9 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
                    fail, warnings.append, identities(root, base, head))
     checks = check_attested(root, head, fail, warnings.append)
     if forge == "github":
-        check_approvals(root, base, head, approvals(root), warnings.append)
+        found = approvals(root)
+        check_approvals(root, base, head, found, warnings.append)
+        check_copilot(found, warnings.append)
     if carried and reasons:
         check_moved(body, recorded_rows(root, fork, head), fail, warnings.append,
                     lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other))
