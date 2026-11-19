@@ -171,7 +171,7 @@ for name, entry in skills.items():
 EOF
 
 # S4: the "tests" skill is renamed, or its description replaced, in a copy of
-# skills.yaml. Without .claude/skills/, S3 does not apply: only S4 can fail.
+# skills.yaml. Without .claude/skills/ nor .agents/skills/, S3 does not apply: only S4 can fail.
 modified_tests_skill() {  # $1 = name, $2 = description length (optional)
   cp skeleton/.nstack/skills.yaml "$SK/.nstack/"
   python3 - "$SK/.nstack/skills.yaml" "$@" <<'EOF'
@@ -187,7 +187,7 @@ with open(path, "w", encoding="utf-8") as f:
     yaml.safe_dump(data, f, allow_unicode=True)
 EOF
 }
-rm -rf "$SK/.claude"
+rm -rf "$SK/.claude" "$SK/.agents"
 A64=$(printf 'a%.0s' {1..64})
 
 echo "-> skills: a name outside the Agent Skills specification MUST fail (S4)"

@@ -393,7 +393,7 @@ nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverabl
 {% if forge == "github" %}nstack agent add <name> [--clone <dir>] · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
 nstack agent status  # who this agent is — its App, repository, clone, gh and hooks; for a person, this project's agents
 {% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
-nstack skills        # generates the Claude Code skills from the playbooks
+nstack skills        # generates the agents' skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
 nstack settings      # the calls that would bring the forge's settings to the checklist; --apply: yours makes them
 nstack new-module <name> <owner> <criticality> [--user-facing]   # --user-facing: a user sees it, which decides a test sheet
@@ -425,13 +425,16 @@ someone move between modules without relearning anything (`.nstack/handbook/09-p
 
 ---
 
-## Claude Code skills
+## Agent skills
 
 The playbooks are exposed as skills, so that loading them on demand becomes the runtime's
-job rather than a kernel instruction.
+job rather than a kernel instruction. One `SKILL.md` per playbook, in the open Agent Skills
+format, written where each tool looks: `.claude/skills/` for Claude Code, `.agents/skills/` for
+Codex and the other tools that read that layout. A tool that reads both may list a skill twice:
+the same bytes, so either one loads the same playbook.
 
 ```bash
-nstack skills           # generates .claude/skills/ from .nstack/playbooks/
+nstack skills           # generates .claude/skills/ and .agents/skills/ from .nstack/playbooks/
 nstack skills --check   # checks they are in sync (runs in {{ ci }})
 ```
 
