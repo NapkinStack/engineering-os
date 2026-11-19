@@ -307,7 +307,7 @@ What the method leaves to a person's hands on GitHub, as `INSTALL.md` lists it:
 | Step | Today | Could be | Why |
 |---|---|---|---|
 | Create the repository and push the first commit | By hand, after `nstack init` | Automatable by the person, with the forge's command line named in `init`'s next steps | The person's own account; nothing to decide |
-| The checklist, G1 to G20 | Printed by `nstack settings`, then pasted | One gesture of the person: `nstack settings --apply` (option 3, built in D151) | Administration is the person's (ADR-0004) |
+| The checklist, its G lines | Printed by `nstack settings`, then pasted | One gesture of the person: `nstack settings --apply` (option 3, built in D151) | Administration is the person's (ADR-0004) |
 | D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be observed on the first real run of `--apply`: the interface refuses a check it has never seen, the rulesets API may accept it; if it refuses, `--apply` puts the ruleset in without them and names G4 as the one step left | The first run under a person's credential |
 | `owner_team`, the team `CODEOWNERS` names | By hand, in the organisation | Automatable by an organisation owner, in the same script | Who belongs to the team is a human decision |
 | The agents' GitHub App: created, installed, its key stored | By hand, through the forge's pages | Reduced to one confirmation by the App manifest flow, never fully automated | Creating an identity and holding its key is a person's act (ADR-0004) |

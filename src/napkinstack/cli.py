@@ -165,7 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: modules.create_contract(a.root, a.name, a.owner))
     nc.add_argument("name", help="the contract's name, kebab-case")
     nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
-    pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C9)",
+    pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C9, R1)",
               lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
@@ -198,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--session", help="the agent's session, written on the hold")
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
-                    help="take a hold nobody has worked on for hold_days — recorded, with its previous holder")
+                    help="take a hold nobody has worked on for hold_days, or your own person's from another session — recorded, with its previous holder")
     rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale; a closed cycle's hold has ended",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")

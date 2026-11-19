@@ -48,7 +48,7 @@ a project whose charter is accepted · green: what judges a change in each.
 
 The stage is read from this folder, never declared, and every run that judges names it. An
 unframed project is held to its boundaries, its contracts, the scope of its pull requests,
-the test sheet and the hooks; only the three rules that bound work inside a cycle are silent,
+the test sheet and the hooks; only the rules that bound work inside a cycle — K1 to K3 and K5 — are silent,
 since there is no cycle. **Framing is worth its price when there is something to bound** —
 several people, a deadline, a decider who is not the one typing. It is one-way: once the
 charter is accepted, a project between two cycles is framed, and is told which cycle is

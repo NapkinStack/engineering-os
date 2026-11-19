@@ -35,7 +35,7 @@ a family, a number a rule; a retired rule's number is never reused.
 | `M9` | A module missing a file of its envelope | `02-modules.md` §4 |
 | `M10` | A module that does not say whether a user sees it | `05-workflow.md` §7 |
 | `M11` | `assembles` naming no module of the project, the module itself, or releases that wait for each other | `09-platform.md` §2 |
-| `M12` | An `evidence` declaration that checks nothing: an unknown key; a pattern that is not text, does not compile or matches an empty line; no level or no scenario; `levels` without a group named `level` | `.nstack/playbooks/tests.md` §1 |
+| `M12` | An `evidence` declaration that checks nothing: an unknown key; a pattern that is not text, does not compile or matches an empty line; no level or no scenario; `levels` without a group named `level`; a `sealed` that is not true or false | `.nstack/playbooks/tests.md` §1 |
 | `M13` | On `approval: agent`, a path a human must approve — a module neither `prototype` nor `standard`, the project's rules, its records, its answers — that the code owners file ends on no owner, or a default owner | `07-governance.md` §7 |
 
 ## B — the boundaries between modules
@@ -159,7 +159,7 @@ it has no cycle, K1 to K3 and K5 say nothing there, and every other rule applies
 
 ## G — the forge's settings
 
-The twenty-one lines of GitHub's checklist, in its order (`INSTALL.md`, on GitHub). Read on
+The twenty-two lines of GitHub's checklist (`INSTALL.md`, on GitHub). Read on
 GitHub only: off it, `doctor` lists what the forge should refuse, reads none of it, and says the
 repository *unguarded*; `W1` does not run.
 
