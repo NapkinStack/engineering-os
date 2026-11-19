@@ -127,3 +127,23 @@ def test_a_sheet_without_its_number_column_is_said_never_crashes(verified_then_f
                     f"| {GIVEN} | explored | passed | https://ci.example/shot/2 | {second[:7]} |\n", encoding="utf-8")
     code, out = _pr_check(root, base, second, body, monkeypatch, capsys)
     assert code == 1 and "[T2] Test sheet: columns missing: #" in out, out
+
+
+def test_an_explored_row_put_back_after_a_record_held_it_moved_stands(verified_then_fixed, monkeypatch, capsys):
+    """#444: a record at the head held S2 moved to it; T4's own Action, the original commit put back
+    and the head confirmed, then passes — the row was explored at `first`, whatever a record held since."""
+    root, base, first, second = verified_then_fixed
+    moved = _body(root, "moved", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", second[:7]),
+                  ("S3", OTHER, "automated", "passed", "the CI run's trace", second[:7]))
+    code, out = _after(root, base, second, moved, monkeypatch, capsys)
+    assert code == 1 and f"puts {first[:7]} back" in out, out
+    back = _body(root, "put-back",
+                 ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", first[:7],
+                  f"{second[:7]} — one fix under src/, not on this path"),
+                 ("S3", OTHER, "automated", "passed", "the CI run's trace", second[:7], "—"), confirmed=True)
+    code, out = _after(root, base, second, back, monkeypatch, capsys)
+    assert code == 0, out
+    later = _body(root, "later", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", second[:7]),
+                  ("S3", OTHER, "automated", "passed", "the CI run's trace", second[:7]))
+    code, out = _pr_check(root, base, second, later, monkeypatch, capsys)
+    assert code == 1 and f"moved from {first[:7]} to {second[:7]}" in out, "moved again, it is said against the first"
