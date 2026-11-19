@@ -115,8 +115,9 @@ def build_parser() -> argparse.ArgumentParser:
                                "with --apply, makes them under your own credential",
               lambda a: settings.run(a.root, a.apply))
     st.add_argument("--apply", action="store_true",
-                    help="make the calls under your own credential (GH_TOKEN), then read the result back with "
-                         "nstack doctor; refused in CI and under an App's token")
+                    help="make the calls under your own credential — GH_TOKEN when set, else your gh login — "
+                         "once you confirm the plan at the keyboard, then read the result back with nstack "
+                         "doctor; refused in CI, in an agent's session and under an App's token")
     nm = _add(sub, "new-module", "creates a module and its guardrails, with no imposed stack",
               lambda a: modules.create(a.root, a.name, a.owner, a.criticality, a.user_facing))
     nm.add_argument("name", help="module name, kebab-case")

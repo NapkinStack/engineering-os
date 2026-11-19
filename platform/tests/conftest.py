@@ -1,4 +1,4 @@
-"""No test asks the real registry or the real forge: `nstack doctor` reads the first for a newer
+"""No test asks the real registry, the real forge or the person's gh login: `nstack doctor` reads the first for a newer
 version (D91), the second for where an unpublished pin stands. No test waits on the machine's
 end-to-end lock either: a real run of another project holds it for minutes, and a test that took it
 hung the suite (D217) — each test has a runtime folder of its own. Nor does a test see the day
@@ -29,6 +29,8 @@ HELD = types.SimpleNamespace(**{**{name: getattr(datetime, name) for name in dir
 def _no_registry(monkeypatch):
     monkeypatch.setenv("NSTACK_REGISTRY_URL", "http://127.0.0.1:9")
     monkeypatch.setenv("GITHUB_API_URL", "http://127.0.0.1:9")
+    from napkinstack import settings  # nor the person's own gh login (D244)
+    monkeypatch.setattr(settings, "_gh_token", lambda: None)
 
 
 @pytest.fixture(autouse=True)

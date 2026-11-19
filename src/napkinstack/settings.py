@@ -7,11 +7,17 @@ that brings it to the checklist, in a form a person runs with their own credenti
 it writes nothing, and sends nothing but reads.
 
 With `--apply`, the person who holds administration has it make those calls under their own
-credential, then reads the result back with `nstack doctor`. Never delegated: the forge allows
-no credential that administers and cannot commit (D150), so the mode refuses an App's
-installation token — an agent's identity, which holds no administration (ADR-0004) — and a run
-in CI. It stores nothing, prints each change and the forge's own error for each refusal, and
-ends by saying to revoke the credential.
+credential, then reads the result back with `nstack doctor`. The credential is the token in
+GH_TOKEN (or GITHUB_TOKEN) when one is set — portable, no gh needed — and otherwise the person's
+own gh login (D244), as gh itself chooses. The plan is shown, with the account it would act as,
+and applied only once the person confirms it at the keyboard: never without a terminal. Never
+delegated: the forge allows no credential that administers and cannot commit (D150), so the mode
+refuses an App's token — an agent's identity, which holds no administration (ADR-0004) —, an
+agent's session (`nstack agent run`, whose gh is the agent's own), and a run in CI; none of them
+reaches the person's gh login. The keyboard is a guard against a slip, not a wall: an agent
+running unwrapped as the person already holds their gh. It
+stores nothing, prints each change and the forge's own error for each refusal, and ends by
+saying to revoke a token given for the run — a gh login stays as it was.
 
 What it never plans, so never prints nor applies:
   - a call that rewrites or deletes a ruleset: the missing rules go in a ruleset of their own,
@@ -25,7 +31,8 @@ named, with its cost, in doctor's own words.
 
 Usage :  nstack settings [--root ROOT] [--apply]
 Output:  0 with the plan printed, or nothing to change; 1 when the repository cannot be read
-         with the token given. With --apply: 1 when a call was refused or the mode is; else
+         with the token given. With --apply: 1 when a call was refused, the mode is, or the
+         plan is not confirmed; else
          nstack doctor's own exit code.
 """
 
@@ -34,6 +41,9 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import shutil
+import subprocess
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -133,6 +143,8 @@ def plan(client: doctor.GitHub | None, missing: set[str]) -> tuple[list[Call], l
         body = {**ruleset(in_ruleset), "name": _free(client, RULESET_NAME)}
         calls.append((", ".join(sorted(in_ruleset, key=_order)), "POST", "/rulesets", body))
         if "G4" in in_ruleset:
+            # D26: the rulesets API took checks it never saw run (measured 2026-11-19, D244); the
+            # web interface may not. --apply retries without them, and says so, when it is refused.
             notes.append("G4  the forge may refuse a check it has never seen run. If it does, open a first "
                          "pull request, let the checks run, then run this call again.")
     if "G12" in missing:
@@ -252,25 +264,102 @@ class Forge(doctor.GitHub):
             return False, f"not sent ({error.__class__.__name__})"
 
 
-def _refused(token: str | None) -> str | None:
+def new_token(repo: str) -> str:
+    """GitHub's form for a fine-grained token, filled in: one day, the repository's owner, the two
+    permissions. The form takes no repository: the person picks it there."""
+    owner = urllib.parse.quote(repo.split("/", 1)[0], safe="")
+    return ("https://github.com/settings/personal-access-tokens/new?name=nstack+settings"
+            f"&description=nstack+settings+--apply%2C+one+run&target_name={owner}&expires_in=1"
+            "&administration=write&issues=write")
+
+
+def _in_ci() -> bool:
+    return os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("CI", "").lower() in ("true", "1")
+
+
+def _host(api: str) -> str:
+    """The host gh names for an API URL: github.com for api.github.com, the server's otherwise."""
+    host = urllib.parse.urlsplit(api).hostname or "github.com"
+    return "github.com" if host == "api.github.com" else host
+
+
+def _gh_token() -> str | None:
+    """The person's own gh login's token (D244), for the host the API URL names, or None: gh
+    absent, logged out, or silent."""
+    found = shutil.which("gh")
+    if not found:
+        return None
+    host = _host(os.environ.get("GITHUB_API_URL") or "https://api.github.com")
+    try:
+        done = subprocess.run([found, "auth", "token", "--hostname", host], capture_output=True, text=True,
+                              timeout=15, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    token = done.stdout.strip()
+    return token if done.returncode == 0 and token else None
+
+
+def _interactive() -> bool:
+    return sys.stdin.isatty()
+
+
+def _ask(prompt: str) -> str:
+    try:
+        return input(prompt)
+    except EOFError:
+        return ""
+
+
+def _login(api: str, token: str) -> str:
+    """The account the credential acts as, as the forge names it; empty when it does not say."""
+    request = urllib.request.Request(f"{api.rstrip('/')}/user", headers={
+        "Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": doctor.API_VERSION, "User-Agent": "nstack settings"})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            found = json.load(response)
+    except (OSError, ValueError, http.client.HTTPException):
+        return ""
+    return str(found.get("login") or "") if isinstance(found, dict) else ""
+
+
+def _refused(token: str | None, repo: str) -> str | None:
     """Why the apply mode does not run here, or None. It is the person's gesture: never in CI,
-    never under an App's installation token — an agent's identity holds no administration."""
-    if os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("CI", "").lower() in ("true", "1"):
+    never in an agent's session, never under an App's token — an agent's identity holds no
+    administration."""
+    if _in_ci():
         return ("--apply does not run in CI: administering the repository is a person's gesture, under their "
                 "own credential.\n      Action: run it on your workstation, or print the "
                 "plan without --apply.")
+    if os.environ.get("NSTACK_AGENT"):
+        return ("--apply does not run in an agent's session (nstack agent run): administering the repository "
+                "is a person's gesture.\n      Action: run it yourself, in your own terminal.")
     if not token:
-        return ("--apply needs your own credential in GH_TOKEN: a fine-grained token limited to this "
-                "repository, with Administration: write and Issues: write (the labels).\n"
-                "      Action: set GH_TOKEN for this one run, then revoke the token.")
+        return ("--apply needs your own credential: a gh login (gh auth login), or a token in GH_TOKEN — "
+                "fine-grained, limited to this repository, Administration: write and Issues: write (the "
+                f"labels), valid one day: {new_token(repo)}\n"
+                "      Action: log in with gh auth login, or set GH_TOKEN for this one run, then revoke the token.")
     if token.startswith(("ghs_", "ghu_")):
         return ("the token is a GitHub App's — an agent's identity, which never holds administration.\n"
                 "      Action: run it yourself, under your own credential.")
     return None
 
 
-def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str]) -> int:
-    print(f"\n{len(calls)} call(s) to close the distance to the checklist, under your credential:")
+def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str], source: str) -> int:
+    login = _login(client.api, client.token)
+    said = "your gh login's token" if source == "gh" else f"the token in {source}"
+    print(f"\n{len(calls)} call(s) to close the distance to the checklist, on {client.repo} as "
+          f"{'@' + login if login else 'an account the forge did not name'}, with {said}:")
+    for closed, method, path, _ in calls:
+        print(f"  {closed}: {method} {path or '/'}")
+    if not _interactive():
+        print("FAIL [settings] --apply is confirmed at the keyboard, and there is no terminal here: nothing "
+              "was changed.\n      Action: run it yourself, in your own terminal — or print the plan "
+              "without --apply and run the calls.")
+        return 1
+    if _ask("Make these changes? [y/N] ").strip().lower() not in ("y", "yes"):
+        print("Nothing was changed.")
+        return 1
     failed = 0
     for closed, method, path, body in calls:
         done, answer = client.send(method, path, body)
@@ -292,13 +381,28 @@ def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str]) -> in
                 answer = f"{answer}; without the required checks: {answer_again}"
         print(f"  {'applied ' if done else 'REFUSED '} {closed}: {method} {path or '/'} ({answer})")
         failed += not done
+    # G4's note is for calls run by hand: here a refused check was retried above, and said.
+    notes = [note for note in notes if not note.startswith("G4 ")]
     if notes:
         print("\nLeft to do by hand:")
         for note in notes:
             print(f"  {note.replace('run this call again', 'run nstack settings --apply again')}")
     print("\nThe result, read back by nstack doctor — not by this command's account of itself:\n")
-    code = doctor.run(root)
-    print("\nRevoke the credential you gave this run now: nothing kept it, and nothing asks for it again.")
+    lent = source == "gh"
+    before = os.environ.get("GH_TOKEN")
+    if lent:  # doctor reads GH_TOKEN: the same credential, for its run only
+        os.environ["GH_TOKEN"] = client.token
+    try:
+        code = doctor.run(root)
+    finally:
+        if lent and before is None:
+            os.environ.pop("GH_TOKEN", None)
+        elif lent:
+            os.environ["GH_TOKEN"] = before
+    if source == "gh":
+        print("\nThe gh login's token was read for this run and kept nowhere: your gh login stays as it was.")
+    else:
+        print("\nRevoke the credential you gave this run now: nothing kept it, and nothing asks for it again.")
     if failed:
         print(f"FAIL [settings] {failed} call(s) refused by the forge, named above with its answer.\n"
               "      Action: fix what the forge said, then run nstack settings --apply again — what is in "
@@ -320,8 +424,12 @@ def run(root: Path, apply: bool = False) -> int:
               "what the forge should refuse is listed by nstack doctor and in .nstack/handbook/INSTALL.md.")
         return 0
     repo = str(answers.get("github_repo"))
-    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if apply and (refusal := _refused(token)):
+    source = next((name for name in ("GH_TOKEN", "GITHUB_TOKEN") if os.environ.get(name)), "")
+    token = os.environ.get(source) if source else None
+    if apply and not token and not _in_ci() and not os.environ.get("NSTACK_AGENT"):
+        token = _gh_token()  # the person's own login, as gh itself would choose it (D244)
+        source = "gh" if token else ""
+    if apply and (refusal := _refused(token, repo)):
         print(f"FAIL [settings] {refusal}")
         return 1
     client = Forge(repo, token, os.environ.get("GITHUB_API_URL") or "https://api.github.com") if token else None
@@ -386,7 +494,7 @@ def run(root: Path, apply: bool = False) -> int:
         print("\nNot read with this token, planned as if missing: " + ", ".join(unread)
               + ". A call for a setting already in place changes nothing.")
     if apply and calls:
-        return _apply(client, root, calls, notes)
+        return _apply(client, root, calls, notes, source)
     if apply and notes:
         print("\nNothing for --apply to make: what is left is by hand.")
     if not calls and not notes:

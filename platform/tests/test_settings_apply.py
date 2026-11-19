@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import http.server
 import json
+import os
 import threading
 
 import pytest
@@ -15,6 +16,7 @@ import pytest
 from napkinstack import doctor, settings
 
 TOKEN = "github_pat_person-secret-value"
+REAL_GH_TOKEN = settings._gh_token  # before conftest stubs it for every test
 
 
 class Forge(http.server.BaseHTTPRequestHandler):
@@ -63,6 +65,9 @@ def forge(tmp_path, monkeypatch):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("GH_TOKEN", TOKEN)
     monkeypatch.setenv("GITHUB_API_URL", f"http://127.0.0.1:{server.server_port}")
+    Forge.routes["/user"] = {"login": "alice"}
+    monkeypatch.setattr(settings, "_interactive", lambda: True)
+    monkeypatch.setattr(settings, "_ask", lambda prompt: "y")
     read_back = []
     monkeypatch.setattr(doctor, "run", lambda root: read_back.append(root) or 0)
     yield tmp_path, read_back
@@ -115,7 +120,9 @@ def test_it_needs_a_credential(forge, monkeypatch, capsys):
     root, _ = forge
     monkeypatch.delenv("GH_TOKEN")
     assert settings.run(root, apply=True) == 1
-    assert "--apply needs your own credential" in capsys.readouterr().out and Forge.writes == []
+    out = capsys.readouterr().out
+    assert "--apply needs your own credential" in out and Forge.writes == []
+    assert "gh auth login" in out and "target_name=acme&expires_in=1&administration=write&issues=write" in out, out
 
 
 def test_it_never_writes_what_it_could_not_read(forge, monkeypatch, capsys):
@@ -239,3 +246,133 @@ def test_a_ruleset_refused_with_and_without_its_checks_says_both_answers(forge, 
     assert settings.run(root, apply=True) == 1
     out = capsys.readouterr().out
     assert "(HTTP 422: Name must be unique; without the required checks: HTTP 422: Name must be unique)" in out, out
+
+
+# --- D244: the person's gh login, or GH_TOKEN; confirmed at the keyboard ---------------------
+
+GH_LOGIN = "gho_the-person-s-gh-login"
+
+
+def _never(*args):
+    raise AssertionError("the gh login was asked for")
+
+
+def test_without_gh_token_the_gh_login_s_token_is_used_and_kept_nowhere(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    monkeypatch.setattr(settings, "_gh_token", lambda: GH_LOGIN)
+    seen = []
+    monkeypatch.setattr(doctor, "run", lambda root: seen.append(os.environ.get("GH_TOKEN")) or 0)
+    assert settings.run(root, apply=True) == 0
+    out = capsys.readouterr().out
+    assert [(method, path) for method, path, _ in Forge.writes] == [("POST", "/rulesets")]
+    assert "acme/demo as @alice, with your gh login's token" in out, out
+    assert seen == [GH_LOGIN], "doctor reads the result back with the same credential"
+    assert "GH_TOKEN" not in os.environ, "the gh login's token is left in no variable after the run"
+    assert "Revoke the credential" not in out and "your gh login stays as it was" in out
+    assert GH_LOGIN not in out
+
+
+def test_gh_token_given_comes_first_and_gh_is_never_asked(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.setattr(settings, "_gh_token", _never)
+    assert settings.run(root, apply=True) == 0
+    assert "with the token in GH_TOKEN" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(("variable", "value"), [("GITHUB_ACTIONS", "true"), ("NSTACK_AGENT", "scout")])
+def test_neither_ci_nor_an_agent_s_session_reaches_the_gh_login(forge, monkeypatch, capsys, variable, value):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    monkeypatch.setenv(variable, value)
+    monkeypatch.setattr(settings, "_gh_token", _never)
+    assert settings.run(root, apply=True) == 1
+    assert Forge.writes == []
+
+
+def test_an_agent_s_session_is_refused_whatever_token_it_holds(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.setenv("NSTACK_AGENT", "scout")
+    assert settings.run(root, apply=True) == 1
+    assert "an agent's session" in capsys.readouterr().out and Forge.writes == []
+
+
+def test_without_a_terminal_nothing_is_applied(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.setattr(settings, "_interactive", lambda: False)
+    monkeypatch.setattr(settings, "_ask", _never)
+    assert settings.run(root, apply=True) == 1
+    out = capsys.readouterr().out
+    assert "confirmed at the keyboard" in out and Forge.writes == []
+    assert "G1: POST /rulesets" in out, "the plan is shown, even when it is not applied"
+
+
+@pytest.mark.parametrize("answer", ["", "n", "no", "yes please"])
+def test_anything_but_yes_applies_nothing(forge, monkeypatch, capsys, answer):
+    root, read_back = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.setattr(settings, "_ask", lambda prompt: answer)
+    assert settings.run(root, apply=True) == 1
+    assert Forge.writes == [] and read_back == [] and "Nothing was changed" in capsys.readouterr().out
+
+
+def test_the_plan_alone_never_asks_the_gh_login(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    monkeypatch.setattr(settings, "_gh_token", _never)
+    assert settings.run(root) == 0 and Forge.writes == []
+
+
+def test_a_ruleset_the_forge_took_with_its_checks_leaves_nothing_by_hand(forge, monkeypatch, capsys):
+    """Measured 2026-11-19 (D244): the rulesets API takes a required check it never saw run."""
+    root, _ = forge
+    missing(monkeypatch, "G1", "G4")
+    Forge.answers[("POST", "/rulesets")] = (201, {})
+    assert settings.run(root, apply=True) == 0
+    out = capsys.readouterr().out
+    assert "applied  G1, G4: POST /rulesets (HTTP 201)" in out and "Left to do by hand" not in out, out
+
+
+@pytest.mark.parametrize("before", [None, ""])
+def test_the_read_back_reads_with_the_gh_login_and_puts_back_what_was_there(forge, monkeypatch, capsys, before):
+    """An empty GH_TOKEN is no credential: the gh login is used, and doctor reads with it too."""
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    if before is not None:
+        monkeypatch.setenv("GH_TOKEN", before)
+    monkeypatch.setattr(settings, "_gh_token", lambda: GH_LOGIN)
+    seen = []
+    monkeypatch.setattr(doctor, "run", lambda root: seen.append(os.environ.get("GH_TOKEN")) or 0)
+    assert settings.run(root, apply=True) == 0
+    assert seen == [GH_LOGIN] and os.environ.get("GH_TOKEN") == before
+
+
+def test_github_token_is_named_as_the_credential_it_is(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1")
+    monkeypatch.delenv("GH_TOKEN")
+    monkeypatch.setenv("GITHUB_TOKEN", TOKEN)
+    assert settings.run(root, apply=True) == 0
+    assert "with the token in GITHUB_TOKEN" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(("api", "host"), [("https://api.github.com", "github.com"),
+                                           ("https://ghe.example/api/v3", "ghe.example")])
+def test_the_gh_login_asked_is_the_one_for_the_api_s_host(monkeypatch, api, host):
+    asked = []
+
+    class Done:
+        returncode, stdout = 0, "gho_x\n"
+
+    monkeypatch.setattr(settings.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(settings.subprocess, "run", lambda argv, **kw: asked.append(argv) or Done())
+    monkeypatch.setenv("GITHUB_API_URL", api)
+    assert REAL_GH_TOKEN() == "gho_x"  # the real one, gh itself stubbed
+    assert asked == [["/usr/bin/gh", "auth", "token", "--hostname", host]]
