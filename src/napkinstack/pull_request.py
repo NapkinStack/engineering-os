@@ -14,7 +14,8 @@ Rules:
   T4  evidence at the head commit: an automated scenario is run again, one explored by hand
       is confirmed at the head instead — and at criticality critical, run again like the rest;
       an explored row whose Commit cell moved, its evidence unchanged since a record of the pull
-      request's commits read it, was not explored again (D214)
+      request's commits read it, was not explored again (D214); moved from the commit the first
+      record of that evidence names, so putting it back stands (D243)
   T5  no scenario failed; none left not verified, unless it is human only
   K1  in a framed project, delivery work needs an accepted cycle, and says which of
       the two is missing
@@ -686,7 +687,8 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
                 same_files: Callable[[str, str], bool] = lambda one, other: False) -> None:
     """T4, the sheet's history (D214, #384): the description is edited by author and verifier alike.
     A row explored at one commit whose Commit cell now names another, its evidence unchanged, was
-    never explored again — as a forge dismisses an approval the head moved past. An automated row
+    never explored again — as a forge dismisses an approval the head moved past. The row's commit is
+    the one the first record holding that evidence names, whatever a later record held. An automated row
     may move: CI, or the head's record, ran it. A row a record held, gone from the sheet, is said."""
     _, header, rows = read_sheet(body)
     if any(column not in header for column in COLUMNS):
@@ -697,11 +699,12 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
         if row.get("kind", "").lower() != "explored" or _result(row.get("result", "")) not in {"passed", "failed"} or not SHA.fullmatch(commit):
             continue
         evidence = hashlib.sha256(row.get("evidence", "").strip().encode()).hexdigest()[:16]
+        # The commit it was explored at: the first record holding this evidence. A later record that
+        # held the cell moved does not make the move the row's commit (D243, #444).
         before = next((was for _, _, was in sorted(recorded, key=lambda r: r[1])
-                       if was["#"] == ident and was.get("evidence") == evidence and SHA.fullmatch(was.get("commit", ""))
-                       and not (was["commit"].startswith(commit) or commit.startswith(was["commit"]))
-                       and not same_files(was["commit"], commit)), None)
-        if before:
+                       if was["#"] == ident and was.get("evidence") == evidence and SHA.fullmatch(was.get("commit", ""))), None)
+        if before and not (before["commit"].startswith(commit) or commit.startswith(before["commit"])
+                           or same_files(before["commit"], commit)):
             fail("T4", f"scenario {ident}: its Commit cell moved from {before['commit'][:7]} to {commit[:7]}, its "
                        "evidence unchanged: nothing shows it was explored again.\n"
                        f"      Action: the verifier explores it at the head and links that run's own evidence — or puts "
