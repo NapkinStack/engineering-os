@@ -82,6 +82,16 @@ with no synchronisation meeting, and without quality depending on anyone's vigil
 3. The **oracle before the generation**. The success criterion is executable before the
    first line.
 
+**What stays ours when the forge approves on its own.** Since 2026-10-28 GitHub lets its own
+agent's review approve a pull request and count toward the required approvals. An agent's
+approval is no longer a difference; two things still are. **No vendor at the core**: the
+rules and the checks hold for whichever agent a team runs, each under an identity of its
+own, and the skills for every tool that reads Claude Code's folder or the open layout. And
+**the evidence is a verifier's**: where a change asks for a test sheet, someone who did not
+write it ran the sheet and stands behind its result at the head — which an approval that
+runs nothing does not give. `pr-check` says when a merge rests on Copilot's approval
+alone (R2).
+
 **What it does not sell.** No stack, no application framework, no internal architecture,
 no list of tools, no embedded AI: the team's agent uses the framework. NapkinStack
 provides the layer that lets **the client's stack** hold up across several teams.
