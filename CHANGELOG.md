@@ -22,6 +22,55 @@ a patch.
 
 ---
 
+## v0.33.0 — 2026-11-19
+
+D240–D246 and D248. Four come from the same multi-agent project's work on v0.32.0; the rest from the framework's own repository.
+
+This is a minor version.
+- **What it adds:** `nstack settings --apply` under the person's `gh` login, the skills in `.agents/skills/`, and `pr-check`'s R2.
+- **What changes for a project:**
+  - `nstack settings --apply` now asks for a `y` at the keyboard, and refuses without a terminal;
+  - `nstack skills` writes a second folder, `.agents/skills/`, which the project's `.gitignore` takes with this version.
+- No check that was green turns red: R2 is a warning, and S3 reads `.agents/skills/` only where it holds a skill `nstack skills` generates (D248) — never a folder of a project's own skills.
+
+**In the engine**
+
+- **The forge's settings under the person's own login** (D244). `nstack settings --apply` takes the token in `GH_TOKEN` (or `GITHUB_TOKEN`) when one is set, otherwise the person's `gh` login for the API's host. Measured on a new public repository: that login's token made every call, and `doctor` read every setting in place.
+  - The plan is shown with the account it acts as and the credential's source, and applied only on a `y` typed at a terminal.
+  - Refused in CI and under an App's token, as before, and now in an agent's session (`nstack agent run`); none of them reaches the person's `gh` login. The plan alone never reads it.
+  - `doctor` reads the result back with the same credential. A token given for the run is to be revoked; a `gh` login stays as it was.
+  - With no credential, the refusal prints GitHub's fine-grained token form filled in: one day, the repository's owner, Administration and Issues write.
+  - G4 is no longer named as a step by hand once the forge took the ruleset with its checks: the rulesets API took five checks it had never seen run.
+- **The skills for every agent tool** (D245, D248). `nstack skills` writes each SKILL.md in `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex, and the tools that read the open layout), the same bytes. S3 reads each folder that holds a skill it generates — named after a playbook, or with its banner —: a project's own skills there, committed, are never asked for every playbook. A generated skill whose playbook is gone leaves both. A folder git would track is said, by the command and after `nstack update`.
+- **An approval by Copilot alone is said** (D246). Since 2026-10-28 GitHub may count Copilot's code review approval toward the required ones, a setting its API does not expose. Where every approval of a pull request is Copilot's, `pr-check` warns, as R2, with an annotation on the check: it ran no test sheet and names no session.
+- **T4 lets an explored row go back to its commit** (D243, #444). An explored row moved to the head, recorded by an attest, then put back with the head confirmed — what T4's own Action asks — was refused again, "moved from" the head. T4 now measures the row against the commit the first record of its evidence names.
+- **K5 reads the holder's session on a merge** (D241, #439). After a take-over, the holder's only commit can be the merge that brings the former session's work; K5 read non-merge commits only, and refused it.
+- **A change to the project's records keeps the module checks** (D242, #441). `attest`'s inputs digest leaves out `docs/project/`, `docs/adr/` and `docs/pdr/`; the rest of `docs/` stays an input. A records merge no longer costs every open pull request its end-to-end runs.
+- **M12's message** names the per-user kernel limits a sealed run must stay under (D240, #419).
+- **The commands say what they do** (#446): `nstack init`'s next steps name `nstack settings` and `--apply`; the help of `claim --take-over` and of `pr-check` (R1–R2) is completed.
+
+**In your project** — 13 files: text, `.gitignore` and a workflow comment
+
+- **`.gitignore`** (D245): `.agents/skills/`.
+- **`.nstack/playbooks/tests.md`** (D240): the sealed table's sixth row, per-user kernel limits — file watchers and process count —, with its check.
+- **`.nstack/handbook/05-workflow.md`** (#443, D242, D243): an update of an approved pull request asks its approval again where stale approvals are dismissed, and the approval comes after that update; the inputs digest leaves out the records; T4 measures a row against its first record.
+- **`.nstack/handbook/07-governance.md`** (D242, D246, coherence): the digest's inputs, assembled modules included; who approves under `approval: agent`, a merge of the default branch dismissing it; the cycle rules named; Copilot's code review is not the approving agent, and the toggle to leave off.
+- **`.nstack/handbook/INSTALL.md`** (D244, D245, coherence): `settings --apply` with `GH_TOKEN` or the `gh` login; *Agent skills*; the App's Commit statuses permission; the commands list completed.
+- **`.nstack/handbook/RULES.md`** (D241, D245, D246, coherence): R2; twenty-two checklist lines; M12's `sealed`; K5's merge; S1–S4 point to *Agent skills*.
+- **`.nstack/handbook/project.md`** (D241, coherence): a merge counts for the hold; the cycle rules named K1 to K3 and K5.
+- **`.nstack/handbook/09-platform.md`**, **`glossary.md`**, **`.nstack/skills.yaml`**, **`.nstack/tooling-profile.md`**, **`CONTRIBUTING.md`** (D245, coherence): the code owners line under `approval: agent`; the skills' two folders.
+- **`.github/workflows/pull-request.yml`** (D246): a permission comment.
+
+**Correction to v0.32.0.** Its Migration said that where stale approvals are dismissed, the forge "may" ask for the approval again after an update. Measured since (#443): it does, even when the merge left the tree as approved. The approval comes after the last update.
+
+**Migration**
+
+- **`settings --apply` in a script** (D244): it now waits for a `y` at a terminal. Print the plan without `--apply` and run its calls instead.
+- **The skills** (D245): run `nstack skills` once to write `.agents/skills/`. Where `.gitignore` did not take the new line — rewritten by hand —, the command says so: add `.agents/skills/`.
+- **Copilot's approvals** (D246): where R2 shows, a human code owner approves, or the verifying agent on `approval: agent`; turn *Allow Copilot approvals to count toward merge requirements* off.
+
+---
+
 ## v0.32.0 — 2026-11-18
 
 D234–D239. Four come from the same multi-agent project's day on v0.30.0; two come from the framework's own repository.
