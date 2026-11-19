@@ -113,11 +113,12 @@ in git; elsewhere a record is shown, and the forge's CI judges.
 ## R — the approvals a pull request carries
 
 On GitHub, read from the pull request by `nstack pr-check` on the forge's run. Where the forge
-dismisses stale approvals on push, it never has one to say.
+dismisses stale approvals on push, R1 never has one to say; R2 reads any repository.
 
 | Code | Refuses | Why |
 |---|---|---|
 | `R1` | *(warning)* An approval given on an earlier commit than the head, when commits other than the base branch's followed it — a merge that carries content of its own included —: the approver has not read them. A review starts no run, so it is said, as an annotation on the check, never failed. Unread, it is said | `07-governance.md` §7 |
+| `R2` | *(warning)* Every approval is Copilot's code review: GitHub counts it toward the required approvals where the repository allows it — a setting its API does not show —, yet it ran no test sheet and names no session. Said, never failed | `07-governance.md` §7 |
 
 ## K — the cycle a change belongs to
 

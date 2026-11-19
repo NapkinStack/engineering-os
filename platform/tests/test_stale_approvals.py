@@ -140,3 +140,42 @@ def test_the_approvals_are_each_reviewer_s_latest_approving_review_and_its_commi
     assert pull_request.approvals(tmp_path) == "the forge did not answer (no pull request)"
     monkeypatch.setenv("NSTACK_ATTESTING", "abc1234")
     assert pull_request.approvals(tmp_path) is None, "attest records the head: the forge's run judges"
+
+
+
+# --- D246: an approval by Copilot's code review alone (R2) -------------------------------------
+
+def _copilot(found) -> list[str]:
+    said: list[str] = []
+    pull_request.check_copilot(found, said.append)
+    return said
+
+
+@pytest.mark.parametrize("login", ["copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"])
+def test_an_approval_by_copilot_alone_is_said(login):
+    """GitHub may count it toward the required approvals, a setting its API does not show."""
+    said = _copilot([(login, "abc1234")])
+    assert len(said) == 1 and said[0].startswith("[R2] the only approval is Copilot's code review"), said
+    assert "ran no test sheet" in said[0] and "07-governance.md" in said[0]
+
+
+def test_copilot_beside_another_approver_is_not_said():
+    assert _copilot([("copilot-pull-request-reviewer", "abc1234"), ("dana", "abc1234")]) == []
+
+
+@pytest.mark.parametrize("found", [[], None, "the forge did not answer"])
+def test_no_approval_or_none_read_says_nothing_of_copilot(found):
+    assert _copilot(found) == []
+
+
+def test_on_the_forge_s_run_r2_is_an_annotation_of_the_check(capsys, monkeypatch):
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    _copilot([("copilot-pull-request-reviewer", "abc1234")])
+    assert "::warning title=R2 approval by Copilot alone::" in capsys.readouterr().out
+
+
+def test_pr_check_says_r2_on_github_and_stays_green(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, USER_FACING)
+    monkeypatch.setattr(pull_request, "approvals", lambda root: [("copilot-pull-request-reviewer", head)])
+    assert check(tmp_path, base, head, sheet(PASSED), monkeypatch) == 0
+    assert "WARNING [R2] the only approval is Copilot's code review" in capsys.readouterr().out

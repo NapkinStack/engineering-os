@@ -445,6 +445,14 @@ The forge does the sorting, path by path:
   the fixes and approves, or, still disagreeing, hands the change to a human. A second pass
   raises nothing new but what the fixes broke.
 
+**Copilot's code review is not that agent.** GitHub lets its approval count toward the required
+ones — generally available since 2026-10-28, off by default: *Settings › Copilot › Code review*,
+*Allow Copilot approvals to count toward merge requirements*, which an organization may also
+enforce for every repository. It runs no test sheet and names no session, so leave that toggle
+off, and ask the organization's owner where it is enforced; where an approval of it is the only
+one, `pr-check` says so (R2). Copilot is named in no code owners file, so on every path the file
+names a code owner still approves — GitHub's documentation says nothing otherwise.
+
 **Where the forge cannot guard** — a private repository on a plan that enforces no ruleset —
 neither answer is enforced: the code owners file only asks for reviews, and `doctor` says
 *unguarded*. Who approves is then the team's rule, kept by the people, as every rule there is.
