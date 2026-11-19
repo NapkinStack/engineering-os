@@ -656,13 +656,16 @@ def _refresh_skills(root: Path) -> str | None:
 
     from napkinstack import skills
 
-    if not (root / ".claude" / "skills").is_dir():
+    if not any((root / folder).is_dir() for folder in skills.FOLDERS):
         return None
     said = io.StringIO()
     with contextlib.redirect_stdout(said):
         code = skills.run(root)
     if code == 0:
-        return "Skills regenerated from the updated playbooks (.claude/skills/, not committed)."
+        # A folder git would track is said: the person's next commit would carry the skills.
+        tracked = [line for line in said.getvalue().splitlines() if line.startswith("WARNING:") or line.startswith("      Action:")]
+        return ("Skills regenerated from the updated playbooks (.claude/skills/ and .agents/skills/)"
+                + ("".join(f"\n  {line}" for line in tracked) if tracked else ", not committed."))
     return ("The skills could not be regenerated from the updated playbooks:\n"
             + "".join(f"  {line}\n" for line in said.getvalue().splitlines())
             + "      Action: fix what it says, then nstack skills.")

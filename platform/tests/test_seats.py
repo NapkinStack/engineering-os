@@ -85,7 +85,7 @@ def test_the_manual_is_whole_and_one_click_away() -> None:
     manual = (SKELETON / ".nstack/handbook/INSTALL.md.jinja").read_text(encoding="utf-8")
     for heading in ("## Prerequisites", "## Installation", "## Receiving a new version",
                     "## To do once on GitHub", "## What is in this repository", "## The commands",
-                    "## Claude Code skills", "## The three rules to remember",
+                    "## Agent skills", "## The three rules to remember",
                     "## What is not provided", "## What is left to wire after the installation"):
         assert heading in manual, f"the manual lost '{heading}' in the move"
 

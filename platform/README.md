@@ -16,7 +16,7 @@ runbook, tests and configuration.
 | `src/napkinstack/fitness/` | The architecture checks, not bypassable |
 | `src/napkinstack/modules.py` | Module and contract creation, and the standard verbs read from a MANIFEST |
 | `src/napkinstack/templates/` | A module's template, with no imposed stack, and the contracts module's |
-| `src/napkinstack/skills.py` | Generates the Claude Code skills from the playbooks |
+| `src/napkinstack/skills.py` | Generates the agents' skills from the playbooks: `.claude/skills/` and `.agents/skills/` |
 | `src/napkinstack/project.py` | Project creation and update, through Copier |
 | `src/napkinstack/doctor.py` | Read-only diagnosis of the workstation and the GitHub settings |
 | `src/napkinstack/settings.py` | `nstack settings`: the calls that would close each gap, printed |
@@ -74,7 +74,7 @@ uv run nstack check [module] --root <project>   # also test, bootstrap, e2e, cle
 ## Skills
 
 ```bash
-uv run nstack skills           # generates .claude/skills/
+uv run nstack skills           # generates .claude/skills/ and .agents/skills/
 uv run nstack skills --check   # S1, S2, S4 blocking in CI; S3 as soon as skills are generated
 ```
 
@@ -82,7 +82,7 @@ uv run nstack skills --check   # S1, S2, S4 blocking in CI; S3 as soon as skills
 |---|---|
 | S1 | Every playbook has an entry in `.nstack/skills.yaml` |
 | S2 | Every entry points at an existing playbook, with a non-empty description |
-| S3 | The generated skills match the current playbooks. Not applicable without `.claude/skills/`: a fresh clone, and therefore CI, has none |
+| S3 | The generated skills match the current playbooks. Read in each of `.claude/skills/` and `.agents/skills/` that exists; not applicable without them: a fresh clone, and therefore CI, has none |
 | S4 | Name and description follow the [Agent Skills specification](https://agentskills.io/specification): a name of 1 to 64 characters `a-z0-9` and single hyphens, a description of at most 1024 characters. Also blocks generation |
 
 The `description` is what triggers the skill: it says **what** and **when**, in the third

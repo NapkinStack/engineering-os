@@ -56,10 +56,10 @@ a family, a number a rule; a retired rule's number is never reused.
 
 | Code | Refuses | Why |
 |---|---|---|
-| `S1` | A playbook with no entry in the skills configuration | `INSTALL.md`, "Claude Code skills" |
-| `S2` | An entry pointing at a playbook that does not exist | `INSTALL.md`, "Claude Code skills" |
-| `S3` | Generated skills that no longer match their playbooks | `INSTALL.md`, "Claude Code skills" |
-| `S4` | A skill whose name or description breaks the skills specification | `INSTALL.md`, "Claude Code skills" |
+| `S1` | A playbook with no entry in the skills configuration | `INSTALL.md`, "Agent skills" |
+| `S2` | An entry pointing at a playbook that does not exist | `INSTALL.md`, "Agent skills" |
+| `S3` | Generated skills that no longer match their playbooks | `INSTALL.md`, "Agent skills" |
+| `S4` | A skill whose name or description breaks the skills specification | `INSTALL.md`, "Agent skills" |
 
 ## C — the discovery, the charter and the cycles
 

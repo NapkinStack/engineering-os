@@ -14,6 +14,7 @@ coverage/
 
 # Skills generated from skeleton/.nstack/playbooks/ — the source of truth is there
 .claude/skills/
+.agents/skills/
 
 # Editors and IDEs
 .idea/
