@@ -129,3 +129,93 @@ def test_a_hold_s_event_is_pushed_without_judging_the_project(tmp_path, branch, 
     else:
         assert result.returncode == 0 and checks == [], result.stdout + result.stderr
         assert "nstack's own record" in result.stdout
+
+
+
+# --- #456: in an agent's session, a commit under another identity is never pushed -----------------
+
+def _repo(tmp_path: Path) -> tuple[Path, dict]:
+    """A project pushed once by the agent, its global configuration the agent's own."""
+    agent_config = tmp_path / "agent.gitconfig"
+    agent_config.write_text("[user]\n\tname = demo-scout[bot]\n\temail = 9001+demo-scout[bot]@users.noreply.github.com\n",
+                            encoding="utf-8")
+    env = {**os.environ, "GIT_CONFIG_GLOBAL": str(agent_config), "GIT_CONFIG_NOSYSTEM": "1", "NSTACK_AGENT": "scout"}
+    for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+        env.pop(name, None)
+    bare, project = tmp_path / "remote.git", tmp_path / "project"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True, env=env)
+    subprocess.run(["git", "clone", "-q", str(bare), str(project)], check=True, env=env, capture_output=True)
+    (project / ".nstack").mkdir()
+    for script in (ROOT / "skeleton" / ".nstack").glob("*.sh"):
+        (project / ".nstack" / script.name).write_bytes(script.read_bytes())
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "-m", "base"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "push", "-q", "origin", "HEAD:main"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q"], cwd=project, check=True, env=env)
+    return project, env
+
+
+def _hook(project: Path, env: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(["sh", ".nstack/fitness-before-push.sh"], cwd=project, capture_output=True, text=True,
+                          env={**env, "PATH": "/usr/bin:/bin", "PRE_COMMIT_TO_REF": "HEAD",
+                               "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/d1-work"}, timeout=60)
+
+
+def test_an_agent_never_pushes_a_commit_under_another_identity(tmp_path):
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "-c", "user.name=f", "-c", "user.email=f@host.example", "commit", "-q", "--allow-empty",
+                    "-m", "made up"], cwd=project, check=True, env=env)
+    result = _hook(project, env)
+    assert result.returncode == 1, result.stdout
+    assert "FAIL [nstack] 1 commit(s) the remote does not hold yet are not agent scout's identity" in result.stdout, \
+        result.stdout
+    assert "f@host.example" not in result.stdout, "the address it would leak is not printed again"
+
+
+def test_an_agent_s_own_commits_go_through_and_a_person_s_session_is_not_read(tmp_path):
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "mine"], cwd=project, check=True, env=env)
+    assert "not agent scout's identity" not in _hook(project, env).stdout
+    subprocess.run(["git", "-c", "user.name=p", "-c", "user.email=p@example.org", "commit", "-q", "--allow-empty",
+                    "-m", "a person's"], cwd=project, check=True, env=env)
+    person = {key: value for key, value in env.items() if key != "NSTACK_AGENT"}
+    assert "identity" not in _hook(project, person).stdout
+
+
+
+def test_a_person_s_name_under_the_agent_s_address_is_refused(tmp_path):
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "-c", "user.name=Real Name", "commit", "-q", "--allow-empty", "-m", "named"],
+                   cwd=project, check=True, env=env)
+    result = _hook(project, env)
+    assert result.returncode == 1 and "Real Name" not in result.stdout, result.stdout
+
+
+def test_a_push_of_several_refs_is_read_whole(tmp_path):
+    """pre-commit names the first ref alone: another local branch holding a made-up identity is read too."""
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "mine"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "switch", "-q", "-c", "leaky"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "-c", "user.name=f", "-c", "user.email=f@host.example", "commit", "-q", "--allow-empty",
+                    "-m", "made up"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "switch", "-q", "-"], cwd=project, check=True, env=env)
+    assert _hook(project, env).returncode == 1
+
+
+def test_records_fetched_from_the_remote_are_its_own_never_the_agent_s_to_push(tmp_path):
+    """attest fetches the remote's notes beside its own: a person's record there is not pushed by the agent."""
+    project, env = _repo(tmp_path)
+    person = {**env, "GIT_CONFIG_GLOBAL": "/dev/null"}
+    subprocess.run(["git", "-c", "user.name=p", "-c", "user.email=p@example.org", "notes", "--ref=nstack/checks",
+                    "add", "-m", "a person's record", "HEAD"], cwd=project, check=True, env=person)
+    subprocess.run(["git", "push", "-q", "origin", "refs/notes/nstack/checks"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q", "origin", "+refs/notes/nstack/checks:refs/notes/nstack-remote/checks"],
+                   cwd=project, check=True, env=env)
+    subprocess.run(["git", "notes", "--ref=nstack/checks", "add", "-f", "-m", "the agent's", "HEAD"],
+                   cwd=project, check=True, env=env)
+    tip = subprocess.run(["git", "rev-parse", "refs/notes/nstack/checks"], cwd=project, capture_output=True,
+                         text=True, check=True, env=env).stdout.strip()
+    result = subprocess.run(["sh", ".nstack/fitness-before-push.sh"], cwd=project, capture_output=True, text=True,
+                            env={**env, "PATH": "/usr/bin:/bin", "PRE_COMMIT_TO_REF": tip,
+                                 "PRE_COMMIT_REMOTE_BRANCH": "refs/notes/nstack/checks"}, timeout=60)
+    assert "not agent scout's identity" not in result.stdout, result.stdout

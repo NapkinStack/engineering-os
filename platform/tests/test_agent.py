@@ -344,8 +344,11 @@ def test_run_hands_the_agent_none_of_the_person_s_credentials(forge, project, mo
     assert agent.add(project, "scout", browser=Browser()) == 0
     for name in ("GH_TOKEN", "GITHUB_TOKEN", "SSH_AUTH_SOCK", "GH_ENTERPRISE_TOKEN"):
         monkeypatch.setenv(name, "the-person-s")
+    for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL", "EMAIL"):
+        monkeypatch.setenv(name, "the-person-s")
     probe = ("import json, os; print(json.dumps({k: os.environ.get(k) for k in "
              "['GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK', 'GH_ENTERPRISE_TOKEN', 'GIT_CONFIG_GLOBAL', "
+             "'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_EMAIL', 'EMAIL', "
              "'GIT_CONFIG_NOSYSTEM', 'GH_CONFIG_DIR', 'NSTACK_AGENT']}), os.getcwd())")
     out = subprocess.run([sys.executable, "-m", "napkinstack", "agent", "run", "scout", "--",
                           sys.executable, "-c", probe], capture_output=True, text=True, check=True).stdout
@@ -353,6 +356,7 @@ def test_run_hands_the_agent_none_of_the_person_s_credentials(forge, project, mo
     seen = json.loads(seen + "}")
     home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
     assert seen == {"GH_TOKEN": None, "GITHUB_TOKEN": None, "SSH_AUTH_SOCK": None, "GH_ENTERPRISE_TOKEN": None,
+                    "GIT_AUTHOR_NAME": None, "GIT_AUTHOR_EMAIL": None, "GIT_COMMITTER_EMAIL": None, "EMAIL": None,
                     "GIT_CONFIG_GLOBAL": str(home / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1",
                     "GH_CONFIG_DIR": str(home / "gh"), "NSTACK_AGENT": "scout"}
     assert Path(cwd.strip()).resolve() == (project.parent / "demo-scout").resolve()
@@ -716,3 +720,60 @@ def test_status_of_an_agent_read_from_a_person_s_session_says_so(forge, project)
 def test_status_of_an_unknown_agent_says_how_to_make_it(forge):
     done = _run("status", "nobody")
     assert done.returncode == 1 and "nstack agent add nobody" in done.stdout
+
+
+
+# --- #456: an agent never commits under an identity git made up ---------------------------------
+
+def _global(name: str, key: str) -> str:
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / name
+    return subprocess.run(["git", "config", "--file", str(home / "gitconfig"), key],
+                          capture_output=True, text=True).stdout.strip()
+
+
+def test_the_agent_s_own_configuration_carries_its_identity_and_refuses_a_made_up_one(forge, project, tmp_path):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    assert _global("scout", "user.name") == "demo-scout[bot]"
+    assert _global("scout", "user.email") == "9001+demo-scout[bot]@users.noreply.github.com"
+    assert _global("scout", "user.useConfigOnly") == "true"
+    # Another repository the agent makes: a --shared clone of its clone commits as the App.
+    other = tmp_path / "shared"
+    env = agent._environment("scout")
+    subprocess.run(["git", "clone", "-q", "--shared", str(project.parent / "demo-scout"), str(other)],
+                   env=env, check=True)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "--no-verify", "-m", "t"], cwd=other, env=env, check=True)
+    who = subprocess.run(["git", "log", "-1", "--format=%an <%ae>|%cn <%ce>"], cwd=other, env=env,
+                         capture_output=True, text=True, check=True).stdout.strip()
+    assert who == "demo-scout[bot] <9001+demo-scout[bot]@users.noreply.github.com>|" \
+                  "demo-scout[bot] <9001+demo-scout[bot]@users.noreply.github.com>", who
+
+
+def test_run_writes_the_identity_of_an_agent_made_before_into_its_configuration(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
+    (home / "gitconfig").write_text("", encoding="utf-8")  # as nstack agent add left it before #456
+    subprocess.run([sys.executable, "-m", "napkinstack", "agent", "run", "scout", "--", sys.executable, "-c", "pass"],
+                   capture_output=True, text=True, check=True)
+    assert _global("scout", "user.email") == "9001+demo-scout[bot]@users.noreply.github.com"
+    assert _global("scout", "user.useConfigOnly") == "true"
+
+
+def test_status_says_an_agent_whose_configuration_lacks_its_identity(forge, project, monkeypatch, capsys):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
+    (home / "gitconfig").write_text("", encoding="utf-8")
+    capsys.readouterr()
+    agent.status("scout")
+    out = capsys.readouterr().out
+    assert "identity: missing from its own git configuration" in out and "nstack agent run scout" in out, out
+
+
+
+def test_an_identity_missing_its_name_or_its_refusal_is_repaired(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    home = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout"
+    subprocess.run(["git", "config", "--file", str(home / "gitconfig"), "--unset", "user.useConfigOnly"], check=True)
+    assert agent._declared("scout") == ""
+    subprocess.run([sys.executable, "-m", "napkinstack", "agent", "run", "scout", "--", sys.executable, "-c", "pass"],
+                   capture_output=True, text=True, check=True)
+    assert _global("scout", "user.useConfigOnly") == "true"
