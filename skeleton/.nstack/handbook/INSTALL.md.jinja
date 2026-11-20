@@ -404,7 +404,7 @@ nstack claim D<n> --session <s> --person @<you>   # takes a deliverable before i
 nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered; --write-states at the closure
 {% if forge == "github" %}nstack agent add <name> [--clone <dir>] · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
 nstack agent status  # who this agent is — its App, repository, clone, gh and hooks; for a person, this project's agents
-{% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
+{% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle; by hand, Run workflow, never beside it{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
 nstack skills        # generates the agents' skills from the playbooks
 nstack doctor        # the workstation and the forge's settings, read-only
 nstack settings      # the calls that would bring the forge's settings to the checklist; --apply: yours makes them

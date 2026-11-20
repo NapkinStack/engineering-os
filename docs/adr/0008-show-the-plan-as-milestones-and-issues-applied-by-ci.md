@@ -3,7 +3,8 @@
 - **Status**: Accepted (2026-10-21), after an independent review (#227) that reshaped §3–§10:
   the pull requests listed rather than searched, milestones keyed on the cycle's number and their
   title collisions said, deliverables keyed on their identifier, the holds read with the job's
-  token and the run triggered by a claim, fields compared after normalising, writes paced
+  token and the run triggered by a claim, fields compared after normalising, writes paced.
+  **Clarified 2026-11-20 (D253)**: two runs at once duplicate; the next keeps the oldest — decision 11
 - **Date**: 2026-10-21
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (a new verb), a workflow of the skeleton, the project's
@@ -128,7 +129,13 @@ and undone; what the run costs on a project with many pull requests.
     says what was not shown — in its output, in the job's summary and as a warning annotation —
     and exits 0. An unexpected answer is caught as a refusal, never a traceback.
 11. **By hand.** A person may run `nstack board` with a token that may write issues; nobody needs
-    to. The marker, not the creator, is the identity, so a hand run and CI agree.
+    to. The marker, not the creator, is the identity, so a hand run and CI agree *one after the
+    other* — **clarified 2026-11-20 (D253)**: two runs at once each find no issue and each make one,
+    as a run by hand beside the workflow's did downstream. The workflow's runs wait for one another;
+    a run by hand does not: it is started from the workflow (*Run workflow*), never as `nstack board`
+    beside it. Where two were made anyway, the next run keeps the oldest of each and closes the
+    others — objects the display made — out of their milestone and labels, and says a second
+    milestone, which only a person deletes.
 
 - **Expected user value**: the decider follows a cycle from the forge's milestone, with nobody
   maintaining it, and a hand edit never becomes a second truth.
