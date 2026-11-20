@@ -1,3 +1,6 @@
+import os
+
+import pytest
 
 
 def test_a_generated_skill_whose_playbook_is_gone_is_removed_never_a_person_s(tmp_path, capsys):
@@ -169,3 +172,33 @@ def test_an_update_says_a_skills_folder_its_commit_left_out(tmp_path):
     (tmp_path / ".gitignore").write_text(".claude/skills/\n.agents/skills/\n", encoding="utf-8")
     said = project._refresh_skills(tmp_path)
     assert said and "not all in the update's commit" in said and ".claude/skills/ is ignored by git" in said, said
+
+
+def test_a_folder_the_sandbox_protects_is_said_and_the_other_written(tmp_path, capsys):
+    """D261: inside an agent's Claude Code sandbox, .claude/skills/ cannot be written — an agent never
+    rewrites its own instructions. The other folder is written, the protected one said, never a crash."""
+    from napkinstack import skills
+
+    _project(tmp_path)
+    (tmp_path / ".claude").mkdir()
+    os.mkfifo(tmp_path / ".claude" / "skills")  # stands in for the sandbox's placeholder: not a folder
+    assert skills.run(tmp_path) == 0
+    assert (tmp_path / ".agents/skills/kept/SKILL.md").is_file()
+    out = capsys.readouterr().out
+    assert "Skills generated in .agents/skills/: 1" in out
+    assert "WARNING: .claude/skills/ could not be written" in out and "outside any sandbox" in out
+
+
+@pytest.mark.skipif(os.name != "posix" or os.geteuid() == 0, reason="POSIX permissions, not root")
+def test_a_folder_no_sandbox_protects_still_fails_when_unwritable(tmp_path):
+    """D261's neighbour: .agents/skills/ is no sandbox's; a write that fails there is a failure."""
+    from napkinstack import skills
+
+    _project(tmp_path)
+    (tmp_path / ".agents").mkdir()
+    (tmp_path / ".agents").chmod(0o500)
+    try:
+        with pytest.raises(PermissionError):
+            skills.run(tmp_path)
+    finally:
+        (tmp_path / ".agents").chmod(0o755)

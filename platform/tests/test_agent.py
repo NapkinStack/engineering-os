@@ -529,6 +529,75 @@ def test_claude_gets_settings_of_the_agent_s_own_that_keep_the_sandbox(forge, pr
     assert "Unix sockets" not in done.stderr
 
 
+def _skills_on_main(project: Path, text: str) -> None:
+    """A Claude Code skill committed on the remote's main, as `nstack update` commits them (ADR-0011)."""
+    folder = project / ".claude" / "skills" / "kept"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "SKILL.md").write_text(text, encoding="utf-8")
+    _git("-c", "user.name=P", "-c", "user.email=p@example.com", "add", "-A", cwd=project)
+    _git("-c", "user.name=P", "-c", "user.email=p@example.com", "commit", "-qm", "skills", cwd=project)
+    _git("push", "-q", str(project.parent / "remote.git"), "main", cwd=project)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude and the sandbox's placeholder")
+def test_the_committed_skills_never_stop_a_merge_in_the_agent_s_sandbox(forge, project, tmp_path, monkeypatch):
+    """D261 (#477): Claude Code's sandbox write-protects .claude/skills/, so git could not write the
+    committed skills there: a merge of main bringing new ones stopped. Run leaves that folder out of the
+    clone's working tree, and hands Claude Code the default branch's skills from a folder of its own."""
+    _claude_stand_in(tmp_path, monkeypatch)
+    _skills_on_main(project, "v1\n")
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    clone = project.parent / "demo-scout"
+    done = _run("run", "scout", "--", "claude")
+    assert done.returncode == 0, done.stderr
+    beside = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "skills"
+    assert ["--add-dir", str(beside)] == [line[4:] for line in done.stdout.splitlines()][2:4]
+    assert (beside / ".claude/skills/kept/SKILL.md").read_text() == "v1\n"
+    assert "left out of the clone's working tree" in done.stderr
+    # In the session: the sandbox lays a placeholder there; main brings new skills.
+    (clone / ".claude").mkdir(exist_ok=True)
+    os.mkfifo(clone / ".claude" / "skills")
+    _git("switch", "-q", "-c", "d1-work", cwd=clone)
+    _skills_on_main(project, "v2\n")
+    _git("fetch", "-q", cwd=clone)
+    merged = subprocess.run(["git", "merge", "-q", "--no-edit", "origin/main"], cwd=clone, capture_output=True, text=True,
+                            env={**os.environ, "GIT_AUTHOR_NAME": "A", "GIT_AUTHOR_EMAIL": "a@example.com",
+                                 "GIT_COMMITTER_NAME": "A", "GIT_COMMITTER_EMAIL": "a@example.com"})
+    assert merged.returncode == 0, merged.stderr
+    assert _git("show", "HEAD:.claude/skills/kept/SKILL.md", cwd=clone) == "v2", "in the commits, never dropped"
+    assert _git("status", "--porcelain", cwd=clone) == "", "the placeholder is no change of the agent's"
+    done = _run("run", "scout", "--", "claude")
+    assert (beside / ".claude/skills/kept/SKILL.md").read_text() == "v2\n", "the new skills at its next run"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stand-in for claude")
+def test_skills_that_cannot_be_laid_never_stop_the_agent_from_starting(forge, project, tmp_path, monkeypatch):
+    """D261: an archive git leaves empty (export-ignore) or a link out of the folder is said, the agent
+    started without them; a skill the clone changed is said kept, never "left out"."""
+    _claude_stand_in(tmp_path, monkeypatch)
+    (project / ".gitattributes").write_text(".claude export-ignore\n", encoding="utf-8")
+    _skills_on_main(project, "v1\n")
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    done = _run("run", "scout", "--", "claude")
+    assert done.returncode == 0, done.stderr
+    assert "--add-dir" not in done.stdout and "could not be laid for the agent" in done.stderr
+
+    clone = project.parent / "demo-scout"
+    _git("sparse-checkout", "disable", cwd=clone)
+    (clone / ".claude/skills/kept/SKILL.md").write_text("mine\n", encoding="utf-8")
+    _git("config", "--worktree", "--unset", "core.sparseCheckout", cwd=clone)
+    done = _run("run", "scout", "--", "claude")
+    assert "NOT left out of the clone" in done.stderr and ".claude/skills/kept/SKILL.md" in done.stderr
+
+
+def test_a_clone_that_does_not_know_its_default_branch_is_told_how(forge, project):
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    clone = project.parent / "demo-scout"
+    _git("remote", "set-head", "origin", "-d", cwd=clone)
+    args, said = agent._skills_beside("scout", clone)
+    assert args == [] and "git remote set-head origin --auto" in said
+
+
 def test_uv_and_pre_commit_keep_the_person_s_warm_caches(forge, project, monkeypatch, tmp_path):
     """D212: the sandbox opens no package index; an empty cache would send uv and pre-commit there.
     They keep the person's own: the value they set, else the one their XDG_CACHE_HOME gives."""

@@ -78,6 +78,14 @@ only the earlier choice to keep the output out of git.
 - **The engine shapes the bytes.** What a skill holds depends on the engine that generated it: a
   contributor whose engine is not the project's version may generate other bytes, which S3 in CI
   says. The pre-push hook already refuses an engine behind the project's.
+- **An agent's sandbox write-protects `.claude/skills/`** (D261, #477, measured 2026-11-21). Claude
+  Code's sandbox denies writes there to every process, git included, so that an agent never
+  rewrites its own instructions: in an agent's clone, a merge or a checkout bringing changed skills
+  stopped. `nstack agent run`, outside the sandbox, leaves that folder out of the clone's working
+  tree (a sparse checkout; the files stay in every commit) and hands Claude Code the default
+  branch's skills from a folder of the agent's own (`--add-dir`). An agent that changes a playbook
+  cannot regenerate `.claude/skills/`: a person does, and S3 says it until then. The decision
+  stands: committing `.claude/skills/` is what Claude Code's documentation asks.
 - **A person's own skills in those folders** are folded in review and left out of the review
   budget too: the attributes and the budget read the folder, not who wrote the file.
 
