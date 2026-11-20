@@ -104,7 +104,8 @@ few minutes, and `--refresh-package` clears only uv's own cache. *No version of 
 right after a release means wait a few minutes, then run the same command again.
 *Executable already exists: pre-commit* means the engine was installed another way — from its
 sources, say: `bash .nstack/install-engine.sh` deletes a link the removed engine left pointing
-nowhere and installs again; a `pre-commit` of another installation it never touches.
+nowhere and installs the version the project records; a `pre-commit` of another installation it
+never touches. Then run the `uv tool install` line above again for X.Y.Z.
 
 An agent passes its session — `nstack update --session <its identifier>` — and the commit
 carries the trailer every commit of an agent carries (`AGENTS.md`, *Identity*).
@@ -289,9 +290,9 @@ gesture stays a person's — it refuses a GitHub App's token, an agent's session
 the plan and the account it would act as, and makes nothing until you confirm at the keyboard.
 Run it in your own terminal. The credential, in this order:
 
-- **a token in `GH_TOKEN`**, when one is set — portable, no `gh` needed: fine-grained, limited to
-  the repository, Administration: write and Issues: write, valid one day. Without a credential,
-  the command prints GitHub's form for it, filled in; you pick the repository there.
+- **a token in `GH_TOKEN`** (or `GITHUB_TOKEN`), when one is set — portable, no `gh` needed:
+  fine-grained, limited to the repository, Administration: write and Issues: write, valid one day.
+  Without a credential, the command prints GitHub's form for it, filled in; you pick the repository there.
 - **otherwise your `gh` login**, as `gh` itself would use it — its token, scope `repo`, is
   enough. With two accounts logged in, `gh` uses the active one: `gh auth switch` first, and
   check the account the plan names.
