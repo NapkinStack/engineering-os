@@ -410,6 +410,29 @@ def test_a_python_import_of_the_standard_library_is_not_a_module_of_the_same_nam
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
+@pytest.mark.parametrize("path, line", [
+    ("ui/host.ts", "import platform from 'os';\n"),
+    ("ui/host.js", "import platform, { arch } from 'os';\n"),
+    ("ui/host.tsx", "import platform = require('os');\n"),
+    ("ui/host.jsx", "  import platform from \"node:os\"\n"),
+    ("cmd/host.go", "import platform \"os\"\n")])
+def test_a_javascript_import_is_judged_on_its_specifier_not_its_binding(tmp_path, capsys, path, line):
+    """D260: in JavaScript, TypeScript or Go, the word after `import` is the local name the file gives
+    what it imports; the module is the quoted specifier."""
+    write_module(tmp_path, "platform", degrade(CUSTOMERS, module__name="platform"))
+    write_module(tmp_path, "shell", VALID, {path: line})
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("line", ["import host from 'platform';\n", "import platform from '@acme/platform/api';\n"])
+def test_a_javascript_specifier_naming_a_module_is_still_its_code(tmp_path, capsys, line):
+    """D260's neighbour: the specifier still names the module's package."""
+    write_module(tmp_path, "platform", degrade(CUSTOMERS, module__name="platform"))
+    write_module(tmp_path, "shell", VALID, {"ui/host.ts": line})
+    assert boundaries.run(tmp_path) == 1
+    assert "references the code of 'platform'" in capsys.readouterr().out
+
+
 def test_a_consumer_ahead_of_its_producer_is_told_the_order(tmp_path, capsys):
     write_contract(tmp_path, "customers-api/v1", "customers-api/v2")
     write_module(tmp_path, "billing", consumes(VALID, "customers", "v2"), {"src/c.py": 'B = "contracts/customers-api/v2/x"\n'})
