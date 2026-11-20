@@ -7,7 +7,8 @@
   **Amended 2026-11-17 (D223, #406)**: a passed module check is kept while what it reads is
   unchanged — the digest of its inputs, not the commit and base — for seven days and twenty
   commits of the default branch at most; an automated sheet row stands on the same digest —
-  decisions 2, 3 and 7
+  decisions 2, 3 and 7. **Amended 2026-11-18 (D242, #441)**: the project's records
+  (`docs/project/`, `docs/adr/`, `docs/pdr/`) are left out of that digest — decision 2
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier

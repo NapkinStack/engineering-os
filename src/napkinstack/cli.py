@@ -166,7 +166,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: modules.create_contract(a.root, a.name, a.owner))
     nc.add_argument("name", help="the contract's name, kebab-case")
     nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
-    pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C9, R1-R2)",
+    pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C1, C9, R1-R2)",
               lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
     pc.add_argument("--base", default="origin/main")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")

@@ -26,6 +26,14 @@ Rules:
   K5  delivery work for a deliverable someone holds comes from its holder: one of the hold's
       sessions — named by any commit it brings, a merge included, as after a take-over — or its
       person's account (`nstack claim`)
+  A1  where checks are attested and the forge does not require nstack attest's status, a record
+      of the head — warned where CI cannot read it
+  A2  that record complete and passed, never voided, keeping nothing from a voided run — left to
+      the required status where the forge requires it
+  C1  the charter readable: the project's stage is never assumed
+  C9  an accepted charter changed with no decision record, warned
+  R1  an approval given before commits other than the base branch's, warned (D227)
+  R2  every approval Copilot's code review, warned (D246)
 
 Delivery work: a pull request that changes a module — a folder holding a MANIFEST.yaml —
 beyond its description: its manifest, AGENTS.md, README.md and docs/ (D24) — or whose manifest

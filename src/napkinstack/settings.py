@@ -335,7 +335,7 @@ def _refused(token: str | None, repo: str) -> str | None:
         return ("--apply does not run in an agent's session (nstack agent run): administering the repository "
                 "is a person's gesture.\n      Action: run it yourself, in your own terminal.")
     if not token:
-        return ("--apply needs your own credential: a gh login (gh auth login), or a token in GH_TOKEN — "
+        return ("--apply needs your own credential: a gh login (gh auth login), or a token in GH_TOKEN (or GITHUB_TOKEN) — "
                 "fine-grained, limited to this repository, Administration: write and Issues: write (the "
                 f"labels), valid one day: {new_token(repo)}\n"
                 "      Action: log in with gh auth login, or set GH_TOKEN for this one run, then revoke the token.")

@@ -6,7 +6,10 @@
   the person (**D151, 2026-10-24**), the last three. **Clarified 2026-10-24 (D150)**: the forge's own permission table shows that the
   check the apply mode rests on cannot hold — *What the forge's permissions say*, below. **The
   decider chose option 3 the same day**: the apply mode is run by the person, never delegated. **Clarified 2026-10-28 (D175)**: an approval stays necessarily human except, on
-  `approval: agent`, another agent for a `prototype` or `standard` module (PDR-0021)
+  `approval: agent`, another agent for a `prototype` or `standard` module (PDR-0021).
+  **Clarified 2026-11-19 (D244)**: the credential is the token given for the run or, with none,
+  the person's own `gh` login — a standing credential, never revoked by this gesture —; the plan
+  is applied only once the person confirms it at the keyboard, never without a terminal
 - **Date**: 2026-09-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Modules affected**: `nstack` (a new command beside `doctor`), the skeleton's README and
@@ -130,7 +133,8 @@ weaken a barrier and merge under it — which is the only reason the standing ru
 can safely have an exception at all.
 
 **The right is temporary by construction.** The command stores nothing, logs no credential,
-and ends by telling the person to revoke what they granted. Nothing in the framework asks for
+and ends by telling the person to revoke a token given for the run — a `gh` login it borrows
+for the run stays as it was (D244). Nothing in the framework asks for
 that credential again; the read-only diagnosis needs none of it.
 
 **And it proves what it did.** It prints the changes it made, then runs the diagnosis, so the
@@ -149,7 +153,9 @@ unguarded with the settings that are out of reach named.
 **Nominal journey, delegated.** The person creates a short-lived credential that can administer
 the repository and cannot push, hands it to their agent, and asks for the setup. The command
 verifies the credential's shape, applies the difference, prints it, runs the diagnosis, and
-reminds them to revoke. The agent never held a right to change code.
+reminds them to revoke. The agent never held a right to change code. *(As built, D151: not
+built — the apply mode is run by the person and refuses an agent's session; see*
+*Permissions.)*
 
 **Edge cases and degraded states.** A credential that can also push: refused before anything is
 attempted, naming what to change *(as built, D151: a credential that is not a person's — an
@@ -169,8 +175,10 @@ what failed is named with the forge's own error, and the diagnosis reports the r
 - The end state is established by the read-only diagnosis, never by the command's own claim.
 
 **Permissions:** the framework's own agent keeps no administration right (ADR-0004). The
-credential used by this command is the user's, supplied for one run, and the command refuses it
-if it carries the power to write code.
+credential used by this command is the user's — a token supplied for one run, or their own `gh`
+login (D244) —, and the command refuses what is not a person's: a run in CI, an agent's session,
+a GitHub App's token *(as built, D151: the forge has no credential that administers and cannot
+push, so a person's own may also push)*.
 
 **Acceptance criteria** *(testable)*:
 
@@ -190,7 +198,7 @@ if it carries the power to write code.
       it applies what the plan allows, names the rest as out of reach with its cost, and never
       reports the repository as guarded.
 - [x] Given a run that applied changes, when it ends, then it prints each change made and
-      reminds the person to revoke the credential.
+      reminds the person to revoke a token given for the run (D244: a `gh` login is left as it was).
 - [x] Given any run, then no credential appears in its output or in any file it writes.
 
 ### As built, and what is not (M11k, 2026-10-12)
@@ -307,14 +315,14 @@ What the method leaves to a person's hands on GitHub, as `INSTALL.md` lists it:
 | Step | Today | Could be | Why |
 |---|---|---|---|
 | Create the repository and push the first commit | By hand, after `nstack init` | Automatable by the person, with the forge's command line named in `init`'s next steps | The person's own account; nothing to decide |
-| The checklist, its G lines | Printed by `nstack settings`, then pasted | One gesture of the person: `nstack settings --apply` (option 3, built in D151) | Administration is the person's (ADR-0004) |
-| D26: a required check the forge has not yet seen run | A first pull request, then the checks selected | To be observed on the first real run of `--apply`: the interface refuses a check it has never seen, the rulesets API may accept it; if it refuses, `--apply` puts the ruleset in without them and names G4 as the one step left. **Observed 2026-11-19 (D244)**, on a new public repository on the Free plan, from an unpublished checkout: the rulesets API took the five checks, never seen run, and `nstack doctor` read G4 in place right after — no pull request opened for it. The criterion's private repository and published version are still to come | The first run under a person's credential |
+| The checklist, its G lines | One gesture since D151: `nstack settings --apply`, the plan confirmed at the keyboard (D244) | One gesture of the person: `nstack settings --apply` (option 3, built in D151) | Administration is the person's (ADR-0004) |
+| D26: a required check the forge has not yet seen run | Taken by the rulesets API, observed 2026-11-19 (see the next cell) | To be observed on the first real run of `--apply`: the interface refuses a check it has never seen, the rulesets API may accept it; if it refuses, `--apply` puts the ruleset in without them and names G4 as the one step left. **Observed 2026-11-19 (D244)**, on a new public repository on the Free plan, from an unpublished checkout: the rulesets API took the five checks, never seen run, and `nstack doctor` read G4 in place right after — no pull request opened for it. The criterion's private repository and published version are still to come | The first run under a person's credential |
 | `owner_team`, the team `CODEOWNERS` names | By hand, in the organisation | Automatable by an organisation owner, in the same script | Who belongs to the team is a human decision |
 | The agents' GitHub App: created, installed, its key stored | By hand, through the forge's pages | Reduced to one confirmation by the App manifest flow, never fully automated | Creating an identity and holding its key is a person's act (ADR-0004) |
 | An approval on a pull request | By hand | **Necessarily human** — except, on `approval: agent`, another agent for a `prototype` or `standard` module (PDR-0021, clarified 2026-10-28) | It is what the barrier is for (PDR-0003) |
 | A tag, and a deployment's approval | By hand | **Necessarily human** | The decider's word (PDR-0005) |
 | An acceptance issue answered | By hand | **Necessarily human** | A person tried it (PDR-0004) |
-| A setup credential revoked | By hand | Necessarily human; said at the end of the gesture | Only its owner can revoke it |
+| A setup credential revoked | By hand | Necessarily human; said at the end of the gesture — a token given for the run; a `gh` login is not one (D244) | Only its owner can revoke it |
 
 ---
 
