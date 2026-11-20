@@ -22,6 +22,41 @@ a patch.
 
 ---
 
+## v0.34.0 — 2026-11-20
+
+D250, D252, D253 and D254. Two (D253, D254) come from the same multi-agent project, downstream, on 2026-11-20; D252 is a decision (ADR-0011); D250 brings the records level with the engine.
+
+This is a minor version.
+- **What it adds:** the generated skills are committed in a project, so an agent starting from a fresh clone has them, and S3 runs in CI.
+- **What changes for a project:** after the update, a pull request that changes a playbook without running `nstack skills`, or edits a generated skill by hand, fails S3 in CI — the gate intended. The update itself is green: it commits the skills it generates.
+
+**In the engine**
+
+- **The skills generated from the playbooks are committed** (D252, ADR-0011). They were git-ignored: a workstation had them, a cloud agent or a new contributor's clone did not, and S3 never applied in CI.
+  - `nstack init` generates them before the initial commit, `nstack update` before its own: a project that never committed them gets them in the update's pull request.
+  - The review budget leaves them out; `nstack skills` warns where git still ignores a skills folder.
+- **Two runs of `nstack board` at once no longer leave each issue twice** (D253). Each deliverable and cycle is keyed on the oldest issue or milestone carrying its marker; a later run closes the others (*not planned*), takes them out of their milestone and labels, and says which it kept. A second milestone is said, never deleted.
+- **T4 lets an explored row go back to an ancestor no record held** (D254, #460). A Commit cell set back to an ancestor of the commit the first record names stands, the head confirmed beside it; a move to a commit that is not its ancestor is still said.
+- **The records say what the engine does** (D250): `pr-check`'s help and its module's rule list name A1, A2, C1, C9, R1 and R2; `nstack init` says *credential* where a `gh` login is taken, and `nstack settings --apply`'s refusal names `GITHUB_TOKEN` beside `GH_TOKEN`.
+
+**In your project** — 7 files, and the generated skills
+
+- **`.gitignore`** (D252): no longer names `.claude/skills/` and `.agents/skills/`.
+- **`.gitattributes`** (D252, new): marks both folders `linguist-generated`, folded in review diffs.
+- **`.claude/skills/`, `.agents/skills/`** (D252): committed by the update's own commit.
+- **`.github/workflows/plan-on-the-forge.yml`** (D253): by hand is *Run workflow*, never `nstack board` beside it.
+- **`.nstack/handbook/05-workflow.md`** (D254): an explored row set back to an ancestor.
+- **`.nstack/handbook/06-decisions.md`** and **`CONTRIBUTING.md`** (D252): the skills are generated, committed and checked against the playbooks.
+- **`.nstack/handbook/INSTALL.md`** (D250, D252, D253): `GITHUB_TOKEN` beside `GH_TOKEN`; after *Executable already exists*, the X.Y.Z install again; the skills committed; the board's command line.
+
+**Migration**
+
+- **A project whose own `.gitignore` lines differ from the skeleton's** may keep a skills folder ignored: `nstack skills` says so. Remove the line, then commit what `nstack skills` generates.
+- **Downstream after D253**: the first fixed run keeps the oldest copy of each issue, even where a person closed it and kept the newer one: it reopens the oldest where the deliverable is open, and closes the newer (*not planned*) — what was said on the newer one stays there, closed.
+- **A second milestone of a cycle**, made by two runs at once: `nstack board` names it; a person deletes it on the forge — the display's issues are on the first already.
+
+---
+
 ## v0.33.1 — 2026-11-20
 
 D249 and D251: two defects met by a multi-agent project the day it took v0.33.0 — one left a workstation with no engine, the other published the workstation's own identity in an agent's commits.
