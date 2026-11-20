@@ -327,6 +327,15 @@ BOUNDARY_CASES = {
     "B2 a path dependency in a build file": ({
         "billing": (VALID, {"pyproject.toml": 'customers = { path = "../customers" }\n'}),
         "customers": (CUSTOMERS, {})}, "B2", True),
+    "B2 a module named like Python's standard library, imported from its root (D258)": ({
+        "billing": (VALID, {"src/app.py": "from modules.platform import cluster\n"}),
+        "platform": (degrade(CUSTOMERS, module__name="platform"), {})}, "B2", True),
+    "B2 its package, in another language, named like Python's standard library (D258)": ({
+        "billing": (VALID, {"src/app.rs": "use platform::cluster;\n"}),
+        "platform": (degrade(CUSTOMERS, module__name="platform"), {})}, "B2", True),
+    "B2 a dotted package that only begins like the standard library (D258)": ({
+        "billing": (VALID, {"src/app.py": "from email.service import send\n"}),
+        "mail": (degrade(CUSTOMERS, module__name="mail", module__code_name="email.service"), {})}, "B2", True),
     "B3 circular dependency": ({
         "billing": (VALID, {"src/app.py": "from modules.customers.api import customer\n"}),
         "customers": (CUSTOMERS, {"src/app.py": "from modules.billing.api import invoice\n"})},
@@ -387,6 +396,17 @@ def test_a_new_version_across_two_modules_has_an_order_each_step_passes(tmp_path
                                      for version in consumer]}
     write_module(tmp_path, "billing", billing, sources)
     write_module(tmp_path, "customers", provides(CUSTOMERS, "customers", producer))
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("line", ["import platform\n", "import platform as host\n",
+                                  "from platform import release\n", "  import json, logging\n"])
+def test_a_python_import_of_the_standard_library_is_not_a_module_of_the_same_name(tmp_path, capsys, line):
+    """D258: a project's module `platform` (or `json`, `logging`) and a Python script that imports the
+    standard library's: Python's own module, not that module's code."""
+    for name in ("platform", "json"):
+        write_module(tmp_path, name, degrade(CUSTOMERS, module__name=name))
+    write_module(tmp_path, "shell", VALID, {"scripts/speed.py": line})
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 

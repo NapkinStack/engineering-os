@@ -27,7 +27,9 @@ DETECTION — textual and deliberately simple, with no stack assumed.
   - Another module's code is referenced where an import line names its folder from the root
     (modules.billing, modules/billing, from modules import billing) or its package — opening
     the statement, or quoted as a module specifier, or alone on a Go import block's line — or
-    where any line reaches into its folder (../billing/, modules/billing/). Its package is its
+    where any line reaches into its folder (../billing/, modules/billing/). In a Python
+    file, a package named like the standard library's (import platform) is Python's own
+    (D258). Its package is its
     folder's name, or `code_name` when the code names it otherwise (com.acme.billing). A
     relative path is read from the file's folder and from the module's — where the verbs run —
     and a path that names something of the module's own, or a contract it provides, is none.
@@ -123,22 +125,29 @@ def read_files(module: dict):
         yield relative, data.decode("utf-8", errors="ignore").splitlines()
 
 
-def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern, re.Pattern]:
-    """(import of its code, path into its folder). On an import line: its folder named from the
-    root, or its package opening the statement (Python, Rust, Java) or quoted as a module
-    specifier (JavaScript, TypeScript, Ruby). On any line: a relative or rooted path into its
-    folder — ending where the folder's name does, so that ../billing.csv is not billing."""
+def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern, re.Pattern, re.Pattern]:
+    """(import of its code, path into its folder, Go import block, its bare package). On an import
+    line: its folder named from the root, or its package opening the statement (Python, Rust, Java)
+    or quoted as a module specifier (JavaScript, TypeScript, Ruby). On any line: a relative or rooted
+    path into its folder — ending where the folder's name does, so that ../billing.csv is not billing.
+    A package named like a module of Python's standard library is apart: in a Python file,
+    `import platform` is Python's own (D258)."""
     code, folder = re.escape(other["code_name"]), re.escape(other["dirname"])
     rooted = "|".join(MODULE_DIRS)
     imports = re.compile(rf"(?<![\w-])(?:{rooted})[./]{folder}(?![\w-])"
                          rf"|^\s*from\s+(?:{rooted})\s+import\s+(?:[\w\s]*,\s*)?{folder}(?![\w-])"
-                         rf"|^\s*(?:from|import|(?:pub\s+)?use|extern\s+crate)\s+{code}(?![\w-])"
                          rf"|(?:\bfrom\s+|\b(?:require|import)\s*\(\s*|^\s*(?:import|require)\s+)"
                          rf"[\"'](?:@[\w.-]+/)?{code}(?:/[^\"']*)?[\"']")
     reach = re.compile(rf"(?<![\w.-])\.\./(?:\.\./)*{folder}(?=/|[\"'\s)]|$)"
                        rf"|(?<![\w-])(?:{rooted})/{folder}/")
     block = re.compile(rf"^\s*(?:\w+\s+)?\"[^\"]*(?<![\w-])(?:{rooted})/{folder}(?:/[^\"]*)?\"\s*$")
-    return imports, reach, block
+    package = re.compile(rf"^\s*(?:from|import|(?:pub\s+)?use|extern\s+crate)\s+{code}(?![\w-])")
+    return imports, reach, block, package
+
+
+def _standard(other: dict) -> bool:
+    """Its package bears the name of a module of Python's standard library (platform, json, logging)."""
+    return other["code_name"] in sys.stdlib_module_names
 
 
 TOKEN = re.compile(r"[^\s'\"`)(,;]+")
@@ -315,6 +324,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
             unassembled(root, name, mod, read, by_folder, f"{mod['path'].relative_to(root)}/MANIFEST.yaml (commands.{verb})")
         for relative, lines in read_files(mod):
             source = Path(relative).suffix in SOURCE_SUFFIXES
+            python = Path(relative).suffix == ".py"
             for lineno, line in enumerate(lines, 1):
                 imports = source and IMPORT_HINTS.search(line)
                 text = line.replace("\\", "/")
@@ -322,10 +332,13 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                 # what is left of the line is still B2's.
                 read, text = artefact_reads(root, mod, relative, text)
                 unassembled(root, name, mod, read, by_folder, f"{mod['path'].relative_to(root) / relative}:{lineno}")
-                for other_name, (code_import, reach, block) in others.items():
+                for other_name, (code_import, reach, block, package) in others.items():
                     if other_name == name:
                         continue
-                    via_import = (imports and code_import.search(line)) or (source and block.search(line))
+                    via_import = ((imports and (code_import.search(line)
+                                                or (package.search(line)
+                                                    and not (python and _standard(modules[other_name])))))
+                                  or (source and block.search(line)))
                     reaches = [m for m in reach.finditer(text)
                                if not _names_a_contract(root, mod, relative,
                                                         TOKEN.match(text, m.start()).group(), contracts)
