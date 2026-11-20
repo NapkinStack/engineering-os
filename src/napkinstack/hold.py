@@ -625,6 +625,7 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
     cycle = None if number else plan.accepted_cycle(root)
     stem = ISSUES if number else (cycle[0].stem if cycle else None)
     ident = f"issue-{number}" if number else ident
+    named = bool(person)
     person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character.\n"
@@ -636,6 +637,8 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         print(f"FAIL [hold] the remote cannot be read.\n      {error}{_then(error, 'check it, then again.')}")
         return 1
     current = read(root, stem, ident) if stem else Hold()
+    if not named and session and session.casefold() in {one.casefold() for one in current.sessions}:
+        person = current.person  # the holding session gives it back for its person, never git's user
     if not current.held and not current.recorded:
         ended = None if number else _ended(root, ident, stem)
         if ended:
@@ -658,8 +661,11 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
               f"--session {session}.")
         return 1
     if not (same(current.person, person) or is_decider or stale):
+        unnamed = ("" if named else f"\n      No --person was given: git's user, {person}, was read. If you work for "
+                   f"{current.person}, run again with --person {current.person}"
+                   + (", or with the session that holds it." if current.sessions else "."))
         print(f"FAIL [hold] {ident} is {said(current)}: only its holder or the decider ({decider or 'none named'}) "
-              "releases a hold that is not stale.\n      Action: ask them.")
+              f"releases a hold that is not stale.{unnamed}\n      Action: ask them.")
         return 1
     sha = _event(root, current.tip, ident, "release", person, session)
     ok, where = _record(root, name, stem, ident, sha)

@@ -2126,3 +2126,39 @@ def test_where_nobody_holds_a_ready_deliverable_k3_names_the_remote_it_read(shar
     pull_request.check_cycle(alice, "Deliverable: D1", set(), datetime.date(2026, 10, 20), lambda *a: None,
                              warned.append)
     assert len(warned) == 1 and "nobody holds it on origin" in warned[0], warned
+
+
+def test_the_holding_session_releases_without_naming_its_person_again(shared, capsys):
+    # The session that holds a deliverable gives it back: the person is the hold's, never git's
+    # user — on an agent's workstation, git's user is the agent's own identity.
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="alice-d1") == 0, capsys.readouterr().out
+    assert "released by @alice" in capsys.readouterr().out
+    assert remote_events(shared) == ["release", "claim"]
+
+
+def test_a_session_that_does_not_hold_it_is_told_to_name_its_person(shared, capsys):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    capsys.readouterr()
+    assert hold.release(alice, "D1", session="other") == 1
+    said = capsys.readouterr().out
+    assert "No --person was given: git's user, test <test@example.invalid>, was read" in said and "--person @alice" in said, said
+    assert remote_events(shared) == ["claim"]
+
+
+def test_the_holding_session_is_matched_whatever_its_case_and_spaces(shared, capsys):
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert hold.release(alice, "D1", session=" ALICE-D1 ") == 0
+    assert remote_events(shared) == ["release", "claim"]
+
+
+def test_another_person_s_session_never_releases_for_the_holder(shared, capsys):
+    assert hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice") == 0
+    bob = clone(shared, "bob")
+    assert hold.claim(bob, "#7", session="bob-7", person="@bob") == 0
+    assert hold.release(bob, "D1", session="bob-7") == 1
+    assert remote_events(shared) == ["claim"]

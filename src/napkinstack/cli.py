@@ -204,7 +204,7 @@ def build_parser() -> argparse.ArgumentParser:
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")
     rs.add_argument("--session", help="the agent's session, written on the release")
-    rs.add_argument("--person", help="who releases it, such as @alice (default: git's user)")
+    rs.add_argument("--person", help="who releases it, such as @alice (default: the hold's person when --session is one of its sessions, else git's user)")
     dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request; "
                               "refused with no merge of it",
               lambda a: hold.deliver_command(a.root, a.deliverable, a.held or [], a.session, a.person, a.write_states))

@@ -69,7 +69,7 @@ no service, and no forge required.
    events, each an empty commit on the previous one; it is never merged.
 2. **An event.** Subject `Hold <id>: <event>`; trailers `Hold-Event:` (`claim`, `renew`,
    `take-over`, `release`), `Hold-Person:` (the accountable person — a handle such as `@alice`,
-   or `Name <email>`; by default git's user), `Agent-Session:` (the session, when an agent), and for a take-over
+   or `Name <email>`; by default git's user — for a release by a session on the hold, the hold's person, clarified for D257), `Agent-Session:` (the session, when an agent), and for a take-over
    `Hold-Previous:` (the person and session it was taken from), and `Hold-Id:`, random, so two
    runs in one second are two commits. The hold's state is its last event. One person is one
    whether named by a handle or by git: `@alice` is `Alice <alice@example.org>` — said, not
