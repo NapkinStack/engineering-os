@@ -19,6 +19,7 @@ dedicated system user).
 from __future__ import annotations
 
 import html
+import io
 import http.server
 import json
 import os
@@ -27,6 +28,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
 import urllib.error
 import urllib.parse
@@ -521,6 +523,55 @@ def _sockets(clone: Path) -> bool:
     return isinstance(answers, dict) and answers.get("agent_sockets") is True
 
 
+CLAUDE_SKILLS = ".claude/skills"
+
+
+def _skills_beside(name: str, clone: Path) -> tuple[list[str], str | None]:
+    """D261: Claude Code's sandbox write-protects `.claude/skills/` — an agent may not rewrite its own
+    instructions —, so git cannot write the committed skills there either: a merge or a checkout
+    bringing new ones stops. Run outside the sandbox, this leaves that folder out of the clone's
+    working tree (a sparse checkout: still in every commit, never written) and lays the skills of
+    the default branch, as last fetched, in a folder of the agent's own, given to Claude Code by
+    --add-dir. Nothing where the project commits no Claude Code skill. Returns (arguments, what to say)."""
+    if _git("rev-parse", "--verify", "-q", "origin/HEAD", cwd=clone).returncode:
+        return [], ("  - skills: the clone does not know its remote's default branch (origin/HEAD), so its committed "
+                    "Claude Code skills are not read.\n      Action: git remote set-head origin --auto, in the clone.")
+    if _git("rev-parse", "--verify", "-q", f"origin/HEAD:{CLAUDE_SKILLS}", cwd=clone).returncode:
+        return [], None
+    patterns = ["/*", f"!/{CLAUDE_SKILLS}/"]
+    sparse = _git("config", "--bool", "core.sparseCheckout", cwd=clone).stdout.strip() == "true"
+    if not sparse:
+        made = _git("sparse-checkout", "set", "--no-cone", *patterns, cwd=clone)
+        if made.returncode:
+            return [], (f"  - skills: {CLAUDE_SKILLS}/ could not be left out of the clone: "
+                        f"{(made.stderr or made.stdout).strip()}\n"
+                        "      In the sandbox, a merge or a checkout that changes the skills will stop.")
+    elif _git("sparse-checkout", "list", cwd=clone).stdout.split() != patterns:
+        return [], (f"  - skills: the clone is already a sparse checkout of someone else's patterns: left as is. "
+                    f"In the sandbox, a merge or a checkout that changes {CLAUDE_SKILLS}/ will stop.")
+    kept = [line[2:] for line in _git("ls-files", "-v", "--", CLAUDE_SKILLS, cwd=clone).stdout.splitlines()
+            if not line.startswith("S ")]
+    left = (f"  - skills: {CLAUDE_SKILLS}/ left out of the clone's working tree, which the sandbox write-protects"
+            if not kept else
+            f"  - skills: {CLAUDE_SKILLS}/ NOT left out of the clone: changed there, kept by git ({', '.join(kept[:3])}). "
+            f"In the sandbox, a merge that changes them will stop.\n"
+            f"      Action: commit or restore them, then nstack agent run {name} again")
+    folder = home() / name / "skills"
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    archive = subprocess.run(["git", "archive", "origin/HEAD", CLAUDE_SKILLS], cwd=clone, capture_output=True)
+    try:
+        if archive.returncode:
+            raise OSError(archive.stderr.decode(errors="replace").strip())
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+            tar.extractall(folder, filter="data")
+    except (tarfile.TarError, OSError) as exc:
+        return [], f"{left}.\n  - skills: the default branch's could not be laid for the agent ({exc}): it starts without them."
+    return ["--add-dir", str(folder)], (
+        f"{left}; the default branch's, as last fetched, in {folder} (--add-dir), laid again at each run: "
+        "a change there lasts one session and reaches no one.")
+
+
 def _claude_settings(name: str, sockets: bool = False) -> Path:
     """Claude Code's settings of the agent's own, added to the person's (D199): their sandbox, when
     on, cuts the forge — the agent's git and gh go nowhere — and lets it write nowhere outside its
@@ -670,6 +721,10 @@ def run(name: str, command: list[str]) -> int:
          "no write to .git/config.\n"
          "  - the agent checks who it is with: nstack agent status", sys.stderr)
     if Path(command[0]).name.lower() in ("claude", "claude.exe", "claude.cmd"):
+        beside, said = _skills_beside(name, Path(app["clone"]))
+        command = [command[0], *beside, *command[1:]]
+        if said:
+            _say(said, sys.stderr)
         if any(arg == "--settings" or arg.startswith("--settings=") for arg in command[1:]):
             _say(f"  - claude: your --settings is kept; if your sandbox is on, its sandbox.network.allowedDomains "
                  f"needs {', '.join(_hosts())}.", sys.stderr)

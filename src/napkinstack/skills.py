@@ -168,11 +168,18 @@ def run(root: Path, check_only: bool = False) -> int:
         return 0
 
     removed: set[str] = set()
+    refused: list[str] = []
     for folder in FOLDERS:
-        for name, entry in sorted(mapping.items()):
-            path, content = build(root, name, entry, folder)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
+        try:
+            for name, entry in sorted(mapping.items()):
+                path, content = build(root, name, entry, folder)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+        except OSError as exc:  # an agent's sandbox write-protects .claude/skills/ alone (D261)
+            if folder != FOLDERS[0]:
+                raise
+            refused.append(f"{folder.as_posix()}/ could not be written ({exc.strerror or exc})")
+            continue
         # A playbook gone leaves its skill behind, still loaded by the agent: removed when generated
         # here, never a skill a person wrote (no banner).
         for made_dir in sorted((root / folder).glob("*/")):
@@ -182,10 +189,15 @@ def run(root: Path, check_only: bool = False) -> int:
                 if not any(made_dir.iterdir()):
                     made_dir.rmdir()
                 removed.add(made_dir.name)
-    print(f"Skills generated in {' and '.join(f'{folder.as_posix()}/' for folder in FOLDERS)}: {len(mapping)}"
+    written = [folder.as_posix() for folder in FOLDERS if not any(said.startswith(f"{folder.as_posix()}/") for said in refused)]
+    print(f"Skills generated in {' and '.join(f'{folder}/' for folder in written) or 'no folder'}: {len(mapping)}"
           + (f"; removed, their playbook gone: {', '.join(sorted(removed))}" if removed else ""))
     for name in sorted(mapping):
         print(f"  - {name}")
+    for said in refused:
+        print(f"WARNING: {said}. Inside an agent's sandbox, that folder is protected: an agent never rewrites its "
+              "own instructions.\n"
+              "      Action: a person runs nstack skills outside any sandbox and commits it — S3 says it until then.")
     for folder in _ignored(root):
         print(f"WARNING: {folder}/ is ignored by git: an agent starting from a fresh clone would not have the "
               "skills.\n"
