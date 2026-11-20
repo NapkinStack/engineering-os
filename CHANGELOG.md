@@ -22,6 +22,33 @@ a patch.
 
 ---
 
+## v0.34.1 — 2026-11-20
+
+D255, D256, D257, D258 and D259: five frictions met by a multi-agent project, downstream, on 2026-11-20 — two that misled agents about who holds what, one that lost a commit's session, two false refusals at the push.
+
+This is a patch version: nothing green turns red. The new `commit-msg` hook refuses only a message that already named no session to git.
+
+**In the engine**
+
+- **K3 never says *nobody holds it* of holds it could not read** (D256, #466). A verifier's clone of a working clone has that clone as its remote; the clone keeps the holds it fetched, never as branches of its own, so the fetch brought none and K3 said *nobody holds it*.
+  - A local remote whose refs hold fetched holds is a clone, not the forge: K5 says the holds are not read and why, `nstack claim` refuses rather than push a hold into it.
+  - K3 names the remote it read; a branch tracking a local branch reads `origin`.
+- **The holding session gives a deliverable back for the hold's person** (D257, #467). `nstack unclaim <id> --session <s>` with no `--person` read git's user — on an agent's workstation, the agent's own identity — and refused the holding session itself. Where `<s>` is one of the hold's sessions, the hold's person releases it; a refusal names the hold's person.
+- **A Python import of the standard library is not a module of the same name** (D258, #469). In a Python file, `import platform` (or `json`, `logging`…) is Python's own, not the code of a project module `platform` (B2). The rooted forms, a path into the module's folder and other languages' imports still count.
+- **A contract's bare name in an unrelated string is no undeclared read** (D259, #471). A contract's quoted name alone is the read of a contract the module consumes; for one it does not, a read (B1) only beside a quoted version or `"contracts"` — the path written in pieces. An event or label that happens to bear a contract's name reads nothing.
+
+**In your project** — 3 files
+
+- **`.pre-commit-config.yaml`** (D255, #464): a `commit-msg` hook refuses an `Agent-Session:` line that git does not read as a trailer — a blank line between it and `Co-Authored-By:` — at the commit, not after the push. It uses `sh` and git only.
+- **`AGENTS.md`** (D255): the trailer goes in the message's last paragraph.
+- **`.nstack/handbook/project.md`** (D257): `nstack unclaim D30 --session <session>`, the hold's person read from the hold.
+
+**Migration**
+
+None: `commit-msg` hooks were already installed by `default_install_hook_types`. A verifier that ran `pr-check` in a clone of a working clone sees K5 where it saw *nobody holds it*: point that clone's `origin` at the forge.
+
+---
+
 ## v0.34.0 — 2026-11-20
 
 D250, D252, D253 and D254. Two (D253, D254) come from the same multi-agent project, downstream, on 2026-11-20; D252 is a decision (ADR-0011); D250 brings the records level with the engine.
