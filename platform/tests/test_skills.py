@@ -76,8 +76,8 @@ def test_a_generated_skill_gone_is_removed_from_both_folders(tmp_path, capsys):
     assert not (tmp_path / ".claude/skills/gone").exists() and not (tmp_path / ".agents/skills/gone").exists()
 
 
-def test_a_folder_git_would_track_is_said(tmp_path, capsys):
-    """A project whose .gitignore predates D245 would commit .agents/skills/: said, with the line to add."""
+def test_a_skills_folder_git_ignores_is_said(tmp_path, capsys):
+    """D252: the skills are committed; a .gitignore from before still leaving them out is said."""
     import subprocess
 
     from napkinstack import skills
@@ -87,24 +87,47 @@ def test_a_folder_git_would_track_is_said(tmp_path, capsys):
     (tmp_path / ".gitignore").write_text(".claude/skills/\n", encoding="utf-8")
     assert skills.run(tmp_path) == 0
     out = capsys.readouterr().out
-    assert "WARNING: .agents/skills/ is not ignored by git" in out and ".claude/skills/ is not" not in out, out
-    (tmp_path / ".gitignore").write_text(".claude/skills/\n.agents/skills/\n", encoding="utf-8")
+    assert "WARNING: .claude/skills/ is ignored by git" in out and ".agents/skills/ is ignored" not in out, out
+    (tmp_path / ".gitignore").write_text("", encoding="utf-8")
     assert skills.run(tmp_path) == 0
-    assert "is not ignored" not in capsys.readouterr().out
+    assert "is ignored" not in capsys.readouterr().out
 
 
-def test_an_update_says_a_skill_folder_git_would_track(tmp_path):
-    """The regeneration after an update says the warning, never "not committed" over it."""
-    import subprocess
-
+def test_an_update_regenerates_the_skills_where_the_project_declares_them(tmp_path):
+    """D252: before the update's commit, so they travel in it; a project that never had them gets them."""
     from napkinstack import project
 
     _project(tmp_path)
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    (tmp_path / ".gitignore").write_text(".claude/skills/\n", encoding="utf-8")
-    (tmp_path / ".agents" / "skills").mkdir(parents=True)  # only the open layout generated so far
     said = project._refresh_skills(tmp_path)
-    assert said and "WARNING: .agents/skills/ is not ignored by git" in said and "not committed" not in said, said
+    assert said and "in the update's commit" in said, said
+    assert (tmp_path / ".claude/skills/kept/SKILL.md").is_file() and (tmp_path / ".agents/skills/kept/SKILL.md").is_file()
+
+
+def test_a_project_without_skills_is_not_given_any_by_an_update(tmp_path):
+    from napkinstack import project
+
+    assert project._refresh_skills(tmp_path) is None and not (tmp_path / ".claude").exists()
+
+
+def test_the_review_budget_leaves_the_generated_skills_out():
+    from napkinstack.fitness import pr_scope
+
+    for path in (".claude/skills/tests/SKILL.md", ".agents/skills/tests/SKILL.md"):
+        assert pr_scope.GENERATED.search(path), path
+    assert not pr_scope.GENERATED.search(".claude/settings.json")
+    assert not pr_scope.GENERATED.search("modules/billing/skills/x.py")
+
+
+def test_the_skeleton_commits_the_skills_and_folds_them_in_review():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2] / "skeleton"
+    ignored = [line.strip() for line in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+               if line.strip() and not line.startswith("#")]
+    assert not any("skills" in line for line in ignored), ignored
+    attributes = (root / ".gitattributes").read_text(encoding="utf-8")
+    assert ".claude/skills/** linguist-generated=true" in attributes
+    assert ".agents/skills/** linguist-generated=true" in attributes
 
 
 def test_a_folder_holding_only_a_person_s_skills_is_not_read_by_s3(tmp_path, capsys):
@@ -133,3 +156,16 @@ def test_a_folder_with_a_generated_skill_of_no_playbook_is_read(tmp_path, capsys
         (tmp_path / ".agents/skills" / name / "SKILL.md").write_text(text, encoding="utf-8")
     assert skills.run(tmp_path, check_only=True) == 1
     assert "[S3] skill 'kept' missing from .agents/skills/" in capsys.readouterr().out
+
+
+def test_an_update_says_a_skills_folder_its_commit_left_out(tmp_path):
+    """A .gitignore that still names a folder: the update says so, never "in the update's commit"."""
+    import subprocess
+
+    from napkinstack import project
+
+    _project(tmp_path)
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".gitignore").write_text(".claude/skills/\n.agents/skills/\n", encoding="utf-8")
+    said = project._refresh_skills(tmp_path)
+    assert said and "not all in the update's commit" in said and ".claude/skills/ is ignored by git" in said, said

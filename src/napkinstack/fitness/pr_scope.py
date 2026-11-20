@@ -28,7 +28,7 @@ from napkinstack.fitness.manifests import changed_files
 from napkinstack.pull_request import touched_modules
 
 GENERATED = re.compile(r"(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|uv\.lock"
-                       r"|\.generated\.|/generated/)")
+                       r"|\.generated\.|/generated/|(?:^|/)\.(?:claude|agents)/skills/)")  # skills: D252
 
 
 def _git(root: Path, *args: str) -> str:

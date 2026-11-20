@@ -768,8 +768,10 @@ git clone -q "$PROJECT" "$CLONE"
 if ! OUT=$(cd "$CLONE" && nstack fitness --root . 2>&1); then
   echo "FAIL: the project does not pass nstack fitness."; echo "$OUT"; exit 1
 fi
-grep_text "$OUT" -qF "Skills: S1, S2 and S4 compliant" \
-  || { echo "FAIL: skills not checked in the project."; echo "$OUT"; exit 1; }
+# D252: the skills are committed, so a fresh clone holds them and S3 judges them, as CI does.
+grep_text "$OUT" -qF "in sync with the playbooks" \
+  && [ -f "$CLONE/.claude/skills/tests/SKILL.md" ] && [ -f "$CLONE/.agents/skills/tests/SKILL.md" ] \
+  || { echo "FAIL: a fresh clone of the project lacks its skills, or S3 did not judge them."; echo "$OUT"; exit 1; }
 if ! OUT=$(cd "$CLONE" && SKIP=gitleaks pre-commit run --all-files 2>&1); then
   echo "FAIL: the project does not pass its hooks."; echo "$OUT"; exit 1
 fi
@@ -895,8 +897,14 @@ commit_project "$A" "Adaptations and first module"
 SEATS_BEFORE=$(git -C "$A" rev-parse HEAD:README.md HEAD:SECURITY.md HEAD:modules/README.md HEAD:docs/pdr/README.md)
 MODULE_BEFORE=$(git -C "$A" rev-parse HEAD:modules/demo)
 
-# The person's skills, generated and git-ignored, from the playbooks as they are before the update.
-nstack skills --root "$A" >/dev/null || { echo "FAIL: nstack skills before the update."; exit 1; }
+# The skills are committed (D252): the team adapted a playbook above, so S3 says they drifted; it
+# regenerates and commits them, as the playbooks are before the update.
+if nstack skills --check --root "$A" >/dev/null 2>&1; then
+  echo "FAIL: a playbook adapted without its skills regenerated passed S3 (D252)."; exit 1
+fi
+nstack skills --root "$A" >/dev/null && commit_project "$A" "Skills regenerated" \
+  && nstack skills --check --root "$A" >/dev/null \
+  || { echo "FAIL: the project's skills, regenerated and committed, are not in sync (D252)."; exit 1; }
 
 echo "-> update: started from another branch, it MUST be refused and name both (D74)"
 # The pilot ran it from cycle/03-framing: the update branch carried a foreign commit and was
