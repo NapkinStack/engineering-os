@@ -5,7 +5,9 @@ The cycle files are the plan; this command shows them on GitHub — a milestone 
 closed or stopped cycle, an issue per deliverable — and keeps the display equal to them. A dry
 run also previews what a proposed cycle's acceptance would create, and makes none of it. Its own
 objects carry a marker in their body; an object without one is never touched. What the forge
-holds decides nothing but whether the display must be rewritten.
+holds decides nothing but whether the display must be rewritten. Two runs at once — one by hand
+beside the workflow's — each make what the other has not yet: the next run keeps the oldest of
+each, closes the other issues and says a second milestone (D253).
 
 Usage :  nstack board [--root ROOT] [--dry-run]
 Output:  0 whatever the forge answers — what was made, updated or not shown is said.
@@ -160,13 +162,22 @@ def _pages(forge, path: str, stop=lambda item: False) -> list[dict]:
 
 
 def _own(objects: list[dict], field_name: str, kind: str) -> dict[str, dict]:
-    """The display's own objects, by the key their marker carries; others are never touched."""
-    own = {}
-    for item in objects:
+    """The display's own objects, by the key their marker carries — the oldest where two runs at
+    once made two (D253); others are never touched."""
+    own: dict[str, dict] = {}
+    for item in sorted(objects, key=lambda item: int(item.get("number") or 0)):
         found = MARKER.search(str(item.get(field_name) or ""))
         if found and found[1] == kind:
             own.setdefault(found[2], item)
     return own
+
+
+def _seconds(objects: list[dict], field_name: str, kind: str) -> list[tuple[str, dict]]:
+    """The display's own objects that `_own` does not keep: a second one of the same key, made by a
+    run beside another — by hand while the workflow ran (D253)."""
+    kept = {id(item) for item in _own(objects, field_name, kind).values()}
+    return [(found[2], item) for item in objects
+            if (found := MARKER.search(str(item.get(field_name) or ""))) and found[1] == kind and id(item) not in kept]
 
 
 def _holders(root: Path, idents: list[tuple[str, str]]) -> dict[str, str] | None:
@@ -232,7 +243,13 @@ def run(root: Path, dry_run: bool = False, today: datetime.date | None = None) -
         # Every issue, not those carrying the label: a label removed by hand leaves the marker.
         issues = [item for item in _pages(forge, "/issues?state=all") if "pull_request" not in item]
         if holders is None:  # the records unread too: one failed fetch reopens nothing they closed
-            closed_ones = {key for key, issue in _own(issues, "body", "deliverable").items() if issue.get("state") == "closed"}
+            # Closed only where every issue of the deliverable is: a second, open one made by two runs
+            # at once is not a record the holds closed (D253).
+            states: dict[str, set] = {}
+            for item in issues:
+                if (found := MARKER.search(str(item.get("body") or ""))) and found[1] == "deliverable":
+                    states.setdefault(found[2], set()).add(item.get("state"))
+            closed_ones = {key for key, seen in states.items() if seen == {"closed"}}
             shown = [item for item in shown if not (item.kind == "deliverable" and item.state == "open" and item.key in closed_ones)]
         lines += _apply(forge, shown, milestones, issues, dry_run, keep_assignees=holders is None)
     except hold.Refused as error:
@@ -392,6 +409,21 @@ def _apply(forge, shown: list[Shown], milestones: list[dict], issues: list[dict]
         if changed:
             call("PATCH", f"/issues/{have['number']}", want)
             said.append(f"updated issue {item.title}: {', '.join(changed)}")
+
+    # Two runs at once each made what the other had not yet (D253): the oldest is the display, the
+    # others are closed — objects the display made, never one without its marker.
+    for key, extra in _seconds(issues, "body", "deliverable"):
+        if extra.get("number") and (extra.get("state") == "open" or extra.get("milestone") or extra.get("labels")):
+            kept = own_issues[key].get("number")
+            # Out of the milestone and the labels too: its bar and its views count the display's issue once.
+            call("PATCH", f"/issues/{extra['number']}", {"state": "closed", "state_reason": "not_planned",
+                                                        "milestone": None, "labels": []})
+            said.append(f"closed issue #{extra['number']}: a second issue of {key}, made by two runs at once — "
+                        f"#{kept} shows it")
+    for key, extra in _seconds(milestones, "description", "cycle"):
+        said.append(f"milestone #{extra.get('number')} is a second one of cycle {key}, made by two runs at once: "
+                    f"#{own_milestones[key].get('number')} shows it — delete #{extra.get('number')} on the forge: the "
+                    "display's issues are on the first already")
 
     wanted = {item.key for item in shown if item.kind == "deliverable"}
     for key, have in own_issues.items():

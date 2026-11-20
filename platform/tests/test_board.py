@@ -631,3 +631,69 @@ def test_the_preview_says_what_the_acceptance_would_collide_with(tmp_path, capsy
     out = capsys.readouterr().out
     assert "NOTE on acceptance: D2 not shown: its identifier is used in cycles 03, 04" in out, out
     assert "  issue D9 — Gone — dropped, shown closed\n" in out, out
+
+
+
+# --- D253: two runs at once made each issue twice ------------------------------------------------
+
+def test_a_second_issue_of_one_deliverable_is_closed_the_oldest_kept(forge, capsys):
+    """A run by hand beside the workflow's: both found no issue and both made one. The next run keeps
+    the oldest of each, closes the others it made — never one without its marker —, and says it."""
+    root, site = forge
+    board.run(root, today=TODAY)
+    for issue in list(site.issues.values()):  # the other run's copies, made a few seconds later
+        number, site.next = site.next, site.next + 1
+        site.issues[number] = {**issue, "number": number}
+    copies = {number for number in site.issues if number > 4}
+    capsys.readouterr()
+    board.run(root, today=TODAY)
+    out = capsys.readouterr().out
+    for number in copies:
+        assert site.issues[number]["state"] == "closed", site.issues[number]
+        assert site.issues[number]["milestone"] is None and site.issues[number]["labels"] == [], \
+            "out of the milestone's bar and the labels' views"
+    assert sum(1 for issue in site.issues.values() if issue["title"] == "D2 — Export" and issue["state"] == "open") == 1
+    assert "closed issue #" in out and "a second issue of D2" in out, out
+    before = len(site.calls)
+    board.run(root, today=TODAY)
+    assert not [call for call in site.calls[before:] if call[0] != "GET"], "closing them once is enough"
+
+
+def test_a_second_milestone_of_one_cycle_is_said_never_touched(forge, capsys):
+    root, site = forge
+    board.run(root, today=TODAY)
+    number, site.next = site.next, site.next + 1
+    site.milestones[number] = {**site.milestones[1], "number": number}
+    capsys.readouterr()
+    board.run(root, today=TODAY)
+    out = capsys.readouterr().out
+    assert f"milestone #{number} is a second one of cycle" in out, out
+    assert site.milestones[number]["state"] == site.milestones[1]["state"]
+
+
+
+def test_the_oldest_is_kept_whatever_order_the_forge_lists_them_in(forge, monkeypatch):
+    """GitHub lists issues newest first: the oldest is kept by its number, not by its place."""
+    root, site = forge
+    board.run(root, today=TODAY)
+    for issue in list(site.issues.values()):
+        number, site.next = site.next, site.next + 1
+        site.issues[number] = {**issue, "number": number}
+    listed = site.page
+    monkeypatch.setattr(site, "page", lambda items, query: list(reversed(listed(items, query))))
+    board.run(root, today=TODAY)
+    open_ones = sorted(n for n, issue in site.issues.items() if issue["title"] == "D2 — Export" and issue["state"] == "open")
+    assert len(open_ones) == 1 and open_ones[0] <= 4, open_ones
+
+
+def test_holds_unread_never_leave_an_open_deliverable_without_an_open_issue(forge, monkeypatch):
+    root, site = forge
+    board.run(root, today=TODAY)
+    d2 = next(n for n, issue in site.issues.items() if issue["title"] == "D2 — Export")
+    number, site.next = site.next, site.next + 1
+    site.issues[number] = {**site.issues[d2], "number": number}
+    site.issues[d2]["state"] = "closed"  # a person closed the older one by hand
+    monkeypatch.setattr(board, "_holders", lambda root, idents: None)
+    board.run(root, today=TODAY)
+    assert any(issue["title"] == "D2 — Export" and issue["state"] == "open" for issue in site.issues.values()), \
+        {n: issue["state"] for n, issue in site.issues.items() if issue["title"] == "D2 — Export"}
