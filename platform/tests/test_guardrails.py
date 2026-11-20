@@ -485,6 +485,38 @@ def test_boundaries_no_false_positive(tmp_path, capsys, line):
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
+@pytest.mark.parametrize("line", ['echo \'{"event":"customers-api","host":"h"}\'\n',
+                                  "//! It says what happens — `customers-api`, then\n",
+                                  'EVENTS = ("customers-api", "v2-ready")\n'])
+def test_a_contract_s_bare_name_alone_is_no_undeclared_read(tmp_path, capsys, line):
+    """D259: a word that happens to be a contract's name — an event's, a label's — reads nothing."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", VALID, {"src/app.sh": line})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("line", ['SPEC = ROOT / "contracts" / "customers-api" / "openapi.yaml"\n',
+                                  'SPEC = join("customers-api", "v1", "openapi.yaml")\n'])
+def test_a_contract_s_path_written_in_pieces_is_still_a_read(tmp_path, capsys, line):
+    """D259: the quoted name beside a quoted `contracts` or version is the path, written in pieces."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", VALID, {"src/app.py": line})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 1
+    assert "[B1]" in capsys.readouterr().out
+
+
+def test_a_declared_contract_named_alone_is_read(tmp_path, capsys):
+    """D259: for a contract the module does consume, its name alone is its read — B4 stays quiet."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", consumes(VALID, "customers"), {"src/app.py": 'API = "customers-api"\n'})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 0
+    output = capsys.readouterr().out
+    assert "[B4]" not in output and "billing → customers (contract customers-api)" in output, output
+
+
 def test_a_consumer_of_a_live_module_is_not_reported(tmp_path, capsys):
     """D52: B8 names the consumers of a deprecated module, and only those."""
     write_contract(tmp_path, "customers-api/v1")
