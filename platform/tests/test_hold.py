@@ -2078,3 +2078,51 @@ def test_an_event_the_remote_took_before_git_failed_is_said_recorded(shared, mon
     out = capsys.readouterr().out
     assert "D1 released by @alice" in out and "moved meanwhile" not in out, out
     assert remote_events(shared) == ["release", "claim"]
+
+
+def test_a_clone_of_a_working_clone_never_says_nobody_holds_a_held_deliverable(shared, capsys):
+    # A verifier's `git clone --shared` of a working clone: its remote is that clone, whose holds
+    # are what it fetched from the forge (refs/remotes, nstack's mirror), never its own branches.
+    # A fetch of the remote's branches brings no hold there: not read, and said — never "nobody".
+    from napkinstack import pull_request
+
+    alice = clone(shared, "alice")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    git(alice, "fetch", "-q", "origin")  # the hold, as git's own fetch keeps it: refs/remotes/origin
+    verifier = shared.parent / "verifier"
+    git(shared.parent, "clone", "-q", "--shared", str(alice), str(verifier))
+    git(verifier, "checkout", "-q", "--detach")
+    today = datetime.date(2026, 10, 20)
+    warned: list[str] = []
+    pull_request.check_cycle(verifier, "Deliverable: D1", set(), today, lambda *a: None, warned.append)
+    assert not any("nobody holds it" in line for line in warned), warned
+    pull_request.check_hold(verifier, "Deliverable: D1", set(), (set(), set(), []), lambda *a: None,
+                            warned.append)
+    said = "\n".join(warned)
+    assert "[K5] the holds are not read: who holds D1" in said and "a clone" in said and "not the forge" in said, said
+    git(verifier, "remote", "set-url", "origin", (alice).as_uri())  # file://, a local path too
+    warned.clear()
+    pull_request.check_cycle(verifier, "Deliverable: D1", set(), today, lambda *a: None, warned.append)
+    assert not any("nobody holds it" in line for line in warned), warned
+    capsys.readouterr()
+    assert hold.claim(verifier, "#7", session="v", person="@v") == 1  # never a hold pushed into the clone
+    out = capsys.readouterr().out
+    assert out.count("Action:") == 1 and "point origin at the forge" in out, out
+
+
+def test_a_branch_tracking_a_local_branch_reads_the_holds_of_origin(shared):
+    from napkinstack import attest
+
+    alice = clone(shared, "alice")
+    git(alice, "checkout", "-q", "-b", "feat", "--track", "main")
+    assert attest._remote(alice) == "origin"
+
+
+def test_where_nobody_holds_a_ready_deliverable_k3_names_the_remote_it_read(shared):
+    from napkinstack import pull_request
+
+    alice = clone(shared, "alice")
+    warned: list[str] = []
+    pull_request.check_cycle(alice, "Deliverable: D1", set(), datetime.date(2026, 10, 20), lambda *a: None,
+                             warned.append)
+    assert len(warned) == 1 and "nobody holds it on origin" in warned[0], warned

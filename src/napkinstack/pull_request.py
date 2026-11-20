@@ -605,12 +605,14 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
     elif _on_record(root, path, data, match[1]):
         warn(f"[K3] deliverable {match[1]} is on record as delivered, and this pull request delivers it again.\n"
              f"      Action: if its record is wrong, nstack unclaim {match[1]}; a defect found since is an issue of its own.")
-    elif states[match[1]] == "ready" and not _held(root, match[1]):
+    elif states[match[1]] == "ready" and _nobody_holds(root, match[1]):
         # Said, not refused. The hold says the work started; the cycle file stays the decider's
         # record, never changed by a delivery — under `docs/`, a human would have to approve it.
-        warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it while this pull request "
-             f"delivers it.\n      Action: nstack claim {match[1]} — the hold says it is in progress; "
-             f"{path.name} changes never in a delivery's pull request.")
+        from napkinstack import hold
+
+        warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it on {hold.remote(root) or 'this repository'} "
+             f"while this pull request delivers it.\n      Action: nstack claim {match[1]} — the hold says it is in "
+             f"progress; {path.name} changes never in a delivery's pull request.")
 
 
 def _on_record(root: Path, path: Path, data: dict, ident: str) -> bool:
@@ -624,12 +626,12 @@ def _on_record(root: Path, path: Path, data: dict, ident: str) -> bool:
     return ident in plan.delivered_in(root, path, data)
 
 
-def _held(root: Path, ident: str) -> bool:
-    """Whether someone holds the deliverable; holds that cannot be read count as none (K5 says so)."""
+def _nobody_holds(root: Path, ident: str) -> bool:
+    """Whether the holds were read and none holds the deliverable. Holds that cannot be read are
+    no answer: K5 says why, and K3 never concludes "nobody"."""
     from napkinstack import hold
 
-    found = hold.judge(root, ident)
-    return found is not None and not isinstance(found, str)
+    return hold.judge(root, ident) is None
 
 
 def merge_sessions(root: Path, base: str, head: str) -> set[str]:
@@ -660,7 +662,7 @@ def check_hold(root: Path, body: str, labels: set[str], authorship: tuple[set[st
     ident = match[1].upper()
     found = hold.judge(root, ident)
     if isinstance(found, str):
-        warn(f"[K5] the holds are not read ({found}): who holds {ident} is not judged here.")
+        warn(f"[K5] the holds are not read: who holds {ident} is not judged here.\n      {found}")
         return
     if found is None:
         return
