@@ -22,6 +22,35 @@ a patch.
 
 ---
 
+## v0.33.1 — 2026-11-20
+
+D249 and D251: two defects met by a multi-agent project the day it took v0.33.0 — one left a workstation with no engine, the other published the workstation's own identity in an agent's commits.
+
+This is a patch version: it fixes, and adds nothing. For a person, no check that was green turns red; an agent's push under another identity than its own is now refused.
+
+**In the engine**
+
+- **An agent commits and pushes under the App's identity, never one git makes up** (D251, #456). On a public repository, an agent pushed 31 commits whose author was git's guess from the workstation — its user and host name. `nstack agent add` wrote the App's identity into its clone only; the agent's own git configuration was created empty, so a second clone the agent made had none.
+  - `nstack agent add` writes the App's name and address into the agent's own configuration, with `user.useConfigOnly`: every repository it works in commits as the App, and one with no identity refuses the commit.
+  - `nstack agent run` writes it from the clone for an agent made before; `nstack agent status` says an agent whose configuration lacks it.
+  - The person's `GIT_AUTHOR_*`, `GIT_COMMITTER_*` and `EMAIL`, which override any configuration, are kept out of the agent's environment.
+
+**In your project** — 3 files
+
+- **`.nstack/fitness-before-push.sh`** (D251): in an agent's session, the pre-push hook refuses a commit the remote does not hold yet — of every local branch and tag — whose author or committer, address or name, is not the agent's. It names the count, never the address. A person's session is not read.
+- **`.nstack/install-engine.sh`** (D249, #453). Over an engine installed without `pre-commit` among its own executables — from its sources, say — uv removed the former engine, then refused `pre-commit`'s link (*Executable already exists*), and the script said "not published yet". The workstation kept neither `nstack` nor `pre-commit`.
+  - A link that points nowhere — the engine's own, just removed — is deleted, and the same install runs again, said. Never `--force`: uv still guards every other executable.
+  - A link to anything that exists belongs to another installation: it is never touched. The script says the engine is not installed until you choose, and names the command with `--force`, ready to run as printed.
+  - A failure other than a missing version is said as uv's own, never "not published".
+- **`.nstack/handbook/INSTALL.md`** (D249, D251): what *Executable already exists: pre-commit* means, and what to run; how an agent's identity holds, and a checklist line.
+
+**Migration**
+
+- **A workstation that failed taking v0.33.0** has no `nstack`: `uv tool install "napkinstack==0.33.1" --refresh-package napkinstack --with-executables-from pre-commit --force` first, then `nstack update --ref v0.33.1`.
+- **Every agent made before**: start it once with `nstack agent run <name> -- <command>` — its identity is written into its own configuration — and check with `nstack agent status`. Commits already pushed keep their author; whether to rewrite a published history is the repository owner's call.
+
+---
+
 ## v0.33.0 — 2026-11-19
 
 D240–D246 and D248. Four come from the same multi-agent project's work on v0.32.0; the rest from the framework's own repository.
