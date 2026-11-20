@@ -4,7 +4,9 @@ format), in every folder an agent tool reads — `.claude/skills/` for Claude Co
 `.agents/skills/` for Codex and the other tools that follow the open layout (D245).
 
 The playbooks are the SOURCE OF TRUTH (.nstack/handbook/06-decisions.md §9). Skills are derived
-from them: generated files, never edited by hand, never committed.
+from them: generated files, never edited by hand — and committed (D252), as a lockfile is, so that
+an agent starting from a fresh clone (a cloud agent, a new contributor) has them; S3, run in CI on
+the committed files, says one that drifted from its playbook.
 
 Why generate rather than write skills directly:
   - portability — the OS must stay usable by an agent that knows nothing about
@@ -20,8 +22,7 @@ Rules (--check mode, run in CI):
 
 S3 reads each of those folders that holds a skill nstack generates — named after a playbook, or
 with its banner —, and only those: a folder of a person's own skills, tracked, is not asked for
-every playbook (D248). Skills are gitignored: a fresh
-clone, and therefore CI, has none, and none can be out of sync there.
+every playbook (D248). A project that never generated has none, and S3 does not apply there.
 
 A root with neither .nstack/playbooks/ nor .nstack/skills.yaml, such as the NapkinStack
 repository itself, is out of scope.
@@ -185,9 +186,10 @@ def run(root: Path, check_only: bool = False) -> int:
           + (f"; removed, their playbook gone: {', '.join(sorted(removed))}" if removed else ""))
     for name in sorted(mapping):
         print(f"  - {name}")
-    for folder in _tracked(root):
-        print(f"WARNING: {folder}/ is not ignored by git: the generated skills would be committed.\n"
-              f"      Action: add {folder}/ to .gitignore — nstack update brings the line.")
+    for folder in _ignored(root):
+        print(f"WARNING: {folder}/ is ignored by git: an agent starting from a fresh clone would not have the "
+              "skills.\n"
+              f"      Action: remove the {folder}/ line from .gitignore — nstack update does — then commit the folder.")
     print("\nThey trigger on their own from their description; an agent can also")
     print("invoke them by name. The kernel stays in AGENTS.md.")
     return 0
@@ -201,8 +203,8 @@ def _generated(folder: Path, names: set[str]) -> bool:
         for made in folder.glob("*/SKILL.md"))
 
 
-def _tracked(root: Path) -> list[str]:
-    """The skill folders git would track here: none outside a repository."""
+def _ignored(root: Path) -> list[str]:
+    """The skill folders git ignores here, which a commit would leave out: none outside a repository."""
     found = []
     for folder in FOLDERS:
         try:
@@ -212,6 +214,6 @@ def _tracked(root: Path) -> list[str]:
             return []
         if done.returncode == 128:  # not a repository
             return []
-        if done.returncode == 1:
+        if done.returncode == 0:
             found.append(folder.as_posix())
     return found

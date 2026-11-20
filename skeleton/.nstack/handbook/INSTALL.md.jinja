@@ -450,10 +450,13 @@ nstack skills           # generates .claude/skills/ and .agents/skills/ from .ns
 nstack skills --check   # checks they are in sync (runs in {{ ci }})
 ```
 
-**`.nstack/playbooks/` stays the source of truth.** The skills are generated, gitignored, and
-never edited by hand — you change the playbook, then regenerate. A playbook with no entry
-in `.nstack/skills.yaml` fails {{ ci }}; a generated skill that has drifted fails
-`nstack skills --check` locally.
+**`.nstack/playbooks/` stays the source of truth.** The skills are generated from it, never
+edited by hand — you change the playbook, run `nstack skills`, and commit both. They are
+**committed**, as a lockfile is: an agent starting from a fresh clone — a cloud agent, a new
+contributor's — has them. `nstack init` commits them with the project, `nstack update` in its own
+commit; `.gitattributes` marks them generated, so the forge folds them in a review, and the
+review budget does not count them. A playbook with no entry in `.nstack/skills.yaml`
+fails {{ ci }}; a skill that drifted from its playbook, or was edited by hand, fails it too (S3).
 
 This indirection has a reason: a tool is an **adapter**, never a foundation
 (`.nstack/tooling-profile.md`). If the rules existed only as skills, the OS would stop

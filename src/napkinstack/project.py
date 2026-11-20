@@ -293,6 +293,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
         return 1
 
     settle_checks(destination, given=data)
+    skilled, skills_said = _generate_skills(destination)  # committed with the project: a fresh clone's agent has them
     created = _answers(destination)
     version = created.get("_commit", ref)
     for args in (("init", "--quiet", "--initial-branch=main"), ("add", "--all"),
@@ -306,6 +307,9 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
             return 1
 
     print(f"Project created in {destination}, NapkinStack {version}, initial commit on main.")
+    if skills_said:
+        print(("WARNING: the skills were not generated:\n" if not skilled else "") + skills_said
+              + ("\n      Action: fix what it says, then nstack skills, and commit them." if not skilled else ""))
     print("\nNext steps:")
     print(f"  1. cd {destination} && pre-commit install")
     named = str(created.get("forge") or "github")
@@ -605,9 +609,10 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
         for path in conflicts:
             print(f"  - {path}")
         print("      Action: in each file, keep the right version between <<<<<<< and >>>>>>>, "
-              "then git add --all && git commit, and nstack skills — the generated skills follow the playbooks.\n"
+              "then nstack skills — the skills follow the playbooks —, then git add --all && git commit.\n"
               "      The check-merge-conflict hook and CI reject any remaining marker.")
         return 1
+    refreshed = _refresh_skills(root)  # in the update's own commit (D252), beside the playbooks it follows
     # An agent's update carries the kernel's trailer, as every commit it makes (D135).
     message = f"NapkinStack {previous} -> {current}" + (f"\n\nAgent-Session: {session}" if session else "")
     for args in (("add", "--all"), ("commit", "--quiet", "--message", message)):
@@ -641,34 +646,46 @@ def update(root: Path, ref: str, session: str | None = None) -> int:
           f"{release_notes(str(_answers(root).get('_src_path') or ''), previous, current)}")
     if note := _not_yet_published(current):
         print(note)
-    if said := _refresh_skills(root):
-        print(said)
+    if refreshed:
+        print(refreshed)
     print(f"\n{next_step(root, branch)}")
     return 0
 
 
-def _refresh_skills(root: Path) -> str | None:
-    """D220: the skills are generated from the playbooks and git-ignored, so an update that moves a
-    playbook leaves them behind, and the first check fails S3. Where the person generated them, the
-    update generates them again: derived files, nothing of anyone's lost. None where there are none."""
+def _generate_skills(root: Path) -> tuple[bool, str]:
+    """The skills generated from the playbooks, quietly: whether it succeeded, and what the generator
+    said that a person must read — its failure, or a folder git ignores."""
     import contextlib
     import io
 
     from napkinstack import skills
 
-    if not any((root / folder).is_dir() for folder in skills.FOLDERS):
-        return None
     said = io.StringIO()
     with contextlib.redirect_stdout(said):
         code = skills.run(root)
-    if code == 0:
-        # A folder git would track is said: the person's next commit would carry the skills.
-        tracked = [line for line in said.getvalue().splitlines() if line.startswith("WARNING:") or line.startswith("      Action:")]
-        return ("Skills regenerated from the updated playbooks (.claude/skills/ and .agents/skills/)"
-                + ("".join(f"\n  {line}" for line in tracked) if tracked else ", not committed."))
+    if code:
+        return False, said.getvalue()
+    lines = said.getvalue().splitlines()
+    return True, "\n".join(line for number, line in enumerate(lines)
+                           if line.startswith("WARNING:") or (number and lines[number - 1].startswith("WARNING:")))
+
+
+def _refresh_skills(root: Path) -> str | None:
+    """D220, D252: the skills are generated from the playbooks and committed beside them, so the
+    update regenerates them before its commit — a project that never committed them gets them
+    there. None where the project declares no skills."""
+    from napkinstack import skills
+
+    if not (root / skills.MAPPING).is_file():
+        return None
+    done, said = _generate_skills(root)
+    if done and not said:
+        return "Skills regenerated from the updated playbooks (.claude/skills/, .agents/skills/), in the update's commit."
+    if done:  # generated, but git ignores a folder: the commit left it out
+        return "Skills regenerated from the updated playbooks, but not all in the update's commit:\n" + said
     return ("The skills could not be regenerated from the updated playbooks:\n"
-            + "".join(f"  {line}\n" for line in said.getvalue().splitlines())
-            + "      Action: fix what it says, then nstack skills.")
+            + "".join(f"  {line}\n" for line in said.splitlines())
+            + "      Action: fix what it says, then nstack skills, and commit them.")
 
 
 def _not_yet_published(ref: str) -> str | None:
