@@ -94,6 +94,11 @@ class Unreachable(Exception):
     """The remote could not be read: nothing about its holds is known."""
 
 
+def _then(error: Exception, action: str) -> str:
+    """The Action line a caller adds, unless the error already says its own."""
+    return "" if "Action:" in str(error) else f"\n      Action: {action}"
+
+
 def fetch(root: Path, again: bool = False) -> str | None:
     """Brings the remote's holds, work branches and default branch in, as they are now; returns
     the remote's name. `again`: the read after a refused push, which must see the hold that won."""
@@ -108,7 +113,27 @@ def fetch(root: Path, again: bool = False) -> str | None:
             raise Unreachable(f"no answer from {name} within a minute") from None
         if got.returncode != 0:
             raise Unreachable(got.stderr.strip().splitlines()[0] if got.stderr.strip() else f"{name} refused the fetch")
+        _not_a_clone(root, name)
     return name
+
+
+def _not_a_clone(root: Path, name: str) -> None:
+    """A remote that is a local clone of the forge — a verifier's `git clone --shared` of a working
+    clone — keeps the holds it fetched (refs/remotes, nstack's mirror), never as branches of its
+    own: a fetch of its branches brings none, and "nobody holds it" would be a guess. Said instead."""
+    if _git(root, "for-each-ref", "--count=1", f"{MIRROR}/hold").stdout.strip():
+        return  # holds came in: the remote serves them
+    url = _git(root, "remote", "get-url", name).stdout.strip()
+    if not url.startswith("file://"):
+        if re.match(r"[A-Za-z][A-Za-z0-9+.-]*://", url):
+            return
+        if re.match(r"[^/\\]+:", url) and not re.match(r"[A-Za-z]:[/\\]", url):
+            return  # user@host:path, never a local path; a Windows drive letter is one
+    served = _git(root, "ls-remote", name).stdout
+    if re.search(r"\trefs/(nstack-remote/hold|remotes/[^\n]*/nstack/hold)/", served):
+        raise Unreachable(f"{name} is a clone ({url}), not the forge: the holds it fetched are not its own "
+                          f"branches.\n      Action: point {name} at the forge (git remote set-url {name} <the "
+                          "forge's address>), or run this where the remote is the forge")
 
 
 def _ci_credential(root: Path, name: str) -> list[str]:
@@ -495,7 +520,7 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         name = fetch(root)
     except Unreachable as error:
         print(f"FAIL [hold] the remote cannot be read: nothing is known of {ident}'s hold.\n"
-              f"      {error}\n      Action: check the network and the remote, then again.")
+              f"      {error}{_then(error, 'check the network and the remote, then again.')}")
         return 1
     current = read(root, cycle, ident)
     title = _issue_title(root, name, number) if number else title
@@ -608,7 +633,7 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
     try:
         name = fetch(root)
     except Unreachable as error:
-        print(f"FAIL [hold] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
+        print(f"FAIL [hold] the remote cannot be read.\n      {error}{_then(error, 'check it, then again.')}")
         return 1
     current = read(root, stem, ident) if stem else Hold()
     if not current.held and not current.recorded:
@@ -1004,7 +1029,7 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
     try:
         name = fetch(root)
     except Unreachable as error:
-        print(f"FAIL [deliver] the remote cannot be read.\n      {error}\n      Action: check it, then again.")
+        print(f"FAIL [deliver] the remote cannot be read.\n      {error}{_then(error, 'check it, then again.')}")
         return 1
     if _shallow(root):
         print(f"FAIL [deliver] a shallow clone cannot read {ident}'s merges.\n      Action: git fetch --unshallow, then again.")

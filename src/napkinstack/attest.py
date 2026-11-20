@@ -226,7 +226,7 @@ def _remote(root: Path) -> str | None:
     branch = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD", check=False).stdout.strip()
     if branch:
         named = _git(root, "config", f"branch.{branch}.remote", check=False).stdout.strip()
-        if named:
+        if named and named != ".":  # "." tracks a local branch: no remote
             return named
     remotes = _git(root, "remote", check=False).stdout.split()
     return "origin" if "origin" in remotes else None
