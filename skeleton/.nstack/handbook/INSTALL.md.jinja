@@ -233,6 +233,14 @@ your tokens, your SSH agent or your git configuration — and refuses to start i
 looks for your files can still read them — a container or a system user of its own closes that.
 It says so as it starts, in a few lines on the error output — the agent's own output is untouched.
 
+**The agent commits as the App, in any repository.** Its identity is written in its own git
+configuration, the one `nstack agent run` hands git, with `user.useConfigOnly`: a second clone
+the agent makes commits as the App too, and a repository with no identity refuses the commit —
+git never makes one up from this machine's user and host name, which a push would publish. In
+the project's clone, the pre-push hook refuses a commit whose author or committer is not the
+agent's. `nstack agent status` says an agent whose configuration lacks it; `nstack agent run`
+writes it for an agent made before.
+
 **Your agent tool's configuration is still yours.** The tool you start — Claude Code, another —
 reads its own configuration from your home (`~/.claude` for Claude Code): your sandbox, your
 hooks, your permissions apply to the agent too. For Claude Code, `nstack agent run <name> -- claude`
@@ -264,6 +272,7 @@ by no check afterwards:
 - [ ] Its private key stored outside any repository; in CI, the CI's secrets
 - [ ] The agent's session reaches no human credential: `nstack agent run` keeps them out of its
       environment; keeping it out of your files is a sandbox's work
+- [ ] Its commits carry the App's identity, never one git makes up from the machine — `nstack agent status`
 - [ ] On `approval: agent`, one App per agent: an App never approves what it pushed
 
 Rather than click through these pages, print the calls that close the distance and run them

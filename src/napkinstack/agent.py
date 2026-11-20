@@ -47,7 +47,9 @@ PERMISSIONS = {"contents": "write", "pull_requests": "write", "issues": "write",
 # commands, git configuration their shell injects, and the variables that point gh at another host.
 PERSONAL = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "GH_HOST",
             "SSH_AUTH_SOCK", "GIT_ASKPASS", "SSH_ASKPASS", "GIT_SSH", "GIT_SSH_COMMAND", "GIT_PROXY_COMMAND",
-            "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")  # without the count, git reads no GIT_CONFIG_KEY_n
+            "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",  # without the count, git reads no GIT_CONFIG_KEY_n
+            # who the person commits as: they override every configuration (#456)
+            "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL")
 REFUSED_AUTH = {"login", "logout", "refresh", "setup-git", "switch"}  # what would keep or change a login
 CI_LOGS = "results-receiver.actions.githubusercontent.com"  # where github.com serves a run's logs
 
@@ -310,6 +312,26 @@ def _git(*args: str, cwd: Path | None = None, env: dict | None = None) -> subpro
     return subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, text=True)
 
 
+def _identity(name: str, user: str, email: str) -> str | None:
+    """The agent's identity in its own git configuration, the one `nstack agent run` hands git
+    (#456): every repository the agent works in commits as the App, its clone or any other — and
+    user.useConfigOnly refuses a commit where none is set, never one git makes up from the machine."""
+    config = home() / name / "gitconfig"
+    for key, value in (("user.name", user), ("user.email", email), ("user.useConfigOnly", "true")):
+        if _git("config", "--file", str(config), key, value).returncode:
+            return f"git could not write {key} into {config}"
+    return None
+
+
+def _declared(name: str) -> str:
+    """The address the agent's own git configuration declares, with its name and useConfigOnly;
+    empty when any of the three is missing — a partial write or a hand edit."""
+    config = str(home() / name / "gitconfig")
+    found = {key: _git("config", "--file", config, key).stdout.strip()
+             for key in ("user.name", "user.email", "user.useConfigOnly")}
+    return found["user.email"] if found["user.name"] and found["user.useConfigOnly"] == "true" else ""
+
+
 def _clone(app: dict, clone: Path, bot: dict) -> str | None:
     """Clones the repository, or takes the agent's clone made before; configures it to act as the
     App: its name, its address, its credential helper — and git's other helpers emptied first."""
@@ -334,7 +356,7 @@ def _clone(app: dict, clone: Path, bot: dict) -> str | None:
             return f"git could not configure {clone}: {' '.join(args[:-1])}"
     if _git("remote", "set-url", "origin", remote(app["repo"]), cwd=clone).returncode:
         return f"{clone} has no remote origin to point at {app['repo']}"
-    return None
+    return _identity(app["name"], login, f"{bot['id']}+{login}@users.noreply.github.com")
 
 
 def _hooks(name: str, clone: Path) -> str | None:
@@ -600,6 +622,9 @@ def status(name: str | None, root: Path | None = None, everywhere: bool = False)
                            "not installed for the agent: a person runs nstack agent add " + name + " again once gh is installed.") + "\n")
           + ("  - hooks: the project's, run on every commit.\n" if hooked else
              "  - hooks: none — the project has no .pre-commit-config.yaml, or they were removed: nstack agent add " + name + " puts them back.\n")
+          + ("  - identity: its own git configuration declares it; a commit with none is refused.\n" if _declared(name) else
+             f"  - identity: missing from its own git configuration — any repository but its clone would commit under one "
+             f"git makes up from this machine: nstack agent run {name} writes it.\n")
           + "  - a pull request you open is yours to deliver; another agent's or a person's approval merges it, as the project says.")
     return 0
 
@@ -618,6 +643,16 @@ def run(name: str, command: list[str]) -> int:
     if not command:
         _say(f"FAIL [agent] no command to start.\n      Action: nstack agent run {name} -- claude")
         return 1
+    # An agent made before #456 has an empty configuration of its own: its clone's identity is
+    # written there, so any other repository it works in commits as the App too.
+    if not _declared(name):
+        local = {key: _git("config", "--local", key, cwd=app["clone"]).stdout.strip() for key in ("user.name", "user.email")}
+        if not all(local.values()) or (said := _identity(name, local["user.name"], local["user.email"])):
+            _say(f"FAIL [agent] agent {name} has no identity to commit under"
+                 + (f": {said}" if all(local.values()) else f" — its clone {app['clone']} declares none")
+                 + f".\n      Action: a person runs nstack agent add {name} again: the App is kept.")
+            return 1
+        _say(f"Agent {name}: its identity written into its own git configuration (#456).", sys.stderr)
     # A sandbox write-protects .git/config: a tracking branch or `push -u` fails there (D212).
     # Written only when it differs, so a run started inside one still starts once it is set.
     for key, value in (("branch.autoSetupMerge", "false"), ("push.default", "current")):
