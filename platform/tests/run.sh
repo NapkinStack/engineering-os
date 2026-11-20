@@ -514,6 +514,49 @@ for f in .github/workflows/governance.yml skeleton/.github/workflows/governance.
     || { echo "FAIL: $f does not read the commit messages and the description."; exit 1; }
 done
 
+echo "-> hooks: an Agent-Session line above a blank line is no trailer, and the commit MUST be refused (D255)"
+repo_with_hooks trailer
+T="$HK/trailer"
+if OUT=$(git "${GIT_ID[@]}" -C "$T" commit --allow-empty -m "A change" -m "Agent-Session: s-1" \
+    -m "Co-Authored-By: An Assistant <noreply@example.com>" 2>&1); then
+  echo "FAIL: a session line git does not read as a trailer accepted."; echo "$OUT"; exit 1
+fi
+grep_text "$OUT" -qF "Agent-Session in the last paragraph" \
+  || { echo "FAIL: refusal without the trailer hook and its correction."; echo "$OUT"; exit 1; }
+git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "A change" \
+  -m "Agent-Session: s-1
+Co-Authored-By: An Assistant <noreply@example.com>" \
+  || { echo "FAIL: a trailer block holding the session refused."; exit 1; }
+[ "$(git -C "$T" log -1 --format='%(trailers:key=Agent-Session,valueonly)' | head -1)" = "s-1" ] \
+  || { echo "FAIL: the accepted message's session is not read by git."; exit 1; }
+git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "A change with no session" -m "Body." -m "More body." \
+  || { echo "FAIL: a message without a session refused."; exit 1; }
+# Git judges, not a pattern: each message below is refused exactly when git reads no session.
+judged() {  # $1 = expected (pass|refuse), $2 = the case; the message is in said.txt
+  local got=refuse
+  (cd "$T" && pre-commit run agent-session-trailer --hook-stage commit-msg --commit-msg-filename said.txt \
+    >/dev/null 2>&1) && got=pass
+  [ "$got" = "$1" ] || { echo "FAIL: $2: $got, expected $1."; exit 1; }
+}
+# commit -v: the diff below the scissors shows a blank context line, then text.
+printf 'A change\n\nAgent-Session: s-1\n\n# Comments.\n# ------------------------ >8 ------------------------\n# Do not modify or remove the line above.\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1,3 +1,3 @@\n a\n \n b\n-c\n+d\n' > "$T/said.txt"
+judged pass "a session in the last paragraph, a commit -v diff below the scissors"
+printf 'A change\r\n\r\nAgent-Session: s-1\r\n\r\nCo-Authored-By: A <a@example.com>\r\n' > "$T/said.txt"
+judged refuse "a session above a blank line, CRLF"
+printf 'A change\n\nSome prose\nAgent-Session: s-1\n' > "$T/said.txt"
+judged refuse "a session inside a paragraph of prose"
+printf 'A change\n\nAgent-Session: is the key this note explains.\n\nMore.\n\nAgent-Session: s-1\nCo-Authored-By: A <a@example.com>\n' > "$T/said.txt"
+judged pass "prose quoting the key, then a trailer block holding the session"
+printf 'A change\n\nagent-session: s-1\n\n\nSigned-off-by: A <a@example.com>\n' > "$T/said.txt"
+judged refuse "a session line in another case, blank lines below it"
+git -C "$T" config core.commentChar ';'
+printf 'A change\n\nAgent-Session: s-1\n\n; Comments, in the comment character this repository sets.\n' > "$T/said.txt"
+judged pass "a session in the last paragraph, comments in another comment character"
+git -C "$T" config --unset core.commentChar
+cmp -s <(sed -n '/id: agent-session-trailer/,/stages:/p' .pre-commit-config.yaml) \
+       <(sed -n '/id: agent-session-trailer/,/stages:/p' skeleton/.pre-commit-config.yaml) \
+  || { echo "FAIL: the project's trailer hook differs from the framework's own."; exit 1; }
+
 echo "-> CI: the framework's lock is audited; a vulnerability a release fixes MUST fail (D234)"
 W=.github/workflows/governance.yml
 grep -qF 'uv run --only-group audit pip-audit --require-hashes --disable-pip -f json -r "$locked"' "$W" \
