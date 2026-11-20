@@ -31,7 +31,8 @@ DETECTION — textual and deliberately simple, with no stack assumed.
     the statement, or quoted as a module specifier, or alone on a Go import block's line — or
     where any line reaches into its folder (../billing/, modules/billing/). In a Python
     file, a package named like the standard library's (import platform) is Python's own
-    (D258). Its package is its
+    (D258); in a JavaScript, TypeScript or Go file, only the quoted specifier names one — the
+    word after `import` is the file's own name for it (D260). Its package is its
     folder's name, or `code_name` when the code names it otherwise (com.acme.billing). A
     relative path is read from the file's folder and from the module's — where the verbs run —
     and a path that names something of the module's own, or a contract it provides, is none.
@@ -57,6 +58,7 @@ SOURCE_SUFFIXES = {
     ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".kt",
     ".rb", ".php", ".cs", ".swift", ".scala", ".ex", ".exs",
 }
+QUOTED_SPECIFIER = {".ts", ".tsx", ".js", ".jsx", ".go"}  # the word after `import` is a binding (D260)
 SKIP_DIRS = {"node_modules", "dist", "build", "target", "vendor", ".git",
              "__pycache__", ".venv", "venv", "coverage", "generated"}
 IMPORT_HINTS = re.compile(
@@ -133,7 +135,8 @@ def code_patterns(other: dict) -> tuple[re.Pattern, re.Pattern, re.Pattern, re.P
     or quoted as a module specifier (JavaScript, TypeScript, Ruby). On any line: a relative or rooted
     path into its folder — ending where the folder's name does, so that ../billing.csv is not billing.
     A package named like a module of Python's standard library is apart: in a Python file,
-    `import platform` is Python's own (D258)."""
+    `import platform` is Python's own (D258). In JavaScript, TypeScript or Go the package opening the
+    statement is the binding, not the module: only the specifier counts (D260)."""
     code, folder = re.escape(other["code_name"]), re.escape(other["dirname"])
     rooted = "|".join(MODULE_DIRS)
     imports = re.compile(rf"(?<![\w-])(?:{rooted})[./]{folder}(?![\w-])"
@@ -335,6 +338,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
         for relative, lines in read_files(mod):
             source = Path(relative).suffix in SOURCE_SUFFIXES
             python = Path(relative).suffix == ".py"
+            quoted = Path(relative).suffix in QUOTED_SPECIFIER
             for lineno, line in enumerate(lines, 1):
                 imports = source and IMPORT_HINTS.search(line)
                 text = line.replace("\\", "/")
@@ -346,7 +350,7 @@ def check_code(root: Path, modules: dict[str, dict]) -> dict[str, set[str]]:
                     if other_name == name:
                         continue
                     via_import = ((imports and (code_import.search(line)
-                                                or (package.search(line)
+                                                or (package.search(line) and not quoted
                                                     and not (python and _standard(modules[other_name])))))
                                   or (source and block.search(line)))
                     reaches = [m for m in reach.finditer(text)
