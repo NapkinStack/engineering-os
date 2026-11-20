@@ -23,7 +23,9 @@ Rules:
 
 DETECTION — textual and deliberately simple, with no stack assumed.
   - A contract is read where a module's file names its path (contracts/billing-api/v1),
-    its name and version (billing-api/v1), or its name as a quoted string ("billing-api").
+    its name and version (billing-api/v1), or its name as a quoted string ("billing-api")
+    beside a quoted version or "contracts" — the path in pieces. Its quoted name alone is the
+    read of a contract the module consumes, and nothing for one it does not (D259).
   - Another module's code is referenced where an import line names its folder from the root
     (modules.billing, modules/billing, from modules import billing) or its package — opening
     the statement, or quoted as a module specifier, or alone on a Go import block's line — or
@@ -178,8 +180,10 @@ def _lands_elsewhere(root: Path, mod: dict, relative: str, found: str, other: di
     return any(place == target or place.startswith(f"{target}/") for place in (from_file, from_module))
 
 
-def contract_patterns(modules: dict[str, dict]) -> list[tuple[str, str | None, re.Pattern]]:
-    """(contract, version or None, pattern) for every contract a module provides."""
+def contract_patterns(modules: dict[str, dict]) -> list[tuple[str, str | None, re.Pattern, re.Pattern | None]]:
+    """(contract, version or None, pattern, pieces) for every contract a module provides. Its name
+    alone, quoted, has `pieces`: the quoted `contracts` or version that makes it the path written in
+    pieces (ROOT / "contracts" / "billing-api"); without them, it is a word (D259)."""
     patterns = []
     for mod in modules.values():
         for provided in mod["provides"]:
@@ -190,8 +194,9 @@ def contract_patterns(modules: dict[str, dict]) -> list[tuple[str, str | None, r
             paths = [rf"(?<![\w-]){n}/{v}(?![\w-])"]
             if isinstance(provided.get("path"), str):
                 paths.append(re.escape(provided["path"].strip("/")))
-            patterns.append((name, version, re.compile("|".join(paths))))
-            patterns.append((name, None, re.compile(rf"[\"'`]{n}[\"'`]")))
+            patterns.append((name, version, re.compile("|".join(paths)), None))
+            patterns.append((name, None, re.compile(rf"[\"'`]{n}[\"'`]"),
+                             re.compile(rf"[\"'`](?:contracts|{v})[\"'`]")))
     return patterns
 
 
@@ -240,11 +245,16 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
     for name, mod in modules.items():
         own = {p.get("contract") for p in mod["provides"]}
         consumed = {(c.get("contract"), c.get("version")) for c in mod["consumes"]}
+        declared = {contract for contract, _ in consumed}
         seen: set[tuple[str, str | None]] = set()
         for relative, lines in read_files(mod):
             for lineno, line in enumerate(lines, 1):
-                for contract, version, pattern in patterns:
+                for contract, version, pattern, pieces in patterns:
                     if contract in own or not pattern.search(line):
+                        continue
+                    # A word that happens to be its name (an event's, a label's) reads nothing,
+                    # unless the module consumes that contract: then it is its read (D259).
+                    if pieces and not pieces.search(line) and contract not in declared:
                         continue
                     producer = next((v for k, v in provided.items() if k[0] == contract), None)
                     if producer:
