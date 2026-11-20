@@ -306,8 +306,10 @@ EI=$(mktemp -d)
 mkdir -p "$EI/bin" "$EI/project/.nstack"
 cp skeleton/.nstack/install-engine.sh "$EI/project/.nstack/"
 printf '#!/usr/bin/env python3\nimport sys, yaml\nprint(yaml.safe_load(open(sys.argv[2]))[sys.argv[1][1:]])\n' > "$EI/bin/yq"
-printf '#!/usr/bin/env bash\necho "uv $*"; [ -z "${UV_FAILS:-}" ]\n' > "$EI/bin/uv"
-chmod +x "$EI/bin/yq" "$EI/bin/uv"
+# A failing uv says what a version missing from the registry makes it say; no test waits (D226).
+printf '#!/usr/bin/env bash\n[ "$*" = "tool dir --bin" ] && { echo "%s/tools-bin"; exit 0; }\necho "uv $*"\n[ -z "${UV_FAILS:-}" ] || { echo "  Because there is no version of napkinstack==0.4.0, unsatisfiable." >&2; exit 1; }\n' "$EI" > "$EI/bin/uv"
+printf '#!/usr/bin/env bash\n:\n' > "$EI/bin/sleep"
+chmod +x "$EI/bin/yq" "$EI/bin/uv" "$EI/bin/sleep"
 engine() {  # $1 = _commit, $2 = _src_path; prints what CI would run
   printf '_commit: %s\n_src_path: %s\n' "$1" "$2" > "$EI/project/.copier-answers.yml"
   (cd "$EI/project" && PATH="$EI/bin:$PATH" bash .nstack/install-engine.sh 2>&1)
@@ -348,7 +350,7 @@ grep_text "$OUT" -qF "is a path on one machine" || { echo "FAIL: no reason given
 if OUT=$(UV_FAILS=1 engine v0.4.0-3-g0000000 "$URL"); then
   echo "FAIL: a missing ref did not fail."; echo "$OUT"; exit 1
 fi
-grep_text "$OUT" -qF "framework ref '0000000' not found" && ! grep_text "$OUT" -qF "napkinstack==" \
+grep_text "$OUT" -qF "framework ref '0000000' could not be installed" && ! grep_text "$OUT" -qF "uv tool install napkinstack==" \
   || { echo "FAIL: a missing ref fell back, or was not named."; echo "$OUT"; exit 1; }
 rm -rf "$EI"
 

@@ -102,6 +102,9 @@ nstack update                            # branch nstack/update-vX.Y.Z, merged a
 A version published minutes ago may not be served yet: PyPI's CDN can list the previous ones for a
 few minutes, and `--refresh-package` clears only uv's own cache. *No version of napkinstack==X.Y.Z*
 right after a release means wait a few minutes, then run the same command again.
+*Executable already exists: pre-commit* means the engine was installed another way — from its
+sources, say: `bash .nstack/install-engine.sh` deletes a link the removed engine left pointing
+nowhere and installs again; a `pre-commit` of another installation it never touches.
 
 An agent passes its session — `nstack update --session <its identifier>` — and the commit
 carries the trailer every commit of an agent carries (`AGENTS.md`, *Identity*).
