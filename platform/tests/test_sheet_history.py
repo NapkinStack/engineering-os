@@ -147,3 +147,37 @@ def test_an_explored_row_put_back_after_a_record_held_it_moved_stands(verified_t
                   ("S3", OTHER, "automated", "passed", "the CI run's trace", second[:7]))
     code, out = _pr_check(root, base, second, later, monkeypatch, capsys)
     assert code == 1 and f"moved from {first[:7]} to {second[:7]}" in out, "moved again, it is said against the first"
+
+
+
+def test_an_explored_row_put_back_to_an_ancestor_no_record_held_stands(tmp_path, monkeypatch, capsys):
+    """#460: explored at `first`, moved to `second` before any record held it there, recorded at
+    `second`; set back to `first` with the head confirmed, it claims less — it stands. Moved to a
+    commit after the recorded one, it is still said."""
+    root = tmp_path / "project"
+    root.mkdir()
+    base, _ = change(root, USER_FACING)
+    _attested(root)
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "framed, checks attested")
+    first = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    (root / "modules/login/src/page.txt").write_text("page, fixed\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "a fix")
+    second = git(root, "rev-parse", "HEAD")
+    moved = _body(root, "moved", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", second[:7]),
+                  ("S3", OTHER, "automated", "passed", "the CI run's trace", second[:7]))
+    attest.run(root, base, moved, "")  # the first record of S2 holds it at `second`
+    (root / "modules/login/src/page.txt").write_text("page, fixed again\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "another fix")
+    head = git(root, "rev-parse", "HEAD")
+    back = _body(root, "back",
+                 ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", first[:7],
+                  f"{head[:7]} — two fixes under src/, not on this path"),
+                 ("S3", OTHER, "automated", "passed", "the CI run's trace", head[:7], "—"), confirmed=True)
+    code, out = _after(root, base, head, back, monkeypatch, capsys)
+    assert code == 0, out
+    later = _body(root, "later", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/2", head[:7]),
+                  ("S3", OTHER, "automated", "passed", "the CI run's trace", head[:7]))
+    code, out = _pr_check(root, base, head, later, monkeypatch, capsys)
+    assert code == 1 and f"moved from {second[:7]} to {head[:7]}" in out, "moved forward, it is still said"

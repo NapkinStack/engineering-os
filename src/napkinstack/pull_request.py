@@ -15,7 +15,8 @@ Rules:
       is confirmed at the head instead — and at criticality critical, run again like the rest;
       an explored row whose Commit cell moved, its evidence unchanged since a record of the pull
       request's commits read it, was not explored again (D214); moved from the commit the first
-      record of that evidence names, so putting it back stands (D243)
+      record of that evidence names, so putting it back stands (D243), or setting it back to any
+      ancestor of that commit, explored before a record held it (D254)
   T5  no scenario failed; none left not verified, unless it is human only
   K1  in a framed project, delivery work needs an accepted cycle, and says which of
       the two is missing
@@ -705,7 +706,8 @@ def recorded_rows(root: Path, fork: str, head: str) -> list[tuple[str, str, dict
 
 
 def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, warn: Callable[[str], None],
-                same_files: Callable[[str, str], bool] = lambda one, other: False) -> None:
+                same_files: Callable[[str, str], bool] = lambda one, other: False,
+                before_it: Callable[[str, str], bool] = lambda older, newer: False) -> None:
     """T4, the sheet's history (D214, #384): the description is edited by author and verifier alike.
     A row explored at one commit whose Commit cell now names another, its evidence unchanged, was
     never explored again — as a forge dismisses an approval the head moved past. The row's commit is
@@ -724,8 +726,10 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
         # held the cell moved does not make the move the row's commit (D243, #444).
         before = next((was for _, _, was in sorted(recorded, key=lambda r: r[1])
                        if was["#"] == ident and was.get("evidence") == evidence and SHA.fullmatch(was.get("commit", ""))), None)
+        # A cell set back to an ancestor of that commit claims less, not more — explored before the
+        # first record held it there, the head confirmed beside it (#460): only a move forward is said.
         if before and not (before["commit"].startswith(commit) or commit.startswith(before["commit"])
-                           or same_files(before["commit"], commit)):
+                           or same_files(before["commit"], commit) or before_it(commit, before["commit"])):
             fail("T4", f"scenario {ident}: its Commit cell moved from {before['commit'][:7]} to {commit[:7]}, its "
                        "evidence unchanged: nothing shows it was explored again.\n"
                        f"      Action: the verifier explores it at the head and links that run's own evidence — or puts "
@@ -992,7 +996,8 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
         check_copilot(found, warnings.append)
     if carried and reasons:
         check_moved(body, recorded_rows(root, fork, head), fail, warnings.append,
-                    lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other))
+                    lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other),
+                    lambda older, newer: _git(root, "merge-base", "--is-ancestor", older, newer).returncode == 0)
 
     print(f"Modules touched : {len(modules)}" + "".join(f"\n  - {folder}" for folder in modules))
     print(f"Test sheet      : {'required' if reasons else 'not required'}"
