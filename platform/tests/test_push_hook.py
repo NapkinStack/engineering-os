@@ -219,3 +219,21 @@ def test_records_fetched_from_the_remote_are_its_own_never_the_agent_s_to_push(t
                             env={**env, "PATH": "/usr/bin:/bin", "PRE_COMMIT_TO_REF": tip,
                                  "PRE_COMMIT_REMOTE_BRANCH": "refs/notes/nstack/checks"}, timeout=60)
     assert "not agent scout's identity" not in result.stdout, result.stdout
+
+
+def test_what_claim_fetched_from_the_remote_is_its_own_whatever_origin_main_says(tmp_path):
+    """#484: a squash merge the forge committed reached here through claim's own fetch
+    (refs/nstack-remote/base), not origin/main: the remote holds it, the agent pushes nothing of it."""
+    project, env = _repo(tmp_path)
+    forge = {**env, "GIT_COMMITTER_NAME": "GitHub", "GIT_COMMITTER_EMAIL": "noreply@github.com"}
+    subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=tmp_path / "remote.git", check=True, env=env)
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(tmp_path / "remote.git"), str(other)], check=True, env=env, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "squash merge (#1)"], cwd=other, check=True, env=forge)
+    subprocess.run(["git", "push", "-q", "origin", "HEAD:main"], cwd=other, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q", "origin", "+HEAD:refs/nstack-remote/base"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "switch", "-q", "-c", "issue-7-work", "refs/nstack-remote/base"], cwd=project, check=True, env=env)
+    assert subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=project, env=env).returncode, \
+        "origin/main is stale, as claim's fetch leaves it"
+    result = _hook(project, env)
+    assert "not agent scout's identity" not in result.stdout, result.stdout
