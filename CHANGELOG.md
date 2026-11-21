@@ -22,6 +22,26 @@ a patch.
 
 ---
 
+## v0.34.4 — 2026-11-21
+
+D264 and D265: two frictions a multi-agent project met downstream on v0.34.2. A merge the forge made was refused as another's identity at an agent's push, and a scenario's removal that was said in the description could not clear T5's warning.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **A scenario's removal said under the sheet clears T5's warning** (D265, #485). `pr-check` warned about a row a record held that the sheet no longer shows, and nothing read the reason. A line `Removed: S3, S4 — <why>` under the sheet now clears the warning for those ids. A line with no reason says nothing. Whoever edits the sheet writes the line, and the approver judges it.
+
+**In your project** — 2 files
+
+- **`.nstack/fitness-before-push.sh`** (D264, #484). In an agent's session, the identity check no longer counts a commit the remote already holds:
+  - **The cause.** A squash merge that GitHub committed could reach the clone through `nstack claim`'s own fetch (`refs/nstack-remote/`) while `origin/main` was stale. The push and the claim were then refused as another's identity, and the Action said to re-sign a commit already on main.
+  - **The fix.** What claim fetched now counts as the remote's, like the remote-tracking branches.
+  - **The refusal.** It now adds: a commit the remote holds is never re-signed. Run `git fetch`, then push again.
+- **`.nstack/handbook/05-workflow.md`** (D265): the `Removed:` line, who writes it, who judges it.
+
+---
+
 ## v0.34.3 — 2026-11-21
 
 D263: a coherence pass read the documents against the engine. Where a page said more than the engine does, or something else, the page now says what the engine does. Off GitHub, a claim says where its hold is seen.
