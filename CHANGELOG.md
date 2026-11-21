@@ -22,6 +22,29 @@ a patch.
 
 ---
 
+## v0.34.5 — 2026-11-21
+
+D266 and D267: two frictions a multi-agent project met downstream on v0.34.2. A module's CI machine prerequisite had no place the handbook named, and T4 asked for automated rows to be run again without saying why their unchanged inputs did not keep them.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **T4 says why an automated row is not kept by its inputs** (D267, #491). After a merge of main, an automated row run at an earlier commit stands when the records of its commit and of the head hold the same inputs digest (D223). When it does not stand, T4 now names the reason, row by row:
+  - its commit has no passing record: run `nstack attest` with that commit checked out, and the row stands while what its modules read is unchanged;
+  - the head has no record yet;
+  - what its modules read changed;
+  - its run is past 7 days or 20 commits.
+
+  The rule is unchanged.
+
+**In your project** — 2 files
+
+- **`.nstack/handbook/09-platform.md`** (D266, #489). What a module's checks need from the CI machine (a kernel setting, a system package) goes in its `bootstrap`, guarded to CI. `Module checks` runs `bootstrap` before `check` and `test`, and the module's manifest is the project's file, which `nstack update` keeps. It never goes in the framework's workflow, which the next update rewrites.
+- **`.nstack/handbook/05-workflow.md`** (D267, #491). §7 says the case to know: a commit with no passing record of its own. T4 says so, and attesting that commit keeps its rows.
+
+---
+
 ## v0.34.4 — 2026-11-21
 
 D264 and D265: two frictions a multi-agent project met downstream on v0.34.2. A merge the forge made was refused as another's identity at an agent's push, and a scenario's removal that was said in the description could not clear T5's warning.
