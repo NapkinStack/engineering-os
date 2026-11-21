@@ -22,6 +22,26 @@ a patch.
 
 ---
 
+## v0.34.3 — 2026-11-21
+
+D263: a coherence pass read the documents against the engine. Where a page said more than the engine does, or something else, the page now says what the engine does. Off GitHub, a claim says where its hold is seen.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **Off GitHub, a claim says where its hold is seen** (D263). The hold has always worked on any forge, and with none: it is a branch of the shared remote. Only the draft pull request that shows it is GitHub's. Where the forge shows nothing, `nstack claim` now ends with *nstack plan shows who holds what*.
+
+**In your project** — 5 files
+
+- **`.nstack/handbook/RULES.md`** (D263): M9 names what it checks (`AGENTS.md`, `README.md`, `tests/` unless the module is a prototype). C4 owes acceptance criteria from `ready` on. T5 is lifted by a `human only — <reason>`. S2 also refuses an empty description. B4 points at `02-modules.md` §5.
+- **`.nstack/handbook/02-modules.md`** (D263): the envelope says which of its files M9 and M8 require.
+- **`.nstack/handbook/00-overview.md`** (D263): `SECURITY.md`, a seat, is rewritten when the forge changes, the project's text merged in.
+- **`.nstack/handbook/INSTALL.md`** (D263): in `.copier-answers.yml`, the `_` lines are `nstack update`'s; the answers are the decider's, changed by hand in a pull request.
+- **`.nstack/handbook/project.md`** (D263): the hold works the same on any forge; only GitHub shows it as a draft pull request.
+
+---
+
 ## v0.34.2 — 2026-11-21
 
 D260 and D261: a false refusal at the push, found by a verifier, and a blocker met by a multi-agent project, downstream, the day it took v0.34.1 — committed Claude Code skills stopped every merge in its agents' sandboxed sessions.
