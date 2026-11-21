@@ -108,6 +108,29 @@ def test_a_row_a_record_held_and_gone_from_the_sheet_is_said(verified_then_fixed
     assert "WARNING [T5] scenario(s) S3 were in the sheet a record of this pull request read" in out
 
 
+def _removed(body: Path, line: str) -> Path:
+    body.write_text(body.read_text(encoding="utf-8") + f"\n{line}\n", encoding="utf-8")
+    return body
+
+
+def test_a_row_whose_removal_is_said_with_its_reason_is_not_said_again(verified_then_fixed, monkeypatch, capsys):
+    """#485: the removal said under the sheet, in the form the warning names, clears it."""
+    root, base, _, second = verified_then_fixed
+    fewer = _removed(_body(root, "said", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/9", second[:7])),
+                     "Removed: S3 — the page it read is no longer changed; S2 holds it")
+    code, out = _after(root, base, second, fewer, monkeypatch, capsys)
+    assert code == 0 and "[T5]" not in out, out
+
+
+@pytest.mark.parametrize("line", ["Removed: S3", "Removed: S4 — another scenario", "S3 left the sheet with the move"])
+def test_a_removal_without_its_reason_or_its_form_is_still_said(verified_then_fixed, monkeypatch, capsys, line):
+    root, base, _, second = verified_then_fixed
+    fewer = _removed(_body(root, "unsaid", ("S2", GIVEN, "explored", "passed", "https://ci.example/shot/9", second[:7])),
+                     line)
+    code, out = _after(root, base, second, fewer, monkeypatch, capsys)
+    assert "WARNING [T5] scenario(s) S3 were in the sheet" in out and "Removed: <ids> — <why>" in out, out
+
+
 def test_a_row_moved_to_a_commit_with_the_same_files_stands(verified_then_fixed, monkeypatch, capsys):
     """D93: a commit whose files are the verified one's is that commit — a revert of the fix."""
     root, base, first, _ = verified_then_fixed

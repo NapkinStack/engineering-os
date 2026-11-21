@@ -715,6 +715,10 @@ def recorded_rows(root: Path, fork: str, head: str) -> list[tuple[str, str, dict
     return found
 
 
+# A removal said (#485): `Removed: S3, S4 — <why>`, on a line of its own; with no reason it says nothing.
+REMOVED = re.compile(r"^\s*Removed:\s*([^\s—–-][^—–]*?)\s+[—–-]\s+\S", re.MULTILINE)
+
+
 def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, warn: Callable[[str], None],
                 same_files: Callable[[str, str], bool] = lambda one, other: False,
                 before_it: Callable[[str, str], bool] = lambda older, newer: False) -> None:
@@ -744,11 +748,13 @@ def check_moved(body: str, recorded: list[tuple[str, str, dict]], fail: Fail, wa
                        "evidence unchanged: nothing shows it was explored again.\n"
                        f"      Action: the verifier explores it at the head and links that run's own evidence — or puts "
                        f"{before['commit'][:7]} back and confirms the head in the Confirmed column.")
-    gone = sorted({was["#"] for _, _, was in recorded if was["#"] not in now and was.get("result") in {"passed", "failed"}})
+    said = {ident.strip() for found in REMOVED.finditer(body) for ident in found.group(1).split(",")}
+    gone = sorted({was["#"] for _, _, was in recorded
+                   if was["#"] not in now and was["#"] not in said and was.get("result") in {"passed", "failed"}})
     if gone:
         warn(f"[T5] scenario(s) {', '.join(gone)} were in the sheet a record of this pull request read, and are "
-             "gone from it.\n      Action: a scenario leaves the sheet by the decider's call, said in the "
-             "description; restore it from the description's history otherwise.")
+             "gone from it.\n      Action: say why under the sheet — a line `Removed: <ids> — <why>` — for the "
+             "approver to judge; restore it from the description's history otherwise.")
 
 
 def _pull_labels(root: Path, head: str) -> tuple[int, set[str]] | str | None:
