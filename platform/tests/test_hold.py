@@ -636,7 +636,18 @@ def test_a_claim_opens_a_draft_pull_request_naming_the_deliverable(shared, monke
 
 def test_without_a_token_the_display_is_skipped_and_said(shared, capsys):
     hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
-    assert "not shown on a forge" in capsys.readouterr().out
+    assert "not shown on a forge (no GitHub remote, or no token); nstack plan shows who holds what" \
+        in capsys.readouterr().out
+
+
+def test_off_github_the_claim_says_where_the_hold_is_seen(shared, capsys, monkeypatch):
+    alice = clone(shared, "alice")
+    (alice / ".copier-answers.yml").write_text("_commit: v0.11.1\nproject_name: p\nforge: gitlab\n", encoding="utf-8")
+    monkeypatch.setenv("GH_TOKEN", "a-token")
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert "not shown — forge gitlab; nstack plan shows who holds what" in capsys.readouterr().out
+    hold.show(alice)
+    assert "@alice" in capsys.readouterr().out
 
 
 def test_a_take_over_tells_the_previous_holder_on_their_open_pull_request(shared, monkeypatch, capsys):

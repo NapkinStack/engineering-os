@@ -106,6 +106,30 @@ or the first release carrying the fix — `nstack update --ref vX.Y.Z`.
   updates every page concerned, diagrams and their legends included.
 - **Definition of Done**: [the pull request template](.github/pull_request_template.md).
 
+## Adding a forge
+
+The method works off GitHub. The hold, the attested record, the plan and the fitness functions
+live in git, and the method's files are written where each forge reads them (ADR-0010). Only the
+items below need GitHub. A forge gets its adapter when a project names that forge, one workstream
+per adapter, tested on the forge's real instance (PDR-0018 §5). The forge's name is already an
+answer, read by `project.forge`, so an adapter needs no new question. Where to show something is
+decided by `hold._forge`, which the hold, the attested record and the plan all call.
+
+| What | On GitHub today | Off GitHub today |
+|---|---|---|
+| A hold shown where people look | `hold._show`: a draft pull request, or a comment on the open pull requests | `hold.unshown` says it is not shown; `nstack plan` shows the hold |
+| An attested record's status | `attest._show` | Said *not shown* |
+| The plan as milestones and issues | `board.desired` computes what to show, without the forge; `board._apply` makes it | `board.run` says *not shown* |
+| The checks the forge's CI runs | The workflows in `skeleton/.github/`, made of the jobs in `attest.CHECKS` | `checks: attested`: the record is the only judge |
+| The protections, read and applied | `doctor.run` (the G lines), `settings.plan` then `settings._apply` | Said *not read*, and the project *unguarded* |
+| Commits that reached the default branch outside a pull request | `landed.run`, which gets its forge from `landed.from_environment` | Said not to run |
+| The verifier compared with the change's authors as people | `pull_request.traces` | Compared with agent sessions only, and said |
+| An agent's own identity | `agent.add`: a GitHub App | `nstack agent add` refuses |
+
+Each adapter keeps two halves apart, as `board` does. What to show is computed once, without the
+forge, and only the calls belong to the forge. Write no common forge class until a second forge
+has its adapter: that second adapter shows what the two have in common.
+
 ## Publishing a version
 
 ```mermaid
