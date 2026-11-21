@@ -22,6 +22,31 @@ a patch.
 
 ---
 
+## v0.34.2 — 2026-11-21
+
+D260 and D261: a false refusal at the push, found by a verifier, and a blocker met by a multi-agent project, downstream, the day it took v0.34.1 — committed Claude Code skills stopped every merge in its agents' sandboxed sessions.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **Committed Claude Code skills never stop a merge in an agent's sandbox** (D261, #477). Claude Code's sandbox write-protects `.claude/skills/` for every process, git included, so that an agent never rewrites its own instructions. In an agent's clone, a merge or a checkout bringing the skills committed since v0.34.0 (ADR-0011) stopped: *untracked working tree files would be overwritten*.
+  - ADR-0011 stands: Claude Code's documentation asks for `.claude/skills/` to be committed, and Claude Code reads no other project folder.
+  - `nstack agent run <name> -- claude`, outside the sandbox, leaves `.claude/skills/` out of the clone's working tree (a sparse checkout: the files stay in every commit, the agent's git never writes or drops them) and hands Claude Code the default branch's skills from a folder of the agent's own (`--add-dir`), laid again at each run.
+  - `nstack skills` where `.claude/skills/` cannot be written writes `.agents/skills/` and says it; a playbook an agent changes waits for a person's regeneration, S3 saying it.
+- **A JavaScript, TypeScript or Go import is judged on its specifier, not its binding** (D260, #475). With a module `platform`, `import platform from 'os'` (or Go's `import platform "os"`) failed B2: the word after `import` is the file's own name for what it imports. In a `.js`, `.jsx`, `.ts`, `.tsx` or `.go` file, only the quoted specifier names a module; a path into its folder still counts.
+
+**In your project** — 1 file
+
+- **`.nstack/handbook/INSTALL.md`** (D261): the agent's sandbox and `.claude/skills/`; an agent that changes a playbook leaves the regeneration to a person.
+
+**Migration**
+
+- **A project that untracked `.claude/skills/` to get its agents merging again**: in the update's pull request, take back the `.claude/skills/` line its `.gitignore` gained (and its `.gitattributes` line), run `nstack skills` and commit — the update says the folder git ignores. Then start each agent once more with `nstack agent run <name> -- claude`.
+- **Every Claude Code agent**: its next `nstack agent run` makes its clone sparse. A session started before that stops at a merge that changes the skills: start it again.
+
+---
+
 ## v0.34.1 — 2026-11-20
 
 D255, D256, D257, D258 and D259: five frictions met by a multi-agent project, downstream, on 2026-11-20 — two that misled agents about who holds what, one that lost a commit's session, two false refusals at the push.
