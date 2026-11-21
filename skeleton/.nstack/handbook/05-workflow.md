@@ -388,7 +388,8 @@ moved from is the one the first record holding that evidence names: putting it b
 the head passes, even after a record held the moved cell — and so does any ancestor of that
 commit, where the row was explored before a record held it; a move to a commit that is not its
 ancestor is said. A row a record
-held and the sheet no longer shows is said. A rebase or a squash drops the records of the commits
+held and the sheet no longer shows is said, unless a line under the sheet says why it left —
+`Removed: S3, S4 — <why>` —: whoever edits the sheet writes it, and the approver judges it. A rebase or a squash drops the records of the commits
 it rewrites, and what they read with them. The approver decides on the sheet; where the project answers
 `approval: agent`, the approver of a `prototype` or `standard` module may be the verifier itself,
 an agent under another identity than the author's (`07-governance.md` §7).
