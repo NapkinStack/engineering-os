@@ -462,8 +462,10 @@ def _split(row: dict, width: int) -> bool:
 def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 authorship: tuple[set[str], set[str], list[str]] = (set(), set(), []),
                 strict: bool = False, unchanged: Callable[[str], bool] = lambda commit: False,
-                hands: set[str] | None = None, same_inputs: Callable[[str], bool] = lambda commit: False) -> list[str]:
-    """T1 to T5; returns the human-only scenarios, listed apart for the approver."""
+                hands: set[str] | None = None, same_inputs: Callable[[str], str | None] = lambda commit: "") -> list[str]:
+    """T1 to T5; returns the human-only scenarios, listed apart for the approver. `same_inputs` says why an
+    automated row at another commit is not kept by its inputs (D223): None when it is, "" when there is
+    nothing to say (#491)."""
     verifier, header, rows = read_sheet(body)
     if reasons and not rows:
         fail("T1", "Test sheet missing: this pull request touches\n"
@@ -484,7 +486,7 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                    "\"Verifier: session <id>\", someone other than the author of the change.")
     else:
         check_verifier(verifier, authorship, fail, hands)
-    human_only, rerun, unconfirmed = [], [], []
+    human_only, rerun, unconfirmed, why_rerun = [], [], [], []
     for row in rows:
         ident = row["#"] or "?"
         if _split(row, len(header)):
@@ -518,10 +520,13 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             # joins an earlier one after a `;`, never replacing it (#288).
             confirmed = [clause.strip().split(" ", 1)[0].strip("`").lower()
                          for clause in row.get(CONFIRMED, "").split(";")]
-            if kind.lower() == "automated" and not strict and same_inputs(commit):
+            why = same_inputs(commit) if kind.lower() == "automated" and not strict else ""
+            if why is None:
                 pass  # what its module reads is unchanged since that run, and the run is fresh (D223)
             elif kind.lower() == "automated" or strict:
                 rerun.append(ident)
+                if why:
+                    why_rerun.append(f"{ident}: {why}")
             elif not any(SHA.fullmatch(commit) and head.startswith(commit) for commit in confirmed):
                 unconfirmed.append(ident)
         if result == "failed":
@@ -539,7 +544,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                "declares e2e, and its Commit cell takes the head")
         fail("T4", f"scenarios verified on another commit than the head {head[:7]}: "
                    f"{', '.join(rerun)}.\n      Action: run them again on the head commit.\n"
-                   f"      {why} (.nstack/handbook/05-workflow.md §7).")
+                   f"      {why} (.nstack/handbook/05-workflow.md §7)."
+                   + "".join(f"\n      Not kept by its inputs — {line}" for line in why_rerun))
     if unconfirmed:
         fail("T4", f"scenarios explored before the head {head[:7]} and not confirmed on it: "
                    f"{', '.join(unconfirmed)}.\n      Action: re-read what changed since, then "
@@ -846,10 +852,11 @@ def _module_inputs(record: dict | None, root: Path | None = None, commit: str = 
         found.get("kept_base") or record.get("base_commit")
 
 
-def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
+def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]:
     """T4's relief for an automated row (D223): the record of the row's commit and the head's hold
     the same inputs digest, and the row's run is fresh. While nstack attest makes the head's record,
-    the digest it computed stands in for it."""
+    the digest it computed stands in for it. The callable returns None when the row stands, else why
+    it does not — the cheap path first (#491)."""
     from napkinstack import attest
 
     try:
@@ -857,7 +864,7 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
     except (OSError, yaml.YAMLError):
         answers = {}
     if not isinstance(answers, dict) or answers.get("checks") != "attested":
-        return lambda commit: False  # the forge's CI replays it: the relief is for attested checks
+        return lambda commit: ""  # the forge's CI replays it: the relief is for attested checks
     cache: dict[str, str | None] = {}
 
     def head_digest() -> str | None:
@@ -870,12 +877,23 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], bool]:
                 cache["head"] = found[0] if found else None
         return cache["head"]
 
-    def same(commit: str) -> bool:
+    def same(commit: str) -> str | None:
         full = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").stdout.strip()
+        found = _module_inputs(attest.latest(root, full), root, full) if full else None
+        if not found:
+            return (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
+                    "the row stands while what its modules read is unchanged since")
         digest = head_digest()
-        found = _module_inputs(attest.latest(root, full), root, full) if full and digest else None
+        if not digest:
+            return (f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
+                    "and the row stands while what its modules read is unchanged since")
+        if found[0] != digest:
+            return f"what its modules read changed between {commit} and the head {head[:7]}"
         base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").stdout.strip() or None
-        return bool(found and found[0] == digest and attest._fresh(root, found[1], found[2], base_commit))
+        if not attest._fresh(root, found[1], found[2], base_commit):
+            return (f"its run at {commit} is older than {attest.FRESH_DAYS} days, or than "
+                    f"{attest.FRESH_COMMITS} commits of the default branch")
+        return None
 
     return same
 
