@@ -878,12 +878,12 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]
         return cache["head"]
 
     def same(commit: str) -> str | None:
+        digest = head_digest()  # first: it fetches the remote's records, the row's commit's among them
         full = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").stdout.strip()
         found = _module_inputs(attest.latest(root, full), root, full) if full else None
         if not found:
             return (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
                     "the row stands while what its modules read is unchanged since")
-        digest = head_digest()
         if not digest:
             return (f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
                     "and the row stands while what its modules read is unchanged since")
