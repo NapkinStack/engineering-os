@@ -46,3 +46,18 @@ def test_an_issue_form_is_the_skeleton_s_with_this_repository_s_paths(form: str)
     assert (FORMS / form).read_text(encoding="utf-8") == expected, (
         f".github/ISSUE_TEMPLATE/{form} drifted from {source.relative_to(ROOT)}.\n"
         "Action: copy the skeleton's form, with this repository's paths.")
+
+
+def test_every_place_an_adapter_starts_from_is_still_in_the_engine() -> None:
+    """CONTRIBUTING.md's "Adding a forge" names the engine's GitHub-only code (D263): a rename
+    would leave the next adapter's map pointing at nothing."""
+    import importlib
+
+    text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    section = text.split("## Adding a forge", 1)[1].split("\n## ", 1)[0]
+    named = sorted(set(re.findall(r"`([a-z_]+)\.([A-Za-z_]+)`", section)))
+    assert len(named) >= 10, f"CONTRIBUTING.md, Adding a forge: {named} — the map lost its places."
+    missing = [f"{module}.{name}" for module, name in named
+               if not hasattr(importlib.import_module(f"napkinstack.{module}"), name)]
+    assert not missing, (f"CONTRIBUTING.md, Adding a forge, names {missing}, gone from the engine.\n"
+                         "Action: point the row at where that code went.")

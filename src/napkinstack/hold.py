@@ -478,7 +478,7 @@ def _show(root: Path, name: str | None, ident: str, title: str, person: str, bra
     judgement: the hold is git's, and stands whatever the forge answers."""
     forge = _forge(root, name)
     if forge is None:
-        return unshown(root)
+        return f"{unshown(root)}; nstack plan shows who holds what"  # on any forge: the hold is git's (D263)
     said: list[str] = []
     try:
         if branch is None:
