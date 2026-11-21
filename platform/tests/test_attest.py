@@ -824,9 +824,49 @@ def test_pr_check_lets_an_automated_row_stand_across_a_merge_in_that_kept_the_mo
     attest.run(root, base, None, "")
     head = git(root, "rev-parse", "HEAD")
     same = pull_request.same_inputs(root, head, base)
-    assert same(first[:7]) and not same(git(root, "rev-parse", "main"))
+    main = git(root, "rev-parse", "main")
+    assert same(first[:7]) is None
+    assert same(main[:7]) == (f"{main[:7]} has no passing record of its module checks: nstack attest with {main[:7]} checked out, "
+                              "and the row stands while what its modules read is unchanged since"), "#491: why, and the cheap path"
     monkeypatch.setattr(attest, "FRESH_DAYS", -1)
-    assert not pull_request.same_inputs(root, head, base)(first[:7]), "past the bound, the row is re-run"
+    assert "is older than -1 days" in pull_request.same_inputs(root, head, base)(first[:7]), "past the bound, re-run"
+
+
+def test_t4_s_relief_reads_the_records_the_remote_holds_in_a_fresh_clone(counting, tmp_path):
+    """The verifier's finding on #491: read before the head's digest, the row's commit's record was never
+    fetched in CI's clone, and T4 said it had none."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    attest.run(root, base, None, "")
+    head = git(root, "rev-parse", "HEAD")
+    bare = tmp_path / "remote.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+    git(root, "remote", "add", "origin", str(bare))
+    git(root, "push", "-q", "origin", "main", "work", f"refs/notes/{attest.NOTES}")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", "-b", "work", str(bare), str(clone)], check=True)
+    git(clone, "branch", "-q", "main", "origin/main")
+    assert pull_request.same_inputs(clone, head, base)(first[:7]) is None
+
+
+def test_t4_says_when_the_head_has_no_record_yet(counting):
+    """#491: pr-check run before the head is attested names that, not a change of inputs."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first[:7]) == (
+        f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
+        "and the row stands while what its modules read is unchanged since")
 
 
 
@@ -869,12 +909,13 @@ def test_t4_s_relief_reads_attest_s_digest_while_it_makes_the_record_and_only_wh
     head = git(root, "rev-parse", "HEAD")
     monkeypatch.setenv("NSTACK_ATTESTING", head)
     monkeypatch.setenv("NSTACK_INPUTS", digest)
-    assert pull_request.same_inputs(root, head, base)(first)
+    assert pull_request.same_inputs(root, head, base)(first) is None
     monkeypatch.setenv("NSTACK_INPUTS", "0" * 64)
-    assert not pull_request.same_inputs(root, head, base)(first)
+    assert pull_request.same_inputs(root, head, base)(first) == \
+        f"what its modules read changed between {first} and the head {head[:7]}"
     monkeypatch.setenv("NSTACK_INPUTS", digest)
     (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6"}), encoding="utf-8")
-    assert not pull_request.same_inputs(root, head, base)(first), "the forge's CI replays it"
+    assert pull_request.same_inputs(root, head, base)(first) == "", "the forge's CI replays it: nothing to say"
 
 
 def test_a_dependency_bot_s_head_is_attested_as_it_stands_by_the_project_s_identity(tmp_path, monkeypatch, capsys):

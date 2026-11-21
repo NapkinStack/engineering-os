@@ -346,7 +346,10 @@ the change, and the stricter applies:
     person — and the run is at most 7 days old, the default branch moved by 20 commits at most. A
     module that reads something it does not declare is the risk: declare it in `consumes` — a
     record cannot be declared: a check never reads one —, and the default branch's own `Module
-    checks` run catches what was missed once it runs that module;
+    checks` run catches what was missed once it runs that module. A commit with no passing record
+    of its own is the case to know: `pr-check`'s T4 says so — `nstack attest` with that commit checked out, and
+    its rows stand without running them again —, as it says a digest that differs or a run past
+    its bound;
   - one **explored** by hand keeps the commit its evidence was produced on, and the verifier
     adds a **`Confirmed`** column on the head commit saying **what moved since and why it leaves
     the result standing**. Reading three fixes is not the same work as driving six scenarios

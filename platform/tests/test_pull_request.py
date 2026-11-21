@@ -745,5 +745,19 @@ def test_t4_an_automated_row_stands_on_the_same_inputs_and_an_explored_or_critic
         failures = []
         body = sheet((*row[:2], kind, *row[3:]))
         pull_request.check_sheet(body, "a" * 40, ["a reason"], lambda rule, message: failures.append(rule),
-                                 strict=strict, same_inputs=lambda commit: same and commit == OLD)
+                                 strict=strict, same_inputs=lambda commit: None if same and commit == OLD else "")
         assert ("T4" in failures) is expected, (same, strict, kind, failures)
+
+
+def test_t4_says_why_an_automated_row_was_not_kept_by_its_inputs():
+    """#491: the row's commit had no record; T4 named no reason, and the verifier re-ran rows an attest
+    of that commit would have kept."""
+    messages = []
+    body = sheet(("S1", "Given x", "automated", "passed", "https://ci.example/run/1", OLD),
+                 ("S2", "Given y", "automated", "passed", "https://ci.example/run/2", OLD))
+    why = {"S1": "no record", "S2": ""}
+    rows = iter(("S1", "S2"))
+    pull_request.check_sheet(body, "a" * 40, ["a reason"], lambda rule, message: messages.append(message),
+                             same_inputs=lambda commit: why[next(rows)])
+    t4 = next(message for message in messages if "verified on another commit" in message)
+    assert "S1, S2" in t4 and "Not kept by its inputs — S1: no record" in t4 and "S2:" not in t4, t4
