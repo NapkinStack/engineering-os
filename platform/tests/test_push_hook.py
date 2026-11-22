@@ -237,3 +237,51 @@ def test_what_claim_fetched_from_the_remote_is_its_own_whatever_origin_main_says
         "origin/main is stale, as claim's fetch leaves it"
     result = _hook(project, env)
     assert "not agent scout's identity" not in result.stdout, result.stdout
+
+
+def test_a_forge_merge_brought_by_no_ref_the_hook_reads_is_fetched_before_refusing(tmp_path):
+    """#484 again (D268): a merge of main made in another clone was fetched here into FETCH_HEAD and
+    pushed by its sha; the forge's squash merge it carries reached this clone through no ref the hook
+    reads, origin/main stale. Before refusing, the hook fetches the remote's default branch and counts
+    again: the forge's commit is the remote's, the agent's merge its own."""
+    project, env = _repo(tmp_path)
+    forge = {**env, "GIT_COMMITTER_NAME": "GitHub", "GIT_COMMITTER_EMAIL": "noreply@github.com",
+             "GIT_AUTHOR_NAME": "demo-lina[bot]", "GIT_AUTHOR_EMAIL": "9002+demo-lina[bot]@users.noreply.github.com"}
+    subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=tmp_path / "remote.git", check=True, env=env)
+    subprocess.run(["git", "switch", "-q", "-c", "issue-7-work"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "the agent's work"], cwd=project, check=True, env=env)
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(tmp_path / "remote.git"), str(other)], check=True, env=env, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "squash merge (#1)"], cwd=other, check=True, env=forge)
+    subprocess.run(["git", "push", "-q", "origin", "HEAD:main"], cwd=other, check=True, env=env)
+    shared = tmp_path / "shared"
+    subprocess.run(["git", "clone", "-q", "--shared", str(project), str(shared)], check=True, env=env, capture_output=True)
+    subprocess.run(["git", "checkout", "-q", "origin/issue-7-work"], cwd=shared, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q", str(tmp_path / "remote.git"), "main"], cwd=shared, check=True, env=env)
+    subprocess.run(["git", "merge", "-q", "--no-edit", "FETCH_HEAD"], cwd=shared, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q", str(shared), "HEAD"], cwd=project, check=True, env=env)
+    merged = subprocess.run(["git", "rev-parse", "FETCH_HEAD"], cwd=project, capture_output=True, text=True,
+                            check=True, env=env).stdout.strip()
+    assert subprocess.run(["git", "merge-base", "--is-ancestor", "origin/main", merged], cwd=project, env=env).returncode == 0
+    stale = subprocess.run(["git", "rev-parse", "origin/main"], cwd=project, capture_output=True, text=True, env=env).stdout
+    result = subprocess.run(["sh", ".nstack/fitness-before-push.sh"], cwd=project, capture_output=True, text=True,
+                            env={**env, "PATH": "/usr/bin:/bin", "PRE_COMMIT_TO_REF": merged, "PRE_COMMIT_REMOTE_NAME": "origin",
+                                 "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/issue-7-work"}, timeout=60)
+    assert "not agent scout's identity" not in result.stdout, result.stdout
+    assert subprocess.run(["git", "rev-parse", "origin/main"], cwd=project, capture_output=True, text=True,
+                          env=env).stdout == stale, "the hook moves none of the person's remote-tracking branches"
+
+
+def test_a_made_up_identity_is_still_refused_after_the_hook_s_fetch(tmp_path):
+    """D268: the fetch before refusing clears only what the remote holds; the agent's own commit
+    under a made-up identity, on top of a stale origin/main, is still refused."""
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=tmp_path / "remote.git", check=True, env=env)
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(tmp_path / "remote.git"), str(other)], check=True, env=env, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "squash merge (#1)"], cwd=other, check=True, env=env)
+    subprocess.run(["git", "push", "-q", "origin", "HEAD:main"], cwd=other, check=True, env=env)
+    subprocess.run(["git", "-c", "user.name=f", "-c", "user.email=f@host.example", "commit", "-q", "--allow-empty",
+                    "-m", "made up"], cwd=project, check=True, env=env)
+    result = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert result.returncode == 1 and "1 commit(s) the remote does not hold yet" in result.stdout, result.stdout
