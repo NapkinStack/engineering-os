@@ -143,7 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
     cp = _add(sub, "compat", "a frozen contract version changes only with a proof (V1, commands.compat)",
               lambda a: compat.run(a.root, a.module, a.base))
     cp.add_argument("module", nargs="?", help="module holding the contracts (default: all)")
-    cp.add_argument("--base", default="origin/main")
+    cp.add_argument("--base", default="origin/main", help="the branch the change is measured against (default: origin/main)")
     rl = _add(sub, "release", "makes one module's artefacts, or all of them, each into dist/<module>, emptied first "
                               "(commands.release), with what follows a named module passed to it",
               lambda a: _release(a))
@@ -161,14 +161,14 @@ def build_parser() -> argparse.ArgumentParser:
     md.add_argument("--json", action="store_true", help="a JSON list, for CI")
     ps = _add(sub, "pr-scope", "one PR = one module, review budget (P1-P2)",
               lambda a: pr_scope.run(a.root, a.base))
-    ps.add_argument("--base", default="origin/main")
+    ps.add_argument("--base", default="origin/main", help="the branch the change is measured against (default: origin/main)")
     nc = _add(sub, "new-contract", "creates a contract — and, the first time, the module that holds them all",
               lambda a: modules.create_contract(a.root, a.name, a.owner))
     nc.add_argument("name", help="the contract's name, kebab-case")
     nc.add_argument("--owner", help="owner of the contracts module (default: the foundation's owner)")
     pc = _add(sub, "pr-check", "test sheet, cycle and attested checks, read from the pull request description (T1-T5, K1-K5, A1-A2, C1, C9, R1-R2)",
               lambda a: pull_request.run(a.root, a.base, a.body_file, a.labels))
-    pc.add_argument("--base", default="origin/main")
+    pc.add_argument("--base", default="origin/main", help="the branch the change is measured against (default: origin/main)")
     pc.add_argument("--body-file", type=Path, help="the description, when PR_BODY is not set")
     pc.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS); with a "
                                          "token and one open pull request at the head, its own are read")
@@ -179,7 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
     at = _add(sub, "attest", "runs the CI's checks here and records the run on the commit, in git",
               lambda a: attest.void(a.root, a.void, a.reason or "", a.base, a.accept_identity) if a.void
               else attest.run(a.root, a.base, a.body_file, a.labels, a.accept_identity, a.again))
-    at.add_argument("--base", default="origin/main")
+    at.add_argument("--base", default="origin/main", help="the branch the change is measured against (default: origin/main)")
     at.add_argument("--body-file", type=Path, help="the pull request's description, for its checks")
     at.add_argument("--labels", help="the pull request's labels, comma-separated (default: PR_LABELS); with a "
                                          "token and one open pull request at the head, its own are read")
@@ -199,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--session", help="the agent's session, written on the hold")
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
-                    help="take a hold nobody has worked on for hold_days, or your own person's from another session — recorded, with its previous holder")
+                    help="take a hold nobody has worked on for hold_days, or your own person's from another agent's session — recorded, with its previous holder; your own agent restarted needs none: it renews")
     rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale; a closed cycle's hold has ended",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")

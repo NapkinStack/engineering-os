@@ -222,6 +222,31 @@ def test_a_hold_whose_sessions_came_from_two_identities_is_renewed_by_neither(sh
     assert hold.claim(clone(shared, "marc-3"), "D1", session="marc-3", person="@alice") == 1, "ines put a session on it"
 
 
+def test_an_agent_restarted_gives_its_own_hold_back_from_its_new_session(shared, capsys, monkeypatch):
+    """D272: what renews a restarted agent's hold releases it too — nstack unclaim from the new session,
+    in the agent's own run; outside an agent's run, the same command is still refused."""
+    as_agent(monkeypatch, MARC)
+    hold.claim(clone(shared, "marc"), "D1", session="marc-before", person="@alice")
+    after = clone(shared, "marc-after")
+    as_agent(monkeypatch, MARC, None)
+    capsys.readouterr()
+    assert hold.release(after, "D1", session="marc-after", person="@alice") == 1
+    assert "nstack agent run" in capsys.readouterr().out
+    as_agent(monkeypatch, MARC)
+    assert hold.release(after, "D1", session="marc-after", person="@alice") == 0, capsys.readouterr().out
+    assert remote_events(shared) == ["release", "claim"]
+
+
+def test_a_claim_refused_for_want_of_its_person_says_so(shared, capsys):
+    """D272: a session that named no --person reads git's user and is refused as anyone else; the refusal
+    says which person holds it, as unclaim's does, and the command it prints survives the shell."""
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="Alice Smith <alice@example.org>")
+    capsys.readouterr()
+    assert hold.claim(clone(shared, "bob"), "D1", session="alice-d2") == 1
+    out = capsys.readouterr().out
+    assert "No --person was given" in out and "--person 'Alice Smith <alice@example.org>'" in out, out
+
+
 @pytest.mark.parametrize("email, agent", [
     ("9004+demo-ines[bot]@users.noreply.github.com", "ines"),   # another agent of the same person (#315)
     (MARC, None),                                               # one identity, sessions outside nstack agent run
@@ -510,6 +535,19 @@ def test_k5_refuses_a_pull_request_for_a_deliverable_another_session_holds(share
     pull_request.check_hold(clone(shared, "bob"), "Deliverable: D1", set(), AUTHORED,
                             lambda rule, message: failed.append((rule, message)), said.append)
     assert [rule for rule, _ in failed] == ["K5"] and "@alice" in failed[0][1]
+
+
+def test_k5_s_action_names_the_agent_s_run_and_survives_the_shell(shared):
+    """D272: the renewal K5 offers works only in nstack agent run, and a person git names — a name and an
+    address — is quoted in the commands it prints."""
+    from napkinstack import pull_request
+
+    hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="Alice Smith <alice@example.org>")
+    failed = []
+    pull_request.check_hold(clone(shared, "bob"), "Deliverable: D1", set(), AUTHORED,
+                            lambda rule, message: failed.append((rule, message)), lambda _: None)
+    message = failed[0][1]
+    assert "in nstack agent run" in message and "--person 'Alice Smith <alice@example.org>'" in message, message
 
 
 @pytest.mark.parametrize("authorship", [({"x"}, {"alice-d1"}, []), ({"alice"}, set(), [])],

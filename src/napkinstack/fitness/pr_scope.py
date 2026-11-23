@@ -107,5 +107,6 @@ def run(root: Path, base: str) -> int:
         print("WARNING [P2] Over the review budget.\n"
               "  A project's throughput is its VERIFICATION throughput, not its generation rate.\n"
               "  Split it up, or add the 'over-budget' label with a justification\n"
-              "  (generation, mechanical migration, mass rename).")
+              "  (generation, mechanical migration, mass rename). A tool's output whose name gives\n"
+              "  nothing away: mark it linguist-generated in .gitattributes (.nstack/handbook/05-workflow.md §4).")
     return status
