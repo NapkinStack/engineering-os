@@ -29,6 +29,9 @@ HELD = types.SimpleNamespace(**{**{name: getattr(datetime, name) for name in dir
 def _no_registry(monkeypatch):
     monkeypatch.setenv("NSTACK_REGISTRY_URL", "http://127.0.0.1:9")
     monkeypatch.setenv("GITHUB_API_URL", "http://127.0.0.1:9")
+    # This repository's own pull request, as its CI names it, is no test's (#508): a test sets its own.
+    monkeypatch.delenv("GITHUB_REF", raising=False)
+    monkeypatch.delenv("GITHUB_HEAD_REF", raising=False)
     from napkinstack import settings  # nor the person's own gh login (D244)
     monkeypatch.setattr(settings, "_gh_token", lambda: None)
 

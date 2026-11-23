@@ -22,6 +22,7 @@ OTHER = "Given the form, when a field is empty, then it says which"
 def _identity(monkeypatch):
     for name, value in IDENTITY.items():
         monkeypatch.setenv(name, value)
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)  # attest runs on a workstation; a test names CI itself
 
 
 def _attested(root: Path) -> None:
@@ -204,3 +205,90 @@ def test_an_explored_row_put_back_to_an_ancestor_no_record_held_stands(tmp_path,
                   ("S3", OTHER, "automated", "passed", "the CI run's trace", head[:7]))
     code, out = _pr_check(root, base, head, later, monkeypatch, capsys)
     assert code == 1 and f"moved from {second[:7]} to {head[:7]}" in out, "moved forward, it is still said"
+
+
+def test_a_stacked_branch_never_reads_the_sheet_of_the_pull_request_it_started_on(tmp_path, monkeypatch, capsys):
+    """#508 (D274): B started on A's branch, and A was squash-merged; A's commits stay in B's range, their
+    records holding A's sheet. T5 and T4's history read only the records made for this pull request —
+    known by its branch here, with no forge."""
+    root = tmp_path / "project"
+    root.mkdir()
+    base, _ = change(root, USER_FACING)
+    _attested(root)
+    git(root, "checkout", "-q", "-b", "d1-html")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "A: the HTML export")
+    a = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    attest.run(root, base, _body(root, "a", ("X1", GIVEN, "automated", "passed", "the CI run's trace", a[:7])), "")
+    git(root, "checkout", "-q", "-b", "d1-docx")
+    (root / "modules/login/src/page.txt").write_text("page, as a document\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "B: the DOCX export")
+    b = git(root, "rev-parse", "HEAD")
+    own = _body(root, "b", ("W1", OTHER, "automated", "passed", "the CI run's trace", b[:7]))
+    code, out = _after(root, base, b, own, monkeypatch, capsys)
+    assert code == 0 and "[T5]" not in out, out
+    gone = _body(root, "b-fewer", ("W2", GIVEN, "automated", "passed", "the CI run's trace", b[:7]))
+    code, out = _after(root, base, b, gone, monkeypatch, capsys)
+    assert "WARNING [T5] scenario(s) W1 were in the sheet" in out, "its own records are still read"
+
+
+def test_a_record_names_the_pull_request_the_forge_gave_and_the_history_keeps_to_it(tmp_path, monkeypatch, capsys):
+    """#508 (D274): where the forge names the pull request, the record keeps its number, and the history
+    reads the records of that number only — whatever branch each was made on."""
+    from napkinstack import pull_request
+
+    root = tmp_path / "project"
+    root.mkdir()
+    base, _ = change(root, USER_FACING)
+    _attested(root)
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "A's work")
+    a = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    monkeypatch.setattr(pull_request, "_pull_labels", lambda root, head: (21, set()))
+    attest.run(root, base, _body(root, "a", ("X1", GIVEN, "automated", "passed", "the CI run's trace", a[:7])), "")
+    (root / "modules/login/src/page.txt").write_text("page, as a document\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "B's work, on the same branch")
+    b = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(pull_request, "_pull_labels", lambda root, head: (50, set()))
+    code, out = _after(root, base, b, _body(root, "b", ("W1", OTHER, "automated", "passed", "the CI run's trace", b[:7])),
+                       monkeypatch, capsys)
+    assert code == 0 and "[T5]" not in out, out
+
+
+def test_ci_names_the_pull_request_by_its_event_and_reads_a_record_naming_none(tmp_path, monkeypatch, capsys):
+    """D274's verifier: in the forge's run the event names the pull request — its number, its branch —;
+    a record of another number or another branch is not read, and one naming nothing still is."""
+    from napkinstack import pull_request
+
+    root = tmp_path / "project"
+    root.mkdir()
+    change(root, USER_FACING)
+    git(root, "commit", "-q", "--allow-empty", "-m", "head")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REF", "refs/pull/50/merge")
+    monkeypatch.setenv("GITHUB_HEAD_REF", "d1-docx")
+    this = pull_request.this_pull(root, git(root, "rev-parse", "HEAD"))
+    assert this == {"number": 50, "branch": "d1-docx"}
+    assert not pull_request.same_pull({"number": 21, "branch": "d1-docx"}, this)
+    assert not pull_request.same_pull({"branch": "d1-html"}, this)
+    assert pull_request.same_pull({"branch": "d1-docx"}, this) and pull_request.same_pull(None, this)
+    assert pull_request.same_pull({}, this)
+
+
+def test_a_verifier_s_branch_named_after_the_pull_request_s_tracks_it(tmp_path):
+    """D274's verifier: a verifier checks out the pull request's branch under a name of its own; the
+    branch it tracks is the one its record names."""
+    from napkinstack import pull_request
+
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    git(origin, "init", "-q", "--initial-branch=d1-docx")
+    git(origin, "commit", "-q", "--allow-empty", "-m", "B")
+    verifier = tmp_path / "verifier"
+    git(tmp_path, "clone", "-q", str(origin), str(verifier))
+    git(verifier, "switch", "-q", "-c", "check-50", "--track", "origin/d1-docx")
+    assert pull_request.this_pull(verifier, git(verifier, "rev-parse", "HEAD")) == {"branch": "d1-docx"}
+    git(verifier, "checkout", "-q", "--detach")
+    assert pull_request.this_pull(verifier, git(verifier, "rev-parse", "HEAD")) == {}
