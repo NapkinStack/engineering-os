@@ -39,12 +39,19 @@ def _git(root: Path, *args: str) -> str:
 def declared_generated(root: Path, paths: list[str]) -> set[str]:
     """The paths the project's .gitattributes marks `linguist-generated` — the convention GitHub
     folds in its diffs (#497): a tool's output the fixed pattern cannot know, declared where a
-    reviewer sees it. `=false` keeps a path counted."""
+    reviewer sees it. Read as GitHub reads it: any value but `false` (or `-linguist-generated`) is
+    generated. Read at HEAD, the commit measured, never a working tree's edit; a git before 2.40
+    has no --source and reads the working tree."""
     if not paths:
         return set()
-    out = subprocess.run(["git", "check-attr", "-z", "--stdin", "linguist-generated"], cwd=root,
-                         input="\0".join(paths) + "\0", capture_output=True, text=True).stdout.split("\0")
-    return {path for path, _, value in zip(out[0::3], out[1::3], out[2::3]) if value in {"set", "true"}}
+    for source in (["--source", "HEAD"], []):
+        found = subprocess.run(["git", "check-attr", *source, "-z", "--stdin", "linguist-generated"], cwd=root,
+                               input="\0".join(paths) + "\0", capture_output=True, text=True)
+        if found.returncode == 0:
+            break
+    out = found.stdout.split("\0")
+    return {path for path, _, value in zip(out[0::3], out[1::3], out[2::3])
+            if value not in {"unspecified", "unset", "false"}}
 
 
 def run(root: Path, base: str) -> int:

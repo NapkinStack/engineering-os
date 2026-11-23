@@ -114,8 +114,8 @@ These values are starting points to calibrate, not truths. The principle matters
 than the number: **the batch must be reviewable in one session of attention**.
 
 `nstack pr-scope` leaves out lock files and generated names (`*.generated.*`, `generated/`, the
-skills), and every path the project's `.gitattributes` marks `linguist-generated`, which GitHub also
-folds in its diffs. A tool's output that no name gives away is declared there, as the licence notices a
+skills), and every path the project's `.gitattributes` marks `linguist-generated` (any value but
+`false`), which GitHub also folds in its diffs. A tool's output that no name gives away is declared there, as the licence notices a
 dependency tool writes; the line that declares it is in the diff a reviewer reads.
 
 **Going over.** The check reports, it does not block automatically (except for modules
