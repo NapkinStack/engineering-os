@@ -75,7 +75,7 @@ no service, and no forge required.
    whether named by a handle or by git: `@alice` is `Alice <alice@example.org>` — said, not
    proven.
 3. **`nstack claim <id> [--session S] [--person P]`.** Refuses a deliverable that is not `ready`
-   or `in-progress` in the accepted cycle — the one on the remote's default branch, just fetched, never the checkout's (amended for D273); a remote with a working tree is somebody's clone, refused (amended for D273). Fetches the hold's branch: absent or last event
+   or `in-progress` in the accepted cycle — the one on the remote's default branch, just fetched, never the checkout's (amended for D273); a local remote that is a working clone of another repository is refused, a local hub kept (amended for D273). Fetches the hold's branch: absent or last event
    `release`, it commits a `claim` on it and pushes; held by the same person from a session on the hold, or with no session on either side, it commits a `renew` (clarified for D185: another session of that person is another holder, as D181 reads an agent's independence; it takes the hold with `--take-over` on the person's word, stale or not; clarified for D271: in an agent's session, a new session of the agent whose own identity committed every event that put a session on the hold renews it, said and recorded with the session it leaves — a restart changes the session, never the App; two live sessions of one agent are one holder); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
    creates the first work branch `d<n>-<slug>` from the remote's default branch as it is now, with one empty commit naming the
    deliverable, pushes it, and with a token opens a **draft pull request** whose description

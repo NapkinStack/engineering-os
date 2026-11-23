@@ -123,29 +123,25 @@ def fetch(root: Path, again: bool = False) -> str | None:
 
 
 def _not_a_clone(root: Path, name: str) -> None:
-    """A remote that is a local clone of the forge — a verifier's `git clone --shared` of a working
-    clone — keeps the holds it fetched (refs/remotes, nstack's mirror), never as branches of its
-    own: a fetch of its branches brings none, and "nobody holds it" would be a guess. Said instead."""
+    """A local remote that is somebody's working clone — a verifier's `git clone --shared` of a
+    clone — is no shared remote: a hold pushed there is seen by nobody else, and the holds it
+    fetched are not its own branches (D256, #505). Refused, and said. A local hub — a bare
+    repository, or a working tree that is itself nobody's clone — stays a shared remote."""
     url = _git(root, "remote", "get-url", name).stdout.strip()
     if not url.startswith("file://"):
         if re.match(r"[A-Za-z][A-Za-z0-9+.-]*://", url):
             return
         if re.match(r"[^/\\]+:", url) and not re.match(r"[A-Za-z]:[/\\]", url):
             return  # user@host:path, never a local path; a Windows drive letter is one
-    # A local remote shared by several clones is bare; one with a working tree is somebody's clone,
-    # whatever it holds: a hold pushed there is seen by nobody else (#505).
-    path = Path(urllib.parse.unquote(urllib.parse.urlparse(url).path)) if url.startswith("file://") else root / url
-    if _git(path if path.is_dir() else root, "rev-parse", "--is-bare-repository").stdout.strip() == "false" and path.is_dir():
+    path = Path(urllib.request.url2pathname(urllib.parse.urlparse(url).path)) if url.startswith("file://") else root / url
+    if not path.is_dir():
+        return
+    if (_git(path, "rev-parse", "--is-bare-repository").stdout.strip() == "false"
+            and _git(path, "remote").stdout.strip()):
         raise Unreachable(f"{name} is a working clone ({url}), not the shared remote: a hold pushed there is seen by "
-                          f"nobody else.\n      Action: point {name} at the shared remote (git remote set-url {name} "
-                          "<the forge's address>), or run this where the remote is the shared one")
-    if _git(root, "for-each-ref", "--count=1", f"{MIRROR}/hold").stdout.strip():
-        return  # holds came in: the remote serves them
-    served = _git(root, "ls-remote", name).stdout
-    if re.search(r"\trefs/(nstack-remote/hold|remotes/[^\n]*/nstack/hold)/", served):
-        raise Unreachable(f"{name} is a clone ({url}), not the shared remote: the holds it fetched are not its own "
-                          f"branches.\n      Action: point {name} at the shared remote (git remote set-url {name} "
-                          "<the forge's address>), or run this where the remote is the shared one")
+                          f"nobody else, and the holds it fetched are not its own.\n      Action: point {name} at the "
+                          f"shared remote (git remote set-url {name} <its address>), or run this where the remote is "
+                          "the shared one")
 
 
 def _ci_credential(root: Path, name: str) -> list[str]:
@@ -246,15 +242,17 @@ def _deliverable(root: Path, ident: str, name: str | None = None) -> tuple[str, 
                 "      Action: the decider accepts a cycle (.nstack/playbooks/framing.md).")
     path, data = cycle
     items = {str(item.get("id")): item for item in (data.get("deliverables") if isinstance(data.get("deliverables"), list) else []) if isinstance(item, dict)}
-    unmerged = ("\n      This checkout's cycle says otherwise: its change reaches the default branch first."
-                if shared and not isinstance(_deliverable(root, ident), str) else "")
+
+    def differs() -> str:
+        return ("\n      This checkout's cycle says otherwise: it differs from the default branch — behind it, "
+                "or a change not merged yet." if shared and not isinstance(_deliverable(root, ident), str) else "")
     if ident not in items:
         return (f"{ident} is not in {path.stem}{where}.\n      Action: name one of {', '.join(items) or 'its deliverables'}."
-                + unmerged)
+                + differs())
     state = items[ident].get("state")
     if not plan.one_of(state, TAKEABLE):
         return (f"{ident} is '{state}'{where}: work starts on a ready deliverable (definition of ready).\n"
-                "      Action: take a ready one — nstack plan lists them." + unmerged)
+                "      Action: take a ready one — nstack plan lists them." + differs())
     return path.stem, str(items[ident].get("title") or ident)
 
 
@@ -268,7 +266,7 @@ def _accepted_cycle_at(root: Path, ref: str) -> tuple[Path, dict] | None:
         found = plan.FRONT_MATTER.match(_git(root, "show", f"{ref}:{folder}/{entry}").stdout)
         try:
             data = yaml.safe_load(found[1]) if found else None
-        except yaml.YAMLError:
+        except (yaml.YAMLError, ValueError):  # a date no calendar holds, as plan.read_front_matter (#268)
             data = None
         if isinstance(data, dict) and data.get("status") == "accepted":
             return plan.CYCLES / entry, data
