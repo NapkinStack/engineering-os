@@ -810,7 +810,7 @@ def show(root: Path) -> int:
         print("\nA shallow clone: merges not read, so what is merged is not said here.\n      Action: git fetch --unshallow.")
     left = _empty_starts(root, name, items if isinstance(items, list) else [])
     if left:
-        print("\nEmpty start branches left — one empty commit each, nothing to lose, and git branch -d refuses them:")
+        print("\nEmpty start branches left — one empty commit each, nothing to lose; nstack plan --prune removes them:")
         print("\n".join(left))
     return 0
 
@@ -835,9 +835,9 @@ def _show_issues(root: Path, just_read) -> None:
 
 
 def _empty_starts(root: Path, name: str | None, items: list) -> list[str]:
-    """What to run for each empty start branch its deliverable no longer needs (#316)."""
-    return [f"  {branch}  " + "; ".join(([f"git push {name} --delete {branch}"] if "remote" in places else [])
-                                        + ([f"git branch -D {branch}"] if "local" in places else []))
+    """Each empty start branch its deliverable no longer needs (#316), and where; `nstack plan --prune`
+    removes them, never a bare delete that would take work pushed since (#516)."""
+    return [f"  {branch}  ({', '.join(sorted(places))})"
             for branch, places in sorted(_empty_start_branches(root, name, items).items())]
 
 
@@ -855,18 +855,24 @@ def _remove_starts(root: Path, name: str | None, branches: dict[str, set[str]]) 
             if pushed.returncode == 0:
                 _git(root, "update-ref", "-d", f"{MIRROR}/work/{branch}")
                 done.append(name)
+            elif (_git(root, "ls-remote", name, f"refs/heads/{branch}").stdout.split() or [""])[0] != seen:
+                removed.append(f"Empty start branch {branch} kept on {name}: it was pushed to since — work, never removed.")
             else:
-                why.append(f"git push {name} --delete {branch}")
+                why.append(f"{name} refused its removal: {_first_line(pushed)}")
         if "local" in places:
             if branch != current and _git(root, "branch", "-D", branch).returncode == 0:
                 done.append("here")
             else:
-                why.append(f"git branch -D {branch}")
+                why.append("checked out here or in a worktree: switch away from it, then nstack plan --prune")
         if done:
             removed.append(f"Empty start branch {branch} removed ({', '.join(done)}): one empty commit, nothing lost.")
         if why:
             kept.append(f"  {branch}  " + "; ".join(why))
     return removed, kept
+
+
+def _first_line(done: subprocess.CompletedProcess) -> str:
+    return next((line.strip() for line in (done.stderr + done.stdout).splitlines() if line.strip()), "no reason given")
 
 
 def prune_starts(root: Path) -> int:
@@ -880,9 +886,10 @@ def prune_starts(root: Path) -> int:
     cycle = plan.accepted_cycle(root)
     items = (cycle[1].get("deliverables") if cycle else None) or []
     removed, kept = _remove_starts(root, name, _empty_start_branches(root, name, items if isinstance(items, list) else []))
-    print("\n".join(removed) if removed else ("No empty start branch to remove." if not kept else ""))
+    if removed or not kept:
+        print("\n".join(removed) or "No empty start branch to remove.")
     if kept:
-        print("FAIL [hold] these could not be removed here; their commands:\n" + "\n".join(kept))
+        print("FAIL [hold] these empty start branches are not removed:\n" + "\n".join(kept))
         return 1
     return 0
 
@@ -1209,8 +1216,7 @@ def deliver(root: Path, ident: str, given: list[str], session: str | None = None
     for line in removed:
         print(line)
     if kept:
-        print("WARNING [deliver] its empty start branch could not be removed here; the decider runs nstack plan --prune, "
-              "or:\n" + "\n".join(kept))
+        print("WARNING [deliver] its empty start branch is not removed:\n" + "\n".join(kept))
     return 0
 
 
