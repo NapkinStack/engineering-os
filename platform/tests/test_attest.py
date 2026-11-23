@@ -870,6 +870,35 @@ def test_t4_says_when_the_head_has_no_record_yet(counting):
 
 
 
+def test_the_forge_s_run_leaves_a_row_waiting_for_the_head_s_record_to_the_required_status(counting, monkeypatch):
+    """#495: the forge's run starts at the push, before nstack attest writes the head's record. Where the
+    ruleset requires attest's status, T4 does not fail for want of that record, as A1 does not: the row
+    waits, it is said, and attest's own run judges it with the digest. A row whose commit has no record
+    still fails here: attest at the head would not keep it either."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    main = git(root, "rev-parse", "main")
+    said: list[str] = []
+    monkeypatch.setattr(pull_request, "status_required", lambda root: True)
+    same = pull_request.same_inputs(root, head, base, said.append)
+    assert same(first[:7]) is None
+    assert same(first[:7]) is None
+    assert said == [f"[T4] automated rows run at {first[:7]} wait for the record of the head {head[:7]}: the required "
+                    f"status '{attest.CONTEXT}' judges them — nstack attest's own check keeps them while what "
+                    "their modules read is unchanged, and fails T4 otherwise."], said
+    assert same(main[:7]).startswith(f"{main[:7]} has no passing record of its module checks"), \
+        "the row's commit has no record: attest at the head would not keep it"
+    monkeypatch.setattr(pull_request, "status_required", lambda root: False)
+    assert pull_request.same_inputs(root, head, base)(first[:7]).startswith(f"the head {head[:7]} has no passing record"), \
+        "the status not required: the run judges, as before"
+
+
 def test_a_head_attested_again_never_outlives_the_bound_of_the_run_it_kept(counting, monkeypatch):
     """The verifier's finding on D223: a same-commit keep (D166) carried a result kept by inputs past
     its seven days."""
