@@ -878,8 +878,13 @@ def same_inputs(root: Path, head: str, base: str,
                 cache["head"] = os.environ.get("NSTACK_INPUTS") or None
             else:
                 attest.read_remote(root)
-                found = _module_inputs(attest.latest(root, head), root, head)
+                record = attest.latest(root, head)
+                found = _module_inputs(record, root, head)
                 cache["head"] = found[0] if found else None
+                # The forge's run, made at the push, comes before the head's record (#495): where the
+                # ruleset requires attest's status, a row waiting only for that record is left to it.
+                # A record that exists and holds no digest waits for nothing; attest's own run never waits.
+                cache["waits"] = "yes" if record is None and status_required(root) else None
         return cache["head"]
 
     def same(commit: str) -> str | None:
@@ -890,14 +895,13 @@ def same_inputs(root: Path, head: str, base: str,
             return (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
                     "the row stands while what its modules read is unchanged since")
         if not digest:
-            if "required" not in cache:
-                cache["required"] = "yes" if status_required(root) else None
-            if cache["required"]:
+            if cache.get("waits"):
                 if commit not in waiting:
                     waiting.add(commit)
                     warn(f"[T4] automated rows run at {commit} wait for the record of the head {head[:7]}: the required "
                          f"status '{attest.CONTEXT}' judges them — nstack attest's own check keeps them while what "
-                         "their modules read is unchanged, and fails T4 otherwise.")
+                         "their modules read is unchanged, and fails T4 otherwise.\n      Action: nstack attest on "
+                         f"the head {head[:7]}, with a token that may write commit statuses.")
                 return None
             return (f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
                     "and the row stands while what its modules read is unchanged since")

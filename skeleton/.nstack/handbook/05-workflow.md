@@ -350,7 +350,7 @@ the change, and the stricter applies:
     of its own is the case to know: `pr-check`'s T4 says so — `nstack attest` with that commit checked out, and
     its rows stand without running them again —, as it says a digest that differs or a run past
     its bound. The forge's run, made at the push, comes before the head's record: where the
-    ruleset requires `nstack / local checks`, it leaves such a row to that status and says so;
+    ruleset requires `nstack / local checks`, it leaves a row that waits only for the head's record to that status, and says so;
   - one **explored** by hand keeps the commit its evidence was produced on, and the verifier
     adds a **`Confirmed`** column on the head commit saying **what moved since and why it leaves
     the result standing**. Reading three fixes is not the same work as driving six scenarios
