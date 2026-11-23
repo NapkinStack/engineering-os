@@ -798,3 +798,20 @@ def test_with_no_forge_the_pages_say_there_is_none(created):
 def test_the_glossary_defines_the_forge():
     glossary = (ROOT / "skeleton/.nstack/handbook/glossary.md").read_text(encoding="utf-8")
     assert "| **Forge" in glossary and "unguarded" in glossary.split("| **Forge", 1)[1].split("\n", 1)[0]
+
+
+@pytest.mark.parametrize("forge, email, warned", [
+    ("github", "alice@example.org", True),
+    ("github", "9001+alice@users.noreply.github.com", False),
+    ("gitlab", "alice@example.org", False),
+])
+def test_init_says_who_its_first_commit_is_by_and_what_a_push_publishes(tmp_path, capsys, monkeypatch,
+                                                                          forge, email, warned):
+    """#510 (D276): init commits as git resolves the identity — a person's own, outside an agent's run.
+    It says who; on GitHub, an address that is not GitHub's private one is said before a push publishes it."""
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", email)
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", email)
+    create(tmp_path, forge)
+    out = capsys.readouterr().out
+    assert f"initial commit on main, by test <{email}>" in out, out
+    assert ("WARNING [init]" in out and "users.noreply.github.com" in out and "--reset-author" in out) == warned, out
