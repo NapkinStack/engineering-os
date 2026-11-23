@@ -154,6 +154,63 @@ def test_another_session_of_the_same_person_is_refused_and_named_the_way_out(sha
     assert remote_events(shared) == ["claim"]
 
 
+MARC = "9003+demo-marc[bot]@users.noreply.github.com"
+
+
+def as_agent(monkeypatch, email: str, agent: str | None = "marc") -> None:
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", email)
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", email)
+    if agent:
+        monkeypatch.setenv("NSTACK_AGENT", agent)
+    else:
+        monkeypatch.delenv("NSTACK_AGENT", raising=False)
+
+
+def test_an_agent_restarted_renews_its_own_hold_under_a_new_session(shared, capsys, monkeypatch):
+    """#498 (D271): a restart changes the agent's session, never its identity. Every event that put a
+    session on the hold was committed under the identity this agent's session commits with: the agent
+    renews its own hold, said and recorded, and both sessions stay on it for K5."""
+    as_agent(monkeypatch, MARC)
+    hold.claim(clone(shared, "marc"), "D1", session="marc-before", person="@alice")
+    capsys.readouterr()
+    after = clone(shared, "marc-after")
+    assert hold.claim(after, "D1", session="marc-after", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert f"D1 renewed: held by @alice, session marc-after — the same agent identity {MARC} as session " \
+           "marc-before" in out, out
+    assert remote_events(shared) == ["renew", "claim"]
+    assert hold.read(after, "03-the-window", "D1").sessions == ["marc-before", "marc-after"]
+
+
+@pytest.mark.parametrize("email, agent", [
+    ("9004+demo-ines[bot]@users.noreply.github.com", "ines"),   # another agent of the same person (#315)
+    (MARC, None),                                               # one identity, sessions outside nstack agent run
+])
+def test_another_identity_or_a_session_outside_an_agent_s_still_needs_the_person_s_word(shared, capsys, monkeypatch,
+                                                                                         email, agent):
+    as_agent(monkeypatch, MARC)
+    hold.claim(clone(shared, "marc"), "D1", session="marc-before", person="@alice")
+    capsys.readouterr()
+    as_agent(monkeypatch, email, agent)
+    assert hold.claim(clone(shared, "other"), "D1", session="other", person="@alice") == 1
+    assert "--take-over" in capsys.readouterr().out
+    assert remote_events(shared) == ["claim"]
+
+
+def test_a_hold_another_identity_put_a_session_on_is_not_renewed_by_identity(shared, capsys, monkeypatch):
+    """Taken over by marc from ines's session: ines's later session is not marc's, and marc's own
+    new session finds only its identity since the take-over."""
+    as_agent(monkeypatch, "9004+demo-ines[bot]@users.noreply.github.com", "ines")
+    hold.claim(clone(shared, "ines"), "D1", session="ines-1", person="@alice")
+    as_agent(monkeypatch, MARC)
+    assert hold.claim(clone(shared, "marc"), "D1", session="marc-1", person="@alice", take_over=True) == 0
+    as_agent(monkeypatch, "9004+demo-ines[bot]@users.noreply.github.com", "ines")
+    assert hold.claim(clone(shared, "ines-2"), "D1", session="ines-2", person="@alice") == 1
+    as_agent(monkeypatch, MARC)
+    assert hold.claim(clone(shared, "marc-2"), "D1", session="marc-2", person="@alice") == 0
+    assert remote_events(shared) == ["renew", "take-over", "claim"]
+
+
 def test_the_person_s_word_takes_over_from_their_other_session_at_once(shared, capsys):
     """Not stale: the hold is the person's to move, recorded with the session it left."""
     hold.claim(clone(shared, "alice"), "D1", session="agent-one", person="@alice")

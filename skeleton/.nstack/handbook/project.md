@@ -187,7 +187,9 @@ works on it and refuses nobody, the hold does. `nstack plan` lists the issues he
 
 Two agents one person runs are two holders: a session renews only a hold it is on. Another
 session of that person is refused like anyone else, and takes the hold with `--take-over` when
-the person says so, stale or not; a person with no `--session` renews their own. A renewed
+the person says so, stale or not; a person with no `--session` renews their own. An agent
+restarted under a new session is the same holder: in `nstack agent run`, when its own App's
+identity committed every event that put a session on the hold, `nstack claim` renews it and says so. A renewed
 hold with no work branch left gets its first one again, unless the deliverable is merged.
 
 An empty branch its claim started for another title of the same id — an earlier cycle's `D30` —
@@ -204,7 +206,8 @@ project, 7 by default) it is **stale**, and anyone may take it over — recorded
 taken from; the previous work is kept. The pull request check refuses delivery work for a
 deliverable someone else holds (K5): its commits name none of the hold's sessions, and no
 author, committer or opener is its person; nobody holds it, it asks nothing. A holder working
-from a new session takes it first, on the person's word — `nstack claim D30 --take-over --person @alice --session <it>`. The
+from a new session takes it first, on the person's word — `nstack claim D30 --take-over --person @alice --session <it>` —,
+or, an agent restarted under its own identity, renews it with `nstack claim D30`. The
 previous session's work goes on with the new one: its commits — a merge of the default branch into
 the former branch is enough — name the new session, and K5 reads it there. A hold says who is
 accountable; it proves nobody's identity.
