@@ -930,3 +930,21 @@ def test_a_test_refusing_a_version_never_declared_passes_b1_and_the_next_number_
     (tmp_path / "modules/billing/tests/test_client.py").write_text('REFUSED = "contracts/customers-api/v2"\n', encoding="utf-8")
     assert boundaries.run(tmp_path) == 1
     assert "[B1]" in capsys.readouterr().out
+
+
+def test_pr_scope_leaves_out_what_the_project_declares_generated(tmp_path, capfd, monkeypatch):
+    """#497 (D270): a licence notice a tool writes, declared `linguist-generated` in .gitattributes — the
+    convention GitHub folds in its diffs — stays out of the review budget; `=false` keeps a path counted,
+    and a name outside ASCII is read as git quotes it."""
+    (tmp_path / ".gitattributes").write_text("modules/a/THIRD-PARTY-NOTICES.html linguist-generated=true\n"
+                                             "modules/a/notices-é.html linguist-generated\n"
+                                             "modules/a/*.rs linguist-generated=false\n", encoding="utf-8")
+    base = repository(tmp_path, {"modules/a/MANIFEST.yaml": 1, "modules/a/x.rs": 10,
+                                 "modules/a/THIRD-PARTY-NOTICES.html": 500, "modules/a/notices-é.html": 300})
+    monkeypatch.delenv("PR_LABELS", raising=False)
+    monkeypatch.delenv("MAX_LINES", raising=False)
+    monkeypatch.delenv("MAX_FILES", raising=False)
+    assert cli.main(["pr-scope", "--root", str(tmp_path), "--base", base]) == 0
+    output = capfd.readouterr().out
+    assert "Review budget : 11/400 lines, 2/15 files" in output, output
+    assert "WARNING [P2]" not in output
