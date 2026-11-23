@@ -816,3 +816,14 @@ def test_init_says_who_its_first_commit_is_by_and_what_a_push_publishes(tmp_path
     out = capsys.readouterr().out
     assert f"initial commit on main, by test <{email}>" in out, out
     assert ("WARNING [init]" in out and "users.noreply.github.com" in out and "--reset-author" in out) == warned, out
+
+
+@pytest.mark.parametrize("forge", ["github", "none"])
+def test_init_says_who_approves_and_how_the_decider_changes_it(tmp_path, capsys, forge):
+    """D277: `approval: human` is the default, not asked at init (PDR-0021); a solo project whose
+    agents could approve each other learns it from init's next steps, with where the choice is made."""
+    create(tmp_path, forge)
+    out = capsys.readouterr().out
+    assert "a human code owner must approve every change (approval: human)" in out, out
+    assert "only where nstack doctor does not say unguarded" in out, "off GitHub, nothing at the forge enforces it"
+    assert "approval: agent in .copier-answers.yml" in out and "07-governance.md, *Agents and approval*" in out, out
