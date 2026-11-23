@@ -1264,4 +1264,38 @@ def test_t4_says_when_no_file_its_modules_read_differs(counting, monkeypatch):
     monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.18.0", None))
     attest.run(root, base, None, "")
     assert pull_request.same_inputs(root, head, base)(first).endswith(
-        "no file they read differs: the modules run, the engine or who runs it does")
+        " — no file they read differs; the modules run, the engine or who runs it changed")
+
+
+def test_t4_s_list_counts_folders_leaves_out_what_is_not_read_and_stops_at_five(counting):
+    """D275's verifier: a record and a module not read are never named; a folder read whole is counted,
+    each other path named, five at most; nothing read differing, that is said; a diff git cannot make
+    says nothing rather than a guess."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    git(root, "switch", "-q", "main")
+    for path in ("docs/project/rules.md", "modules/c/code.py", "modules/b/code.py"):
+        (root / path).write_text("moved\n", encoding="utf-8")
+    (root / "modules/b/more.py").write_text("y = 2\n", encoding="utf-8")
+    for n in range(5):
+        (root / f"f{n}.txt").write_text("new\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "main moves")
+    git(root, "switch", "-q", "work")
+    git(root, "merge", "-q", "--no-edit", "main")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request._what_changed(root, base, first, head) == ": f0.txt, f1.txt, f2.txt, f3.txt, f4.txt, and 1 more"
+    git(root, "rm", "-q", "f1.txt", "f2.txt", "f3.txt", "f4.txt")
+    git(root, "commit", "-q", "-m", "fewer")
+    assert pull_request._what_changed(root, base, first, git(root, "rev-parse", "HEAD")) == \
+        ": f0.txt, modules/b (2 files)"
+    git(root, "switch", "-q", "main")
+    (root / "docs/project/rules.md").write_text("again\n", encoding="utf-8")
+    (root / "modules/c/code.py").write_text("again\n", encoding="utf-8")
+    git(root, "commit", "-q", "-am", "only what is not read")
+    assert pull_request._what_changed(root, base, git(root, "rev-parse", "HEAD~1"), git(root, "rev-parse", "HEAD")) == \
+        " — no file they read differs; the modules run, the engine or who runs it changed"
+    assert pull_request._what_changed(root, base, first, "0" * 40) == ""

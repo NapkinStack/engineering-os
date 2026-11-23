@@ -959,20 +959,21 @@ def _what_changed(root: Path, base: str, commit: str, head: str) -> str:
     how many of its files changed, and each other path; the digest's other parts when no file did."""
     from napkinstack import attest
 
+    nothing = " — no file they read differs; the modules run, the engine or who runs it changed"
     scope = attest.input_scope(root, base)
-    names = _git(root, "diff", "--name-only", "-z", "--no-renames", commit, head).stdout.split("\0")
-    if scope is None or not any(names):
-        return "" if scope is None else ": no file they read differs: the modules run, the engine or who runs it does"
+    listed = _git(root, "diff", "--name-only", "-z", "--no-renames", commit, head)
+    if scope is None or listed.returncode:
+        return ""  # what is read, or what differs, cannot be told: nothing is said rather than a guess
     _, folders, inside = scope
     counted: dict[str, int] = {}
-    for path in filter(None, names):
+    for path in filter(None, listed.stdout.split("\0")):
         folder = next((one for one in folders if path.startswith(f"{one}/")), None)
         if folder:
             counted[folder] = counted.get(folder, 0) + 1
         elif not path.startswith((*inside, *attest.RECORDS)):
             counted[path] = 0
     if not counted:
-        return ": no file they read differs: the modules run, the engine or who runs it does"
+        return nothing
     said = [f"{name} ({count} file{'s' if count > 1 else ''})" if count else name for name, count in sorted(counted.items())]
     return ": " + ", ".join(said[:5]) + (f", and {len(said) - 5} more" if len(said) > 5 else "")
 
