@@ -22,6 +22,45 @@ a patch.
 
 ---
 
+## v0.34.6 — 2026-11-23
+
+D268 to D271: four frictions multi-agent projects met downstream on v0.34.5:
+- an agent's push still refused a merge the forge had made;
+- the forge's T4 failed before the head was attested;
+- the review budget counted files the project declares generated;
+- an agent restarted under a new session lost its own hold.
+
+D272 is a review of this version before its release: the code checked against every page, and the path from each failure message to its answer, for a person and for an agent.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **T4 on the forge waits for the head's record where attest's status is required** (D269, #495). The forge's job runs at the push, before `nstack attest` writes the head's record. Where the ruleset requires `nstack / local checks`, an automated row that waits only for that record now stands on the forge's run, and pr-check says so with its Action. This is how A1 already leaves the record to that status (D221). Attest's own run then keeps the row, or fails T4 and blocks the merge. A row whose commit has no record still fails, as does a head record without an inputs digest.
+- **pr-scope leaves out what `.gitattributes` marks `linguist-generated`** (D270, #497). The review budget (P2) now skips every changed path that the `.gitattributes` of the commit measured marks `linguist-generated`, which is the convention GitHub uses to fold generated files in its diffs. Any value but `false` counts, `=1` included; `=false` and `-linguist-generated` keep a path counted.
+- **An agent restarted under a new session renews its own hold** (D271, #498). In `nstack agent run`, `nstack claim` renews a hold that another session of the same person holds when every event that put a session on it was committed under this session's identity, which comes from the agent's global git configuration, not a clone's local one. The renewal states that identity and records the session it leaves (`Hold-Previous`). Another agent of the same person, or a person's sessions outside `nstack agent run`, still need `--take-over` on the decider's word (#315). K5's Action now gives the full command: `nstack claim <id> --person <p> --session <it>`.
+- **What v0.34.6 ships can be found from where an agent stands** (D272):
+  - `nstack unclaim` from a restarted agent's new session gives its own hold back, by the same test as `claim`;
+  - K5's Action says the renewal works in `nstack agent run`;
+  - the commands that K5, `claim` and `unclaim` print quote a person git names (`Name <email>`);
+  - `claim`'s refusal says when no `--person` was given;
+  - P2's warning points to `linguist-generated`;
+  - `--base` and `--take-over` have help that says when each applies.
+
+**In your project** — 8 files
+
+- **`.nstack/fitness-before-push.sh`** (D268, #484). Before refusing a push for commits that do not carry the agent's identity, the hook fetches the default branch of the remote it pushes to into `refs/nstack-remote/base`, the ref `nstack claim` writes, and counts again. This covers a forge's merge that reached the clone through no ref the hook reads, such as a merge of main brought in as `FETCH_HEAD` and pushed by its sha. A clean push fetches nothing, and neither a remote-tracking branch nor `FETCH_HEAD` moves. Its refusal says where its reason is written (D272).
+- **`.nstack/handbook/05-workflow.md`** (D269, D270). §4 lists what the review budget leaves out, `linguist-generated` included. §7 says which automated row waits for the head's record on the forge.
+- **`.nstack/handbook/07-governance.md`** (D269). The forge's run leaves T4 to the required status for a row that waits only for the head's record, as it does A1 and A2.
+- **`.nstack/handbook/project.md`** (D271, D272). An agent restarted under a new session renews its own hold with `nstack claim <id> --person <p> --session <it>`, and gives it back with `nstack unclaim` from that session. Another agent's session, or any session outside `nstack agent run`, still takes it with `--take-over`.
+- **`AGENTS.md`** (D272). Two changes:
+  - an agent held out by its own restarted session renews the hold instead of stopping;
+  - when a gate blocks, the agent applies the `Action:` the failure prints when it fixes the cause and is the agent's to take. A label, a take-over or a decider's choice is the person's to make, so the agent reports it.
+- **`.nstack/handbook/RULES.md`** (D272). It says what `[hold]`, `[nstack]` and `[labels]` are. C4, T1–T5 and K1–K4 point to the sections that explain them.
+- **`.nstack/handbook/INSTALL.md`** and **`.nstack/handbook/README.md`** (D272). The command list says when `--take-over` applies. The handbook's index says that INSTALL lists every `nstack` verb.
+
+---
+
 ## v0.34.5 — 2026-11-21
 
 D266 and D267: two frictions a multi-agent project met downstream on v0.34.2. A module's CI machine prerequisite had no place the handbook named, and T4 asked for automated rows to be run again without saying why their unchanged inputs did not keep them.
