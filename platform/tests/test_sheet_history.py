@@ -254,3 +254,40 @@ def test_a_record_names_the_pull_request_the_forge_gave_and_the_history_keeps_to
     code, out = _after(root, base, b, _body(root, "b", ("W1", OTHER, "automated", "passed", "the CI run's trace", b[:7])),
                        monkeypatch, capsys)
     assert code == 0 and "[T5]" not in out, out
+
+
+def test_ci_names_the_pull_request_by_its_event_and_reads_a_record_naming_none(tmp_path, monkeypatch, capsys):
+    """D274's verifier: in the forge's run the event names the pull request — its number, its branch —;
+    a record of another number or another branch is not read, and one naming nothing still is."""
+    from napkinstack import pull_request
+
+    root = tmp_path / "project"
+    root.mkdir()
+    change(root, USER_FACING)
+    git(root, "commit", "-q", "--allow-empty", "-m", "head")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REF", "refs/pull/50/merge")
+    monkeypatch.setenv("GITHUB_HEAD_REF", "d1-docx")
+    this = pull_request.this_pull(root, git(root, "rev-parse", "HEAD"))
+    assert this == {"number": 50, "branch": "d1-docx"}
+    assert not pull_request.same_pull({"number": 21, "branch": "d1-docx"}, this)
+    assert not pull_request.same_pull({"branch": "d1-html"}, this)
+    assert pull_request.same_pull({"branch": "d1-docx"}, this) and pull_request.same_pull(None, this)
+    assert pull_request.same_pull({}, this)
+
+
+def test_a_verifier_s_branch_named_after_the_pull_request_s_tracks_it(tmp_path):
+    """D274's verifier: a verifier checks out the pull request's branch under a name of its own; the
+    branch it tracks is the one its record names."""
+    from napkinstack import pull_request
+
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    git(origin, "init", "-q", "--initial-branch=d1-docx")
+    git(origin, "commit", "-q", "--allow-empty", "-m", "B")
+    verifier = tmp_path / "verifier"
+    git(tmp_path, "clone", "-q", str(origin), str(verifier))
+    git(verifier, "switch", "-q", "-c", "check-50", "--track", "origin/d1-docx")
+    assert pull_request.this_pull(verifier, git(verifier, "rev-parse", "HEAD")) == {"branch": "d1-docx"}
+    git(verifier, "checkout", "-q", "--detach")
+    assert pull_request.this_pull(verifier, git(verifier, "rev-parse", "HEAD")) == {}

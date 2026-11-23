@@ -400,8 +400,9 @@ ancestor is said. A row a record
 held and the sheet no longer shows is said, unless a line under the sheet says why it left —
 `Removed: S3, S4 — <why>` —: whoever edits the sheet writes it, and the approver judges it. A rebase or a squash drops the records of the commits
 it rewrites, and what they read with them. Only this pull request's records are read: each names
-the pull request it was made for — its number where the forge gives it, else its branch — so a
-branch started on another's never reads that one's sheet. The approver decides on the sheet; where the project answers
+the pull request it was made for — its number where the forge gives it, and its branch, the one
+the checkout tracks — so a branch started on another's never reads that one's sheet. Attest on the
+pull request's branch, one tracking it, or detached; a branch of another name is another's. The approver decides on the sheet; where the project answers
 `approval: agent`, the approver of a `prototype` or `standard` module may be the verifier itself,
 an agent under another identity than the author's (`07-governance.md` §7).
 

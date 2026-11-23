@@ -711,9 +711,20 @@ def this_pull(root: Path, head: str) -> dict:
     ref = re.fullmatch(r"refs/pull/(\d+)/(?:merge|head)", os.environ.get("GITHUB_REF", "")) if actions else None
     pulled = None if actions else _pull_labels(root, head)
     number = int(ref[1]) if ref else pulled[0] if isinstance(pulled, tuple) and pulled[0] else None
-    branch = (os.environ.get("GITHUB_HEAD_REF", "") if actions else
-              _git(root, "symbolic-ref", "--short", "-q", "HEAD").stdout).strip()
+    branch = os.environ.get("GITHUB_HEAD_REF", "").strip() if actions else _branch(root)
     return {**({"number": number} if number else {}), **({"branch": branch} if branch else {})}
+
+
+def _branch(root: Path) -> str:
+    """The pull request's branch as this checkout knows it: the remote branch it tracks — a verifier's
+    `git switch -c check origin/d1-x` names d1-x —, else its own name; none when detached."""
+    local = _git(root, "symbolic-ref", "-q", "HEAD").stdout.strip()
+    if not local:
+        return ""
+    upstream = _git(root, "for-each-ref", "--format=%(upstream)", local).stdout.strip()
+    if upstream.startswith("refs/remotes/"):
+        return upstream.split("/", 3)[3]
+    return local.removeprefix("refs/heads/")
 
 
 def same_pull(made_for: object, this: dict) -> bool:
