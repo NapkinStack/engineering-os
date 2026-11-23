@@ -2383,3 +2383,48 @@ def test_another_person_s_session_never_releases_for_the_holder(shared, capsys):
     assert hold.claim(bob, "#7", session="bob-7", person="@bob") == 0
     assert hold.release(bob, "D1", session="bob-7") == 1
     assert remote_events(shared) == ["claim"]
+
+
+START = "d1-resume-an-interrupted-recording"
+
+
+def test_deliver_removes_the_empty_start_branch_its_claim_left(shared, capsys):
+    """#516 (D279): an agent may not delete a remote branch; the start branch claim pushed is the
+    framework's own — one empty commit —, so recording the delivery removes it, here and on the remote."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    capsys.readouterr()
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert f"Empty start branch {START} removed" in out, out
+    assert not git(shared, "for-each-ref", f"refs/heads/{START}")
+    assert not git(alice, "for-each-ref", f"refs/heads/{START}")
+
+
+def test_deliver_never_removes_a_start_branch_someone_worked_on(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", START)
+    git(alice, "commit", "-q", "--allow-empty", "-m", "work goes on here")
+    git(alice, "push", "-q", "origin", START)
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    assert git(shared, "for-each-ref", f"refs/heads/{START}"), "a branch with work stays"
+
+
+def test_plan_prune_removes_what_plan_names_and_nothing_else(shared, capsys):
+    """#516 (D279): a deliverable that moved on without a delivery — deferred, or the cycle's — never meets
+    deliver; the decider removes every empty start `nstack plan` names in one command."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    finished(shared, alice, "deferred")
+    capsys.readouterr()
+    assert hold.prune_starts(alice) == 0
+    out = capsys.readouterr().out
+    assert f"Empty start branch {START} removed" in out, out
+    assert not git(shared, "for-each-ref", f"refs/heads/{START}")
+    assert hold.prune_starts(alice) == 0
+    assert "No empty start branch" in capsys.readouterr().out

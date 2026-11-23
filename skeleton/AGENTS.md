@@ -84,7 +84,7 @@ test needed (a typo, a local rename): do it, run the local checks, summarise. No
 10. Sync         merge the default branch in before the pull request: a conflict is
                  its author's to settle, here; a number taken in sequence is taken now
 11. Summarise    done / verified / assumed / not verified / risks
-12. Close        once merged and each criterion held, nstack deliver D<n> --held '#<pull request>' --session <this session>; its branch is gone: on the forge, here, its worktree, and the empty start branch `nstack plan` names for this deliverable
+12. Close        once merged and each criterion held, nstack deliver D<n> --held '#<pull request>' --session <this session>; its branch is gone: on the forge, here, its worktree — deliver removes the empty start branch its claim left
 ```
 
 Steps 1 to 5 go in the pull request's description — its module, oracle and review budget —
