@@ -22,6 +22,24 @@ a patch.
 
 ---
 
+## v0.34.7 — 2026-11-23
+
+D273: a friction a multi-agent project met downstream on v0.34.5. An agent's claim read the cycle from its checkout, which was behind. Its workaround, a claim from a `--shared` copy of its clone, pushed the hold into that clone, where nobody else saw it.
+
+This is a patch version. Nothing green turns red, except a claim or a read against somebody's working clone, which is refused on purpose.
+
+**In the engine**
+
+- **A claim reads the remote's cycle and never pushes into a working clone** (D273, #505).
+  - `nstack claim` reads the accepted cycle on the remote's default branch, which it has just fetched, not the checkout's. A checkout that is behind can take what the default branch made ready. A cycle changed only in the checkout gives nothing to take, and the refusal says the checkout differs. With no remote, `claim` reads the checkout, as before.
+  - A local remote that is a working clone of another repository is refused as "not the shared remote", whatever it holds. A local hub stays a shared remote: a bare repository, or a working tree cloned from nowhere. Network remotes are never examined, whatever the forge.
+
+**In your project** — 1 file
+
+- **`.nstack/handbook/project.md`** (D273). *Who holds a deliverable* says which cycle a claim reads, and which remote is refused.
+
+---
+
 ## v0.34.6 — 2026-11-23
 
 D268 to D271: four frictions multi-agent projects met downstream on v0.34.5:
