@@ -158,6 +158,12 @@ MARC = "9003+demo-marc[bot]@users.noreply.github.com"
 
 
 def as_agent(monkeypatch, email: str, agent: str | None = "marc") -> None:
+    """A session committing as `email`, its own global configuration naming it — as nstack agent run's."""
+    import tempfile
+
+    config = Path(tempfile.mkdtemp()) / "gitconfig"
+    config.write_text(f"[user]\n\temail = {email}\n", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(config))
     monkeypatch.setenv("GIT_COMMITTER_EMAIL", email)
     monkeypatch.setenv("GIT_AUTHOR_EMAIL", email)
     if agent:
@@ -180,6 +186,40 @@ def test_an_agent_restarted_renews_its_own_hold_under_a_new_session(shared, caps
            "marc-before" in out, out
     assert remote_events(shared) == ["renew", "claim"]
     assert hold.read(after, "03-the-window", "D1").sessions == ["marc-before", "marc-after"]
+    assert "Hold-Previous: @alice (marc-before)" in git(shared, "log", "-1", "--format=%B", REF)
+
+
+def test_a_clone_s_own_identity_is_not_the_agent_s(shared, capsys, monkeypatch, tmp_path):
+    """D271's verifier: a clone whose local user.email is the hold's identity commits under it, but the
+    agent's own (global) configuration names another: no renewal by identity."""
+    agent_config = tmp_path / "ines.gitconfig"
+    agent_config.write_text("[user]\n\temail = 9004+demo-ines[bot]@users.noreply.github.com\n", encoding="utf-8")
+    as_agent(monkeypatch, MARC)
+    hold.claim(clone(shared, "marc"), "D1", session="marc-before", person="@alice")
+    monkeypatch.delenv("GIT_COMMITTER_EMAIL")
+    monkeypatch.delenv("GIT_AUTHOR_EMAIL")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(agent_config))
+    monkeypatch.setenv("NSTACK_AGENT", "ines")
+    other = clone(shared, "other")
+    git(other, "config", "user.email", MARC)
+    assert hold.claim(other, "D1", session="ines-1", person="@alice") == 1
+    assert remote_events(shared) == ["claim"]
+
+
+def test_a_hold_whose_sessions_came_from_two_identities_is_renewed_by_neither(shared, capsys, monkeypatch):
+    """Identity is the relief only when one identity put every session on the hold; a person's renewal
+    with no session adds none (D271's verifier)."""
+    as_agent(monkeypatch, MARC)
+    marc = clone(shared, "marc")
+    hold.claim(marc, "D1", session="marc-1", person="@alice")
+    as_agent(monkeypatch, "alice@example.org", None)
+    assert hold.claim(clone(shared, "alice"), "D1", person="@alice") == 0  # a person with no session renews
+    as_agent(monkeypatch, MARC)
+    assert hold.claim(clone(shared, "marc-2"), "D1", session="marc-2", person="@alice") == 0, "no session, no identity"
+    as_agent(monkeypatch, "9004+demo-ines[bot]@users.noreply.github.com", "ines")
+    assert hold.claim(clone(shared, "ines"), "D1", session="marc-2", person="@alice") == 0  # a session it names
+    as_agent(monkeypatch, MARC)
+    assert hold.claim(clone(shared, "marc-3"), "D1", session="marc-3", person="@alice") == 1, "ines put a session on it"
 
 
 @pytest.mark.parametrize("email, agent", [

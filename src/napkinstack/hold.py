@@ -21,7 +21,8 @@ not (D216, #385). A forge's assignee says who works on an issue and refuses nobo
 Two sessions of one person are two holders (D181, D185): a session renews only a hold it is on; a
 person's other session takes it with --take-over, on that person's word. An agent restarted under a
 new session is the same holder: its own App's identity committed every event that put a session on
-the hold, and it renews, said (#498). A person with no session
+the hold, and it renews, said and recorded with the session it leaves (#498): two live sessions of
+one agent are one holder. A person with no session
 has nothing to tell apart, and their name answers.
 
 A `deliver` event records a delivery, criterion by criterion (PDR-0022): a rule refuses it with no
@@ -538,11 +539,13 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     previous = None
     mine = same(current.person, person)
     other_session = _another_session(current, session)
-    agent = _same_agent(root, current) if mine and other_session else None
+    agent = _same_agent(root, current) if mine and other_session and not take_over else None
     if not current.held:
         event = "claim"
-    elif mine and (not other_session or agent):
+    elif mine and not other_session:
         event = "renew"
+    elif agent:
+        event, previous = "renew", current  # the same agent restarted: the session it leaves is recorded
     elif take_over and (mine or time.time() >= stale_at):  # a person moves their own hold on their word
         event, previous = "take-over", current
     elif take_over:
@@ -579,7 +582,8 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         else (previous.person if previous else "")
     done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {left}"}
     print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "")
-          + (f" — the same agent identity {agent} as session {', '.join(current.sessions)}" if agent else "")
+          + (f" — the same agent identity {agent} as session {', '.join(current.sessions)}"
+             if agent and event == "renew" else "")
           + f"; {where}.")
     if event != "renew":
         made, branch = _work_branch(root, name, ident, title, session)
@@ -621,7 +625,8 @@ def _same_agent(root: Path, current: Hold) -> str | None:
     ident = _git(root, "var", "GIT_COMMITTER_IDENT").stdout
     found = re.search(r"<([^<>]+)>", ident)
     mine = found.group(1).strip().casefold() if found else ""
-    return mine if mine and current.identities == {mine} else None
+    own = _git(root, "config", "--global", "user.email").stdout.strip().casefold()  # the agent's own, not a clone's
+    return mine if mine and mine == own and current.identities == {mine} else None
 
 
 def _another_session(current: Hold, session: str | None) -> bool:
