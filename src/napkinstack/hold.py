@@ -19,7 +19,10 @@ same way, on `nstack/hold/issues/issue-<n>`, its work on branches `issue-<n>-…
 not (D216, #385). A forge's assignee says who works on an issue and refuses nobody; the hold does.
 
 Two sessions of one person are two holders (D181, D185): a session renews only a hold it is on; a
-person's other session takes it with --take-over, on that person's word. A person with no session
+person's other session takes it with --take-over, on that person's word. An agent restarted under a
+new session is the same holder: its own App's identity committed every event that put a session on
+the hold, and it renews, said and recorded with the session it leaves (#498): two live sessions of
+one agent are one holder. A person with no session
 has nothing to tell apart, and their name answers.
 
 A `deliver` event records a delivery, criterion by criterion (PDR-0022): a rule refuses it with no
@@ -64,6 +67,7 @@ class Hold:
     event: str | None = None  # the last one; None when the deliverable was never held
     person: str = ""
     sessions: list[str] = field(default_factory=list)
+    identities: set[str] = field(default_factory=set)  # who committed the events that put its sessions on it
     since: int = 0
     worked: int = 0  # the newest of its last event and its work branches' tips
     criteria: list[str] = field(default_factory=list)  # what a `deliver` event says holds each criterion
@@ -181,7 +185,7 @@ def read(root: Path, cycle: str, ident: str) -> Hold:
     """The hold as its events say, oldest first; its last work from the deliverable's branches."""
     found = Hold()
     ref = _hold_ref(root, cycle, ident)
-    log = _git(root, "log", "--reverse", "--format=%H%x1f%ct%x1f"
+    log = _git(root, "log", "--reverse", "--format=%H%x1f%ct%x1f%ce%x1f"
                "%(trailers:key=Hold-Event,valueonly,separator=)%x1f"
                "%(trailers:key=Hold-Person,valueonly,separator=)%x1f"
                "%(trailers:key=Agent-Session,valueonly,separator=)%x1f"
@@ -189,12 +193,14 @@ def read(root: Path, cycle: str, ident: str) -> Hold:
     if log.returncode != 0:
         return found
     for entry in filter(str.strip, log.stdout.split("\x1e")):
-        sha, at, event, person, session, criteria = (part.strip() for part in entry.split("\x1f"))
+        sha, at, committer, event, person, session, criteria = (part.strip() for part in entry.split("\x1f"))
         found.tip, found.event = sha, event
         if event in ("claim", "take-over", "deliver"):  # a record names who said it, whoever held it
-            found.person, found.sessions, found.since = person, [], int(at)
-        if event in ("claim", "take-over", "renew", "deliver") and session and session not in found.sessions:
-            found.sessions.append(session)
+            found.person, found.sessions, found.identities, found.since = person, [], set(), int(at)
+        if event in ("claim", "take-over", "renew", "deliver") and session:
+            found.identities.add(committer.casefold())
+            if session not in found.sessions:
+                found.sessions.append(session)
         found.criteria = [one.strip() for one in criteria.split("\x1d") if one.strip()] if event == "deliver" else []
         found.worked = int(at)
     tips = _git(root, "for-each-ref", "--format=%(committerdate:unix)", _work_refs(root, ident)).stdout.split()
@@ -533,10 +539,13 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     previous = None
     mine = same(current.person, person)
     other_session = _another_session(current, session)
+    agent = _same_agent(root, current) if mine and other_session and not take_over else None
     if not current.held:
         event = "claim"
     elif mine and not other_session:
         event = "renew"
+    elif agent:
+        event, previous = "renew", current  # the same agent restarted: the session it leaves is recorded
     elif take_over and (mine or time.time() >= stale_at):  # a person moves their own hold on their word
         event, previous = "take-over", current
     elif take_over:
@@ -572,7 +581,10 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
     left = f"{previous.person}, session {', '.join(previous.sessions)}" if previous and previous.sessions \
         else (previous.person if previous else "")
     done = {"claim": "taken", "renew": "renewed", "take-over": f"taken over from {left}"}
-    print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "") + f"; {where}.")
+    print(f"{ident} {done[event]}: held by {person}" + (f", session {session}" if session else "")
+          + (f" — the same agent identity {agent} as session {', '.join(current.sessions)}"
+             if agent and event == "renew" else "")
+          + f"; {where}.")
     if event != "renew":
         made, branch = _work_branch(root, name, ident, title, session)
         print(made)
@@ -601,6 +613,20 @@ def _show_issue(root: Path, name: str | None, number: str, person: str, session:
     except Refused as error:
         return f"not shown on GitHub ({error})"
     return f"shown on GitHub: #{number} told"
+
+
+def _same_agent(root: Path, current: Hold) -> str | None:
+    """In an agent's session (nstack agent run), the identity it commits with — its own App's — when
+    every event that put a session on the hold was committed under it: the same agent, restarted
+    under a new session (#498). A person's own sessions share one identity that tells none apart,
+    and another agent of that person commits under another (#315)."""
+    if not os.environ.get("NSTACK_AGENT") or not current.identities:
+        return None
+    ident = _git(root, "var", "GIT_COMMITTER_IDENT").stdout
+    found = re.search(r"<([^<>]+)>", ident)
+    mine = found.group(1).strip().casefold() if found else ""
+    own = _git(root, "config", "--global", "user.email").stdout.strip().casefold()  # the agent's own, not a clone's
+    return mine if mine and mine == own and current.identities == {mine} else None
 
 
 def _another_session(current: Hold, session: str | None) -> bool:

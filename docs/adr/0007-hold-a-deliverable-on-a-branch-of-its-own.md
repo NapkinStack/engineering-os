@@ -76,7 +76,7 @@ no service, and no forge required.
    proven.
 3. **`nstack claim <id> [--session S] [--person P]`.** Refuses a deliverable that is not `ready`
    or `in-progress` in the accepted cycle. Fetches the hold's branch: absent or last event
-   `release`, it commits a `claim` on it and pushes; held by the same person from a session on the hold, or with no session on either side, it commits a `renew` (clarified for D185: another session of that person is another holder, as D181 reads an agent's independence; it takes the hold with `--take-over` on the person's word, stale or not); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
+   `release`, it commits a `claim` on it and pushes; held by the same person from a session on the hold, or with no session on either side, it commits a `renew` (clarified for D185: another session of that person is another holder, as D181 reads an agent's independence; it takes the hold with `--take-over` on the person's word, stale or not; clarified for D271: in an agent's session, a new session of the agent whose own identity committed every event that put a session on the hold renews it, said and recorded with the session it leaves — a restart changes the session, never the App; two live sessions of one agent are one holder); held by another, refused — *held by P, session S, since T, last worked on W*. Then it
    creates the first work branch `d<n>-<slug>` from the remote's default branch as it is now, with one empty commit naming the
    deliverable, pushes it, and with a token opens a **draft pull request** whose description
    holds `Deliverable: <id>`; without one, it says the display is skipped.
