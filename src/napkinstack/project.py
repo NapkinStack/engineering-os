@@ -345,12 +345,15 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
 def _approval_step(created: dict) -> str:
     """Who approves a change, said at the start (D277): the default is not asked at init (PDR-0021), and
     a solo project whose agents could approve each other would otherwise meet it at its first merge."""
+    where = "(.nstack/handbook/07-governance.md, *Agents and approval*)"
     if str(created.get("approval") or "human") == "agent":
-        return ("  4. Approval: another agent may approve a prototype or standard module (approval: agent); "
-                "a human code owner, the rest (.nstack/handbook/07-governance.md, *Agents and approval*).")
-    return ("  4. Approval: a human code owner approves every change (approval: human). Agents that may approve "
-            "each other's prototype and standard modules: the decider sets approval: agent in a pull request a "
-            "human approves (.nstack/handbook/07-governance.md, *Agents and approval*).")
+        return ("  4. Approval: a change to a prototype or standard module may be approved by another agent, under an "
+                "identity that is neither its author's nor its last pusher's (approval: agent); everything else, by "
+                f"a human code owner — enforced by the forge only where nstack doctor does not say unguarded {where}.")
+    return ("  4. Approval: a human code owner must approve every change (approval: human) — enforced by the forge "
+            "only where nstack doctor does not say unguarded. For agents to approve each other's prototype and "
+            "standard modules, the decider sets approval: agent in .copier-answers.yml, with the code owners "
+            f"file, in a pull request a human approves {where}.")
 
 
 def _default_branch(root: Path) -> str | None:

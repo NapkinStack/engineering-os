@@ -824,5 +824,6 @@ def test_init_says_who_approves_and_how_the_decider_changes_it(tmp_path, capsys,
     agents could approve each other learns it from init's next steps, with where the choice is made."""
     create(tmp_path, forge)
     out = capsys.readouterr().out
-    assert "a human code owner approves every change (approval: human)" in out, out
-    assert "approval: agent" in out and "07-governance.md, *Agents and approval*" in out, out
+    assert "a human code owner must approve every change (approval: human)" in out, out
+    assert "only where nstack doctor does not say unguarded" in out, "off GitHub, nothing at the forge enforces it"
+    assert "approval: agent in .copier-answers.yml" in out and "07-governance.md, *Agents and approval*" in out, out
