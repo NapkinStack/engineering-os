@@ -22,6 +22,7 @@ OTHER = "Given the form, when a field is empty, then it says which"
 def _identity(monkeypatch):
     for name, value in IDENTITY.items():
         monkeypatch.setenv(name, value)
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)  # attest runs on a workstation; a test names CI itself
 
 
 def _attested(root: Path) -> None:
