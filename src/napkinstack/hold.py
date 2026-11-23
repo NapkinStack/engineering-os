@@ -37,6 +37,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import subprocess
 import time
 import unicodedata
@@ -517,6 +518,7 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         return 1
     cycle, title = found
     ident = f"issue-{number}" if number else ident
+    named = bool(person)
     person, session = _person(root, person), (session or "").strip() or None
     if any(not value.isprintable() for value in (person, session or "")):
         print("FAIL [hold] a person or a session holds a line break or a control character: it would "
@@ -554,13 +556,15 @@ def claim(root: Path, ident: str, session: str | None = None, person: str | None
         return 1
     else:
         stale = time.time() >= stale_at
-        again = " ".join(["nstack claim", ident, "--take-over", *(["--person", person] if person else []),
-                          *(["--session", session] if session else [])])
+        again = shlex.join(["nstack", "claim", ident, "--take-over", *(["--person", person] if person else []),
+                            *(["--session", session] if session else [])])
+        unnamed = ("" if named or mine else f"\n      No --person was given: git's user, {person}, was read. If you "
+                   f"work for {current.person}, run again with --person {shlex.quote(current.person)}.")
         print(f"FAIL [hold] {ident} is {said(current)}" + (f" — stale, no work for {days} days." if stale else ".")
               + (f"\n      Action: {again} — recorded, with its previous holder."
                  if stale else "\n      Action: take another " + ("issue" if number else "ready deliverable")
                                + " — nstack plan lists them; "
-                               "or ask its holder to give it back (nstack unclaim)."
+                               "or ask its holder to give it back (nstack unclaim)." + unnamed
                                + (f"\n      Another session of the same person holds it: only if that person asks, "
                                   f"{again} — recorded, with the session it leaves." if mine else "")))
         return 1
@@ -681,14 +685,17 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
         print(f"FAIL [hold] {ident} is {_recorded_said(current)}: only who recorded it or the decider "
               f"({decider or 'none named'}) withdraws a record.\n      Action: ask them.")
         return 1
-    if not current.recorded and same(current.person, person) and _another_session(current, session) and not stale and not is_decider:
+    if (not current.recorded and same(current.person, person) and _another_session(current, session)
+            and not stale and not is_decider and not _same_agent(root, current)):
         print(f"FAIL [hold] {ident} is {said(current)}: another session of the same person does not give it "
-              f"back.\n      Action: only if that person asks, nstack claim {ident} --take-over --person {person} "
-              f"--session {session}.")
+              f"back.\n      Action: only if that person asks, "
+              f"{shlex.join(['nstack', 'claim', ident, '--take-over', '--person', person, '--session', session or ''])}."
+              + ("" if os.environ.get("NSTACK_AGENT") else
+                 "\n      An agent restarted under a new session gives back its own hold from it, in nstack agent run."))
         return 1
     if not (same(current.person, person) or is_decider or stale):
         unnamed = ("" if named else f"\n      No --person was given: git's user, {person}, was read. If you work for "
-                   f"{current.person}, run again with --person {current.person}"
+                   f"{current.person}, run again with --person {shlex.quote(current.person)}"
                    + (", or with the session that holds it." if current.sessions else "."))
         print(f"FAIL [hold] {ident} is {said(current)}: only its holder or the decider ({decider or 'none named'}) "
               f"releases a hold that is not stale.{unnamed}\n      Action: ask them.")

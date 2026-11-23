@@ -953,3 +953,15 @@ def test_pr_scope_leaves_out_what_the_project_declares_generated(tmp_path, capfd
     output = capfd.readouterr().out
     assert "Review budget : 16/400 lines, 3/15 files" in output, output
     assert "WARNING [P2]" not in output
+
+
+def test_p2_s_warning_says_how_generated_output_is_declared(tmp_path, capfd, monkeypatch):
+    """D272: an over-budget pull request is told the way out a tool's output has — linguist-generated —
+    and where it is written, not only to split or label."""
+    base = repository(tmp_path, {"modules/a/MANIFEST.yaml": 1, "modules/a/notices.html": 500})
+    monkeypatch.delenv("PR_LABELS", raising=False)
+    monkeypatch.delenv("MAX_LINES", raising=False)
+    monkeypatch.delenv("MAX_FILES", raising=False)
+    cli.main(["pr-scope", "--root", str(tmp_path), "--base", base])
+    output = capfd.readouterr().out
+    assert "WARNING [P2]" in output and "linguist-generated" in output and "05-workflow.md" in output, output

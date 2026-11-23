@@ -58,6 +58,7 @@ if [ -n "${NSTACK_AGENT:-}" ]; then
     else
       echo "      (a merge made on the forge) are never re-signed either: git fetch, then push again."
     fi
+    echo "      Why: .nstack/handbook/INSTALL.md, *The agent commits as the App*."
     exit 1
   fi
 fi

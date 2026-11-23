@@ -70,7 +70,7 @@ no service, and no forge required.
 2. **An event.** Subject `Hold <id>: <event>`; trailers `Hold-Event:` (`claim`, `renew`,
    `take-over`, `release`), `Hold-Person:` (the accountable person — a handle such as `@alice`,
    or `Name <email>`; by default git's user — for a release by a session on the hold, the hold's person, clarified for D257), `Agent-Session:` (the session, when an agent), and for a take-over
-   `Hold-Previous:` (the person and session it was taken from), and `Hold-Id:`, random, so two
+   `Hold-Previous:` (the person and session it was taken from — written too when an agent restarted renews its own hold, amended for D271), and `Hold-Id:`, random, so two
    runs in one second are two commits. The hold's state is its last event. One person is one
    whether named by a handle or by git: `@alice` is `Alice <alice@example.org>` — said, not
    proven.
@@ -96,7 +96,7 @@ no service, and no forge required.
    makes no new work branch — a take-over, or a claim after a release — comments on the open pull
    requests of this repository's work branches `d<n>-…`, asked branch by branch so that a
    fork's is never one: who holds it now, and from whom. `nstack unclaim <id>` commits a `release`; by
-   another than the holder or the charter's decider, refused unless stale; another session of the holder's person is another than the holder (clarified for D185). The previous holder's
+   another than the holder or the charter's decider, refused unless stale; another session of the holder's person is another than the holder (clarified for D185), unless it is the same agent restarted, as `claim` reads it (amended for D272). The previous holder's
    branches are never touched.
 7. **`plan`.** (Clarified for D189: it also names the empty start branches a claim left, once their deliverable's work has landed or its state moved on, with the commands that delete them.) After its rules, a *Holds* section for the accepted cycle: each deliverable free,
    held (person, session, since, last worked on) or stale. Read from the remote; unreachable, it
