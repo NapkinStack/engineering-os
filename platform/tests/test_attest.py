@@ -1299,3 +1299,82 @@ def test_t4_s_list_counts_folders_leaves_out_what_is_not_read_and_stops_at_five(
     assert pull_request._what_changed(root, base, git(root, "rev-parse", "HEAD~1"), git(root, "rev-parse", "HEAD")) == \
         " — no file they read differs; the modules run, the engine or who runs it changed"
     assert pull_request._what_changed(root, base, first, "0" * 40) == ""
+
+
+@pytest.mark.parametrize("excluded", [False, True], ids=["as git shows it", "hidden by .git/info/exclude"])
+def test_a_tree_an_agent_s_sandbox_masks_is_refused_and_said(tmp_path, monkeypatch, capsys, excluded):
+    """#514 (D278): an agent's sandbox puts mount points over protected paths — `.claude/skills`, which
+    the commit tracks, among them. The tree is then not the commit: refused whatever git is told to
+    ignore, naming the paths and the way out — attest outside the sandbox."""
+    import shutil
+
+    head = project(tmp_path)
+    skill = tmp_path / ".claude/skills/demo/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("a skill\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "a skill")
+    head = git(tmp_path, "rev-parse", "HEAD")
+    shutil.rmtree(tmp_path / ".claude/skills")
+    mount = tmp_path / ".claude/skills"
+    os.mkfifo(mount)  # no regular file: as a sandbox's mount, a device
+    if excluded:
+        (tmp_path / ".git/info").mkdir(exist_ok=True)
+        (tmp_path / ".git/info/exclude").write_text("/.claude/skills\n", encoding="utf-8")
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    assert attest._masked(tmp_path) == [".claude/skills"]
+    assert attest.run(tmp_path, "HEAD", None, "") == 1
+    out = capsys.readouterr().out
+    assert "FAIL [attest] this session cannot read what the commit holds: .claude/skills — " in out, out
+    assert "attest outside the sandbox" in out, out
+    assert attest.latest(tmp_path, head) is None
+
+
+def test_a_path_a_sparse_checkout_leaves_out_is_not_masked(tmp_path, monkeypatch):
+    """D278: `nstack agent run`'s clone leaves `.claude/skills/` out of its working tree on purpose; a
+    mount point over it there is no path the checkout should hold."""
+    project(tmp_path)
+    skill = tmp_path / ".claude/skills/demo/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("a skill\n", encoding="utf-8")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "a skill")
+    git(tmp_path, "sparse-checkout", "set", "--no-cone", "/*", "!/.claude/skills/")
+    assert not skill.exists()
+    (tmp_path / ".claude").mkdir(exist_ok=True)
+    (tmp_path / ".claude/skills").write_text("mnt", encoding="utf-8")
+    assert attest._masked(tmp_path) == []
+
+
+def test_a_folder_replaced_by_a_file_is_a_change_and_links_are_no_mask(tmp_path, monkeypatch, capsys):
+    """D278's verifier: a tracked folder replaced by a file of the person's is an edit, said as one; a
+    tracked link, dangling or to what this session cannot read, hides nothing; an untracked mount point
+    is named with the way out."""
+    import shutil
+
+    project(tmp_path)
+    (tmp_path / "pages").mkdir()
+    (tmp_path / "pages/a.md").write_text("a\n", encoding="utf-8")
+    (tmp_path / "gone").symlink_to("nowhere")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "pages and a link")
+    assert attest._masked(tmp_path) == []
+    shutil.rmtree(tmp_path / "pages")
+    (tmp_path / "pages").write_text("x\n", encoding="utf-8")
+    assert attest._masked(tmp_path) == []
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    assert attest.run(tmp_path, "HEAD", None, "") == 1
+    assert "Action: commit or stash them" in capsys.readouterr().out
+    (tmp_path / "pages").unlink()
+    git(tmp_path, "checkout", "-q", "--", "pages")
+    if os.geteuid() == 0:
+        return  # root reads a file of any mode: a sandbox's unreadable mount cannot be made here
+    mount = tmp_path / ".bashrc"  # as the sandbox's: a file of 3 bytes this session may not read
+    mount.write_text("mnt", encoding="utf-8")
+    mount.chmod(0)
+    try:
+        assert attest.run(tmp_path, "HEAD", None, "") == 1
+    finally:
+        mount.chmod(0o600)
+    out = capsys.readouterr().out
+    assert ".bashrc: no file or folder this session reads" in out and "attest outside the sandbox" in out, out
