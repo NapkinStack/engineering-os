@@ -310,11 +310,12 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     who = _git(destination, "log", "-1", "--format=%an <%ae>").stdout.strip()
     print(f"Project created in {destination}, NapkinStack {version}, initial commit on main, by {who}.")
     address = who.rpartition("<")[2].rstrip(">").strip().lower()
-    if created.get("forge") == "github" and not address.endswith("@users.noreply.github.com"):
+    if str(created.get("forge") or "github") == "github" and not address.endswith("@users.noreply.github.com"):
         print(f"WARNING [init] the first push publishes {address or 'this address'} with the commit, on GitHub.\n"
               "      Action: if it is to stay private, before that push: git config user.email "
               "<id>+<login>@users.noreply.github.com && git commit --amend --no-edit --reset-author "
-              "(GitHub, Settings, Emails, shows that address).")
+              "(GitHub, Settings, Emails, shows that address; GIT_AUTHOR_EMAIL or GIT_COMMITTER_EMAIL, if set, "
+              "wins over it: unset them first).")
     if skills_said:
         print(("WARNING: the skills were not generated:\n" if not skilled else "") + skills_said
               + ("\n      Action: fix what it says, then nstack skills, and commit them." if not skilled else ""))

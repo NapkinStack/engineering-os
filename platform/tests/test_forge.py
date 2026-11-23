@@ -803,6 +803,7 @@ def test_the_glossary_defines_the_forge():
 @pytest.mark.parametrize("forge, email, warned", [
     ("github", "alice@example.org", True),
     ("github", "9001+alice@users.noreply.github.com", False),
+    ("github", "9001+Alice@Users.Noreply.GitHub.com", False),
     ("gitlab", "alice@example.org", False),
 ])
 def test_init_says_who_its_first_commit_is_by_and_what_a_push_publishes(tmp_path, capsys, monkeypatch,
