@@ -417,6 +417,29 @@ def inputs(root: Path, base: str, identity: str = "") -> str | None:
     module folders — `contracts/` and `platform/` included, which every module reads — but the
     project's records, `docs/project/`, `docs/adr/` and `docs/pdr/` (D242), and who runs it with which
     engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
+    scope = input_scope(root, base)
+    if scope is None:
+        return None
+    names, folders, inside = scope
+    lines = [f"ran {' '.join(names)}", f"identity {identity}"]
+    for folder in sorted(folders):
+        tree = _git(root, "rev-parse", "--verify", "--quiet", f"HEAD:{folder}", check=False).stdout.strip()
+        if not tree:
+            return None
+        lines.append(f"{folder} {tree}")
+    # -z: a path git would quote — a record whose name is not ASCII, `résumé.md` — is read as it is.
+    listed = _git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD", check=False)
+    if listed.returncode:
+        return None
+    lines += [line for line in listed.stdout.split("\0")
+              if line and not line.split("\t", 1)[-1].startswith((*inside, *RECORDS))]
+    return hashlib.sha256("\n".join(lines).encode("utf-8", "surrogateescape")).hexdigest()
+
+
+def input_scope(root: Path, base: str) -> tuple[list[str], set[str], tuple[str, ...]] | None:
+    """What `inputs` hashes: the modules run, the folders read whole — theirs and those they consume
+    or assemble —, and the module folders left out, every other tracked path but the records being
+    read (D275: T4 names the ones that changed). None when it cannot be told."""
     import yaml
 
     from napkinstack import modules
@@ -440,20 +463,8 @@ def inputs(root: Path, base: str, identity: str = "") -> str | None:
             if name not in every:
                 return None  # a dependency the project does not hold: what it reads is unknown
             folders.add(every[name])
-    lines = [f"ran {' '.join(sorted(module['name'] for module in ran))}", f"identity {identity}"]
-    for folder in sorted(folders):
-        tree = _git(root, "rev-parse", "--verify", "--quiet", f"HEAD:{folder}", check=False).stdout.strip()
-        if not tree:
-            return None
-        lines.append(f"{folder} {tree}")
     inside = tuple(f"{folder}/" for folder in every.values() if folder.split("/", 1)[0] not in SHARED_MODULES)
-    # -z: a path git would quote — a record whose name is not ASCII, `résumé.md` — is read as it is.
-    listed = _git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD", check=False)
-    if listed.returncode:
-        return None
-    lines += [line for line in listed.stdout.split("\0")
-              if line and not line.split("\t", 1)[-1].startswith((*inside, *RECORDS))]
-    return hashlib.sha256("\n".join(lines).encode("utf-8", "surrogateescape")).hexdigest()
+    return sorted(module["name"] for module in ran), folders, inside
 
 
 def _fresh(root: Path, at: str, run_base: str | None, base_commit: str | None) -> bool:

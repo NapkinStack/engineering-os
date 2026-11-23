@@ -943,7 +943,8 @@ def same_inputs(root: Path, head: str, base: str,
             return (f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
                     "and the row stands while what its modules read is unchanged since")
         if found[0] != digest:
-            return f"what its modules read changed between {commit} and the head {head[:7]}"
+            return f"what its modules read changed between {commit} and the head {head[:7]}" + \
+                _what_changed(root, base, full, head)
         base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").stdout.strip() or None
         if not attest._fresh(root, found[1], found[2], base_commit):
             return (f"its run at {commit} is older than {attest.FRESH_DAYS} days, or than "
@@ -951,6 +952,29 @@ def same_inputs(root: Path, head: str, base: str,
         return None
 
     return same
+
+
+def _what_changed(root: Path, base: str, commit: str, head: str) -> str:
+    """What `attest.inputs` reads and differs between two commits (D275): each folder read whole, with
+    how many of its files changed, and each other path; the digest's other parts when no file did."""
+    from napkinstack import attest
+
+    scope = attest.input_scope(root, base)
+    names = _git(root, "diff", "--name-only", "-z", "--no-renames", commit, head).stdout.split("\0")
+    if scope is None or not any(names):
+        return "" if scope is None else ": no file they read differs: the modules run, the engine or who runs it does"
+    _, folders, inside = scope
+    counted: dict[str, int] = {}
+    for path in filter(None, names):
+        folder = next((one for one in folders if path.startswith(f"{one}/")), None)
+        if folder:
+            counted[folder] = counted.get(folder, 0) + 1
+        elif not path.startswith((*inside, *attest.RECORDS)):
+            counted[path] = 0
+    if not counted:
+        return ": no file they read differs: the modules run, the engine or who runs it does"
+    said = [f"{name} ({count} file{'s' if count > 1 else ''})" if count else name for name, count in sorted(counted.items())]
+    return ": " + ", ".join(said[:5]) + (f", and {len(said) - 5} more" if len(said) > 5 else "")
 
 
 def check_attested(root: Path, head: str, fail, warn=lambda message: None) -> str:

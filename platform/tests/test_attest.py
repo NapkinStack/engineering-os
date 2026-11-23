@@ -979,8 +979,8 @@ def test_t4_s_relief_reads_attest_s_digest_while_it_makes_the_record_and_only_wh
     monkeypatch.setenv("NSTACK_INPUTS", digest)
     assert pull_request.same_inputs(root, head, base)(first) is None
     monkeypatch.setenv("NSTACK_INPUTS", "0" * 64)
-    assert pull_request.same_inputs(root, head, base)(first) == \
-        f"what its modules read changed between {first} and the head {head[:7]}"
+    assert pull_request.same_inputs(root, head, base)(first).startswith(
+        f"what its modules read changed between {first} and the head {head[:7]}")
     monkeypatch.setenv("NSTACK_INPUTS", digest)
     (root / ".copier-answers.yml").write_text(yaml.safe_dump({"_commit": "v0.9.6"}), encoding="utf-8")
     assert pull_request.same_inputs(root, head, base)(first) == "", "the forge's CI replays it: nothing to say"
@@ -1231,3 +1231,37 @@ def test_a_run_kept_on_its_commit_from_a_run_voided_meanwhile_is_kept_from_no_mo
     assert attest.latest(root, head)["at"] == r2["at"]
     attest.run(root, "HEAD", None, "")
     assert runs(root) == 2, "R1 kept again, through R2"
+
+
+@pytest.mark.parametrize("path, said", [("modules/b/code.py", "modules/b (1 file)"), ("uv.lock", "uv.lock")])
+def test_t4_names_what_its_modules_read_that_changed(counting, path, said):
+    """D275: after a merge of main, a row is not kept because what its modules read changed — a module
+    it consumes, a shared file —; T4 names what, so nobody digs for it."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, path)
+    head = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    assert pull_request.same_inputs(root, head, base)(first) == \
+        f"what its modules read changed between {first} and the head {head[:7]}: {said}"
+
+
+def test_t4_says_when_no_file_its_modules_read_differs(counting, monkeypatch):
+    """D275: the digest also holds the modules run and who runs them with which engine; none of the
+    files differing, T4 says that instead of naming nothing."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    git(root, "commit", "-q", "--allow-empty", "-m", "nothing changes")
+    head = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(attest.provenance, "engine", lambda: ("0.18.0", None))
+    attest.run(root, base, None, "")
+    assert pull_request.same_inputs(root, head, base)(first).endswith(
+        "no file they read differs: the modules run, the engine or who runs it does")
