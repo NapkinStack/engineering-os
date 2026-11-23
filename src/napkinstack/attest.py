@@ -571,7 +571,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     previous = None if previous and previous.get("void") else previous  # a void keeps nothing, evidence included
     # The option, else PR_LABELS as the caller set it: one way for attest and pr-check (D147) — and the
     # pull request's own when the forge answers, a label it does not carry refused (#368).
-    from napkinstack.pull_request import labels_for
+    from napkinstack.pull_request import labels_for, this_pull
 
     judged, labels_from, refused = labels_for(root, commit, os.environ.get("PR_LABELS", "") if labels is None else labels)
     if refused:
@@ -636,7 +636,7 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),
               "base": base, "base_commit": base_commit, "checks": results,
-              "sheet": sheet_of(body_text),
+              "sheet": sheet_of(body_text), "pull": this_pull(root, commit),
               "labels": {"names": sorted(judged), "from": labels_from},
               # The audits of the run the module checks come from: kept with them, never read again (#275).
               "evidence": (previous.get("evidence") if isinstance(previous.get("evidence"), list) else [])

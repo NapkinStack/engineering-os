@@ -704,9 +704,31 @@ def charter_without_pdr(root: Path, base: str, files: list[str]) -> list[str]:
             "correction that decides nothing needs none (.nstack/playbooks/framing.md, Decisions)."]
 
 
-def recorded_rows(root: Path, fork: str, head: str) -> list[tuple[str, str, dict]]:
+def this_pull(root: Path, head: str) -> dict:
+    """What names the pull request a record is made for (#508): its number where the forge gives it,
+    and the branch it is made on — a branch started on another's carries that one's records too."""
+    actions = os.environ.get("GITHUB_ACTIONS") == "true"
+    ref = re.fullmatch(r"refs/pull/(\d+)/(?:merge|head)", os.environ.get("GITHUB_REF", "")) if actions else None
+    pulled = None if actions else _pull_labels(root, head)
+    number = int(ref[1]) if ref else pulled[0] if isinstance(pulled, tuple) and pulled[0] else None
+    branch = (os.environ.get("GITHUB_HEAD_REF", "") if actions else
+              _git(root, "symbolic-ref", "--short", "-q", "HEAD").stdout).strip()
+    return {**({"number": number} if number else {}), **({"branch": branch} if branch else {})}
+
+
+def same_pull(made_for: object, this: dict) -> bool:
+    """A record is this pull request's unless what both name differs: the number first, else the
+    branch. A record naming neither — made before #508, or by nothing that knew — is read."""
+    for key in ("number", "branch"):
+        if isinstance(made_for, dict) and key in made_for and key in this:
+            return made_for[key] == this[key]
+    return True
+
+
+def recorded_rows(root: Path, fork: str, head: str, this: dict | None = None) -> list[tuple[str, str, dict]]:
     """Every sheet row a record of this pull request's commits holds: (commit, at, row) — each run of
-    each note, since an author may attest one commit twice with two descriptions."""
+    each note, since an author may attest one commit twice with two descriptions. A record made for
+    another pull request — one whose branch this one started on (#508) — is not this one's history."""
     from napkinstack import attest
 
     commits = _git(root, "rev-list", f"{fork}..{head}").stdout.split()
@@ -719,7 +741,7 @@ def recorded_rows(root: Path, fork: str, head: str) -> list[tuple[str, str, dict
             except json.JSONDecodeError:
                 continue
             sheet = (run.get("sheet") if isinstance(run, dict) and run.get("record") == attest.RECORD
-                     and run.get("commit") == commit else None)
+                     and run.get("commit") == commit and same_pull(run.get("pull"), this or {}) else None)
             for ident, row in (sheet.items() if isinstance(sheet, dict) else []):
                 if isinstance(row, dict):
                     found.append((commit, str(run.get("at", "")), {**row, "#": ident}))
@@ -1051,7 +1073,7 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
         check_approvals(root, base, head, found, warnings.append)
         check_copilot(found, warnings.append)
     if carried and reasons:
-        check_moved(body, recorded_rows(root, fork, head), fail, warnings.append,
+        check_moved(body, recorded_rows(root, fork, head, this_pull(root, head)), fail, warnings.append,
                     lambda one, other: bool(tree_of(one)) and tree_of(one) == tree_of(other),
                     lambda older, newer: _git(root, "merge-base", "--is-ancestor", older, newer).returncode == 0)
 
