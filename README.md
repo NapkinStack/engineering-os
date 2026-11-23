@@ -89,7 +89,7 @@ Each project then pins its version and changes it through `nstack update`.
 
 | Command | Role |
 |---|---|
-| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit, the next steps for its forge (`--forge`, GitHub by default); each answer given as an option or asked (`--project-name`, `--github-repo` or `--repository`, `--owner-team` — on GitHub, never an organisation's name alone) |
+| `nstack init <folder>` | Creates the project: skeleton, git repository, initial commit — said with the identity it is by, warned on GitHub when that address is not its private one —, the next steps for its forge (`--forge`, GitHub by default); each answer given as an option or asked (`--project-name`, `--github-repo` or `--repository`, `--owner-team` — on GitHub, never an organisation's name alone) |
 | `nstack doctor` | Checks the workstation and, on GitHub, its settings, read-only; off GitHub says what it cannot verify; names a newer published version |
 | `nstack settings [--apply]` | Prints the calls that would bring the GitHub settings to the checklist; with `--apply`, makes them under the person's own credential — `GH_TOKEN`, or else their `gh` login — once they confirm the plan at the keyboard, then reads the result back — never an agent's, never in CI |
 | `nstack new-module <name> <owner> <criticality> [--user-facing]` | Creates a module, with no imposed stack |
