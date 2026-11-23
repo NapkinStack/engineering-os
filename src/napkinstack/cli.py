@@ -209,8 +209,8 @@ def build_parser() -> argparse.ArgumentParser:
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")
     rs.add_argument("--session", help="the agent's session, written on the release")
     rs.add_argument("--person", help="who releases it, such as @alice (default: the hold's person when --session is one of its sessions, else git's user)")
-    dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request; "
-                              "refused with no merge of it",
+    dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request, "
+                              "and removes its empty start branch; refused with no merge of it",
               lambda a: hold.deliver_command(a.root, a.deliverable, a.held or [], a.session, a.person, a.write_states))
     dl.add_argument("deliverable", nargs="?", help="the deliverable's identifier, D<n>")
     dl.add_argument("--held", action="append", metavar="[N=]#PR", help="what holds a criterion: '#12' for every one, '2=#12' for the second; repeatable, a criterion given again keeps each")

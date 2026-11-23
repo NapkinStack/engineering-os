@@ -408,7 +408,7 @@ nstack discover <idea-file>   # starts a discovery, for your agent
 nstack plan          # what needs a person first; then the discovery, the charter and the cycles (docs/project/), the decisions due at a closure, the project across its cycles, who holds what; --prune removes the empty start branches it names
 nstack claim D<n> --session <s> --person @<you>   # takes a deliverable before its first change; nstack unclaim gives it back
                                                   # --take-over: a stale hold, or your own from another agent's session or outside nstack agent run; your agent restarted renews without it
-nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered; --write-states at the closure
+nstack deliver D<n> --held '#<pr>' --session <s>   # records a merged deliverable delivered, and removes its empty start branch; --write-states at the closure
 {% if forge == "github" %}nstack agent add <name> [--clone <dir>] · nstack agent run <name> -- <command>   # an agent's own App and clone; add is a person's
 nstack agent status  # who this agent is — its App, repository, clone, gh and hooks; for a person, this project's agents
 {% endif %}{% if forge == "github" %}nstack board [--dry-run]   # the cycles shown on GitHub as milestones and issues — CI runs it on every merge; --dry-run previews a proposed cycle; by hand, Run workflow, never beside it{% else %}nstack board         # shows the cycles on GitHub only: here it says "not shown"{% endif %}
