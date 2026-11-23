@@ -270,6 +270,8 @@ def test_a_forge_merge_brought_by_no_ref_the_hook_reads_is_fetched_before_refusi
     assert "not agent scout's identity" not in result.stdout, result.stdout
     assert subprocess.run(["git", "rev-parse", "origin/main"], cwd=project, capture_output=True, text=True,
                           env=env).stdout == stale, "the hook moves none of the person's remote-tracking branches"
+    assert subprocess.run(["git", "rev-parse", "FETCH_HEAD"], cwd=project, capture_output=True, text=True,
+                          env=env).stdout.strip() == merged, "nor FETCH_HEAD, which the agent may push again"
 
 
 def test_a_made_up_identity_is_still_refused_after_the_hook_s_fetch(tmp_path):
@@ -285,3 +287,22 @@ def test_a_made_up_identity_is_still_refused_after_the_hook_s_fetch(tmp_path):
                     "-m", "made up"], cwd=project, check=True, env=env)
     result = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "origin"})
     assert result.returncode == 1 and "1 commit(s) the remote does not hold yet" in result.stdout, result.stdout
+
+
+def test_the_hook_fetches_only_to_refuse_and_from_the_remote_pushed_to(tmp_path):
+    """D268's verifier: a clean push fetches nothing; the fetch reads the remote pre-commit names, and a
+    fetch that fails never says it was made."""
+    project, env = _repo(tmp_path)
+    subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=tmp_path / "remote.git", check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "mine"], cwd=project, check=True, env=env)
+    clean = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert "identity" not in clean.stdout, clean.stdout
+    assert subprocess.run(["git", "rev-parse", "--verify", "--quiet", "refs/nstack-remote/base"], cwd=project,
+                          env=env).returncode, "a clean push fetched"
+    subprocess.run(["git", "-c", "user.name=f", "-c", "user.email=f@host.example", "commit", "-q", "--allow-empty",
+                    "-m", "made up"], cwd=project, check=True, env=env)
+    missing = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "nowhere"})
+    assert missing.returncode == 1 and "this hook fetched" not in missing.stdout, missing.stdout
+    assert "git fetch, then push again" in missing.stdout
+    named = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": str(tmp_path / "remote.git")})
+    assert named.returncode == 1 and "this hook fetched the remote's" in named.stdout, named.stdout
