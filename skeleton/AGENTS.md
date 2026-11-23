@@ -102,7 +102,7 @@ You **stop and report** in these cases, without looking for a way around:
 | 3 consecutive failures on the same fix | Stop. The problem is in the framing or the assumption, not in the code. |
 | The change touches a 2nd module | Stop. See §4. |
 | The success criterion cannot be made executable | Stop. Say so, propose a verifiable alternative. |
-| A quality gate blocks | Stop working around it: apply its `Action:` when it fixes the cause (`.nstack/handbook/RULES.md` says each code's reason). Never a workaround, a `skip`, a `--no-verify` or a disabled test — a flaky one is quarantined, as `tests.md` says. |
+| A quality gate blocks | Stop. Apply its `Action:` when it fixes the cause and is yours to take — a label, a take-over or a decider's choice is the person's: report it (`.nstack/handbook/RULES.md` says each code's reason). Never a workaround, a `skip`, a `--no-verify` or a disabled test — a flaky one is quarantined, as `tests.md` says. |
 | Potentially destructive action | Stop. See §5. |
 | A blocking piece of information is missing after searching | Ask for clarification. Once, precisely. |
 | The framework itself is wrong — a message, a check, a page | Stop; never a workaround. Report it to the decider: the file, the message, what is wrong. Fixing it at its source is a task the decider assigns (`.nstack/handbook/INSTALL.md`, *When the framework is wrong*). |

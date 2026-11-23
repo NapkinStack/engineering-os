@@ -245,6 +245,12 @@ def test_a_claim_refused_for_want_of_its_person_says_so(shared, capsys):
     assert hold.claim(clone(shared, "bob"), "D1", session="alice-d2") == 1
     out = capsys.readouterr().out
     assert "No --person was given" in out and "--person 'Alice Smith <alice@example.org>'" in out, out
+    assert hold.claim(clone(shared, "carol"), "D1", session="alice-d2", person="Alice Smith <alice@example.org>") == 1
+    out = capsys.readouterr().out
+    assert "No --person was given" not in out, out
+    assert "nstack claim D1 --take-over --person 'Alice Smith <alice@example.org>' --session alice-d2" in out, out
+    assert hold.release(clone(shared, "dan"), "D1", session="dan-d1") == 1
+    assert "run again with --person 'Alice Smith <alice@example.org>'" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("email, agent", [
@@ -259,6 +265,8 @@ def test_another_identity_or_a_session_outside_an_agent_s_still_needs_the_person
     as_agent(monkeypatch, email, agent)
     assert hold.claim(clone(shared, "other"), "D1", session="other", person="@alice") == 1
     assert "--take-over" in capsys.readouterr().out
+    assert hold.release(clone(shared, "other2"), "D1", session="other", person="@alice") == 1  # D272: nor gives it back
+    assert ("in nstack agent run" in capsys.readouterr().out) == (agent is None), "the restart's way, said outside it"
     assert remote_events(shared) == ["claim"]
 
 

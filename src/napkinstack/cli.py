@@ -199,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--session", help="the agent's session, written on the hold")
     cl.add_argument("--person", help="the person accountable, such as @alice (default: git's user)")
     cl.add_argument("--take-over", action="store_true",
-                    help="take a hold nobody has worked on for hold_days, or your own person's from another agent's session — recorded, with its previous holder; your own agent restarted needs none: it renews")
+                    help="take a hold nobody has worked on for hold_days, or your own person's from another agent's session or any session outside nstack agent run — recorded, with its previous holder; your own agent restarted needs none: it renews")
     rs = _add(sub, "unclaim", "gives a held deliverable back: by its holder, the decider, or anyone once stale; a closed cycle's hold has ended",
               lambda a: hold.release(a.root, a.deliverable, a.session, a.person))
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")

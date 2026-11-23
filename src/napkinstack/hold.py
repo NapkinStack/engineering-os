@@ -689,8 +689,9 @@ def release(root: Path, ident: str, session: str | None = None, person: str | No
             and not stale and not is_decider and not _same_agent(root, current)):
         print(f"FAIL [hold] {ident} is {said(current)}: another session of the same person does not give it "
               f"back.\n      Action: only if that person asks, "
-              f"{shlex.join(['nstack', 'claim', ident, '--take-over', '--person', person, '--session', session or ''])}"
-              ".\n      An agent restarted under a new session gives back its own hold from it, in nstack agent run.")
+              f"{shlex.join(['nstack', 'claim', ident, '--take-over', '--person', person, '--session', session or ''])}."
+              + ("" if os.environ.get("NSTACK_AGENT") else
+                 "\n      An agent restarted under a new session gives back its own hold from it, in nstack agent run."))
         return 1
     if not (same(current.person, person) or is_decider or stale):
         unnamed = ("" if named else f"\n      No --person was given: git's user, {person}, was read. If you work for "

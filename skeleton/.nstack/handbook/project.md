@@ -186,9 +186,9 @@ works on it and refuses nobody, the hold does. `nstack plan` lists the issues he
 (`nstack unclaim '#14'`): an issue's hold does not end with a cycle.
 
 Two agents one person runs are two holders: a session renews only a hold it is on, or one its
-own agent put there. Another agent's session of that person is refused like anyone else, and
-takes the hold with `--take-over` when the person says so, stale or not; a person with no
-`--session` renews their own. An agent restarted under a new session is the same holder: in
+own agent put there. Another agent's session of that person, or any session outside `nstack
+agent run`, is refused like anyone else, and takes the hold with `--take-over` when the person
+says so, stale or not; a person with no `--session` renews their own. An agent restarted under a new session is the same holder: in
 `nstack agent run`, when its own App's identity committed every event that put a session on the
 hold, `nstack claim D30 --person @alice --session <it>` renews it, says so and records the session
 it leaves, and `nstack unclaim D30 --person @alice --session <it>` gives it back. Two live sessions

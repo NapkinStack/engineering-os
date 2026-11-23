@@ -5,8 +5,8 @@ refuses and where its reason is written. It defines nothing: the reasons are in 
 points at, and the checks are the engine's. A command's own name between brackets —
 `FAIL [deliver]`, `FAIL [agent]` — is that command refusing what it was asked: its message says
 why, and the action. `[hold]` is `nstack claim` and `nstack unclaim` (`project.md`, *Who holds a
-deliverable*); `[nstack]` the pre-push hook of an agent's clone (`INSTALL.md`, *The agent commits
-as the App*); `[labels]` the labels the pull request check reads.
+deliverable*); `[nstack]` the engine's install and the pre-push hook (`INSTALL.md`; an agent's
+identity: *The agent commits as the App*); `[labels]` the labels the pull request check reads.
 
 ```mermaid
 flowchart LR
@@ -70,7 +70,7 @@ a family, a number a rule; a retired rule's number is never reused.
 | `C1` | A framing document whose front matter cannot be read | `.nstack/handbook/project.md` |
 | `C2` | A charter with an unknown status, no single decider or no success criterion | `.nstack/handbook/project.md` |
 | `C3` | A cycle with no goal, no appetite, an end that is not its start plus its appetite, or an `accepted_on` that is not a date | `.nstack/handbook/project.md` |
-| `C4` | A deliverable with no id, title or state — or ready, in progress or accepted without acceptance criteria | `05-workflow.md` §6 |
+| `C4` | A deliverable with no id, title or state — or ready, in progress or accepted without acceptance criteria | `05-workflow.md` §6; `.nstack/handbook/project.md`, *What CI checks* |
 | `C5` | Two accepted cycles, or an accepted cycle under a charter that is not | `.nstack/handbook/project.md` |
 | `C6` | A closed or stopped cycle with no outcome or no end date; a success criterion recorded outside a closure, twice in one, outside the charter's filled criteria, in an unknown state, or observed with no day | `.nstack/handbook/project.md` |
 | `C7` | A discovery decided with no decider, date or challenger — or a charter with no go before it | `.nstack/handbook/project.md` |
