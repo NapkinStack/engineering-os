@@ -3,6 +3,7 @@ Fitness function 3 — Pull request scope and size.
 
   P1  one pull request = one module                  BLOCKING  (.nstack/handbook/02-modules.md §7)
   P2  review budget respected                        WARNING   (.nstack/handbook/05-workflow.md §4)
+      — lock files, generated names, and what .gitattributes marks linguist-generated left out
 
 A module is touched when the pull request changes it beyond its description — the same
 count as `nstack pr-check`'s (D34): editing a manifest, an AGENTS.md, a README or docs/
@@ -33,6 +34,24 @@ GENERATED = re.compile(r"(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.l
 
 def _git(root: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True).stdout
+
+
+def declared_generated(root: Path, paths: list[str]) -> set[str]:
+    """The paths the project's .gitattributes marks `linguist-generated` — the convention GitHub
+    folds in its diffs (#497): a tool's output the fixed pattern cannot know, declared where a
+    reviewer sees it. Read as GitHub reads it: any value but `false` (or `-linguist-generated`) is
+    generated. Read at HEAD, the commit measured, never a working tree's edit; a git before 2.40
+    has no --source and reads the working tree."""
+    if not paths:
+        return set()
+    for source in (["--source", "HEAD"], []):
+        found = subprocess.run(["git", "check-attr", *source, "-z", "--stdin", "linguist-generated"], cwd=root,
+                               input="\0".join(paths) + "\0", capture_output=True, text=True)
+        if found.returncode == 0:
+            break
+    out = found.stdout.split("\0")
+    return {path for path, _, value in zip(out[0::3], out[1::3], out[2::3])
+            if value not in {"unspecified", "unset", "false"}}
 
 
 def run(root: Path, base: str) -> int:
@@ -72,9 +91,11 @@ def run(root: Path, base: str) -> int:
         status = 1
 
     lines = changed = 0
-    for row in _git(root, "diff", "--numstat", f"{base}...HEAD").splitlines():
-        added, removed, path = row.split("\t", 2)
-        if GENERATED.search(path):
+    rows = [row.split("\t", 2) for row in _git(root, "-c", "core.quotepath=off", "diff", "--numstat",
+                                                  f"{base}...HEAD").splitlines()]
+    declared = declared_generated(root, [path for _, _, path in rows])
+    for added, removed, path in rows:
+        if GENERATED.search(path) or path in declared:
             continue
         changed += 1
         lines += (int(added) if added.isdigit() else 0) + (int(removed) if removed.isdigit() else 0)
