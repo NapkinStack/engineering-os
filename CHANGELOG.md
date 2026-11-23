@@ -22,6 +22,38 @@ a patch.
 
 ---
 
+## v0.34.8 — 2026-11-23
+
+D274 to D276: three frictions a multi-agent project met downstream on v0.34.7:
+- T5 read the test sheet of the pull request a branch started on;
+- T4 said that what a module reads had changed, but never what;
+- `init` committed under a person's own identity without saying so.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **T5 reads only the records made for this pull request** (D274, #508). Each record now names the pull request it was made for:
+  - its number, where the forge gives it (the event's ref in CI, or the pull request that attest already reads for its labels);
+  - its branch: the one the checkout tracks, else its own name.
+
+  T5, and the sheet history T4 uses, read only this pull request's records. The number decides where both sides name one, else the branch. A branch started on another pull request's branch, which was then squash-merged, no longer reads that pull request's sheet. A record naming neither (made before this version, or by a detached checkout with no forge) is read as before.
+- **T4 names what its modules read that changed** (D275). An automated row is not kept when the inputs digest moved; its reason now says what moved among what the digest reads:
+  - each folder read whole, with how many of its files changed, e.g. `modules/send (3 files)`, a module consumed;
+  - each other path, five at most;
+  - or, when no file differs, that the modules run, the engine or who runs it changed.
+
+  The digest itself is unchanged, byte for byte, so every record keeps its relief.
+- **`init` says who its first commit is by** (D276, #510). On GitHub, an address that is not a `users.noreply.github.com` one is warned of before the first push publishes it. The warning gives the command that sets GitHub's private address and re-authors the commit.
+
+**In your project** — 1 file
+
+- **`.nstack/handbook/05-workflow.md`** (D274, D275). §7 says:
+  - which records the sheet's history reads, and that a verifier attests on the pull request's branch, on a branch tracking it, or detached;
+  - what T4 names when a digest differs.
+
+---
+
 ## v0.34.7 — 2026-11-23
 
 D273: a friction a multi-agent project met downstream on v0.34.5. An agent's claim read the cycle from its checkout, which was behind. Its workaround, a claim from a `--shared` copy of its clone, pushed the hold into that clone, where nobody else saw it.
