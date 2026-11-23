@@ -870,6 +870,74 @@ def test_t4_says_when_the_head_has_no_record_yet(counting):
 
 
 
+def test_the_forge_s_run_leaves_a_row_waiting_for_the_head_s_record_to_the_required_status(counting, monkeypatch):
+    """#495: the forge's run starts at the push, before nstack attest writes the head's record. Where the
+    ruleset requires attest's status, T4 does not fail for want of that record, as A1 does not: the row
+    waits, it is said, and attest's own run judges it with the digest. A row whose commit has no record
+    still fails here: attest at the head would not keep it either."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    main = git(root, "rev-parse", "main")
+    said: list[str] = []
+    monkeypatch.setattr(pull_request, "status_required", lambda root: True)
+    same = pull_request.same_inputs(root, head, base, said.append)
+    assert same(first[:7]) is None
+    assert same(first[:7]) is None
+    assert len(said) == 1 and said[0].startswith(f"[T4] automated rows run at {first[:7]} wait for the record of the "
+                                                 f"head {head[:7]}: the required status '{attest.CONTEXT}' judges them"), said
+    assert f"Action: nstack attest on the head {head[:7]}" in said[0]
+    assert same(main[:7]).startswith(f"{main[:7]} has no passing record of its module checks"), \
+        "the row's commit has no record: attest at the head would not keep it"
+    monkeypatch.setattr(pull_request, "status_required", lambda root: False)
+    assert pull_request.same_inputs(root, head, base)(first[:7]).startswith(f"the head {head[:7]} has no passing record"), \
+        "the status not required: the run judges, as before"
+
+
+def test_a_head_record_without_a_digest_or_attest_s_own_run_never_waits(counting, monkeypatch):
+    """D269's verifier: only a head with no record at all waits for one. A record that holds no digest —
+    its module checks failed, kept from a voided run — and attest's own run, which makes the record,
+    are judged as before."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(pull_request, "status_required", lambda root: True)
+    monkeypatch.setattr(attest, "latest", lambda root, commit, real=attest.latest: real(root, commit) or
+                        ({"checks": [{"name": "Module checks", "passed": False}]} if commit == head else None))
+    said: list[str] = []
+    assert pull_request.same_inputs(root, head, base, said.append)(first[:7]).startswith(f"the head {head[:7]} has no"), said
+    monkeypatch.undo()
+    monkeypatch.setattr(attest, "CHECKS", counted(root))
+    monkeypatch.setattr(pull_request, "status_required", lambda root: True)
+    monkeypatch.setenv("NSTACK_ATTESTING", head)
+    monkeypatch.setenv("NSTACK_INPUTS", "")
+    assert pull_request.same_inputs(root, head, base, said.append)(first[:7]).startswith(f"the head {head[:7]} has no")
+    assert said == []
+
+
+def test_pr_check_prints_what_t4_s_relief_says(tmp_path, monkeypatch, capsys):
+    """D269's verifier: the warning travels from T4's relief to pr-check's output, and fails nothing."""
+    base, _ = change(tmp_path, "attested")
+
+    def saying(root, head, base, warn):
+        warn("[T4] a row waits")
+        return lambda commit: None
+
+    monkeypatch.setattr(pull_request, "same_inputs", saying)
+    _, out = judged(tmp_path, base, monkeypatch, capsys)
+    assert "WARNING [T4] a row waits" in out, out
+
+
 def test_a_head_attested_again_never_outlives_the_bound_of_the_run_it_kept(counting, monkeypatch):
     """The verifier's finding on D223: a same-commit keep (D166) carried a result kept by inputs past
     its seven days."""

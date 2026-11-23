@@ -16,7 +16,8 @@ Rules:
       an explored row whose Commit cell moved, its evidence unchanged since a record of the pull
       request's commits read it, was not explored again (D214); moved from the commit the first
       record of that evidence names, so putting it back stands (D243), or setting it back to any
-      ancestor of that commit, explored before a record held it (D254)
+      ancestor of that commit, explored before a record held it (D254); an automated row waiting
+      only for the head's record is left to attest's required status on the forge's run (#495)
   T5  no scenario failed; none left not verified, unless it is human only
   K1  in a framed project, delivery work needs an accepted cycle, and says which of
       the two is missing
@@ -852,11 +853,14 @@ def _module_inputs(record: dict | None, root: Path | None = None, commit: str = 
         found.get("kept_base") or record.get("base_commit")
 
 
-def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]:
+def same_inputs(root: Path, head: str, base: str,
+                warn: Callable[[str], None] = lambda message: None) -> Callable[[str], str | None]:
     """T4's relief for an automated row (D223): the record of the row's commit and the head's hold
     the same inputs digest, and the row's run is fresh. While nstack attest makes the head's record,
     the digest it computed stands in for it. The callable returns None when the row stands, else why
-    it does not — the cheap path first (#491)."""
+    it does not — the cheap path first (#491). The forge's run starts at the push, before that record:
+    where the ruleset requires attest's status, a row waiting for it is left to that status, as A1 is,
+    and said (#495)."""
     from napkinstack import attest
 
     try:
@@ -866,6 +870,7 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]
     if not isinstance(answers, dict) or answers.get("checks") != "attested":
         return lambda commit: ""  # the forge's CI replays it: the relief is for attested checks
     cache: dict[str, str | None] = {}
+    waiting: set[str] = set()
 
     def head_digest() -> str | None:
         if "head" not in cache:
@@ -873,8 +878,13 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]
                 cache["head"] = os.environ.get("NSTACK_INPUTS") or None
             else:
                 attest.read_remote(root)
-                found = _module_inputs(attest.latest(root, head), root, head)
+                record = attest.latest(root, head)
+                found = _module_inputs(record, root, head)
                 cache["head"] = found[0] if found else None
+                # The forge's run, made at the push, comes before the head's record (#495): where the
+                # ruleset requires attest's status, a row waiting only for that record is left to it.
+                # A record that exists and holds no digest waits for nothing; attest's own run never waits.
+                cache["waits"] = "yes" if record is None and status_required(root) else None
         return cache["head"]
 
     def same(commit: str) -> str | None:
@@ -885,6 +895,14 @@ def same_inputs(root: Path, head: str, base: str) -> Callable[[str], str | None]
             return (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
                     "the row stands while what its modules read is unchanged since")
         if not digest:
+            if cache.get("waits"):
+                if commit not in waiting:
+                    waiting.add(commit)
+                    warn(f"[T4] automated rows run at {commit} wait for the record of the head {head[:7]}: the required "
+                         f"status '{attest.CONTEXT}' judges them — nstack attest's own check keeps them while what "
+                         "their modules read is unchanged, and fails T4 otherwise.\n      Action: nstack attest on "
+                         f"the head {head[:7]}, with a token that may write commit statuses.")
+                return None
             return (f"the head {head[:7]} has no passing record of its module checks yet: nstack attest on it, "
                     "and the row stands while what its modules read is unchanged since")
         if found[0] != digest:
@@ -1017,7 +1035,7 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
                         f"request is not read: {hands}.")
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head),
-                             hands if isinstance(hands, set) else None, same_inputs(root, head, base)) if carried else []
+                             hands if isinstance(hands, set) else None, same_inputs(root, head, base, warnings.append)) if carried else []
     if modules:
         check_cycle(root, body, labels, datetime.date.today(), fail, warnings.append)
         logins, sessions, unnamed = authorship
