@@ -260,7 +260,7 @@ of its working tree (a sparse checkout: still in every commit), and the agent ge
 branch's skills from a folder of its own (`--add-dir`), refreshed at each run. A sandbox outside
 that clone puts mount points over the paths it protects, `.claude/skills/` among them: the tree is
 then not the commit, and `nstack attest` refuses it and names them — a record is made outside the
-sandbox, by the person in their own shell (in Claude Code, `! nstack attest …`) or by the decider. Unix sockets — audio, display, the session bus — stay closed unless the
+sandbox, by the person in a terminal of their own, outside the agent's session, or by the decider. Unix sockets — audio, display, the session bus — stay closed unless the
 project answers `agent_sockets: true` (`.nstack/handbook/07-governance.md` §7 says the risk).
 Given your own `--settings`, it adds none and says so. A hook of yours that refuses `gh` — against your own
 account — lets an agent's session through only when its `gh` is the App's

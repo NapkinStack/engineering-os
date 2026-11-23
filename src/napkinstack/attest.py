@@ -26,6 +26,7 @@ import datetime
 import hashlib
 import json
 import os
+import stat
 import re
 import subprocess
 import sys
@@ -585,9 +586,31 @@ def _masked(root: Path) -> list[str]:
         cover = next((Path(*parts[:n]).as_posix() for n in range(1, len(parts) + 1)
                       if not (root / Path(*parts[:n])).is_dir() or not os.access(root / Path(*parts[:n]), os.R_OK | os.X_OK)),
                      name)
+        if _plain(root / cover):
+            continue  # a folder replaced by a file of the person's: a change, said as one
         if cover not in hidden:
             hidden.append(cover)
     return hidden
+
+
+OUTSIDE = ("attest outside the sandbox — the person runs nstack attest in a terminal of their own, outside the "
+           "agent's session, or the decider does (.nstack/handbook/INSTALL.md).")
+
+
+def _plain(path: Path) -> bool:
+    """A regular file this session reads: the person's own edit. A sandbox's mount point is none — a
+    device, or a path it may not read."""
+    try:
+        return stat.S_ISREG(os.lstat(path).st_mode) and os.access(path, os.R_OK)
+    except OSError:
+        return False
+
+
+def _mount_points(root: Path) -> list[str]:
+    """Untracked entries this session cannot read as a file or a folder: a sandbox's mount points (#514)."""
+    entries = _git(root, "status", "--porcelain", "-z", "--untracked-files=normal").stdout.split("\0")
+    found = [entry[3:].rstrip("/") for entry in entries if entry.startswith("?? ")]
+    return [name for name in found if not (root / name).is_dir() and not _plain(root / name)]
 
 
 def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
@@ -601,12 +624,14 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
         shown = ", ".join(masked[:5]) + (f", and {len(masked) - 5} more" if len(masked) > 5 else "")
         print(f"FAIL [attest] this session cannot read what the commit holds: {shown} — mount points an agent's "
               "sandbox puts over the paths it protects. A record made here would not be the commit's.\n"
-              "      Action: attest outside the sandbox — the person runs it in their own shell (in Claude Code, "
-              "! nstack attest …), or the decider does (.nstack/handbook/INSTALL.md).")
+              f"      Action: {OUTSIDE}")
         return 1
     if _git(root, "status", "--porcelain", "--untracked-files=normal").stdout.strip():
+        mounts = _mount_points(root)
         print("FAIL [attest] the tree holds changes: a record names one commit, and this tree is none.\n"
-              "      Action: commit or stash them, then run nstack attest again.")
+              + (f"      {', '.join(mounts[:5])}{', and more' if len(mounts) > 5 else ''}: no file or folder this "
+                 f"session reads — mount points an agent's sandbox puts over the paths it protects.\n      Action: {OUTSIDE}"
+                 if mounts else "      Action: commit or stash them, then run nstack attest again."))
         return 1
     commit = _git(root, "rev-parse", "HEAD").stdout.strip()
     engine, origin = provenance.engine()
