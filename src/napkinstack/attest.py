@@ -564,12 +564,45 @@ def _publishable(root: Path, base: str, accept_identity: bool) -> tuple[str, str
     return who, None
 
 
+def _masked(root: Path) -> list[str]:
+    """The tracked paths this session cannot read — each under the first path that hides it — as an
+    agent's sandbox makes them: a mount point over `.claude/skills/`, which git may show as untracked,
+    or not at all once it is told to ignore it (#514). A file deleted is a change, said as one."""
+    hidden: list[str] = []
+    # -t: a path a sparse checkout leaves out (S, skip-worktree) is meant to be absent, as `nstack agent
+    # run`'s clone leaves `.claude/skills/` out; only the paths the checkout should hold are judged.
+    listed = (entry.split(" ", 1) for entry in _git(root, "ls-files", "-z", "-t").stdout.split("\0") if " " in entry)
+    for name in (path for tag, path in listed if tag != "S"):
+        try:
+            os.lstat(root / name)
+            if os.access(root / name, os.R_OK) or (root / name).is_symlink():
+                continue
+        except FileNotFoundError:
+            continue
+        except OSError:
+            pass  # a parent that is no folder, or none this session may enter
+        parts = Path(name).parts
+        cover = next((Path(*parts[:n]).as_posix() for n in range(1, len(parts) + 1)
+                      if not (root / Path(*parts[:n])).is_dir() or not os.access(root / Path(*parts[:n]), os.R_OK | os.X_OK)),
+                     name)
+        if cover not in hidden:
+            hidden.append(cover)
+    return hidden
+
+
 def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
         again: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
     who, refused = _publishable(root, base, accept_identity)
     if refused:
         print(refused)
+        return 1
+    if masked := _masked(root):
+        shown = ", ".join(masked[:5]) + (f", and {len(masked) - 5} more" if len(masked) > 5 else "")
+        print(f"FAIL [attest] this session cannot read what the commit holds: {shown} — mount points an agent's "
+              "sandbox puts over the paths it protects. A record made here would not be the commit's.\n"
+              "      Action: attest outside the sandbox — the person runs it in their own shell (in Claude Code, "
+              "! nstack attest …), or the decider does (.nstack/handbook/INSTALL.md).")
         return 1
     if _git(root, "status", "--porcelain", "--untracked-files=normal").stdout.strip():
         print("FAIL [attest] the tree holds changes: a record names one commit, and this tree is none.\n"
