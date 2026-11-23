@@ -2253,7 +2253,7 @@ def test_a_clone_of_a_working_clone_never_says_nobody_holds_a_held_deliverable(s
     pull_request.check_hold(verifier, "Deliverable: D1", set(), (set(), set(), []), lambda *a: None,
                             warned.append)
     said = "\n".join(warned)
-    assert "[K5] the holds are not read: who holds D1" in said and "a clone" in said and "not the forge" in said, said
+    assert "[K5] the holds are not read: who holds D1" in said and "clone" in said and "not the shared remote" in said, said
     git(verifier, "remote", "set-url", "origin", (alice).as_uri())  # file://, a local path too
     warned.clear()
     pull_request.check_cycle(verifier, "Deliverable: D1", set(), today, lambda *a: None, warned.append)
@@ -2261,7 +2261,74 @@ def test_a_clone_of_a_working_clone_never_says_nobody_holds_a_held_deliverable(s
     capsys.readouterr()
     assert hold.claim(verifier, "#7", session="v", person="@v") == 1  # never a hold pushed into the clone
     out = capsys.readouterr().out
-    assert out.count("Action:") == 1 and "point origin at the forge" in out, out
+    assert out.count("Action:") == 1 and "point origin at the shared remote" in out, out
+
+
+def _ready_d2(folder: Path) -> None:
+    cycle = folder / "docs/project/cycles/03-the-window.md"
+    cycle.write_text(cycle.read_text(encoding="utf-8").replace("state: proposed", "state: ready"), encoding="utf-8")
+    git(folder, "commit", "-q", "-am", "D2 ready")
+
+
+def test_a_claim_reads_the_cycle_on_the_remote_s_default_branch(shared, capsys):
+    """#505 (D273): a checkout behind the default branch still takes what the default branch made
+    ready, and a cycle changed only in the checkout gives nothing to take — the hold lives on the
+    remote, and so does the cycle it is taken from."""
+    alice = clone(shared, "alice")  # before D2 is made ready on the default branch
+    planner = clone(shared, "planner")
+    _ready_d2(planner)
+    git(planner, "push", "-q", "origin", "main")
+    assert hold.claim(alice, "D2", session="alice-d2", person="@alice") == 0, capsys.readouterr().out
+    bob = clone(shared, "bob")
+    git(bob, "reset", "-q", "--hard", "HEAD~1")
+    git(planner, "reset", "-q", "--hard", "HEAD~1")
+    git(planner, "push", "-q", "--force", "origin", "main")  # the default branch: D2 proposed again
+    _ready_d2(bob)  # this checkout alone says ready
+    capsys.readouterr()
+    assert hold.claim(bob, "D2", session="bob-d2", person="@bob") == 1
+    out = capsys.readouterr().out
+    assert "origin's default branch" in out and "differs from the default branch" in out, out
+
+
+def test_the_remote_s_cycles_are_read_as_plan_reads_them(shared, capsys):
+    """D273's verifier: a template is no cycle, and a closed cycle holding a date no calendar holds
+    is a file that cannot be read — never a traceback."""
+    planner = clone(shared, "planner")
+    folder = planner / "docs/project/cycles"
+    (folder / "_template.md").write_text("---\nstatus: accepted\ndeliverables: []\n---\n", encoding="utf-8")
+    (folder / "01-before.md").write_text("---\nstatus: closed\nstart: 2026-02-30\n---\n", encoding="utf-8")
+    git(planner, "add", "-A")
+    git(planner, "commit", "-q", "-m", "a template and an old cycle")
+    git(planner, "push", "-q", "origin", "main")
+    assert hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice") == 0, capsys.readouterr().out
+
+
+def test_a_claim_never_pushes_a_hold_into_a_working_clone(shared, capsys):
+    """#505 (D273): a `git clone --shared` of a working clone that mirrors no hold has that clone for
+    its remote. A hold pushed there is seen by nobody else: refused, and said — a bare repository
+    stays a shared remote."""
+    alice = clone(shared, "alice")
+    verifier = shared.parent / "verifier"
+    git(shared.parent, "clone", "-q", "--shared", str(alice), str(verifier))
+    capsys.readouterr()
+    assert hold.claim(verifier, "D1", session="v", person="@v") == 1
+    out = capsys.readouterr().out
+    assert "not the shared remote" in out and "git remote set-url origin" in out, out
+    assert not git(alice, "for-each-ref", "refs/heads/nstack"), "no hold pushed into the working clone"
+
+
+@pytest.mark.parametrize("bare", [True, False], ids=["a bare repository with a remote", "a working tree nobody cloned"])
+def test_a_local_hub_stays_a_shared_remote(shared, capsys, bare):
+    """D273's verifier: with no forge, a team's hub may be a local repository — bare, even cloned from
+    elsewhere, or the decider's own working tree, which is nobody's clone. Its holds are everyone's."""
+    hub = shared.parent / "hub"
+    git(shared.parent, "clone", "-q", *(["--bare"] if bare else []), str(shared), str(hub))
+    if not bare:
+        git(hub, "remote", "remove", "origin")
+    agent = shared.parent / "agent"
+    git(shared.parent, "clone", "-q", str(hub), str(agent))
+    assert hold.claim(agent, "D1", session="a-d1", person="@alice") == 0, capsys.readouterr().out
+    assert git(hub, "for-each-ref", "--format=%(refname)", "refs/heads/nstack") == f"refs/heads/{REF}"
 
 
 def test_a_branch_tracking_a_local_branch_reads_the_holds_of_origin(shared):
