@@ -330,6 +330,7 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
             if not unasked(rule, created):  # G21 on `approval: agent` alone
                 print(f"     - [ ] {setting}")
         print("  3. Check the workstation and GitHub, read-only: nstack doctor (token: see .nstack/handbook/INSTALL.md)")
+        print(_approval_step(created))
         return 0
     where = (f"Create the repository {created.get('repository')} at {named}, push main to it"
              if named != "none" else "No forge: the repository is this folder")
@@ -337,7 +338,19 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
           "works — nstack attest — and the repository is unguarded: nothing at the forge refuses a merge "
           "(.nstack/handbook/07-governance.md).")
     print("  3. Check the workstation, read-only: nstack doctor")
+    print(_approval_step(created))
     return 0
+
+
+def _approval_step(created: dict) -> str:
+    """Who approves a change, said at the start (D277): the default is not asked at init (PDR-0021), and
+    a solo project whose agents could approve each other would otherwise meet it at its first merge."""
+    if str(created.get("approval") or "human") == "agent":
+        return ("  4. Approval: another agent may approve a prototype or standard module (approval: agent); "
+                "a human code owner, the rest (.nstack/handbook/07-governance.md, *Agents and approval*).")
+    return ("  4. Approval: a human code owner approves every change (approval: human). Agents that may approve "
+            "each other's prototype and standard modules: the decider sets approval: agent in a pull request a "
+            "human approves (.nstack/handbook/07-governance.md, *Agents and approval*).")
 
 
 def _default_branch(root: Path) -> str | None:
