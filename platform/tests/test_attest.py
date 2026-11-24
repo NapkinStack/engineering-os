@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import signal
 import subprocess
 import sys
 import urllib.error
@@ -1378,3 +1379,46 @@ def test_a_folder_replaced_by_a_file_is_a_change_and_links_are_no_mask(tmp_path,
         mount.chmod(0o600)
     out = capsys.readouterr().out
     assert ".bashrc: no file or folder this session reads" in out and "attest outside the sandbox" in out, out
+
+
+# --- #526: a check runs for minutes, and a run stopped from outside said neither where nor what ----
+# Each step's output is captured until it ends: a long module's end-to-end was minutes of silence,
+# and a timeout that cut it left `ok` of the check before as the last line, no record, no word.
+
+GROUPED = (attest.Check("Groups", (attest.Step("echo", "Every changed module",
+                                               "echo '::group::modules/a'; echo inside; echo '::endgroup::'"),)),)
+
+
+def test_each_step_and_each_module_is_said_as_it_starts(tmp_path, monkeypatch, capsys):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", GROUPED)
+    assert attest.run(tmp_path, "HEAD", None, "") == 0
+    out = capsys.readouterr().out
+    started, module, ended = (out.index("run  [attest] Groups — Every changed module"),
+                              out.index("run  [attest] Groups — modules/a"), out.index("ok   [attest] Groups"))
+    assert started < module < ended, out
+    assert "inside" not in out, "a step's output stays its record's, shown on failure only"
+    assert records(tmp_path, git(tmp_path, "rev-parse", "HEAD"))[0]["checks"][0]["steps"][0]["output"].count("inside") == 1
+
+
+@pytest.mark.parametrize("signal_, code", [(signal.SIGTERM, 143), (signal.SIGINT, 130)])
+def test_a_run_stopped_from_outside_says_where_and_writes_no_record(tmp_path, signal_, code):
+    project(tmp_path)
+    script = (
+        "import sys; from pathlib import Path; from napkinstack import attest\n"
+        "attest.CHECKS = (attest.Check('Slow', (attest.Step('sleep', 'Every changed module',\n"
+        "    'echo ::group::modules/slow; echo pid=$$; exec sleep 60'),)),)\n"
+        f"sys.exit(attest.run(Path({str(tmp_path)!r}), 'HEAD', None, ''))\n")
+    run = subprocess.Popen([sys.executable, "-c", script], cwd=tmp_path, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True, env={**os.environ, **IDENTITY})
+    seen = ""
+    while "modules/slow" not in seen:
+        line = run.stdout.readline()
+        assert line, seen
+        seen += line
+    run.send_signal(signal_)
+    out = seen + run.stdout.read()
+    assert run.wait(timeout=30) == code, out
+    assert f"STOPPED [attest] Slow — modules/slow: {signal.Signals(signal_).name}; no record written" in out, out
+    assert subprocess.run(["git", "notes", f"--ref={attest.NOTES}", "list"], cwd=tmp_path, capture_output=True,
+                          text=True).stdout == "", "a stopped run recorded"

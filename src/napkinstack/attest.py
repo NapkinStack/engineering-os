@@ -28,9 +28,11 @@ import json
 import os
 import stat
 import re
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -614,6 +616,68 @@ def _mount_points(root: Path) -> list[str]:
     return [name for name in found if not (root / name).is_dir() and not _plain(root / name)]
 
 
+
+class _Stopped(Exception):
+    """A signal from outside — a timeout, Ctrl-C, a closed terminal — while the checks run (#526)."""
+
+    def __init__(self, signum: int):
+        super().__init__(signum)
+        self.signum = signum
+
+
+class _Running:
+    """The step running now, said as it starts: a check runs for minutes with its output captured,
+    and a run stopped from outside must say where it was, and that it wrote no record (#526)."""
+
+    STOPS = (signal.SIGTERM, signal.SIGINT)
+
+    def __init__(self) -> None:
+        self.where = ""
+        self.process: subprocess.Popen | None = None
+
+    def trap(self) -> dict:
+        if threading.current_thread() is not threading.main_thread():
+            return {}
+
+        def stop(signum, frame):
+            raise _Stopped(signum)
+
+        return {signum: signal.signal(signum, stop) for signum in self.STOPS}
+
+    def untrap(self, trapped: dict) -> None:
+        for signum, handler in trapped.items():
+            signal.signal(signum, handler)
+
+    def step(self, check: str, step: Step, root: Path, env: dict) -> tuple[int, str]:
+        """Runs one step, its output captured whole; says the step, and each module its
+        `::group::` line opens, as it starts."""
+        self.where = f"{check} — {step.label}"
+        print(f"run  [attest] {self.where}", flush=True)
+        self.process = subprocess.Popen(["bash", "-c", step.command], cwd=root, env=env, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT, text=True, errors="replace")
+        lines = []
+        for line in self.process.stdout:
+            lines.append(line)
+            if line.startswith("::group::") and line[9:].strip():
+                self.where = f"{check} — {line[9:].strip()}"
+                print(f"run  [attest] {self.where}", flush=True)
+        returncode = self.process.wait()
+        self.process = None
+        return returncode, "".join(lines)
+
+    def stopped(self, signum: int) -> int:
+        if self.process is not None and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+        print(f"STOPPED [attest] {self.where}: {signal.Signals(signum).name}; no record written — "
+              "a record holds whole runs only. Run nstack attest again.", flush=True)
+        return 128 + signum
+
+
 def run(root: Path, base: str, body_file: Path | None, labels: str | None, accept_identity: bool = False,
         again: bool = False) -> int:
     print(provenance.judged_by(root), flush=True)
@@ -652,56 +716,62 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     # The engine that runs this command runs the checks: its folder first on the path.
     env["PATH"] = os.pathsep.join([str(Path(sys.argv[0]).resolve().parent), env.get("PATH", "")])
     results = []
-    with tempfile.TemporaryDirectory() as tmp:
-        body = body_file or Path(tmp, "body.md")
-        if body_file is None:
-            body.write_text("", encoding="utf-8")
-        body_text = Path(body).read_text(encoding="utf-8", errors="replace")
-        # NSTACK_ATTESTING: pr-check, run as one of the checks, judges the pull request's rules
-        # without asking for the record this run is making (A1, A2) — found rehearsing v0.10.0.
-        env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
-                   NSTACK_ATTESTING=commit)
-        digest = inputs(root, base, json.dumps([engine, unplaced(origin, root), origin is None, who]))
-        env["NSTACK_INPUTS"] = digest or ""  # the head's, for pr-check's T4 while this record is made (D223)
-        for check in CHECKS:
-            kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root), root)
-            if kept is not None:
-                results.append(kept)
-                print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
-                      "and engine (nstack attest --again runs it)", flush=True)
-                continue
-            kept = None if again else _by_inputs(root, base, digest, check, engine, origin, base_commit, who,
-                                                  unplaced(origin, root))
-            if kept is not None:
-                results.append(kept)
-                print(f"ok   [attest] {check.name}: kept from the run on {kept['kept_commit'][:7]} at {kept['kept_from']} — "
-                      f"same inputs ({digest[:12]}), within {FRESH_DAYS} days and {FRESH_COMMITS} commits of the "
-                      "default branch (nstack attest --again runs it)", flush=True)
-                continue
-            steps, outputs = [], []
-            for step in check.steps:
-                done = subprocess.run(["bash", "-c", step.command], cwd=root, env=env, stdout=subprocess.PIPE,
-                                      stderr=subprocess.STDOUT, text=True, errors="replace")
-                steps.append({"label": step.label, "command": step.command, "exit": done.returncode,
-                              "output": capped(done.stdout),
-                              "sha256": hashlib.sha256(done.stdout.encode("utf-8", "replace")).hexdigest()})
-                outputs.append(done.stdout)
-            passed = all(step["exit"] == 0 for step in steps)
-            results.append({"name": check.name, "passed": passed, "steps": steps,
-                            **({"inputs": digest} if check.kept and digest else {})})
-            failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
-            print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
-            for step, whole in zip(steps, outputs):
-                if step["exit"]:
-                    print("\n".join(f"       {line}" for line in why(whole)), flush=True)
-            if failed:
-                try:
-                    log = keep_log(root, commit, check.name, [(s["label"], o) for s, o in zip(steps, outputs)])
-                except OSError as error:  # a full or read-only disk never costs the record
-                    print(f"       whole output: not kept ({error.strerror})", flush=True)
-                else:
-                    shown = log.relative_to(root) if log.is_relative_to(root) else log
-                    print(f"       whole output: {shown}", flush=True)
+    running = _Running()
+    trapped = running.trap()
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            body = body_file or Path(tmp, "body.md")
+            if body_file is None:
+                body.write_text("", encoding="utf-8")
+            body_text = Path(body).read_text(encoding="utf-8", errors="replace")
+            # NSTACK_ATTESTING: pr-check, run as one of the checks, judges the pull request's rules
+            # without asking for the record this run is making (A1, A2) — found rehearsing v0.10.0.
+            env.update(NSTACK_BASE=base, NSTACK_BODY=str(Path(body).resolve()), NSTACK_TMP=tmp,
+                       NSTACK_ATTESTING=commit)
+            digest = inputs(root, base, json.dumps([engine, unplaced(origin, root), origin is None, who]))
+            env["NSTACK_INPUTS"] = digest or ""  # the head's, for pr-check's T4 while this record is made (D223)
+            for check in CHECKS:
+                kept = _kept(previous, check, engine, origin, base_commit, who, unplaced(origin, root), root)
+                if kept is not None:
+                    results.append(kept)
+                    print(f"ok   [attest] {check.name}: kept from the record of {kept['kept_from']} — same commit, base "
+                          "and engine (nstack attest --again runs it)", flush=True)
+                    continue
+                kept = None if again else _by_inputs(root, base, digest, check, engine, origin, base_commit, who,
+                                                      unplaced(origin, root))
+                if kept is not None:
+                    results.append(kept)
+                    print(f"ok   [attest] {check.name}: kept from the run on {kept['kept_commit'][:7]} at {kept['kept_from']} — "
+                          f"same inputs ({digest[:12]}), within {FRESH_DAYS} days and {FRESH_COMMITS} commits of the "
+                          "default branch (nstack attest --again runs it)", flush=True)
+                    continue
+                steps, outputs = [], []
+                for step in check.steps:
+                    returncode, output = running.step(check.name, step, root, env)
+                    steps.append({"label": step.label, "command": step.command, "exit": returncode,
+                                  "output": capped(output),
+                                  "sha256": hashlib.sha256(output.encode("utf-8", "replace")).hexdigest()})
+                    outputs.append(output)
+                passed = all(step["exit"] == 0 for step in steps)
+                results.append({"name": check.name, "passed": passed, "steps": steps,
+                                **({"inputs": digest} if check.kept and digest else {})})
+                failed = "; ".join(f"{s['label']} exited {s['exit']}" for s in steps if s["exit"])
+                print(f"FAIL [attest] {check.name}: {failed}" if failed else f"ok   [attest] {check.name}", flush=True)
+                for step, whole in zip(steps, outputs):
+                    if step["exit"]:
+                        print("\n".join(f"       {line}" for line in why(whole)), flush=True)
+                if failed:
+                    try:
+                        log = keep_log(root, commit, check.name, [(s["label"], o) for s, o in zip(steps, outputs)])
+                    except OSError as error:  # a full or read-only disk never costs the record
+                        print(f"       whole output: not kept ({error.strerror})", flush=True)
+                    else:
+                        shown = log.relative_to(root) if log.is_relative_to(root) else log
+                        print(f"       whole output: {shown}", flush=True)
+    except _Stopped as stop:
+        return running.stopped(stop.signum)
+    finally:
+        running.untrap(trapped)
     record = {"record": RECORD, "commit": commit,
               "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds"),
               "engine": engine, "origin": origin, "published": origin is None, "by": who, "session": _session(root, commit),
