@@ -306,3 +306,104 @@ def test_the_hook_fetches_only_to_refuse_and_from_the_remote_pushed_to(tmp_path)
     assert "git fetch, then push again" in missing.stdout
     named = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": str(tmp_path / "remote.git")})
     assert named.returncode == 1 and "this hook fetched the remote's" in named.stdout, named.stdout
+
+
+# --- #521: a rebase or a cherry-pick carries a misplaced Agent-Session past the commit-msg hook ----------
+# git runs commit-msg on a commit, an amend included, never on a rebase or a cherry-pick: a message
+# written before the hook, or where it was not installed, reached the push unchanged, and T2 said so
+# only at attest, after a verifier had run the sheet. The push is where every path meets.
+
+SPLIT = "work\n\nAgent-Session: s-1\n\nCo-Authored-By: A <a@example.org>"
+JOINED = "work\n\nAgent-Session: s-1\nCo-Authored-By: A <a@example.org>"
+
+
+def _commit(project: Path, env: dict, message: str) -> None:
+    subprocess.run(["git", "commit", "-q", "--no-verify", "--allow-empty", "-m", message], cwd=project, check=True, env=env)
+
+
+@pytest.mark.parametrize("agent", [True, False])
+def test_a_session_git_does_not_read_as_a_trailer_is_refused_before_the_push(tmp_path, agent):
+    project, env = _repo(tmp_path)
+    env = env if agent else {key: value for key, value in env.items() if key != "NSTACK_AGENT"}
+    _commit(project, env, SPLIT)
+    short = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=project, capture_output=True, text=True,
+                           env=env).stdout.strip()
+    result = _hook(project, env)
+    assert result.returncode == 1, result.stdout
+    said = result.stdout
+    assert "FAIL [nstack] 1 commit(s) name an Agent-Session git does not read as a trailer" in said, said
+    assert f"{short} work" in said, "the commit is named, with its subject"
+    assert "git rebase -i" in said and "reword" in said and "never runs the commit-msg hook" in said, said
+
+
+def test_a_session_in_the_trailer_block_or_none_at_all_goes_through(tmp_path):
+    project, env = _repo(tmp_path)
+    _commit(project, env, JOINED)
+    _commit(project, env, "no session: a person's commit")
+    _commit(project, env, "a word in a sentence: the Agent-Session trailer is said here")
+    assert "Agent-Session git does not read" not in _hook(project, env).stdout
+
+
+def test_a_misplaced_session_the_remote_already_holds_is_not_the_push_s(tmp_path):
+    """A forge's squash merge keeps each commit's message above its co-authors: Agent-Session lines in
+    the middle of the message, on the remote already. Only what the push publishes is judged."""
+    project, env = _repo(tmp_path)
+    _commit(project, env, SPLIT)
+    subprocess.run(["git", "push", "-q", "--no-verify", "origin", "HEAD:main"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q"], cwd=project, check=True, env=env)
+    _commit(project, env, JOINED)
+    assert "Agent-Session git does not read" not in _hook(project, env).stdout
+
+
+SQUASH = "Feature (#2)\n\n* work\n\nAgent-Session: s-3\n\n* more\n\nCo-authored-by: A <a@example.org>"
+
+
+def _forge_squash(tmp_path: Path, env: dict) -> None:
+    """The forge's squash merge on the remote's main, pushed from another clone: each commit's message
+    above the co-authors, Agent-Session lines in the middle."""
+    subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=tmp_path / "remote.git", check=True, env=env)
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(tmp_path / "remote.git"), str(other)], check=True, env=env,
+                   capture_output=True)
+    _commit(other, env, SQUASH)
+    subprocess.run(["git", "push", "-q", "origin", "HEAD:main"], cwd=other, check=True, env=env)
+
+
+def test_a_forge_squash_brought_by_fetch_head_is_the_remote_s_never_rewritten(tmp_path):
+    """Merged from FETCH_HEAD, origin/main stale: the hook fetches before refusing and lets it through;
+    when it cannot fetch, the refusal says the remote's commit is never rewritten."""
+    project, env = _repo(tmp_path)
+    _forge_squash(tmp_path, env)
+    subprocess.run(["git", "fetch", "-q", str(tmp_path / "remote.git"), "main"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "merge", "-q", "--no-edit", "FETCH_HEAD"], cwd=project, check=True, env=env)
+    reached = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert "Agent-Session git does not read" not in reached.stdout, reached.stdout
+    subprocess.run(["git", "update-ref", "-d", "refs/nstack-remote/base"], cwd=project, check=True, env=env)
+    offline = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "nowhere"})
+    assert offline.returncode == 1 and "Feature (#2)" in offline.stdout, offline.stdout
+    assert "is never rewritten: git fetch, then push again" in offline.stdout, offline.stdout
+
+
+def test_a_forge_squash_claim_fetched_is_the_remote_s(tmp_path):
+    project, env = _repo(tmp_path)
+    _forge_squash(tmp_path, env)
+    subprocess.run(["git", "fetch", "-q", "origin", "+main:refs/nstack-remote/base"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "switch", "-q", "-c", "issue-7-work", "refs/nstack-remote/base"], cwd=project, check=True, env=env)
+    result = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": "nowhere"})
+    assert "Agent-Session git does not read" not in result.stdout, result.stdout
+
+
+def test_a_ref_with_no_ancestor_on_the_remote_is_read_by_its_branch(tmp_path):
+    """pre-commit gives no TO_REF for a ref none of whose ancestors the remote holds; it names the
+    local branch pushed, which may not be HEAD."""
+    project, env = _repo(tmp_path)
+    home = subprocess.run(["git", "rev-parse", "HEAD"], cwd=project, capture_output=True, text=True, check=True,
+                          env=env).stdout.strip()
+    subprocess.run(["git", "switch", "-q", "--orphan", "solo"], cwd=project, check=True, env=env)
+    _commit(project, env, SPLIT)
+    subprocess.run(["git", "switch", "-q", "--detach", home], cwd=project, check=True, env=env)
+    result = subprocess.run(["sh", ".nstack/fitness-before-push.sh"], cwd=project, capture_output=True, text=True,
+                            env={**env, "PATH": "/usr/bin:/bin", "PRE_COMMIT_LOCAL_BRANCH": "refs/heads/solo",
+                                 "PRE_COMMIT_REMOTE_NAME": "nowhere", "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/solo"},
+                            timeout=60)
+    assert result.returncode == 1 and "Agent-Session git does not read" in result.stdout, result.stdout
