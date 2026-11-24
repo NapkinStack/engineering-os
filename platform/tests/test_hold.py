@@ -778,11 +778,28 @@ def test_a_claim_opens_a_draft_pull_request_naming_the_deliverable(shared, monke
 
 
 @pytest.mark.parametrize("url", ["https://user:secret@github.com/acme/p.git", "ssh://git@github.com/acme/p.git",
-                                 "git@github.com:acme/p.git", "https://github.com/acme/p"])
+                                 "ssh://deploy@github.com/acme/p.git", "git@github.com:acme/p.git",
+                                 "https://github.com/acme/p"])
 def test_a_github_remote_is_read_whatever_user_it_names(url):
     from napkinstack.doctor import ON_GITHUB
 
     assert ON_GITHUB.search(url).group(1) == "acme/p"
+
+
+@pytest.mark.parametrize("url", ["https://evil.com/@github.com/acme/p", "https://github.com.evil.com/acme/p",
+                                 "https://github.com@evil.com/acme/p", "https://evil.com?@github.com/acme/p",
+                                 "https://evil.com#@github.com/acme/p", "https://evil.com/gh:acme/p",
+                                 "https://evil.com/x/git@github.com:acme/p", "http://github.com/acme/p"])
+def test_another_host_is_never_read_as_github(url):
+    """Git reads the host up to the first `/`, `?` or `#` after the scheme, and the last `@` before
+    it: each of these addresses is another host's, and its writes would go to a repository it is not."""
+    from napkinstack.doctor import ON_GITHUB
+
+    assert ON_GITHUB.search(url) is None
+
+
+def test_an_enterprise_remote_s_host_is_never_taken_from_a_user():
+    assert hold.SERVER.fullmatch("https://evil.com?@ghe.example/acme/p.git") is None
 
 
 def test_from_an_agent_s_clone_the_claim_opens_its_draft_pull_request(shared, monkeypatch, capsys):

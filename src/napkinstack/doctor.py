@@ -101,8 +101,10 @@ LABELS = EXCEPTIONS + ISSUES
 PUBLISHED = provenance.PUBLISHED  # a published version is a vX.Y.Z tag (ADR-0002), as CI installs it
 REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
 # A user in the address is read past, as git reads it: an agent's clone names x-access-token there,
-# to keep the person's ~/.netrc out (agent.remote, #522). Nothing of it is printed or kept.
-ON_GITHUB = re.compile(r"(?:https://(?:[^@/]+@)?github\.com/|ssh://(?:[^@/]+@)?github\.com/|git@github\.com:|gh:)"
+# to keep the person's ~/.netrc out (agent.remote, #522). Nothing of it is printed or kept. Git ends
+# the host's part at `/`, `?` or `#`: none of them is a user's, or another host would read as GitHub.
+# The whole address, from its start: a GitHub address inside another's path is not one.
+ON_GITHUB = re.compile(r"^(?:https://(?:[^@/?#]+@)?github\.com/|ssh://(?:[^@/?#]+@)?github\.com/|git@github\.com:|gh:)"
                        r"([^/]+/[^/]+?)(?:\.git)?/?$")
 
 RULESET = "Settings → Rules → Rulesets, main branch"

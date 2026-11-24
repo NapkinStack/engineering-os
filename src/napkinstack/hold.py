@@ -453,7 +453,7 @@ def _forge(root: Path, name: str | None) -> tuple[str, str, str] | None:
 
 
 # A remote with a host: scheme://[user@]host[:port]/path, or scp-like user@host:path.
-SERVER = re.compile(r"(?:(?:https?|ssh|git)://(?:[^@/]+@)?(?P<host>[^/:]+)(?::\d+)?/|[^/@:]+@(?P<scp>[^/:]+):)"
+SERVER = re.compile(r"(?:(?:https?|ssh|git)://(?:[^@/?#]+@)?(?P<host>[^/:?#@]+)(?::\d+)?/|[^/@:]+@(?P<scp>[^/:]+):)"
                     r"(?P<path>[^/]+/[^/]+?)(?:\.git)?/?")
 
 
