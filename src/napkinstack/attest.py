@@ -729,7 +729,8 @@ def run(root: Path, base: str, body_file: Path | None, labels: str | None, accep
     running = _Running()
     trapped = running.trap()
     try:
-        with tempfile.TemporaryDirectory() as tmp:
+        # The run's own scratch: a child a stopped step left writing in it must not cost the run's word (#526).
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             body = body_file or Path(tmp, "body.md")
             if body_file is None:
                 body.write_text("", encoding="utf-8")
