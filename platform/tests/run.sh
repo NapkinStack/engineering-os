@@ -1512,7 +1512,7 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: a project that has done everything its plan allows must not be reported as faulty."
   echo "$OUT"; exit 1
 fi
-grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
+grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" && grep_text "$OUT" -qE "NOT APPLICABLE +\[G9\]" \
   && [ "$(echo "$OUT" | grep -cE '^  OUT OF REACH +\[')" -eq 11 ] \
   && grep_text "$OUT" -qF "Secret Protection is a paid option" \
   && grep_text "$OUT" -qE "OK +\[G7\]" \
@@ -1529,7 +1529,8 @@ if ! OUT=$(GH_TOKEN=fake-token published doctor --root "$C" 2>&1); then
   echo "FAIL: compliant private repository refused."; echo "$OUT"; exit 1
 fi
 grep_text "$OUT" -qF "nstack doctor: compliant" && grep_text "$OUT" -qE "NOT APPLICABLE +\[G6\]" \
-  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 27 ] \
+  && grep_text "$OUT" -qE "NOT APPLICABLE +\[G9\]" \
+  && [ "$(echo "$OUT" | grep -cE '^  OK +\[')" -eq 26 ] \
   || { echo "FAIL: compliant private repository badly reported."; echo "$OUT"; exit 1; }
 
 echo "-> doctor: without a token, the GitHub part is not verified, never compliant — and exits 2, not 1 (D77)"

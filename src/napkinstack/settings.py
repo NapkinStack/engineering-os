@@ -345,9 +345,21 @@ def _refused(token: str | None, repo: str) -> str | None:
     return None
 
 
-def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str], source: str) -> int:
+def _unread(unread: list[str], source: str) -> str:
+    """What --apply says of the rules it could not read, so wrote nothing for (#523)."""
+    who = ("a gh login that administers the repository" if source == "gh" else
+           "a token with Administration: write and Issues: write")
+    return (f"FAIL [settings] not read with this token, so not written: {', '.join(unread)}. --apply never writes "
+            f"what it could not read: it would add a ruleset or a label twice.\n      Action: run nstack settings "
+            f"--apply again with {who}.")
+
+
+def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str], source: str,
+           unread: list[str] | None = None) -> int:
     login = _login(client.api, client.token)
     said = "your gh login's token" if source == "gh" else f"the token in {source}"
+    if unread:
+        print(f"\nNot read with this token, so left out with every call that closes them: {', '.join(unread)}.")
     print(f"\n{len(calls)} call(s) to close the distance to the checklist, on {client.repo} as "
           f"{'@' + login if login else 'an account the forge did not name'}, with {said}:")
     for closed, method, path, _ in calls:
@@ -401,14 +413,18 @@ def _apply(client: Forge, root: Path, calls: list[Call], notes: list[str], sourc
             os.environ["GH_TOKEN"] = before
     if source == "gh":
         print("\nThe gh login's token was read for this run and kept nowhere: your gh login stays as it was.")
+    elif unread:
+        print("\nRevoke the credential you gave this run: nothing kept it. What it could not read asks for another.")
     else:
         print("\nRevoke the credential you gave this run now: nothing kept it, and nothing asks for it again.")
+    if unread:
+        print(_unread(unread, source))
     if failed:
         print(f"FAIL [settings] {failed} call(s) refused by the forge, named above with its answer.\n"
               "      Action: fix what the forge said, then run nstack settings --apply again — what is in "
               "place is not applied twice.")
         return 1
-    return code
+    return 1 if unread else code
 
 
 def run(root: Path, apply: bool = False) -> int:
@@ -486,9 +502,16 @@ def run(root: Path, apply: bool = False) -> int:
                   "  Two exits: make it public, or move it to a plan that enforces rulesets.")
     reach = {rule for rule, _ in out_of_reach}
     if apply and (unread := [rule for rule in unread if rule not in reach]):
-        print("\nFAIL [settings] not read with this token: " + ", ".join(unread) + ". --apply never writes "
-              "what it could not read: it would add a ruleset or a label twice.\n      Action: give the token "
-              "Administration: write and Issues: write, then run again.")
+        # A call closing a rule it could not read is left out — it could add a ruleset or a label
+        # twice —; every other is made: one unreadable rule never holds back the rest (#523).
+        calls = [call for call in calls if not set(call[0].split(", ")) & set(unread)]
+        if calls:
+            return _apply(client, root, calls, notes, source, unread)
+        if notes := [note for note in notes if not note.startswith("G4 ")]:
+            print("\nLeft to do by hand:")
+            for note in notes:
+                print(f"  {note.replace('run this call again', 'run nstack settings --apply again')}")
+        print("\n" + _unread(unread, source))
         return 1
     if unread:
         print("\nNot read with this token, planned as if missing: " + ", ".join(unread)

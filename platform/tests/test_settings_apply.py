@@ -17,6 +17,7 @@ from napkinstack import doctor, settings
 
 TOKEN = "github_pat_person-secret-value"
 REAL_GH_TOKEN = settings._gh_token  # before conftest stubs it for every test
+REAL_DOCTOR = doctor.run  # before the fixture stubs it
 
 
 class Forge(http.server.BaseHTTPRequestHandler):
@@ -125,12 +126,68 @@ def test_it_needs_a_credential(forge, monkeypatch, capsys):
     assert "gh auth login" in out and "target_name=acme&expires_in=1&administration=write&issues=write" in out, out
 
 
-def test_it_never_writes_what_it_could_not_read(forge, monkeypatch, capsys):
+def test_it_never_writes_what_it_could_not_read_and_writes_what_it_read(forge, monkeypatch, capsys):
+    """#523: one rule it could not read held back every rule it had; the reason — a ruleset or a label
+    added twice — is the unread rule's alone. Its calls are left out, named, and the run fails."""
     root, _ = forge
-    missing(monkeypatch, "G1", unread=("G11",))
+    missing(monkeypatch, "G1", "G10", unread=("G11",))
     assert settings.run(root, apply=True) == 1
     out = capsys.readouterr().out
-    assert "never writes what it could not read" in out and "G11" in out and Forge.writes == []
+    assert [(m, p) for m, p, _ in Forge.writes] == [("POST", "/rulesets"), ("PUT", "/actions/permissions/workflow")], out
+    assert "/labels" not in str(Forge.writes)
+    assert "FAIL [settings] not read with this token, so not written: G11" in out, out
+
+
+@pytest.mark.parametrize("unread", ["G1", "G2"])
+def test_a_ruleset_closing_an_unread_rule_is_never_written(forge, monkeypatch, capsys, unread):
+    root, _ = forge
+    missing(monkeypatch, "G1", "G2", "G10", unread=(unread,))
+    assert settings.run(root, apply=True) == 1
+    assert [(m, p) for m, p, _ in Forge.writes] == [("PUT", "/actions/permissions/workflow")], capsys.readouterr().out
+
+
+def test_what_is_left_out_is_said_before_the_question_and_the_failure_before_the_revocation(forge, monkeypatch, capsys):
+    root, _ = forge
+    asked = []
+    monkeypatch.setattr(settings, "_ask", lambda prompt: asked.append(capsys.readouterr().out) or "y")
+    missing(monkeypatch, "G10", unread=("G11",))
+    assert settings.run(root, apply=True) == 1
+    assert "so left out with every call that closes them: G11" in asked[0], asked
+    out = capsys.readouterr().out
+    assert "nothing asks for it again" not in out, out
+    assert out.index("Revoke the credential") < out.index("FAIL [settings] not read with this token"), out
+    assert "Action: run nstack settings --apply again with a token with Administration: write" in out, out
+
+
+def test_with_no_call_left_the_steps_by_hand_are_still_said(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G12", unread=("G11",))
+    assert settings.run(root, apply=True) == 1
+    out = capsys.readouterr().out
+    assert "Left to do by hand:" in out and "G12" in out and Forge.writes == [], out
+
+
+def test_doctor_says_g6_and_g9_do_not_apply_to_a_private_repository(forge, monkeypatch, capsys):
+    root, _ = forge
+    Forge.routes[""] = {"default_branch": "main", "visibility": "private"}
+    missing(monkeypatch, unread=("G9",))
+    REAL_DOCTOR(root)  # doctor itself, not the stub the fixture puts in its place
+    out = capsys.readouterr().out
+    for rule in ("G6", "G9"):
+        assert any(line.strip().startswith(f"NOT APPLICABLE [{rule}]") for line in out.splitlines()), out
+
+
+def test_on_a_private_repository_g9_is_not_asked_and_the_labels_are_made(forge, monkeypatch, capsys):
+    """#523: on a private repository the forge has no contributor approval to read — HTTP 422 under an
+    administrator's token —; private forks run under another setting. G9 is not judged there, as G6."""
+    root, _ = forge
+    Forge.routes[""] = {"default_branch": "main", "visibility": "private"}
+    missing(monkeypatch, "G11", unread=("G9",))
+    assert settings.run(root, apply=True) == 0, capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert [p for m, p, _ in Forge.writes] == ["/labels"] * len(doctor.LABELS), out
+    assert "G9" not in out, out
+    assert "G9" in doctor.PUBLIC_ONLY
 
 
 def test_a_compliant_repository_gets_no_call(forge, monkeypatch, capsys):
