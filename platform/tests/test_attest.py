@@ -1479,3 +1479,25 @@ def test_a_second_signal_while_stopping_changes_nothing(tmp_path):
 
 def test_a_stop_before_the_first_step_names_where_it_was():
     assert attest._Running().where == "before the first check"
+
+
+def test_a_temporary_folder_that_cannot_be_removed_never_costs_the_run(tmp_path, monkeypatch, capsys):
+    """#526 again, seen in the oracle: a child the step started — in the background, or a `touch` still
+    running when a stopped step is ended — wrote in the temporary folder while it was removed; the
+    removal's ENOTEMPTY replaced the stop's message. A race, made certain here: every removal of a
+    folder fails. The folder is the run's own scratch: removed as far as it can be, never at the cost of
+    the run's record or of saying where it stopped."""
+    import errno
+
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    real = os.rmdir
+
+    def refused(path, *args, **kwargs):
+        if "tmp" in str(path) or kwargs.get("dir_fd") is not None:
+            raise OSError(errno.ENOTEMPTY, "Directory not empty", str(path))
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "rmdir", refused)
+    assert attest.run(tmp_path, "HEAD", None, "") == 0, capsys.readouterr().out
+    assert "Record of" in capsys.readouterr().out
