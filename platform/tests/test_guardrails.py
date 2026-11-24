@@ -641,7 +641,7 @@ PR_CASES = {
     "P2 over budget": ({"modules/a/x.txt": 3}, {"MAX_LINES": "1"}, "WARNING [P2] Over the review budget.", 0),
     "P2 an empty budget is the default (D40)": ({"modules/a/x.txt": 3}, {"MAX_LINES": ""}, "3/400 lines", 0),
     "P2 a budget that is no number (D40)": ({"modules/a/x.txt": 3}, {"MAX_FILES": "many"},
-                                            "FAIL [pr-scope] MAX_FILES 'many' is not a number", 1),
+                                            "FAIL [pr-scope] MAX_FILES in the environment: 'many' is not a whole number above 0", 1),
 }
 
 

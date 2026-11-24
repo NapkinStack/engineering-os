@@ -14,8 +14,10 @@ The `cross-module` label lifts P1, the `over-budget` label documents P2: both ar
 so the exceptions are countable (.nstack/handbook/10-measurement.md §3).
 
 Usage :  nstack pr-scope [--root ROOT] [--base BASE]
-In CI :  PR_LABELS comes from the pull_request event; MAX_LINES and MAX_FILES override the
-         budget.
+The budget is the project's: `review_budget_lines` and `review_budget_files` in its answers
+(`nstack config`), 400 and 15 by default; MAX_LINES and MAX_FILES in the environment override them
+for a run (#529). The source taken is said.
+In CI :  PR_LABELS comes from the pull_request event.
 """
 
 from __future__ import annotations
@@ -60,14 +62,22 @@ def run(root: Path, base: str) -> int:
         print(f"FAIL [pr-scope] base '{base}' not found: the change cannot be measured.\n"
               "      Action: fetch the history (fetch-depth: 0), or pass an existing commit.")
         return 1
-    budget = {}
-    for name, default in (("MAX_LINES", 400), ("MAX_FILES", 15)):
-        value = os.environ.get(name) or str(default)
-        if not value.isdigit():
-            print(f"FAIL [pr-scope] {name} '{value}' is not a number.\n      Action: set it to a whole "
-                  f"number, or unset it for {default}.")
+    from napkinstack import config
+
+    budget, sources = {}, []
+    for name, setting in (("MAX_LINES", "review_budget_lines"), ("MAX_FILES", "review_budget_files")):
+        if os.environ.get(name):
+            value, source = os.environ[name], f"{name} in the environment"
+            action = f"set it to a whole number, or unset it for the project's {setting}"
+        else:
+            answer, where = config.value(root, setting)
+            value, source = str(answer), (setting if where == "default" else f"{setting} in {where}")
+            action = f"nstack config {setting} <a whole number above 0>"
+        if not value.isdigit() or int(value) < 1:
+            print(f"FAIL [pr-scope] {source}: '{value}' is not a whole number above 0.\n      Action: {action}.")
             return 1
         budget[name] = int(value)
+        sources.append(source + (", by default" if source == setting else ""))
     files = changed_files(root, base)
     if not files:
         print("No file changed.")
@@ -100,7 +110,7 @@ def run(root: Path, base: str) -> int:
         changed += 1
         lines += (int(added) if added.isdigit() else 0) + (int(removed) if removed.isdigit() else 0)
     max_lines, max_files = budget["MAX_LINES"], budget["MAX_FILES"]
-    print(f"\nReview budget : {lines}/{max_lines} lines, {changed}/{max_files} files")
+    print(f"\nReview budget : {lines}/{max_lines} lines, {changed}/{max_files} files ({'; '.join(sources)})")
     if (lines > max_lines or changed > max_files) and "over-budget" in labels:
         print("WARNING [P2] Over budget, justified by label.")
     elif lines > max_lines or changed > max_files:
