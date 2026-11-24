@@ -100,7 +100,10 @@ ISSUES = ("request", "bug", "architecture", "debt", "acceptance")
 LABELS = EXCEPTIONS + ISSUES
 PUBLISHED = provenance.PUBLISHED  # a published version is a vX.Y.Z tag (ADR-0002), as CI installs it
 REMOTE = re.compile(r"https://|ssh://|git@[^:/]+:|gh:|gl:")  # as .nstack/install-engine.sh reads them
-ON_GITHUB = re.compile(r"(?:https://github\.com/|ssh://git@github\.com/|git@github\.com:|gh:)([^/]+/[^/]+?)(?:\.git)?/?$")
+# A user in the address is read past, as git reads it: an agent's clone names x-access-token there,
+# to keep the person's ~/.netrc out (agent.remote, #522). Nothing of it is printed or kept.
+ON_GITHUB = re.compile(r"(?:https://(?:[^@/]+@)?github\.com/|ssh://(?:[^@/]+@)?github\.com/|git@github\.com:|gh:)"
+                       r"([^/]+/[^/]+?)(?:\.git)?/?$")
 
 RULESET = "Settings → Rules → Rulesets, main branch"
 SECURITY = "Settings → Advanced Security"

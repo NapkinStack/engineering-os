@@ -777,6 +777,32 @@ def test_a_claim_opens_a_draft_pull_request_naming_the_deliverable(shared, monke
     assert "pull/7" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("url", ["https://user:secret@github.com/acme/p.git", "ssh://git@github.com/acme/p.git",
+                                 "git@github.com:acme/p.git", "https://github.com/acme/p"])
+def test_a_github_remote_is_read_whatever_user_it_names(url):
+    from napkinstack.doctor import ON_GITHUB
+
+    assert ON_GITHUB.search(url).group(1) == "acme/p"
+
+
+def test_from_an_agent_s_clone_the_claim_opens_its_draft_pull_request(shared, monkeypatch, capsys):
+    """#522: `nstack agent add` sets the clone's remote to agent.remote(), whose user keeps the
+    person's ~/.netrc out; the forge's reader took that remote for none, and skipped every write."""
+    from napkinstack import agent
+
+    monkeypatch.delenv("GITHUB_SERVER_URL", raising=False)
+    url = agent.remote("acme/p")
+    alice = clone(shared, "alice")
+    git(alice, "config", f"url.{shared}.insteadOf", url)
+    git(alice, "remote", "set-url", "origin", url)
+    forge = Forge()
+    monkeypatch.setattr(hold.urllib.request, "urlopen", forge)
+    monkeypatch.setenv("GH_TOKEN", "token")
+    assert hold._forge(alice, "origin")[1] == "acme/p"
+    assert hold.claim(alice, "D1", session="alice-d1", person="@alice") == 0
+    assert [url for method, url, _ in forge.calls if method == "POST" and url.endswith("/repos/acme/p/pulls")]
+
+
 def test_without_a_token_the_display_is_skipped_and_said(shared, capsys):
     hold.claim(clone(shared, "alice"), "D1", session="alice-d1", person="@alice")
     assert "not shown on a forge (no GitHub remote, or no token); nstack plan shows who holds what" \
