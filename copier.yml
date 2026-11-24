@@ -87,6 +87,8 @@ checks:
   choices: [forge, attested]
   default: "{{ 'forge' if forge == 'github' else 'attested' }}"
   help: Where a pull request's checks are judged — forge, or attested on a workstation
+  validator: >-
+    {% if checks == 'forge' and forge != 'github' %}No CI is shipped off GitHub: checks are attested there.{% endif %}
 
 # How many days a hold of a deliverable may go without work before another contributor may take
 # it over (ADR-0007) — the decider's word, changed in a pull request. Not asked at init.

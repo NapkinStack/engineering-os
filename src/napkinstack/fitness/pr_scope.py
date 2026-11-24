@@ -70,7 +70,12 @@ def run(root: Path, base: str) -> int:
             value, source = os.environ[name], f"{name} in the environment"
             action = f"set it to a whole number, or unset it for the project's {setting}"
         else:
-            answer, where = config.value(root, setting)
+            try:
+                answer, where = config.value(root, setting)
+            except config.Unreadable as error:
+                print(f"FAIL [pr-scope] {error}: the review budget is the project's answer.\n"
+                      "      Action: fix the file's YAML, then run again.")
+                return 1
             value, source = str(answer), (setting if where == "default" else f"{setting} in {where}")
             action = f"nstack config {setting} <a whole number above 0>"
         if not value.isdigit() or int(value) < 1:

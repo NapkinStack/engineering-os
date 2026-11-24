@@ -171,3 +171,103 @@ def test_an_agent_s_change_names_its_session(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("NSTACK_AGENT", "scout")
     assert config.run(root, "hold_days", "10") == 1
     assert "--session <this session>" in capsys.readouterr().out
+
+
+# --- what a fresh verifier found: every guard of a change, and the values it writes ----------------
+
+def _branches(root: Path) -> list[str]:
+    return [line.strip("* ").strip() for line in _git(root, "branch").splitlines()]
+
+
+@pytest.mark.parametrize(("said", "written"), [("true", True), ("false", None), ("yes", True)])
+def test_a_bool_is_written_as_yaml_s_bool(tmp_path, made, said, written):
+    root = _project(tmp_path, made)
+    code = config.run(root, "agent_sockets", said)
+    answers = yaml.safe_load((root / ".copier-answers.yml").read_text(encoding="utf-8"))
+    if written is None:  # false is the default, already written at init: nothing to change, no branch
+        assert code == 0 and _branches(root) == ["main"] and answers["agent_sockets"] is False
+    else:
+        assert code == 0 and answers["agent_sockets"] is True
+
+
+def test_an_agent_with_its_session_changes_a_setting(tmp_path, made, monkeypatch):
+    root = _project(tmp_path, made)
+    monkeypatch.setenv("NSTACK_AGENT", "scout")
+    assert config.run(root, "hold_days", "10", session="s-1") == 0
+    assert _git(root, "log", "-1", "--format=%(trailers:key=Agent-Session,valueonly)") == "s-1"
+
+
+def test_a_version_that_does_not_ask_the_setting_is_refused_leaving_the_tree_as_it_was(tmp_path, capsys):
+    root = tmp_path / "old"
+    answers = {"project_name": "Demo", "owner_team": "acme/platform", "forge": "github", "github_repo": "acme/demo"}
+    assert project.init(root, answers, str(ROOT), "v0.34.9") == 0
+    head = _git(root, "rev-parse", "HEAD")
+    capsys.readouterr()
+    assert config.run(root, "review_budget_lines", "800") == 1
+    assert "does not know the setting review_budget_lines" in capsys.readouterr().out
+    assert _git(root, "rev-parse", "HEAD") == head and not _git(root, "status", "--porcelain", "--ignored")
+    assert _branches(root) == ["main"]
+
+
+@pytest.mark.parametrize("held", ["branch", "dirty", "elsewhere", "forge by hand"])
+def test_a_change_is_refused_where_it_would_carry_or_lose_something(tmp_path, made, capsys, held):
+    root = _project(tmp_path, made)
+    if held == "branch":
+        _git(root, "branch", "nstack/config-hold-days")
+        said = "Branch nstack/config-hold-days already exists"
+    elif held == "dirty":
+        (root / "README.md").write_text("changed\n", encoding="utf-8")
+        said = "Working tree modified"
+    elif held == "elsewhere":
+        _git(root, "switch", "-q", "-c", "feature")
+        said = "feature is checked out, not main"
+    else:
+        answers = root / ".copier-answers.yml"
+        answers.write_text(answers.read_text(encoding="utf-8").replace("forge: github", "forge: gitlab"), encoding="utf-8")
+        _git(root, "commit", "-qam", "by hand")
+        said = "the answer was changed by hand"
+    capsys.readouterr()
+    assert config.run(root, "hold_days", "10") == 1
+    assert said in capsys.readouterr().out
+    assert "nstack/config-hold-days" not in _branches(root) or held == "branch"
+
+
+def test_a_conflict_is_laid_out_never_committed(tmp_path, made, capsys):
+    root = _project(tmp_path, made)
+    owners = root / ".github/CODEOWNERS"
+    lines = owners.read_text(encoding="utf-8").splitlines()
+    default = next(i for i, line in enumerate(lines) if line.startswith("*"))
+    lines[default] = "*  @acme/platform @acme/leads"
+    owners.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _git(root, "commit", "-qam", "the project's own default owners")
+    head = _git(root, "rev-parse", "HEAD")
+    capsys.readouterr()
+    assert config.run(root, "approval", "agent", session="s-2") == 1
+    out = capsys.readouterr().out
+    assert ".github/CODEOWNERS" in out and "<<<<<<<" in owners.read_text(encoding="utf-8")
+    assert '--trailer "Agent-Session: s-2"' in out, "the Action keeps the agent's session"
+    assert _git(root, "rev-parse", "HEAD") == head, "nothing committed"
+
+
+def test_checks_forge_is_refused_where_no_ci_is_shipped(tmp_path, capsys):
+    root = tmp_path / "p"
+    root.mkdir()
+    (root / ".copier-answers.yml").write_text("_commit: v0.34.9\nforge: gitlab\nchecks: attested\n", encoding="utf-8")
+    assert config.run(root, "checks", "forge") == 1
+    assert "no CI is shipped off GitHub" in capsys.readouterr().out
+
+
+def test_an_unreadable_answers_file_is_said_never_a_traceback(tmp_path, capsys):
+    from napkinstack.fitness import pr_scope
+
+    root = _scoped(tmp_path, "_commit: v0.34.9\nforge: [unclosed\n", 3)
+    assert pr_scope.run(root, "HEAD~1") == 1 and "cannot be read" in capsys.readouterr().out
+    assert config.run(root) == 1 and "fix the file's YAML" in capsys.readouterr().out
+
+
+def test_a_setting_written_as_text_is_said(tmp_path, capsys):
+    root = tmp_path / "p"
+    root.mkdir()
+    (root / ".copier-answers.yml").write_text('_commit: v0.34.9\nforge: github\nagent_sockets: "true"\n', encoding="utf-8")
+    assert config.run(root, "agent_sockets") == 0
+    assert "NOT a bool" in capsys.readouterr().out

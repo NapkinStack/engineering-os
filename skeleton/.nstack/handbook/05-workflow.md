@@ -103,9 +103,9 @@ The budget is an explicit ceiling, set for the project: its answers `review_budg
 `review_budget_files`, 400 lines and 15 files by default, read alike by CI and by `nstack attest`.
 The decider changes them — `nstack config review_budget_lines 600` lays the change on a branch, for
 a pull request a human approves. `MAX_LINES` and `MAX_FILES` in the environment override them for
-one run; the scope check says which source it took. The default follows the largest study of code
-review in practice — SmartBear's of Cisco's reviews (Cohen, *Best Kept Secrets of Peer Code Review*,
-2006): past 200 to 400 lines in one review, the defects a reviewer finds drop. A larger budget is the
+one run; the scope check says which source it took. The default follows SmartBear's study of 2,500
+reviews at Cisco (Cohen, *Best Kept Secrets of Peer Code Review*, 2006): past 200 to 400 lines in one
+review, the rate at which a reviewer finds defects drops. A larger budget is the
 decider's to choose, knowing that. Adjusting it per module, by criticality, is not automated: it
 is in the automation backlog. It covers:
 

@@ -355,8 +355,8 @@ def _approval_step(created: dict) -> str:
                 f"a human code owner — enforced by the forge only where nstack doctor does not say unguarded {where}.")
     return ("  4. Approval: a human code owner must approve every change (approval: human) — enforced by the forge "
             "only where nstack doctor does not say unguarded. For agents to approve each other's prototype and "
-            "standard modules, the decider sets approval: agent in .copier-answers.yml, with the code owners "
-            f"file, in a pull request a human approves {where}.")
+            "standard modules, the decider runs nstack config approval agent: it lays the answer and the code "
+            f"owners file on a branch, for a pull request a human approves {where}.")
 
 
 def _default_branch(root: Path) -> str | None:
@@ -985,8 +985,9 @@ def change_answer(root: Path, name: str, wanted: object, was: str, session: str 
               "changed these files where the setting writes them; <<<<<<< marks each one:")
         for path in conflicts:
             print(f"  - {path}")
+        trailer = f' --trailer "Agent-Session: {session}"' if session else ""
         print("      Action: in each file, keep the right version between <<<<<<< and >>>>>>>, then "
-              "git add --all && git commit.")
+              f"git add --all && git commit -m 'NapkinStack: {name} {was} -> {shown}'{trailer}.")
         return 1
     changed = [path for path in _git(root, "status", "--porcelain").stdout.splitlines() if path]
     message = f"NapkinStack: {name} {was} -> {shown}" + (f"\n\nAgent-Session: {session}" if session else "")
