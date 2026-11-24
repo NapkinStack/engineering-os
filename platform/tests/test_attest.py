@@ -8,8 +8,10 @@ from __future__ import annotations
 import base64
 import json
 import os
+import signal
 import subprocess
 import sys
+import time
 import urllib.error
 from pathlib import Path
 
@@ -1378,3 +1380,102 @@ def test_a_folder_replaced_by_a_file_is_a_change_and_links_are_no_mask(tmp_path,
         mount.chmod(0o600)
     out = capsys.readouterr().out
     assert ".bashrc: no file or folder this session reads" in out and "attest outside the sandbox" in out, out
+
+
+# --- #526: a check runs for minutes, and a run stopped from outside said neither where nor what ----
+# Each step's output is captured until it ends: a long module's end-to-end was minutes of silence,
+# and a timeout that cut it left `ok` of the check before as the last line, no record, no word.
+
+GROUPED = (attest.Check("Groups", (attest.Step("echo", "Every changed module",
+                                               "echo '::group::modules/a'; echo inside; echo '::endgroup::'"),)),)
+
+
+def test_each_step_and_each_module_is_said_as_it_starts(tmp_path, monkeypatch, capsys):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", GROUPED)
+    assert attest.run(tmp_path, "HEAD", None, "") == 0
+    out = capsys.readouterr().out
+    started, module, ended = (out.index("run  [attest] Groups — Every changed module"),
+                              out.index("run  [attest] Groups — modules/a"), out.index("ok   [attest] Groups"))
+    assert started < module < ended, out
+    assert "inside" not in out, "a step's output stays its record's, shown on failure only"
+    assert records(tmp_path, git(tmp_path, "rev-parse", "HEAD"))[0]["checks"][0]["steps"][0]["output"].count("inside") == 1
+
+
+def test_the_signal_handlers_are_the_caller_s_again_after_a_run(tmp_path, monkeypatch, capsys):
+    project(tmp_path)
+    monkeypatch.setattr(attest, "CHECKS", PASSING)
+    before = (signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT))
+    assert attest.run(tmp_path, "HEAD", None, "") == 0
+    assert (signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)) == before
+
+
+STEPS = {
+    "obeys": "echo $$ > {pid}; echo ::group::modules/slow; exec sleep 60",
+    "writes in its folder": "echo $$ > {pid}; echo ::group::modules/slow; "
+                            "while :; do touch \"$NSTACK_TMP/f$RANDOM\"; done",
+    "ignores TERM": "trap '' TERM; echo $$ > {pid}; echo ::group::modules/slow; exec sleep 60",
+}
+
+
+@pytest.mark.parametrize("signal_, code, step", [(signal.SIGTERM, 143, "obeys"), (signal.SIGINT, 130, "obeys"),
+                                                 (signal.SIGTERM, 143, "writes in its folder"),
+                                                 (signal.SIGTERM, 143, "ignores TERM")])
+def test_a_run_stopped_from_outside_says_where_and_writes_no_record(tmp_path, signal_, code, step):
+    project(tmp_path)
+    pid = tmp_path.parent / f"{tmp_path.name}.pid"
+    command = STEPS[step].format(pid=pid)
+    script = (
+        "import sys; from pathlib import Path; from napkinstack import attest\n"
+        "attest.CHECKS = (attest.Check('Slow', (attest.Step('sleep', 'Every changed module',\n"
+        f"    {command!r}),)),)\n"
+        f"sys.exit(attest.run(Path({str(tmp_path)!r}), 'HEAD', None, ''))\n")
+    run = subprocess.Popen([sys.executable, "-c", script], cwd=tmp_path, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True, env={**os.environ, **IDENTITY})
+    seen = ""
+    while "modules/slow" not in seen:
+        line = run.stdout.readline()
+        assert line, seen
+        seen += line
+    run.send_signal(signal_)
+    out = seen + run.stdout.read()
+    assert run.wait(timeout=30) == code, out
+    assert f"STOPPED [attest] Slow — modules/slow: {signal.Signals(signal_).name}; no record written" in out, out
+    assert subprocess.run(["git", "notes", f"--ref={attest.NOTES}", "list"], cwd=tmp_path, capture_output=True,
+                          text=True).stdout == "", "a stopped run recorded"
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(pid.read_text()), 0)  # the step it started is ended, not left behind
+
+
+def test_a_second_signal_while_stopping_changes_nothing(tmp_path):
+    """The step ignores TERM: attest waits, then kills it — a second signal meanwhile must not cut that
+    short and leave the step behind."""
+    project(tmp_path)
+    pid = tmp_path.parent / f"{tmp_path.name}.pid"
+    command = STEPS["ignores TERM"].format(pid=pid)
+    script = (
+        "import sys; from pathlib import Path; from napkinstack import attest\n"
+        "attest.CHECKS = (attest.Check('Slow', (attest.Step('sleep', 'Every changed module',\n"
+        f"    {command!r}),)),)\n"
+        f"sys.exit(attest.run(Path({str(tmp_path)!r}), 'HEAD', None, ''))\n")
+    run = subprocess.Popen([sys.executable, "-c", script], cwd=tmp_path, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True, env={**os.environ, **IDENTITY})
+    seen = ""
+    while "modules/slow" not in seen:
+        line = run.stdout.readline()
+        assert line, seen
+        seen += line
+    stopped = time.monotonic()
+    run.send_signal(signal.SIGTERM)
+    time.sleep(1)
+    run.send_signal(signal.SIGTERM)
+    out = seen + run.stdout.read()
+    assert run.wait(timeout=30) == 143, out
+    assert time.monotonic() - stopped < 30, "the step was left to run out, not killed"
+    assert "Traceback" not in out and "STOPPED [attest] Slow — modules/slow: SIGTERM" in out, out
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(pid.read_text()), 0)
+
+
+def test_a_stop_before_the_first_step_names_where_it_was():
+    assert attest._Running().where == "before the first check"
