@@ -1204,7 +1204,8 @@ def test_plan_names_the_empty_start_branch_its_done_deliverable_left(shared, cap
     hold.show(alice)
     out = capsys.readouterr().out
     assert "Empty start branches left" in out
-    assert f"git push origin --delete {branch}" in out and f"git branch -D {branch}" in out
+    assert f"{branch}  (local, remote)" in out and "nstack plan --prune removes them" in out
+    assert "--delete" not in out, "never a bare delete, which would take work pushed since (#516)"
 
 
 def test_plan_says_nothing_of_a_start_branch_still_in_use(shared, capsys):
@@ -1345,7 +1346,7 @@ def test_without_a_remote_only_the_local_delete_is_named(shared, capsys):
     capsys.readouterr()
     hold.show(alone)
     out = capsys.readouterr().out
-    assert "git branch -D d1-resume" in out and "git push" not in out
+    assert "d1-resume-an-interrupted-recording  (local)" in out and "remote" not in out.split("Empty start")[-1]
 
 
 def landed(alice: Path, message: str, date: str | None = None) -> None:
@@ -2383,3 +2384,111 @@ def test_another_person_s_session_never_releases_for_the_holder(shared, capsys):
     assert hold.claim(bob, "#7", session="bob-7", person="@bob") == 0
     assert hold.release(bob, "D1", session="bob-7") == 1
     assert remote_events(shared) == ["claim"]
+
+
+START = "d1-resume-an-interrupted-recording"
+
+
+def test_deliver_removes_the_empty_start_branch_its_claim_left(shared, capsys):
+    """#516 (D279): an agent may not delete a remote branch; the start branch claim pushed is the
+    framework's own — one empty commit —, so recording the delivery removes it, here and on the remote."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    capsys.readouterr()
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    out = capsys.readouterr().out
+    assert f"Empty start branch {START} removed" in out, out
+    assert not git(shared, "for-each-ref", f"refs/heads/{START}")
+    assert not git(alice, "for-each-ref", f"refs/heads/{START}")
+
+
+def test_deliver_never_removes_a_start_branch_someone_worked_on(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", START)
+    git(alice, "commit", "-q", "--allow-empty", "-m", "work goes on here")
+    git(alice, "push", "-q", "origin", START)
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    assert git(shared, "for-each-ref", f"refs/heads/{START}"), "a branch with work stays"
+
+
+def test_plan_prune_removes_what_plan_names_and_nothing_else(shared, capsys):
+    """#516 (D279): a deliverable that moved on without a delivery — deferred, or the cycle's — never meets
+    deliver; the decider removes every empty start `nstack plan` names in one command."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    finished(shared, alice, "deferred")
+    capsys.readouterr()
+    assert hold.prune_starts(alice) == 0
+    out = capsys.readouterr().out
+    assert f"Empty start branch {START} removed" in out, out
+    assert not git(shared, "for-each-ref", f"refs/heads/{START}")
+    assert hold.prune_starts(alice) == 0
+    assert "No empty start branch" in capsys.readouterr().out
+
+
+def _ready_and_claim_d2(shared: Path, alice: Path) -> str:
+    cycle = alice / "docs/project/cycles/03-the-window.md"
+    git(alice, "switch", "-q", "main")
+    cycle.write_text(cycle.read_text(encoding="utf-8").replace("state: proposed", "state: ready"), encoding="utf-8")
+    git(alice, "commit", "-q", "-am", "D2 ready")
+    git(alice, "push", "-q", "origin", "main")
+    hold.claim(alice, "D2", session="s2", person="@alice")
+    git(alice, "switch", "-q", "main")
+    return next(line.split()[-1] for line in git(alice, "branch", "--list", "d2-*").splitlines())
+
+
+def test_deliver_removes_its_own_start_branch_and_no_other_deliverable_s(shared, capsys):
+    """D279's verifier: D2's empty start, D2 deferred, is plan --prune's — never D1's delivery's."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    d2 = _ready_and_claim_d2(shared, alice)
+    cycle = alice / "docs/project/cycles/03-the-window.md"
+    text = cycle.read_text(encoding="utf-8")
+    cycle.write_text(text.replace('    title: "Export"\n    module: export\n    state: ready',
+                                  '    title: "Export"\n    module: export\n    state: deferred'), encoding="utf-8")
+    git(alice, "commit", "-q", "-am", "D2 deferred")
+    git(alice, "push", "-q", "origin", "main")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    assert not git(shared, "for-each-ref", f"refs/heads/{START}")
+    assert git(shared, "for-each-ref", f"refs/heads/{d2}"), "another deliverable's start is not this delivery's"
+
+
+def test_a_start_branch_pushed_to_since_it_was_read_is_kept_and_no_delete_is_offered(shared, capsys):
+    """D279's verifier: the lease keeps a branch someone pushed work to after the fetch, and nothing then
+    offers the bare delete that would take it."""
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    hold.fetch(alice)
+    chosen = hold._empty_start_branches(alice, "origin", hold.plan.accepted_cycle(alice)[1]["deliverables"])
+    assert START in chosen
+    bob = clone(shared, "bob")
+    git(bob, "switch", "-q", START)
+    (bob / "f.txt").write_text("work\n", encoding="utf-8")
+    git(bob, "add", "f.txt")
+    git(bob, "commit", "-q", "-m", "work")
+    git(bob, "push", "-q", "origin", START)
+    removed, kept = hold._remove_starts(alice, "origin", chosen)
+    assert git(shared, "for-each-ref", f"refs/heads/{START}"), "bob's work stays"
+    assert any("pushed to since" in line for line in removed) and not any("--delete" in line for line in kept)
+
+
+def test_a_start_commit_amended_with_work_is_never_removed(shared, capsys):
+    alice = clone(shared, "alice")
+    hold.claim(alice, "D1", session="s", person="@alice")
+    git(alice, "switch", "-q", START)
+    (alice / "f.txt").write_text("work\n", encoding="utf-8")
+    git(alice, "add", "f.txt")
+    git(alice, "commit", "-q", "--amend", "--no-edit")
+    git(alice, "push", "-q", "-f", "origin", START)
+    git(alice, "switch", "-q", "main")
+    landed(alice, "the work (D1) (#7)")
+    assert hold.deliver(alice, "D1", ["#7"], session="s", person="@alice") == 0
+    assert git(shared, "for-each-ref", f"refs/heads/{START}") and git(alice, "for-each-ref", f"refs/heads/{START}")

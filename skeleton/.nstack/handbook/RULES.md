@@ -4,7 +4,7 @@ Every refusal starts with a code between brackets — `FAIL [K1]`. This page say
 refuses and where its reason is written. It defines nothing: the reasons are in the pages it
 points at, and the checks are the engine's. A command's own name between brackets —
 `FAIL [deliver]`, `FAIL [agent]` — is that command refusing what it was asked: its message says
-why, and the action. `[hold]` is `nstack claim` and `nstack unclaim` (`project.md`, *Who holds a
+why, and the action. `[hold]` is `nstack claim`, `nstack unclaim` and `nstack plan --prune` (`project.md`, *Who holds a
 deliverable*); `[nstack]` the engine's install and the pre-push hook (`INSTALL.md`; an agent's
 identity: *The agent commits as the App*); `[labels]` the labels the pull request check reads.
 

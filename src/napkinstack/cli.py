@@ -100,8 +100,12 @@ def build_parser() -> argparse.ArgumentParser:
          lambda a: manifests.run(a.root))
     _add(sub, "boundaries", "declared graph against real graph, release artefacts included (B1-B9)",
          lambda a: boundaries.run(a.root))
-    _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8), the decisions due at a closure "
-         "(C10), what needs a person, the project across its cycles, and who holds what", lambda a: hold.refresh(a.root) | plan.needs(a.root) | plan.run(a.root) | plan.show(a.root) | hold.show(a.root))
+    pn = _add(sub, "plan", "the discovery, the charter and the cycles (C1-C8), the decisions due at a closure "
+              "(C10), what needs a person, the project across its cycles, and who holds what",
+              lambda a: hold.prune_starts(a.root) if a.prune else
+              hold.refresh(a.root) | plan.needs(a.root) | plan.run(a.root) | plan.show(a.root) | hold.show(a.root))
+    pn.add_argument("--prune", action="store_true",
+                    help="remove the empty start branches it names — one empty commit each — here and on the remote")
     sk = _add(sub, "skills", "generates or checks the skills (S1-S4)",
               lambda a: skills.run(a.root, check_only=a.check))
     sk.add_argument("--check", action="store_true", help="check without writing")
@@ -205,8 +209,8 @@ def build_parser() -> argparse.ArgumentParser:
     rs.add_argument("deliverable", help="the deliverable's identifier, D<n>, or '#<n>', an issue")
     rs.add_argument("--session", help="the agent's session, written on the release")
     rs.add_argument("--person", help="who releases it, such as @alice (default: the hold's person when --session is one of its sessions, else git's user)")
-    dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request; "
-                              "refused with no merge of it",
+    dl = _add(sub, "deliver", "records that a merged deliverable is delivered, criterion by criterion, with no pull request, "
+                              "and removes its empty start branch; refused with no merge of it",
               lambda a: hold.deliver_command(a.root, a.deliverable, a.held or [], a.session, a.person, a.write_states))
     dl.add_argument("deliverable", nargs="?", help="the deliverable's identifier, D<n>")
     dl.add_argument("--held", action="append", metavar="[N=]#PR", help="what holds a criterion: '#12' for every one, '2=#12' for the second; repeatable, a criterion given again keeps each")
