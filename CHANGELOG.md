@@ -40,7 +40,8 @@ This is a patch version: nothing green turns red.
   T5, and the sheet history T4 uses, read only this pull request's records. The number decides where both sides name one, else the branch. A branch started on another pull request's branch, which was then squash-merged, no longer reads that pull request's sheet. A record naming neither (made before this version, or by a detached checkout with no forge) is read as before.
 - **T4 names what its modules read that changed** (D275). An automated row is not kept when the inputs digest moved; its reason now says what moved among what the digest reads:
   - each folder read whole, with how many of its files changed, e.g. `modules/send (3 files)`, a module consumed;
-  - each other path, five at most;
+  - each other path;
+  - five names at most, folders included, then how many more;
   - or, when no file differs, that the modules run, the engine or who runs it changed.
 
   The digest itself is unchanged, byte for byte, so every record keeps its relief.

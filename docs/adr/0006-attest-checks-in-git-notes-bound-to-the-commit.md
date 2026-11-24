@@ -69,7 +69,8 @@ the workflows, and without a forge being required.
    `Module checks`) and the commands that job runs. A test binds it to the skeleton's workflows: a
    job or a command in one and not the other fails it, as D105's test binds the runners.
 2. **The command, `nstack attest`.** At the root, on a clean tree — any uncommitted or untracked
-   change refused, nothing written. It runs each check of the list in order, all of them even after
+   change refused, nothing written; *clarified (D278)*: and any tracked path this session cannot
+   read, a sandbox's mount point, whatever git is told to ignore. It runs each check of the list in order, all of them even after
    a failure, and exits non-zero when one failed. *Clarified (D166)*: `Module checks` reads the tree
    and the base, never the description; when the commit's record passed it with the same base commit,
    the same engine — published, or named by a commit with no change of its own, tracked or not — and
@@ -110,7 +111,9 @@ the workflows, and without a forge being required.
    input outside every module may wait for the bound; that run is what the bound leans on, never
    what replaces it.
 3. **The record.** One JSON line per run, appended to the note of `HEAD` under
-   `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, the engine's
+   `refs/notes/nstack/checks`: `record: attested-checks/v1`, the commit, the time, *amended (D274)*
+   the pull request it is made for — its number where the forge gives it, and the branch the
+   checkout tracks, which T4 and T5 compare —, the engine's
    version, its origin when unpublished, and whether it is published, the base and its commit, who ran it as git names them, the `Agent-Session` of the
    head's commit when there is one, and per check its name, commands, exit codes and output —
    each output capped at 64 KiB, head and tail kept and the cut said, with the SHA-256 of the
