@@ -594,7 +594,8 @@ def _masked(root: Path) -> list[str]:
 
 
 OUTSIDE = ("attest outside the sandbox — the person runs nstack attest in a terminal of their own, outside the "
-           "agent's session, or the decider does (.nstack/handbook/INSTALL.md).")
+           "agent's session, or the decider does (.nstack/handbook/INSTALL.md, *Your agent tool's configuration is "
+           "still yours*).")
 
 
 def _plain(path: Path) -> bool:
