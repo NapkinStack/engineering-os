@@ -129,8 +129,7 @@ kernel (this file)
   → contracts consumed (the contract alone, never someone else's implementation)
 ```
 
-One session, one working tree: never share a checkout with another session — each works in
-its own copy of the repository.
+One session, one working tree: never share a checkout with another session — each works in its own copy of the repository.
 
 **Playbooks — triggers.** Load `.nstack/playbooks/<x>.md` if and only if:
 
@@ -145,6 +144,7 @@ its own copy of the repository.
 | logs, metrics, alerts, retries, timeouts, rollback, a deployment, a call to another system | `operations.md` |
 | verifying a change you did not write, filling in a test sheet | `verification.md` |
 | a document a human will read, a pull request's description included: writing or changing one | `documentation.md` |
+| stopping, restarting, handing work over, or resuming a session | `pause-and-resume.md` |
 
 **Crossing a boundary.** If the task requires changing a second module:
 
