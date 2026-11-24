@@ -68,9 +68,11 @@ esac
 # A commit naming an Agent-Session that git does not read as a trailer — above a blank line, apart
 # from Co-Authored-By — names no session, and pr-check says so only after the push. The commit-msg
 # hook refuses it at the commit, but git never runs that hook on a rebase or a cherry-pick (#521):
-# what the push publishes is read here, for anyone. What the remote holds already is not the push's
-# (a forge's squash keeps each message above its co-authors); fetched first, as above, before refusing.
-TIP=${PRE_COMMIT_TO_REF:-HEAD}
+# the ref pushed is read here, for anyone — pre-commit names the first of several; CI's T2 reads the
+# rest. What the remote holds already is not the push's (a forge's squash keeps each message above its
+# co-authors); fetched first, as above, before refusing. A ref with no ancestor on the remote comes
+# without TO_REF: its local branch is read.
+TIP=${PRE_COMMIT_TO_REF:-${PRE_COMMIT_LOCAL_BRANCH:-HEAD}}
 START=""
 case "${PRE_COMMIT_FROM_REF:-}" in ""|*[!0]*) START=${PRE_COMMIT_FROM_REF:-} ;; esac
 unread() {
@@ -82,9 +84,11 @@ unread() {
     done
 }
 UNREAD=$(unread)
+REFETCHED=""
 if [ -n "$UNREAD" ] && GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes" \
     git fetch --quiet --no-tags --no-write-fetch-head "${PRE_COMMIT_REMOTE_NAME:-origin}" \
     "+HEAD:refs/nstack-remote/base" </dev/null >/dev/null 2>&1; then
+  REFETCHED=yes
   UNREAD=$(unread)
 fi
 if [ -n "$UNREAD" ]; then
@@ -95,6 +99,12 @@ if [ -n "$UNREAD" ]; then
   echo "      between them — git rebase -i <their base>, \`reword\` on each; on the last commit alone,"
   echo "      git commit --amend. Why here: a rebase or a cherry-pick never runs the commit-msg hook that"
   echo "      refuses it at the commit."
+  if [ -n "$REFETCHED" ]; then
+    echo "      A commit the remote holds — a merge made on the forge — is never rewritten: this hook fetched"
+    echo "      the remote's default branch already; one of another branch of the forge: git fetch, then push again."
+  else
+    echo "      A commit the remote holds — a merge made on the forge — is never rewritten: git fetch, then push again."
+  fi
   exit 1
 fi
 
