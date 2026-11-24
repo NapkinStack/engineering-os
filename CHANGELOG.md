@@ -22,6 +22,31 @@ a patch.
 
 ---
 
+## v0.34.9 — 2026-11-24
+
+D277 to D279 and D281 to D286 fix frictions that projects met downstream on v0.34.7 and v0.34.8, plus one playbook. Agents' clones reached the forge for nothing. A misplaced trailer was caught only at attest. `settings --apply` wrote nothing on a private repository. An attest cut by a timeout said nothing. A restarted session re-read its history.
+
+This is a patch version: nothing green turns red.
+
+**In the engine**
+
+- **From an agent's clone, the forge is reached** (D283, #522). `nstack agent add` sets the clone's remote with a user, `https://x-access-token@github.com/…`, and the engine read that remote as no GitHub remote at all. Attest's status, the draft pull request a claim opens and `board` were all skipped without a word. A user in an `https://` or `ssh://` address is now read past, as git reads it. Another host is never read as GitHub, `https://evil.com?@github.com/…` included.
+- **attest says each step as it starts, and a stopped run says where** (D286, #526). Each step, and each module a `::group::` line opens, is printed before it runs: `run  [attest] Module checks — modules/shell`. On SIGTERM or SIGINT, attest ends the step it started, says where it was and that it wrote no record, and exits 143 or 130.
+- **`settings --apply` on a private repository** (D285, #523). G9, the approval of outside contributors' workflows, exists on public repositories only and is now judged there only, as G6 is. One rule `--apply` could not read no longer holds back the rest. Its calls are left out and named before the question, and the run fails, naming the credential to run it again with.
+- **`deliver` removes the empty start branch its claim left** (D279, #516), here and on the remote, under a lease: a push since keeps it. `nstack plan --prune` removes the ones a delivery never meets. `plan` prints no delete command any more.
+- **attest refuses a tree an agent's sandbox masks** (D278, #514). It names each tracked path the session cannot read, whatever git is told to ignore, with the way out: attest in the person's own terminal, or by the decider.
+- **`init` says who approves a change** (D277), and how the decider changes it.
+
+**In your project** — 11 files, and the two generated skills
+
+- **`.nstack/fitness-before-push.sh`** and **`.pre-commit-config.yaml`** (D284, #521). The pre-push hook refuses a commit whose `Agent-Session:` git does not read as a trailer: a rebase or a cherry-pick never runs the commit-msg hook that refuses it at the commit. It names the commit and the correction. What the remote holds, a forge's squash included, is never the push's.
+- **`.nstack/playbooks/pause-and-resume.md`**, its entry in **`.nstack/skills.yaml`**, a line in **`AGENTS.md`** and `.nstack/local/` in **`.gitignore`** (D282). Before a session stops, its work is committed and pushed, nothing is left running and its holds are kept. A note of fifteen lines at most, one per clone and never committed, says where to resume. A restart reads that note, renews its holds and runs `nstack plan` once.
+- **`AGENTS.md`** step 12, **`.nstack/handbook/project.md`**, **`RULES.md`**, **`INSTALL.md`** and **`.nstack/playbooks/framing.md`** (D279) say that `deliver` removes the start branch and that `plan --prune` removes the rest.
+- **`INSTALL.md`** (D278) says that attest runs outside an agent's sandbox. **`RULES.md`** and **`INSTALL.md`** (D285) say that G9 applies to a public repository.
+- **`.nstack/playbooks/verification.md`** (D281): a verifier checks out the pull request's branch, a branch tracking it, or the head detached. A record made on a branch of another name counts as another pull request's.
+
+---
+
 ## v0.34.8 — 2026-11-23
 
 D274 to D276: three frictions a multi-agent project met downstream on v0.34.7:
