@@ -36,13 +36,16 @@ another tool and to another person. The source is the repository and the forge.
 Before you stop, or when you are told the session will end:
 
 1. **Nothing only in the working tree.** Commit what is in progress, on its work branch, and push
-   it: the draft pull request shows it. A commit the pre-push hook refuses stays committed
-   here, and the note says so — never `--no-verify`.
+   it: the pushed branch shows it, and on GitHub the claim's draft pull request too when the work
+   is on its first branch. A commit or a push a hook refuses: fix its cause; what you cannot fix
+   before stopping stays as it is, and the note names it with the refusal — never `--no-verify`.
 2. **Nothing running.** No background job, watcher or server left for the next session to find.
-3. **Nothing left over.** Scratch clones, worktrees and branches of your own that hold no work
-   are removed; a worktree that holds work is pushed first.
-4. **Holds stay.** A deliverable you will resume stays held (`nstack plan` shows it); one you will
-   not resume is given back with `nstack unclaim`.
+3. **Nothing left over.** Scratch clones, worktrees and local branches of your own that hold no
+   work are removed; a worktree that holds work is pushed first. Never the start branch your
+   claim made: `nstack deliver` removes it.
+4. **Holds stay.** A deliverable you will resume stays held (`nstack plan` shows it). Past
+   `hold_days` without work, anyone may take it over: give back with `nstack unclaim` what you
+   will not resume by then.
 5. **Write the note.**
 
 ## The note
@@ -57,8 +60,9 @@ whole at each stop: it states the present, not a journal.
 - Open: D31, pull request #44 — next: answer the verifier's finding on the empty state; mine
 - Open: D32, branch d32-export, pushed, no pull request yet — next: the test sheet; mine
 - Owed by others: the decider's approval of #42; the verifier's run of #44
-- Not pushed: (nothing) — or the commit and the hook's refusal
-- Next id: D33 · relaunch: nstack agent run -- <tool>
+- Not pushed: (nothing) — or the commit, the files, and the hook's refusal
+- Next id: D33
+- Relaunch: nstack agent run <agent> -- <tool>
 ```
 
 Handing over to another session or person: give them the note's text with the hand-over, and
@@ -70,8 +74,9 @@ give the hold back (`nstack unclaim`) for them to claim. Never hand over a clone
    status`, `git log` of your branches and `nstack plan` say the same, more slowly.
 2. **Renew your holds** under this new session. In `nstack agent run`:
    `nstack claim <id> --person <person> --session <this session>` renews a hold your own agent
-   held. Outside it, a new session of yours takes its hold with `--take-over`, on your person's
-   word (`.nstack/handbook/project.md`, *Who holds a deliverable*).
+   held. Outside it, a new session of yours takes its hold over, on your person's word:
+   `nstack claim <id> --take-over --person <person> --session <this session>`
+   (`.nstack/handbook/project.md`, *Who holds a deliverable*).
 3. **`nstack plan`, once**: what changed while you were away — merges, holds, what turned stale.
    Where it disagrees with the note, the repository is right; the note was the past.
 4. **Continue at the noted gesture.** A gesture owed by someone else is not yours to redo.
