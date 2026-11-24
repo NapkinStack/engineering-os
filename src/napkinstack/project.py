@@ -282,10 +282,13 @@ def init(destination: Path, answers: dict[str, str | None], source: str, ref: st
     owner = str(data.get("owner_team") or "")
     if data.get("forge") == "github" and owner and organisation_owner(owner, "init", f"--owner-team {owner}/<team>"):
         return 1
-    data.setdefault("checks", "forge" if named == "github" else "attested")
-    data.setdefault("hold_days", 7)  # a hold goes stale after a week without work (ADR-0007)
-    data.setdefault("approval", "human")  # a code owner approves, until the decider says otherwise (PDR-0021)
-    data.setdefault("agent_sockets", False)  # an agent's sandbox opens no Unix socket until the decider says so (D212)
+    # The decider's settings are not asked at init: each starts at its default, from the one table
+    # `nstack config` reads (#529) — the forge's CI on GitHub, a week's hold (ADR-0007), a human code
+    # owner (PDR-0021), no Unix socket in an agent's sandbox (D212), a budget of 400 lines and 15 files.
+    from napkinstack import config
+
+    for key, setting in config.SETTINGS.items():
+        data.setdefault(key, setting.default({"forge": named}))
     try:
         copier.run_copy(source, destination, data=data, vcs_ref=ref, quiet=True, unsafe=False)
     except (CopierError, ValueError, OSError) as exc:
@@ -352,8 +355,8 @@ def _approval_step(created: dict) -> str:
                 f"a human code owner — enforced by the forge only where nstack doctor does not say unguarded {where}.")
     return ("  4. Approval: a human code owner must approve every change (approval: human) — enforced by the forge "
             "only where nstack doctor does not say unguarded. For agents to approve each other's prototype and "
-            "standard modules, the decider sets approval: agent in .copier-answers.yml, with the code owners "
-            f"file, in a pull request a human approves {where}.")
+            "standard modules, the decider runs nstack config approval agent: it lays the answer and the code "
+            f"owners file on a branch, for a pull request a human approves {where}.")
 
 
 def _default_branch(root: Path) -> str | None:
@@ -927,6 +930,77 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
     elif new == "github" and _answers(root).get("checks") == "attested":
         print("checks: attested, kept — the decider's answer. GitHub's CI judges once it is `checks: forge`, "
               "changed in a pull request.")
+    print(f"\n{next_step(root, branch)}")
+    return 0
+
+
+def change_answer(root: Path, name: str, wanted: object, was: str, session: str | None = None) -> int:
+    """Changes one of the decider's settings at the project's own version (#529): Copier renders the
+    project again with the new answer, so the files written from it follow and the project's own
+    lines are kept. On a branch, for a pull request a human approves; a conflict is never committed."""
+    from copier.errors import CopierError
+
+    if (refused := _by_hand(root, "config")) is not None:
+        return refused
+    shown = str(wanted).lower() if isinstance(wanted, bool) else str(wanted)
+    branch = f"nstack/config-{name.replace('_', '-')}"
+    if _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+        print(f"FAIL [config] Branch {branch} already exists in {root}.\n"
+              "      Action: merge it or delete it (git branch -D), then run again.")
+        return 1
+    default = _default_branch(root)
+    if (held := _held(root, "config", default)) is not None:
+        print(held)
+        return 1
+    if (where := _elsewhere(root, default)) is not None:
+        print(f"FAIL [config] {where} is checked out, not {default}: the change's branch would carry its "
+              f"commits.\n      Action: git switch {default}, then run again.")
+        return 1
+    answers = _answers(root)
+    version = str(answers.get("_commit"))
+    base = _git(root, "rev-parse", "HEAD").stdout.strip()
+    try:
+        _merge(dst_path=root, vcs_ref=version, data={name: wanted}, overwrite=True, skip_answered=True,
+               defaults=True, conflict="inline", quiet=True, unsafe=False)
+    except (CopierError, ValueError, OSError) as exc:
+        print(_explain(exc, "config", root, str(answers.get("_src_path")), version))
+        return 1
+    if _answers(root).get(name) != wanted:
+        # A version from before the question renders the answer away: the branch would say otherwise.
+        _git(root, "reset", "--quiet", "--hard", base)
+        _git(root, "clean", "-fdq")
+        print(f"FAIL [config] NapkinStack {version} does not know the setting {name}: it needs a version "
+              "that asks it.\n      Action: nstack update to the latest version first, merge it, then run "
+              "this again.")
+        return 1
+    switch = _git(root, "switch", "--create", branch)
+    if switch.returncode:
+        print(f"FAIL [config] Branch {branch} could not be created: {switch.stderr.strip()}\n"
+              "      Action: the change stays in the working tree; create the branch by hand, then commit.")
+        return 1
+    conflicts = [path for path in _git(root, "diff", "--name-only", "-z", "--diff-filter=U").stdout.split("\0") if path]
+    marked = [path for path in _git(root, "grep", "-l", "-z", "--untracked", "-e", "^<<<<<<< ").stdout.split("\0") if path]
+    if conflicts := sorted(set(conflicts) | set(marked)):
+        print(f"FAIL [config] {name} {was} -> {shown} laid on {branch}, with conflicts — the project had "
+              "changed these files where the setting writes them; <<<<<<< marks each one:")
+        for path in conflicts:
+            print(f"  - {path}")
+        trailer = f' --trailer "Agent-Session: {session}"' if session else ""
+        print("      Action: in each file, keep the right version between <<<<<<< and >>>>>>>, then "
+              f"git add --all && git commit -m 'NapkinStack: {name} {was} -> {shown}'{trailer}.")
+        return 1
+    changed = [path for path in _git(root, "status", "--porcelain").stdout.splitlines() if path]
+    message = f"NapkinStack: {name} {was} -> {shown}" + (f"\n\nAgent-Session: {session}" if session else "")
+    for args in (("add", "--all"), ("commit", "--quiet", "--message", message)):
+        result = _git(root, *args)
+        if result.returncode:
+            print(f"FAIL [config] The change laid on {branch}, but `git {args[0]}` failed:\n"
+                  f"      {(result.stdout + result.stderr).strip()}\n"
+                  "      Action: fix it, then git add --all && git commit.")
+            return 1
+    print(f"Branch {branch}: {name} {was} -> {shown}, at NapkinStack {version} — "
+          f"{len(changed)} file(s), the answers file among them. The decider's word: a pull request a human "
+          "approves.")
     print(f"\n{next_step(root, branch)}")
     return 0
 

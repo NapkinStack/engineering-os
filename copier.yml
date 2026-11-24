@@ -87,6 +87,8 @@ checks:
   choices: [forge, attested]
   default: "{{ 'forge' if forge == 'github' else 'attested' }}"
   help: Where a pull request's checks are judged — forge, or attested on a workstation
+  validator: >-
+    {% if checks == 'forge' and forge != 'github' %}No CI is shipped off GitHub: checks are attested there.{% endif %}
 
 # How many days a hold of a deliverable may go without work before another contributor may take
 # it over (ADR-0007) — the decider's word, changed in a pull request. Not asked at init.
@@ -103,6 +105,21 @@ approval:
   choices: [human, agent]
   default: human
   help: Who approves a prototype or standard module — a human code owner, or also another agent
+
+# The review budget (.nstack/handbook/05-workflow.md §4): what a pull request changes before P2 warns,
+# generated files left out — the decider's word, changed in a pull request a human approves
+# (nstack config). Not asked at init. MAX_LINES and MAX_FILES in the environment override them for a run.
+review_budget_lines:
+  type: int
+  default: 400
+  help: Lines a pull request changes before the review budget warns
+  validator: "{% if review_budget_lines < 1 %}Expected: a whole number above 0.{% endif %}"
+
+review_budget_files:
+  type: int
+  default: 15
+  help: Files a pull request changes before the review budget warns
+  validator: "{% if review_budget_files < 1 %}Expected: a whole number above 0.{% endif %}"
 
 # Whether an agent's sandbox opens Unix sockets (D212): audio, display, the session bus — and any
 # socket on the host, docker.sock among them. The decider's word, changed in a pull request a human

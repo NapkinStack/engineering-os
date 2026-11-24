@@ -65,6 +65,12 @@ def _init(args: argparse.Namespace) -> int:
                         args.ref or project.default_ref())
 
 
+def _config(args: argparse.Namespace) -> int:
+    from napkinstack import config
+
+    return config.run(args.root, args.setting, args.value, args.session)
+
+
 def _update(args: argparse.Namespace) -> int:
     from napkinstack import project
 
@@ -267,6 +273,11 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--source", help="template: URL or path (default: the NapkinStack repository)")
     ini.add_argument("--ref", help="skeleton version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
     ini.set_defaults(func=_init)
+    cf = _add(sub, "config", "lists the project's settings, reads one, or changes one on a branch to review",
+              lambda a: _config(a))
+    cf.add_argument("setting", nargs="?", help="a setting's name: nstack config lists them")
+    cf.add_argument("value", nargs="?", help="its new value: laid on a branch, for a pull request a human approves")
+    cf.add_argument("--session", help="the agent's session, written as the commit's Agent-Session trailer")
     up = _add(sub, "update", "merges a NapkinStack version onto a branch to review",
               _update)
     up.add_argument("--ref", help="target version: a tag vX.Y.Z, or a commit (default: the one of nstack)")
