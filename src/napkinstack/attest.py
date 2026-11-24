@@ -632,8 +632,7 @@ class _Running:
     STOPS = (signal.SIGTERM, signal.SIGINT)
 
     def __init__(self) -> None:
-        self.where = ""
-        self.process: subprocess.Popen | None = None
+        self.where = "before the first check"
 
     def trap(self) -> dict:
         if threading.current_thread() is not threading.main_thread():
@@ -650,29 +649,40 @@ class _Running:
 
     def step(self, check: str, step: Step, root: Path, env: dict) -> tuple[int, str]:
         """Runs one step, its output captured whole; says the step, and each module its
-        `::group::` line opens, as it starts."""
+        `::group::` line opens, as it starts. Stopped, it ends the step it started before anything
+        else unwinds — the temporary folder the step may still write in among them."""
         self.where = f"{check} — {step.label}"
         print(f"run  [attest] {self.where}", flush=True)
-        self.process = subprocess.Popen(["bash", "-c", step.command], cwd=root, env=env, stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT, text=True, errors="replace")
-        lines = []
-        for line in self.process.stdout:
-            lines.append(line)
-            if line.startswith("::group::") and line[9:].strip():
-                self.where = f"{check} — {line[9:].strip()}"
-                print(f"run  [attest] {self.where}", flush=True)
-        returncode = self.process.wait()
-        self.process = None
+        with subprocess.Popen(["bash", "-c", step.command], cwd=root, env=env, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, errors="replace") as process:
+            try:
+                lines = []
+                for line in process.stdout:
+                    lines.append(line)
+                    if line.startswith("::group::") and line[9:].strip():
+                        self.where = f"{check} — {line[9:].strip()}"
+                        print(f"run  [attest] {self.where}", flush=True)
+                returncode = process.wait()
+            except BaseException:
+                self.quiet()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                raise
+        self.where = f"{check} — after {step.label}"
         return returncode, "".join(lines)
 
+    def quiet(self) -> None:
+        """A second signal while the first is being answered changes nothing."""
+        if threading.current_thread() is threading.main_thread():
+            for signum in self.STOPS:
+                signal.signal(signum, signal.SIG_IGN)
+
     def stopped(self, signum: int) -> int:
-        if self.process is not None and self.process.poll() is None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait()
+        self.quiet()
         print(f"STOPPED [attest] {self.where}: {signal.Signals(signum).name}; no record written — "
               "a record holds whole runs only. Run nstack attest again.", flush=True)
         return 128 + signum
