@@ -139,7 +139,7 @@ CHECKLIST = [  # (rule, setting, action)
     ("G7", "Allowed actions: GitHub's own, plus " + ", ".join(f"`{a}`" for a in THIRD_PARTY_ACTIONS),
      f"{ACTIONS}: allow only GitHub's actions and " + ", ".join(f"{a}@*" for a in THIRD_PARTY_ACTIONS)),
     ("G8", "SHA-pinned actions required", f"{ACTIONS}: require actions to be pinned to a SHA"),
-    ("G9", "Workflow approval for every outside contributor",
+    ("G9", "Workflow approval for every outside contributor, public repository",
      f"{ACTIONS}: require approval for all external contributors"),
     ("G10", "Workflow token read-only; Actions neither creates nor approves pull requests",
      f"{ACTIONS}: workflow permissions read-only, with no pull request creation or approval"),
