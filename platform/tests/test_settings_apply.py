@@ -125,12 +125,36 @@ def test_it_needs_a_credential(forge, monkeypatch, capsys):
     assert "gh auth login" in out and "target_name=acme&expires_in=1&administration=write&issues=write" in out, out
 
 
-def test_it_never_writes_what_it_could_not_read(forge, monkeypatch, capsys):
+def test_it_never_writes_what_it_could_not_read_and_writes_what_it_read(forge, monkeypatch, capsys):
+    """#523: one rule it could not read held back every rule it had; the reason — a ruleset or a label
+    added twice — is the unread rule's alone. Its calls are left out, named, and the run fails."""
     root, _ = forge
-    missing(monkeypatch, "G1", unread=("G11",))
+    missing(monkeypatch, "G1", "G10", unread=("G11",))
     assert settings.run(root, apply=True) == 1
     out = capsys.readouterr().out
-    assert "never writes what it could not read" in out and "G11" in out and Forge.writes == []
+    assert [(m, p) for m, p, _ in Forge.writes] == [("POST", "/rulesets"), ("PUT", "/actions/permissions/workflow")], out
+    assert "/labels" not in str(Forge.writes)
+    assert "FAIL [settings] not read with this token, so not written: G11" in out, out
+
+
+def test_a_ruleset_closing_an_unread_rule_is_never_written(forge, monkeypatch, capsys):
+    root, _ = forge
+    missing(monkeypatch, "G1", "G10", unread=("G2",))
+    assert settings.run(root, apply=True) == 1
+    assert [(m, p) for m, p, _ in Forge.writes] == [("PUT", "/actions/permissions/workflow")], capsys.readouterr().out
+
+
+def test_on_a_private_repository_g9_is_not_asked_and_the_labels_are_made(forge, monkeypatch, capsys):
+    """#523: on a private repository the forge has no contributor approval to read — HTTP 422 under an
+    administrator's token —; private forks run under another setting. G9 is not judged there, as G6."""
+    root, _ = forge
+    Forge.routes[""] = {"default_branch": "main", "visibility": "private"}
+    missing(monkeypatch, "G11", unread=("G9",))
+    assert settings.run(root, apply=True) == 0, capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert [p for m, p, _ in Forge.writes] == ["/labels"] * len(doctor.LABELS), out
+    assert "G9" not in out, out
+    assert "G9" in doctor.PUBLIC_ONLY
 
 
 def test_a_compliant_repository_gets_no_call(forge, monkeypatch, capsys):

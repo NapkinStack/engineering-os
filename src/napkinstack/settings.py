@@ -486,9 +486,14 @@ def run(root: Path, apply: bool = False) -> int:
                   "  Two exits: make it public, or move it to a plan that enforces rulesets.")
     reach = {rule for rule, _ in out_of_reach}
     if apply and (unread := [rule for rule in unread if rule not in reach]):
-        print("\nFAIL [settings] not read with this token: " + ", ".join(unread) + ". --apply never writes "
-              "what it could not read: it would add a ruleset or a label twice.\n      Action: give the token "
-              "Administration: write and Issues: write, then run again.")
+        # A call closing a rule it could not read is left out — it could add a ruleset or a label
+        # twice —; every other is made: one unreadable rule never holds back the rest (#523).
+        calls = [call for call in calls if not set(call[0].split(", ")) & set(unread)]
+        if calls:
+            _apply(client, root, calls, notes, source)
+        print("\nFAIL [settings] not read with this token, so not written: " + ", ".join(unread) + ". --apply "
+              "never writes what it could not read: it would add a ruleset or a label twice.\n      Action: give "
+              "the token Administration: write and Issues: write, then run again.")
         return 1
     if unread:
         print("\nNot read with this token, planned as if missing: " + ", ".join(unread)

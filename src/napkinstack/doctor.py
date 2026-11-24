@@ -195,7 +195,10 @@ def unasked(rule: str, answers: dict) -> str | None:
 # Settings specific to public repositories, and settings a private one pays for
 # (GitHub documentation, 2026-09-15).
 PUBLIC_ONLY = {"G6": "private vulnerability reporting only exists for a public repository; "
-                     "state an internal channel in SECURITY.md"}
+                     "state an internal channel in SECURITY.md",
+               # The forge answers 422 under an administrator's token there (#523).
+               "G9": "the approval of outside contributors' workflows only exists for a public repository; "
+                     "a private one's forks run under Settings → Actions → General, Fork pull request workflows"}
 PRIVATE_PLAN = dict.fromkeys(("G1", "G2", "G3", "G4", "G12", "G13", "G17", "G18", "G20", "G21", "G22"),
                              "Private repository: rulesets require the GitHub Team plan (organisation) "
                              "or Pro (personal account); without it, nothing blocks the merge.")
