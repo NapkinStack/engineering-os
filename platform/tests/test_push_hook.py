@@ -306,3 +306,50 @@ def test_the_hook_fetches_only_to_refuse_and_from_the_remote_pushed_to(tmp_path)
     assert "git fetch, then push again" in missing.stdout
     named = _hook(project, {**env, "PRE_COMMIT_REMOTE_NAME": str(tmp_path / "remote.git")})
     assert named.returncode == 1 and "this hook fetched the remote's" in named.stdout, named.stdout
+
+
+# --- #521: a rebase or a cherry-pick carries a misplaced Agent-Session past the commit-msg hook ----------
+# git runs commit-msg on a commit, an amend included, never on a rebase or a cherry-pick: a message
+# written before the hook, or where it was not installed, reached the push unchanged, and T2 said so
+# only at attest, after a verifier had run the sheet. The push is where every path meets.
+
+SPLIT = "work\n\nAgent-Session: s-1\n\nCo-Authored-By: A <a@example.org>"
+JOINED = "work\n\nAgent-Session: s-1\nCo-Authored-By: A <a@example.org>"
+
+
+def _commit(project: Path, env: dict, message: str) -> None:
+    subprocess.run(["git", "commit", "-q", "--no-verify", "--allow-empty", "-m", message], cwd=project, check=True, env=env)
+
+
+@pytest.mark.parametrize("agent", [True, False])
+def test_a_session_git_does_not_read_as_a_trailer_is_refused_before_the_push(tmp_path, agent):
+    project, env = _repo(tmp_path)
+    env = env if agent else {key: value for key, value in env.items() if key != "NSTACK_AGENT"}
+    _commit(project, env, SPLIT)
+    short = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=project, capture_output=True, text=True,
+                           env=env).stdout.strip()
+    result = _hook(project, env)
+    assert result.returncode == 1, result.stdout
+    said = result.stdout
+    assert "FAIL [nstack] 1 commit(s) name an Agent-Session git does not read as a trailer" in said, said
+    assert f"{short} work" in said, "the commit is named, with its subject"
+    assert "git rebase -i" in said and "reword" in said and "never runs the commit-msg hook" in said, said
+
+
+def test_a_session_in_the_trailer_block_or_none_at_all_goes_through(tmp_path):
+    project, env = _repo(tmp_path)
+    _commit(project, env, JOINED)
+    _commit(project, env, "no session: a person's commit")
+    _commit(project, env, "a word in a sentence: the Agent-Session trailer is said here")
+    assert "Agent-Session git does not read" not in _hook(project, env).stdout
+
+
+def test_a_misplaced_session_the_remote_already_holds_is_not_the_push_s(tmp_path):
+    """A forge's squash merge keeps each commit's message above its co-authors: Agent-Session lines in
+    the middle of the message, on the remote already. Only what the push publishes is judged."""
+    project, env = _repo(tmp_path)
+    _commit(project, env, SPLIT)
+    subprocess.run(["git", "push", "-q", "--no-verify", "origin", "HEAD:main"], cwd=project, check=True, env=env)
+    subprocess.run(["git", "fetch", "-q"], cwd=project, check=True, env=env)
+    _commit(project, env, JOINED)
+    assert "Agent-Session git does not read" not in _hook(project, env).stdout
