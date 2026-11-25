@@ -344,7 +344,10 @@ the change, and the stricter applies:
   the sessions their `Agent-Session` trailers name — and refuses a match: a declaration
   checked against the history, not a proof of identity. Each person named must have a hand on
   the pull request — an edit of its description, a review or a comment —: a name written over
-  the author's own results is refused.
+  the author's own results is refused. The trailers are read on the pull request's own commits:
+  a squash merge writes the default branch's commit itself, and GitHub puts its co-authors in a
+  paragraph after them — the session stays in the message, no longer as git reads a trailer.
+  `git log -E --grep '^Agent-Session: <id>$'` finds a session's changes there.
 - **No result without evidence**, tied to the commit tested. A new commit does not send the
   whole sheet back:
   - a commit whose files are exactly the head's **is** the head: a hash changed by a merge
