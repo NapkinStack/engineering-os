@@ -105,6 +105,9 @@ HUMAN_ONLY = re.compile(r"human only[ \t]*[—–-][ \t]*(\S.*)", re.I)
 PLACEHOLDER = re.compile(r"<[^<>]*>")
 EMPTY = {"", "—", "-"}
 SHA = re.compile(r"[0-9a-f]{7,40}")
+# A Confirmed clause's commit: its first word, backticks or not, followed by a space, a dash, or the
+# colon or comma a person writes as naturally as the dash the Action asks for (#532).
+CLAUSE = re.compile(r"`*([0-9a-fA-F]{7,40})`*(?=[\s:,—–-]|$)")
 HANDLES = re.compile(rf"(?<![\w@])@(?P<handle>{LOGIN}(?:\[bot\])?)(?![\w-])")
 SESSION = re.compile(r"^\s*session[ \t]+(?P<session>[\w.:/-]*\w)", re.I)
 NOREPLY = re.compile(r"(?:\d+\+)?(?P<login>[^@<>\s]+)@users\.noreply\.github\.com", re.I)
@@ -488,7 +491,7 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                    "\"Verifier: session <id>\", someone other than the author of the change.")
     else:
         check_verifier(verifier, authorship, fail, hands)
-    human_only, rerun, unconfirmed, why_rerun = [], [], [], []
+    human_only, rerun, unconfirmed, why_rerun, read = [], [], [], [], []
     for row in rows:
         ident = row["#"] or "?"
         if _split(row, len(header)):
@@ -520,8 +523,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
             # At `critical` nothing stands in for a re-run: that is what the top value buys.
             # Each clause of the cell starts with the commit it confirms: a later confirmation
             # joins an earlier one after a `;`, never replacing it (#288).
-            confirmed = [clause.strip().split(" ", 1)[0].strip("`").lower()
-                         for clause in row.get(CONFIRMED, "").split(";")]
+            confirmed = [found[1].lower() for clause in row.get(CONFIRMED, "").split(";")
+                         if (found := CLAUSE.match(clause.strip()))]
             why = same_inputs(commit) if kind.lower() == "automated" and not strict else ""
             if why is None:
                 pass  # what its module reads is unchanged since that run, and the run is fresh (D223)
@@ -529,8 +532,11 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                 rerun.append(ident)
                 if why:
                     why_rerun.append(f"{ident}: {why}")
-            elif not any(SHA.fullmatch(commit) and head.startswith(commit) for commit in confirmed):
+            elif not any(head.startswith(commit) for commit in confirmed):
                 unconfirmed.append(ident)
+                cell = " ".join(row.get(CONFIRMED, "").split())
+                read.append(f"{ident}: " + (f"'{cell[:117]}...'" if len(cell) > 120 else f"'{cell}'" if cell
+                                            else "no Confirmed cell"))
         if result == "failed":
             fail("T5", f"scenario {ident}: failed.\n      Action: fix the change, or have the decider "
                        "change the expected result, visibly in the sheet's history.")
@@ -555,7 +561,8 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
                    "it leaves this scenario's result standing>`, after a `;` when the cell holds an "
                    "earlier one.\n      Running the whole sheet again is the other way, and it is not "
                    "required: a confirmation is not a round "
-                   "(.nstack/handbook/05-workflow.md §7).")
+                   "(.nstack/handbook/05-workflow.md §7)."
+                   + "".join(f"\n      Read — {line}" for line in read))
     return human_only
 
 

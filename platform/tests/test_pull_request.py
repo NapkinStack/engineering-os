@@ -761,3 +761,28 @@ def test_t4_says_why_an_automated_row_was_not_kept_by_its_inputs():
                              same_inputs=lambda commit: why[next(rows)])
     t4 = next(message for message in messages if "verified on another commit" in message)
     assert "S1, S2" in t4 and "Not kept by its inputs — S1: no record" in t4 and "S2:" not in t4, t4
+
+
+# --- #532: a Confirmed clause in the form a person writes, and a refusal that quotes what it read ---
+
+@pytest.mark.parametrize("written", ["{head}: what moved, and why it stands", "{head}, what moved",
+                                     "`{head}`: what moved", "{head} — what moved", "{head}—what moved",
+                                     "{head}", "``{head}`` — what moved", "1111111 — before; {head}: what moved since"])
+def test_a_confirmation_in_a_person_s_form_confirms(tmp_path, capsys, monkeypatch, written):
+    base, head = change(tmp_path, USER_FACING)
+    body = sheet((*EXPLORED_OLD, written), confirmed=True)
+    assert check(tmp_path, base, head, body, monkeypatch) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize(("written", "quoted"), [
+    ("{head}x: a longer word", "S2: '{head}x: a longer word'"),
+    ("see {head}: what moved", "S2: 'see {head}: what moved'"),
+    ("", "S2: no Confirmed cell"),
+    ("see " + "x" * 200, "S2: 'see " + "x" * 113 + "...'"),
+])
+def test_an_unconfirmed_scenario_s_refusal_quotes_its_cell(tmp_path, capsys, monkeypatch, written, quoted):
+    base, head = change(tmp_path, USER_FACING)
+    body = sheet((*EXPLORED_OLD, written), confirmed=True)
+    assert check(tmp_path, base, head, body, monkeypatch) == 1
+    output = capsys.readouterr().out
+    assert "not confirmed on it: S2" in output and f"Read — {quoted.replace('{head}', head[:7])}" in output, output
