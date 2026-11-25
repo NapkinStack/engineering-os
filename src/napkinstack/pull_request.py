@@ -48,6 +48,9 @@ In CI :  PR_BODY, PR_LABELS, PR_HEAD_SHA and PR_AUTHOR come from the pull_reques
          a token and one open pull request at the head, its own labels are read, and a label
          given that it does not carry is refused (#368).
 
+PR_FROM_FORK is "true" when the pull request comes from a fork (K3's Action then says a member can hold
+the deliverable for its author); absent or anything else, it does not.
+
 The verifier (T2) is a person, `@handle`, or an agent session, `session <id>`. The change's
 authors are the pull request's author, the GitHub accounts behind its commits' authors,
 committers and co-authors — read from GitHub's noreply addresses; another address names no
@@ -625,9 +628,16 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         # record, never changed by a delivery — under `docs/`, a human would have to approve it.
         from napkinstack import hold
 
-        warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it on {hold.remote(root) or 'this repository'} "
-             f"while this pull request delivers it.\n      Action: nstack claim {match[1]} — the hold says it is in "
-             f"progress; {path.name} changes never in a delivery's pull request.")
+        where = f"{hold.remote(root) or 'this repository'} while this pull request delivers it.\n      Action: "
+        if os.environ.get("PR_FROM_FORK", "").strip().lower() == "true":
+            # A hold is a branch pushed to the repository: an outsider cannot make it.
+            action = (f"a member can hold it for the author — nstack claim {match[1]} --person "
+                      f"@{os.environ.get('PR_AUTHOR', '').strip() or '<author>'} — and leaving it unheld is acceptable; "
+                      f"{path.name} changes never in a delivery's pull request.")
+        else:
+            action = (f"nstack claim {match[1]} — the hold says it is in progress; "
+                      f"{path.name} changes never in a delivery's pull request.")
+        warn(f"[K3] deliverable {match[1]} is still 'ready' and nobody holds it on {where}{action}")
 
 
 def _on_record(root: Path, path: Path, data: dict, ident: str) -> bool:

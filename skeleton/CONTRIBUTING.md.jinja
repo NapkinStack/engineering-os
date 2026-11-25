@@ -1,6 +1,18 @@
 # Contributing
 
-## Joining the project
+{% if forge != "none" %}## From outside the organisation
+
+You have no access to the repository: work from a fork, and you need not join first.
+
+1. Read the current cycle (`docs/project/cycles/`) and take a **ready** deliverable.
+2. Open the pull request from your fork, with `Deliverable: D<n>`; the change delivers that deliverable and nothing else.
+3. Write the test sheet's scenarios from its acceptance criteria. Leave Result and Evidence to a verifier who is not you: a member verifies.
+{% if forge == "github" %}4. The first run of your fork's workflows waits for a maintainer's approval: do not push again to retry.
+{% else %}4. No CI is shipped on this forge: a member runs the checks on your change and records them (`nstack attest`).
+{% endif %}5. `Closes #<n>` names an issue the change closes.
+6. A hold (`nstack claim D<n> --person @you`) is a member's, made on your request; unheld is fine.
+
+{% endif %}## Joining the project
 
 Once per person, before a first deliverable. Each step says where it is said in full.
 

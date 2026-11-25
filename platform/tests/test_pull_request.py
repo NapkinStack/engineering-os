@@ -723,6 +723,31 @@ def test_k3_tells_a_ready_deliverable_to_move(tmp_path, capsys, monkeypatch):
     assert "WARNING [K3]" in output and "nstack claim" in output and "01-first.md" in output, output
 
 
+def test_k3_on_a_fork_says_a_member_can_hold_it_for_the_author(tmp_path, capsys, monkeypatch):
+    """#542: a hold is a branch pushed to the repository, which an outsider cannot do. A fork's pull
+    request is told a member holds it for its author, and that unheld is acceptable; a member's keeps
+    the plain command."""
+    base, head = change(tmp_path)
+    monkeypatch.setenv("PR_AUTHOR", "outsider")
+    monkeypatch.setenv("PR_FROM_FORK", "true")
+    assert check(tmp_path, base, head, "A change.", monkeypatch) == 0
+    fork = capsys.readouterr().out
+    assert "nstack claim D1 --person @outsider" in fork and "acceptable" in fork, fork
+    monkeypatch.setenv("PR_FROM_FORK", "false")
+    assert check(tmp_path, base, head, "A change.", monkeypatch) == 0
+    member = capsys.readouterr().out
+    assert "WARNING [K3]" in member and "Action: nstack claim D1 —" in member, member
+    assert "acceptable" not in member and "--person" not in member, member
+
+
+def test_ci_tells_pr_check_whether_the_pull_request_comes_from_a_fork():
+    workflow = yaml.safe_load((Path(__file__).parents[2] / "skeleton/.github/workflows/pull-request.yml")
+                              .read_text(encoding="utf-8"))
+    step = next(step for step in workflow["jobs"]["description"]["steps"] if "pr-check" in step.get("run", ""))
+    assert step["env"]["PR_FROM_FORK"] == ("${{ github.event.pull_request.head.repo.full_name "
+                                           "!= github.repository }}"), step["env"]
+
+
 def test_ci_gives_pr_check_the_pull_request_s_number_and_a_read_token():
     """Without them the verifier's hand is never read, and nothing says so on a forged sheet (#363)."""
     workflow = yaml.safe_load((Path(__file__).parents[2] / "skeleton/.github/workflows/pull-request.yml")
