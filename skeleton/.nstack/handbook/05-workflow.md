@@ -327,7 +327,10 @@ carries a **test sheet** in its description. Editing
 only a module's description — its manifest, `AGENTS.md`, `README.md`, `docs/` — changes no
 behaviour and needs no sheet, a framework update included; a manifest that moves the module's
 criticality or its user-visible surface does change the module. Both are read before and after
-the change, and the stricter applies:
+the change, and the stricter applies.
+
+The rows below are an example, from a sign-in module. A sheet's own scenarios come from the
+acceptance criteria of its deliverable.
 
 | # | Given · when · then | Kind | Result | Evidence | Commit | Confirmed |
 |---|---|---|---|---|---|---|

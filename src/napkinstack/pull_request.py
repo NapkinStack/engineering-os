@@ -243,6 +243,26 @@ def read_sheet(body: str) -> tuple[str, list[str], list[dict[str, str]]]:
     return verifier, header, rows
 
 
+def template_text(body: str) -> list[str]:
+    """The placeholders the description still carries outside its test sheet (T2 owns the sheet's):
+    each paragraph that is wholly one `<...>`, a heading marker or a bold label line set aside.
+    HTML is not one: a tag or a comment has no space, starts with ! or /, or holds = or ". A fenced
+    block is code, never the template's text; each placeholder is named once."""
+    if match := SECTION.search(body):
+        rest = body[match.end():]
+        following = NEXT_SECTION.search(rest)
+        body = body[:match.start()] + (rest[following.start():] if following else "")
+    body = re.sub(r"^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$", "", body, flags=re.MULTILINE | re.DOTALL)
+    found: list[str] = []
+    for paragraph in re.split(r"\n[ \t]*\n", body):
+        text = re.sub(r"^\*\*[^*\n]*\*\*[ \t]*\n", "", re.sub(r"^#+[ \t]+", "", paragraph.strip()))
+        inner = text[1:-1]
+        if PLACEHOLDER.fullmatch(text) and re.search(r"\s", inner) and inner[0] not in "!/" and not re.search(r'["=]', inner):
+            if (one := " ".join(text.split())) not in found:
+                found.append(one)
+    return found
+
+
 def authors(root: Path, base: str, head: str, opener: str) -> tuple[set[str], set[str], list[str]]:
     """(GitHub logins, agent sessions, agent commits naming no session) of the commits the pull
     request brings — its head, less the base, less merges: CI checks out a merge commit, and
@@ -1112,6 +1132,9 @@ def run(root: Path, base: str, body_file: Path | None = None, labels_given: str 
     if isinstance(hands, str):
         warnings.append(f"[T2] whether {', '.join(m[0] for m in HANDLES.finditer(verifier))}'s hand is on this pull "
                         f"request is not read: {hands}.")
+    if carried and (left := template_text(body)):
+        quoted = ", ".join(f"'{t if len(t) <= 60 else t[:57] + '...'}'" for t in left)
+        warnings.append(f"[template] the template's text is still in the description: {quoted} — replace it or delete it.")
     human_only = check_sheet(body, head, reasons, fail, authorship, rerun_at_head(modules),
                              lambda commit: bool(tree_of(commit)) and tree_of(commit) == tree_of(head),
                              hands if isinstance(hands, set) else None, same_inputs(root, head, base, warnings.append)) if carried else []
