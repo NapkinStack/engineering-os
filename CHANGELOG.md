@@ -22,6 +22,45 @@ a patch.
 
 ---
 
+## v0.34.12 — 2026-11-26
+
+D291, D293 and D294: what a rehearsal with an outside contributor found. An outsider has a path,
+the template's text left in a description is named, and the handbook says where a session's
+trailer is read once merged. PDR-0025, who contributes, is proposed (D292) and builds nothing yet.
+
+This is a patch version: nothing green turns red. pr-check gains a warning and a fork's K3 Action;
+no rule refuses more than before.
+
+**In the engine**
+
+- **K3 on a pull request from a fork** (D293, #542): its Action says a member can hold the
+  deliverable for the author, with `nstack claim D<n> --person @<author>`, and that leaving it
+  unheld is acceptable. `nstack claim` needs write access, which an outsider has not. A member's
+  pull request, and a run that does not set `PR_FROM_FORK`, keep the Action they had.
+- **The template's text left in a description is named** (D294, #543). A paragraph outside the
+  test sheet that is still wholly one of the template's `<…>` placeholders, such as
+  `<one sentence per change>`, gets one `[template]` warning that names it. HTML, fenced blocks and
+  the test sheet, whose placeholders T2 already refuses, are not read.
+
+**In your project** — 6 files
+
+- **`CONTRIBUTING.md`**: a section *From outside the organisation*, on a project with a forge. It
+  says to take a `ready` deliverable of the current cycle, open the pull request from a fork with
+  `Deliverable: D<n>`, write the scenarios and leave the results to a member. On GitHub, a fork's
+  workflows wait for a maintainer's approval; off GitHub, a member runs the checks and records them.
+- **`.github/pull_request_template.md`**: its first line points an outsider to that section.
+- **`.github/workflows/pull-request.yml`** tells pr-check whether the pull request comes from a
+  fork (`PR_FROM_FORK`).
+- **`.nstack/playbooks/verification.md`**: the verifier confirms that the change delivers the
+  deliverable it names, that a code change carries its oracle, and that the summary claims only
+  what was run.
+- **`.nstack/handbook/05-workflow.md`**: §7 says the example sheet is an example, and where the
+  `Agent-Session` trailer is read: on the pull request's own commits. On the default branch, after
+  a squash merge, `git log -E --grep '^Agent-Session: <id>$'` finds a session's changes (D291,
+  #540).
+- **`INSTALL.md`**: G9 says to approve a fork's workflows from the pull request's page, which
+  releases all its runs; a run's own page releases that run only.
+
 ## v0.34.11 — 2026-11-25
 
 D289 and D290: what an independent review of v0.34.10 found, an agent's update that names its
