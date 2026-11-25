@@ -16,7 +16,8 @@ so the exceptions are countable (.nstack/handbook/10-measurement.md §3).
 Usage :  nstack pr-scope [--root ROOT] [--base BASE]
 The budget is the project's: `review_budget_lines` and `review_budget_files` in its answers
 (`nstack config`), 400 and 15 by default; MAX_LINES and MAX_FILES in the environment override them
-for a run (#529). The source taken is said.
+for a run (#529). The answers are read at the base, the project's merged word: a pull request
+never sets the budget it is measured by (D289). The source taken is said.
 In CI :  PR_LABELS comes from the pull_request event.
 """
 
@@ -64,21 +65,26 @@ def run(root: Path, base: str) -> int:
         return 1
     from napkinstack import config
 
-    budget, sources = {}, []
+    budget, sources, unread = {}, [], False
     for name, setting in (("MAX_LINES", "review_budget_lines"), ("MAX_FILES", "review_budget_files")):
         if os.environ.get(name):
             value, source = os.environ[name], f"{name} in the environment"
             action = f"set it to a whole number, or unset it for the project's {setting}"
         else:
             try:
-                answer, where = config.value(root, setting)
+                answer, where = config.value(root, setting, at=base)
             except config.Unreadable as error:
-                print(f"FAIL [pr-scope] {error}: the review budget is the project's answer.\n"
-                      "      Action: fix the file's YAML, then run again.")
-                return 1
+                # The pull request that fixes the file is measured at the base too: refusing would be
+                # a dead end. P2 is a warning; the defaults measure it, said.
+                if not unread:
+                    print(f"WARNING [pr-scope] {error} at {base}: the defaults measure this change.\n"
+                          "      Action: fix the file's YAML in a pull request; the ones after its merge are "
+                          "measured by the project's answers.")
+                unread = True
+                answer, where = config.SETTINGS[setting].default({}), "default"
             value, source = str(answer), (setting if where == "default" else f"{setting} in {where}")
             action = f"nstack config {setting} <a whole number above 0>"
-        if not value.isdigit() or int(value) < 1:
+        if not config.whole(value):
             print(f"FAIL [pr-scope] {source}: '{value}' is not a whole number above 0.\n      Action: {action}.")
             return 1
         budget[name] = int(value)

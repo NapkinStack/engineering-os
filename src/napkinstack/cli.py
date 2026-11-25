@@ -78,6 +78,11 @@ def _update(args: argparse.Namespace) -> int:
         print("FAIL [update] --forge changes the forge at the project's own version; --ref changes the version.\n"
               "      Action: one at a time — nstack update --ref first, merged, then nstack update --forge.")
         return 1
+    if os.environ.get("NSTACK_AGENT") and not args.session:  # #533: as nstack config refuses it
+        print(f"FAIL [update] an agent's run (NSTACK_AGENT={os.environ['NSTACK_AGENT']}) commits the update: "
+              "its commit must name the session, or pr-check's T2 refuses it.\n      Action: run it again "
+              "with --session <this session>.")
+        return 1
     if args.forge:
         return project.change_forge(args.root, args.forge, github_repo=args.github_repo,
                                     repository=args.repository, session=args.session)
