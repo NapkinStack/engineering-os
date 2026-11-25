@@ -395,7 +395,8 @@ the change, and the stricter applies:
 
 **`Confirmed` is optional**: a sheet no fix has disturbed never carries it. A later confirmation
 joins an earlier one in the same cell, after a `;`, each clause starting with its commit:
-`651e249 — <what moved>; deb508f — <what moved>`. The engine's pull
+`651e249 — <what moved>; deb508f — <what moved>` — a colon or a comma after the commit reads the
+same; a refusal quotes the cell it read. The engine's pull
 request check reads the sheet in CI: missing, unfilled, without evidence, verified before the
 head and not confirmed on it, failed. Where checks are attested, each record also keeps the sheet's
 rows as it read them, and the check compares the description with them: an **explored** row whose
