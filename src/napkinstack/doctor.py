@@ -611,8 +611,8 @@ def _workstation(root: Path, answers: dict) -> list[tuple[str, str, str, str]]:
         forced = answers.get("checks") == "forge"
         results.append(("L8", "Checks run where the project says", GAP if forced else OK,
                         f"`checks: forge`, and this version ships a CI only on GitHub: nothing runs the "
-                        f"checks of a {name} project.\nAction: answer `checks: attested` in {ANSWERS}, in a "
-                        "pull request; each change then carries its record, made by nstack attest."
+                        f"checks of a {name} project.\nAction: nstack config checks attested — a branch for a pull "
+                        "request; each change then carries its record, made by nstack attest."
                         if forced else ""))
     results.append(("L9", "The forge answered is the one the files are written for", *l9))
     return results

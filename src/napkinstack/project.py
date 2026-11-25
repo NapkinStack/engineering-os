@@ -926,10 +926,10 @@ def change_forge(root: Path, new: str, github_repo: str | None = None, repositor
               + ("the module's owner." if new != "github" else "the project's discussions on GitHub."))
     if settled:
         print("checks: attested — no CI is shipped off GitHub; each change's checks are run and recorded by "
-              "nstack attest. The decider's answer, changed in a pull request.")
+              "nstack attest. The decider's answer: nstack config checks changes it, in a pull request.")
     elif new == "github" and _answers(root).get("checks") == "attested":
-        print("checks: attested, kept — the decider's answer. GitHub's CI judges once it is `checks: forge`, "
-              "changed in a pull request.")
+        print("checks: attested, kept — the decider's answer. GitHub's CI judges once it is `checks: forge`: "
+              "nstack config checks forge, in a pull request.")
     print(f"\n{next_step(root, branch)}")
     return 0
 
@@ -959,11 +959,21 @@ def change_answer(root: Path, name: str, wanted: object, was: str, session: str 
     answers = _answers(root)
     version = str(answers.get("_commit"))
     base = _git(root, "rev-parse", "HEAD").stdout.strip()
+    clean = not _git(root, "status", "--porcelain").stdout.strip()
     try:
         _merge(dst_path=root, vcs_ref=version, data={name: wanted}, overwrite=True, skip_answered=True,
                defaults=True, conflict="inline", quiet=True, unsafe=False)
     except (CopierError, ValueError, OSError) as exc:
-        print(_explain(exc, "config", root, str(answers.get("_src_path")), version))
+        if clean:  # what Copier wrote before it stopped is undone; a tree it found dirty is left as it was
+            _git(root, "reset", "--quiet", "--hard", base)
+            _git(root, "clean", "-fdq")
+        said = _explain(exc, "config", root, str(answers.get("_src_path")), version)
+        refused = str(exc).strip().removeprefix("Validation error for question '").partition("'")[0]
+        if str(exc).strip().startswith("Validation error for question '") and refused != name:
+            said = (said.partition("\n")[0] + f"\n      The answer refused is {refused}, already in {ANSWERS}, "
+                    f"not {name}.\n      Action: nstack config {refused} <a valid value> first, merged, then "
+                    "run this again.")
+        print(said)
         return 1
     if _answers(root).get(name) != wanted:
         # A version from before the question renders the answer away: the branch would say otherwise.

@@ -87,7 +87,7 @@ def test_an_answer_that_is_no_budget_is_refused_naming_its_source(tmp_path, caps
     root = _scoped(tmp_path, "_commit: v0.34.9\nreview_budget_files: 0\n", 3)
     assert pr_scope.run(root, "HEAD~1") == 1
     out = capsys.readouterr().out
-    assert "review_budget_files in .copier-answers.yml: '0' is not a whole number above 0" in out, out
+    assert "review_budget_files in .copier-answers.yml at HEAD~1: '0' is not a whole number above 0" in out, out
     assert "nstack config review_budget_files" in out
 
 
@@ -151,6 +151,8 @@ def test_a_change_is_laid_on_a_branch_with_the_files_it_writes(tmp_path, made, c
 @pytest.mark.parametrize(("name", "value", "said"), [
     ("review_budget_lines", "lots", "give a whole number above 0"),
     ("review_budget_lines", "0", "give a whole number above 0"),
+    ("review_budget_lines", "²", "give a whole number above 0"),  # D289: a digit to isdigit(), not to int()
+    ("hold_days", "٣", "give a whole number above 0"),
     ("approval", "robots", "give human or agent"),
     ("agent_sockets", "maybe", "give true or false"),
     ("forge", "gitlab", "nstack update --forge"),
@@ -261,7 +263,10 @@ def test_an_unreadable_answers_file_is_said_never_a_traceback(tmp_path, capsys):
     from napkinstack.fitness import pr_scope
 
     root = _scoped(tmp_path, "_commit: v0.34.9\nforge: [unclosed\n", 3)
-    assert pr_scope.run(root, "HEAD~1") == 1 and "cannot be read" in capsys.readouterr().out
+    assert pr_scope.run(root, "HEAD~1") == 0
+    out = capsys.readouterr().out
+    assert "cannot be read" in out and "at HEAD~1: the defaults measure this change" in out, out
+    assert out.count("WARNING [pr-scope]") == 1 and "/400 lines, 1/15 files" in out
     assert config.run(root) == 1 and "fix the file's YAML" in capsys.readouterr().out
 
 
@@ -271,3 +276,119 @@ def test_a_setting_written_as_text_is_said(tmp_path, capsys):
     (root / ".copier-answers.yml").write_text('_commit: v0.34.9\nforge: github\nagent_sockets: "true"\n', encoding="utf-8")
     assert config.run(root, "agent_sockets") == 0
     assert "NOT a bool" in capsys.readouterr().out
+
+
+# --- D289: what an independent review of v0.34.10 found ----------------------------------------
+
+def test_a_pull_request_never_sets_the_budget_it_is_measured_by(tmp_path, capsys):
+    """The answers are read at the base: a change that raises its own budget is measured by the old one."""
+    from napkinstack.fitness import pr_scope
+
+    root = _scoped(tmp_path, "_commit: v0.34.9\nreview_budget_lines: 2\n", 2)
+    (root / ".copier-answers.yml").write_text("_commit: v0.34.9\nreview_budget_lines: 1000\n", encoding="utf-8")
+    (root / "modules/a/x.txt").write_text("".join(f"{n}\n" for n in range(9)), encoding="utf-8")
+    _git(root, "commit", "-qam", "a large change that raises its own budget")
+    pr_scope.run(root, "HEAD~2")
+    out = capsys.readouterr().out
+    assert "/2 lines" in out and "review_budget_lines in .copier-answers.yml at HEAD~2" in out, out
+    assert "WARNING [P2] Over the review budget" in out
+
+
+def test_the_pull_request_that_fixes_an_unreadable_file_is_measured_not_refused(tmp_path, capsys):
+    """The base's file cannot be read: refusing would refuse its own fix too."""
+    from napkinstack.fitness import pr_scope
+
+    root = _scoped(tmp_path, "_commit: v0.34.9\nreview_budget_lines: [\n", 2)
+    (root / ".copier-answers.yml").write_text("_commit: v0.34.9\nreview_budget_lines: 600\n", encoding="utf-8")
+    _git(root, "commit", "-qam", "the fix")
+    assert pr_scope.run(root, "HEAD~1") == 0
+    assert "the defaults measure this change" in capsys.readouterr().out
+
+
+def test_a_base_without_the_answers_file_reads_the_defaults(tmp_path, capsys):
+    from napkinstack.fitness import pr_scope
+
+    root = _scoped(tmp_path, "_commit: v0.34.9\n", 3)
+    _git(root, "rm", "-q", ".copier-answers.yml")
+    _git(root, "commit", "-qm", "no answers")
+    (root / "modules/a/x.txt").write_text("1\n", encoding="utf-8")
+    _git(root, "commit", "-qam", "change")
+    pr_scope.run(root, "HEAD~1")
+    assert "/400 lines, 1/15 files (review_budget_lines, by default" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("said", ["²", "-3", "1.5", " 7"])
+def test_a_budget_int_refuses_is_said_never_a_traceback(tmp_path, monkeypatch, capsys, said):
+    from napkinstack.fitness import pr_scope
+
+    root = _scoped(tmp_path, f"_commit: v0.34.9\nreview_budget_lines: '{said}'\n", 3)
+    assert pr_scope.run(root, "HEAD~1") == 1 and "is not a whole number above 0" in capsys.readouterr().out
+    monkeypatch.setenv("MAX_LINES", said)
+    assert pr_scope.run(root, "HEAD~1") == 1 and "MAX_LINES in the environment" in capsys.readouterr().out
+
+
+def test_a_value_of_the_wrong_type_is_changed_not_called_already_set(tmp_path, made, capsys):
+    """1 == True in Python, and the engine reads agent_sockets with `is True`: `1` keeps the sandbox closed."""
+    root = _project(tmp_path, made)
+    answers = root / ".copier-answers.yml"
+    answers.write_text(answers.read_text(encoding="utf-8").replace("agent_sockets: false", "agent_sockets: 1"),
+                       encoding="utf-8")
+    _git(root, "commit", "-qam", "by hand")
+    capsys.readouterr()
+    assert config.run(root, "agent_sockets") == 0 and "NOT a bool (int in the file)" in capsys.readouterr().out
+    assert config.run(root, "agent_sockets", "true") == 0
+    out = capsys.readouterr().out
+    assert "already" not in out, out
+    assert yaml.safe_load(answers.read_text(encoding="utf-8"))["agent_sockets"] is True
+
+
+def test_an_answer_already_refused_is_named_and_the_tree_left_as_it_was(tmp_path, made, capsys):
+    """`checks: forge` written by hand on GitLab: changing `approval` is refused by copier.yml's validator
+    on `checks`, and the refusal says so, not that `approval`'s value is wrong."""
+    root = tmp_path / "g"
+    answers = {"project_name": "Demo", "owner_team": "acme/platform", "forge": "gitlab", "repository": "acme/demo"}
+    assert project.init(root, answers, str(made), "HEAD") == 0
+    file = root / ".copier-answers.yml"
+    file.write_text(file.read_text(encoding="utf-8").replace("checks: attested", "checks: forge"), encoding="utf-8")
+    _git(root, "commit", "-qam", "by hand")
+    head = _git(root, "rev-parse", "HEAD")
+    capsys.readouterr()
+    assert config.run(root, "approval", "agent") == 1
+    out = capsys.readouterr().out
+    assert "The answer refused is checks" in out and "nstack config checks" in out, out
+    assert _git(root, "rev-parse", "HEAD") == head and not _git(root, "status", "--porcelain")
+
+
+def test_a_render_that_stops_half_way_leaves_nothing_behind(tmp_path, made, monkeypatch, capsys):
+    root = _project(tmp_path, made)
+    head = _git(root, "rev-parse", "HEAD")
+
+    def stops(**kwargs):
+        (kwargs["dst_path"] / "README.md").write_text("half\n", encoding="utf-8")
+        (kwargs["dst_path"] / "new.txt").write_text("half\n", encoding="utf-8")
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(project, "_merge", stops)
+    assert config.run(root, "hold_days", "10") == 1
+    assert "No space left on device" in capsys.readouterr().out
+    assert _git(root, "rev-parse", "HEAD") == head and not _git(root, "status", "--porcelain")
+
+
+@pytest.mark.parametrize("forge", [[], ["--forge", "gitlab", "--repository", "acme/demo"]])
+def test_an_agent_s_update_without_its_session_is_refused_before_anything_is_written(tmp_path, monkeypatch,
+                                                                                    capsys, forge):
+    """#533: the commit would carry no Agent-Session, and pr-check's T2 refuses it."""
+    from napkinstack import cli
+
+    root = tmp_path / "p"
+    root.mkdir()
+    (root / ".copier-answers.yml").write_text("_commit: v0.34.9\nforge: github\n", encoding="utf-8")
+    called = []
+    monkeypatch.setattr(project, "update", lambda *a, **k: called.append(a) or 0)
+    monkeypatch.setattr(project, "change_forge", lambda *a, **k: called.append(a) or 0)
+    monkeypatch.setenv("NSTACK_AGENT", "scout")
+    assert cli.main(["update", "--root", str(root), *forge]) == 1
+    assert "--session <this session>" in capsys.readouterr().out and not called
+    assert cli.main(["update", "--root", str(root), "--session", "s-1", *forge]) == 0 and len(called) == 1
+    monkeypatch.delenv("NSTACK_AGENT")
+    assert cli.main(["update", "--root", str(root), *forge]) == 0 and len(called) == 2, "a person's run is unchanged"

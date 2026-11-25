@@ -16,6 +16,7 @@ Usage :  nstack config [<setting> [<value>]] [--session <id>] [--root ROOT]
 from __future__ import annotations
 
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -59,23 +60,41 @@ class Unreadable(Exception):
     """The answers file is there and YAML cannot read it: no setting is guessed from it."""
 
 
-def _read(root: Path) -> dict:
-    if not (root / project.ANSWERS).is_file():
-        return {}
+def _read(root: Path, at: str | None = None) -> dict:
+    """The answers file in the working tree, or as commit `at` holds it: none there reads as none."""
     try:
-        answers = project._answers(root)
+        if at is None:
+            if not (root / project.ANSWERS).is_file():
+                return {}
+            answers = project._answers(root)
+        else:
+            shown = subprocess.run(["git", "show", f"{at}:./{project.ANSWERS}"], cwd=root, capture_output=True,
+                                   text=True)
+            if shown.returncode:
+                return {}
+            answers = yaml.safe_load(shown.stdout)
     except (OSError, yaml.YAMLError) as error:
         raise Unreadable(f"{project.ANSWERS} cannot be read: {str(error).splitlines()[0]}") from error
     return answers if isinstance(answers, dict) else {}
 
 
-def value(root: Path, name: str) -> tuple[object, str]:
-    """A setting's value and where it comes from: the answers file, else the default. Raises
-    Unreadable when the file is there and YAML cannot read it."""
-    answers = _read(root)
+def value(root: Path, name: str, at: str | None = None) -> tuple[object, str]:
+    """A setting's value and where it comes from: the answers file — in the working tree, or at
+    commit `at` — else the default. Raises Unreadable when the file is there and YAML cannot read it."""
+    answers = _read(root, at)
     if name in answers and answers[name] is not None:
-        return answers[name], project.ANSWERS
+        return answers[name], project.ANSWERS if at is None else f"{project.ANSWERS} at {at}"
     return SETTINGS[name].default(answers), "default"
+
+
+def whole(text: str) -> bool:
+    """A whole number above 0 as int() reads it: '²' is a digit to str.isdigit(), and int() refuses it."""
+    return text.isascii() and text.isdecimal() and int(text) > 0
+
+
+def _same(wanted: object, current: object) -> bool:
+    """Equal and of one type: 1 == True in Python, and the engine reads a bool strictly."""
+    return type(wanted) is type(current) and wanted == current
 
 
 def _typed(name: str, current: object) -> str:
@@ -84,7 +103,8 @@ def _typed(name: str, current: object) -> str:
     kind = SETTINGS[name].kind
     if isinstance(current, kind) and not (kind is int and isinstance(current, bool)):
         return ""
-    return f" — NOT a {kind.__name__}: written as text; nstack config {name} <value> writes it right"
+    return (f" — NOT a {kind.__name__} ({type(current).__name__} in the file): the engine reads it as no "
+            f"{kind.__name__}; nstack config {name} <value> writes it right")
 
 
 def _parse(name: str, said: str) -> tuple[object, str | None]:
@@ -96,7 +116,7 @@ def _parse(name: str, said: str) -> tuple[object, str | None]:
             return False, None
         return None, "true or false"
     if setting.kind is int:
-        return (int(said), None) if said.isdigit() and int(said) > 0 else (None, "a whole number above 0")
+        return (int(said), None) if whole(said) else (None, "a whole number above 0")
     return (said, None) if said in setting.choices else (None, " or ".join(setting.choices))
 
 
@@ -151,7 +171,7 @@ def run(root: Path, name: str | None = None, said: str | None = None, session: s
               "its commit must name the session, or pr-check's T2 refuses it.\n      Action: nstack config "
               f"{name} {said} --session <this session>.")
         return 1
-    if wanted == current and source != "default":
+    if _same(wanted, current) and source != "default":
         print(f"{name} is already {_shown(wanted)}: nothing to change.")
         return 0
     return project.change_answer(root, name, wanted, _shown(current), session)
