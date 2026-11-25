@@ -330,6 +330,33 @@ def test_pr_check_on_an_unknown_base(tmp_path, capsys, monkeypatch):
     assert "FAIL [pr-check] base 'nope' not found" in capsys.readouterr().out
 
 
+def test_the_template_s_text_left_in_a_description_is_named(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path)
+    body = ("# <title: what this changes, from the behaviour's point of view>\n\n**DONE**\n<one sentence per change>\n"
+            "\n**VERIFIED**\n<one sentence per change>\n")
+    assert check(tmp_path, base, head, body, monkeypatch) == 0
+    warning = next(line for line in capsys.readouterr().out.splitlines() if line.startswith("WARNING [template]"))
+    assert "'<one sentence per change>'" in warning and "'<title: what this changes, from the behaviour's point of ...'" in warning, warning
+    assert warning.count("<one sentence per change>") == 1, warning
+
+
+def test_a_filled_description_and_html_stay_silent(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path)
+    body = ("# Sign-in keeps the email\n\n**DONE**\nthe form keeps what was typed\n\n<details>\n\n<!-- c -->\n\n"
+            "<img src=\"x\">\n\n</details>\n\n<br/>\n\n</summary>\n\n```\n\n<a value in the code>\n\n```\n\n"
+            "~~~mermaid\n\n<a node label>\n\n~~~\n")
+    assert check(tmp_path, base, head, body, monkeypatch) == 0
+    assert "[template]" not in capsys.readouterr().out
+
+
+def test_a_placeholder_in_the_test_sheet_is_t2_s_not_the_template_warning(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, USER_FACING)
+    body = sheet(TEMPLATE, verifier="<@handle, or session and the agent session's identifier>")
+    body = body.replace("\n\n## Summary", "\n\n<what the verifier adds, or none>\n\n## Summary")
+    check(tmp_path, base, head, body, monkeypatch)
+    assert "[template]" not in capsys.readouterr().out
+
+
 def test_without_a_description_nothing_is_checked(tmp_path, capsys, monkeypatch):
     base, _ = change(tmp_path, USER_FACING)
     monkeypatch.delenv("PR_BODY", raising=False)
