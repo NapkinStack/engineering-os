@@ -22,6 +22,44 @@ a patch.
 
 ---
 
+## v0.34.11 — 2026-11-25
+
+D289 and D290: what an independent review of v0.34.10 found, an agent's update that names its
+session, and a confirmation T4 reads in the form a person writes it.
+
+This is a patch version: nothing green turns red. A pull request that changes the project's review
+budget is measured by the base's budget, no longer by its own.
+
+**In the engine**
+
+- **The review budget is read at the base** (D289). `pr-scope` read the answers in the pull
+  request's own tree, so a change could raise the budget it was measured by. It now reads them as
+  the base holds them, as the forges read their rules from the target branch; a config pull
+  request's budget measures the pull requests after its merge. A base whose answers file cannot be
+  read is measured by the defaults, with a warning that names the base.
+- **A value never ends in a traceback** (D289). A budget is a whole number as `int()` reads it:
+  `²`, which `str.isdigit()` took, is refused with its Action, in `nstack config` and `pr-scope`.
+- **A value is the same only of the same type** (D289). With `agent_sockets: 1` in the file,
+  `nstack config agent_sockets true` said "already true" while the engine kept the sandbox closed;
+  it now writes `true`.
+- **`nstack config` leaves nothing behind** (D289): a render Copier stops half way is undone, and a
+  refusal of `copier.yml`'s validator names the answer it refused, with its command.
+- **An agent's update names its session** (D289, #533). In an agent's run, `nstack update` and
+  `nstack update --forge` without `--session` refuse before anything is written: the commit would
+  carry no `Agent-Session`, which pr-check's T2 refuses.
+- **T4 reads `<sha>: why`** (D290, #532). A Confirmed clause's commit is its first word, backticks
+  or not, followed by a space, a dash, a colon or a comma. T4's refusal quotes each unconfirmed
+  scenario's cell, or says it has none.
+- The Actions of doctor's L8 and of `update --forge` name `nstack config`.
+
+**In your project** — 3 files
+
+- **`.nstack/handbook/05-workflow.md`**: §4 says the budget is read at the base; §7 says a colon or
+  a comma after the commit reads the same, and that a refusal quotes the cell it read.
+- **`INSTALL.md`** lists `nstack config` among the commands, names it in the checklist's review
+  budget, and says an agent's `update` without `--session` refuses.
+- **`.copier-answers.yml`'s header comment** names `agent_sockets` among the decider's answers.
+
 ## v0.34.10 — 2026-11-24
 
 D287 and D288. The project's settings get a default each and a command to change them, and a stopped `attest` never ends in a traceback.
