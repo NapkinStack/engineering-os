@@ -745,6 +745,9 @@ def test_on_github_the_pages_keep_github_s_words(created):
     contributing = (root / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert "`.github/CODEOWNERS`" in contributing and "GitHub push<br/>protection" in contributing
     assert "CI 'Hooks and secrets'" in contributing and "{%" not in contributing
+    outside = contributing.index("## From outside the organisation")
+    assert outside < contributing.index("## Joining the project") and "Deliverable: D<n>" in contributing[outside:]
+    assert "From outside the organisation" in (root / ".github/pull_request_template.md").read_text(encoding="utf-8")
     assert "**Security** tab" in (root / "SECURITY.md").read_text(encoding="utf-8")
     install = (root / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
     assert "GitHub repository" in install and "NSTACK_RUNS_ON" in install and "| `.github/` |" in install
@@ -788,8 +791,16 @@ def test_on_github_the_ci_words_stay(created):
             assert said in text, f"github: {page} lost '{said}'"
 
 
+def test_off_github_an_outsider_is_told_a_member_runs_the_checks(created):
+    contributing = (created["gitlab"] / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "From outside the organisation" in contributing
+    assert "a member runs the checks on your change" in contributing
+    assert "fork's workflows waits" not in contributing, "a GitHub behaviour, said on GitHub only"
+
+
 def test_with_no_forge_the_pages_say_there_is_none(created):
     contributing = (created["none"] / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "From outside the organisation" not in contributing, "no forge: no fork, no pull request"
     assert "invites you on the forge" not in contributing and "The change, on its branch" in contributing
     install = (created["none"] / ".nstack/handbook/INSTALL.md").read_text(encoding="utf-8")
     assert "No forge<br/>hooks and records" in install and "Work in branches" in install
