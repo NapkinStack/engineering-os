@@ -22,6 +22,35 @@ a patch.
 
 ---
 
+## v0.34.10 — 2026-11-24
+
+D287 and D288. The project's settings get a default each and a command to change them, and a stopped `attest` never ends in a traceback.
+
+This is a patch version: nothing green turns red. A project without the new answers keeps a review budget of 400 lines and 15 files.
+
+**In the engine**
+
+- **`nstack config`** (D287, #529). It lists the decider's settings with their value, whether it is the default, and what each means: `checks`, `approval`, `hold_days`, `agent_sockets`, `review_budget_lines` and `review_budget_files`. It reads one setting, and changes one:
+  - the value is checked;
+  - `checks forge` is refused off GitHub, where no CI is shipped;
+  - the project is rendered again at its own version with the new answer, so the files written from it follow (the code owners file for `approval`) and the project's own lines are kept;
+  - the result is committed on `nstack/config-<setting>`, for a pull request a human approves;
+  - in an agent's run, only with `--session`.
+
+  The answers set at init are listed, not changed: `nstack update --forge` moves the forge.
+- **The review budget is the project's** (D287, #529). `pr-scope` reads `review_budget_lines` and `review_budget_files` from the project's answers, in CI and in `nstack attest` alike. `MAX_LINES` and `MAX_FILES` in the environment still override them for a run. The scope check says which source it took.
+- **A stopped `attest` never ends in a traceback** (D288). A child of a stopped step could write in the run's temporary folder while it was removed. That folder is scratch, and is now removed as far as it can be.
+
+**In your project** — 5 files
+
+The template's questions, read by `nstack update` from this repository, gain `review_budget_lines` and `review_budget_files` (400 and 15 by default, not asked at init), and a validator that refuses `checks: forge` off GitHub.
+
+- **`.copier-answers.yml`'s header comment** names `nstack config`.
+- **`.nstack/handbook/05-workflow.md`** §4 says where the budget lives and how the decider changes it. It cites the default's source: SmartBear's study of 2,500 reviews at Cisco.
+- **`.nstack/handbook/07-governance.md`**, **`INSTALL.md`** and **`glossary.md`** name `nstack config` where an answer is changed.
+
+---
+
 ## v0.34.9 — 2026-11-24
 
 D277 to D279 and D281 to D286 fix frictions that projects met downstream on v0.34.7 and v0.34.8, plus one playbook. Agents' clones reached the forge for nothing. A misplaced trailer was caught only at attest. `settings --apply` wrote nothing on a private repository. An attest cut by a timeout said nothing. A restarted session re-read its history.
