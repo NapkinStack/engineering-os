@@ -828,8 +828,8 @@ def test_pr_check_lets_an_automated_row_stand_across_a_merge_in_that_kept_the_mo
     same = pull_request.same_inputs(root, head, base)
     main = git(root, "rev-parse", "main")
     assert same(first[:7]) is None
-    assert same(main[:7]) == (f"{main[:7]} has no passing record of its module checks: nstack attest with {main[:7]} checked out, "
-                              "and the row stands while what its modules read is unchanged since"), "#491: why, and the cheap path"
+    assert same(main[:7]) == (f"what its modules read changed between {main[:7]} and the head {head[:7]}: modules/a (1 file)"), \
+        "D295: no record at all, read from git — what differs is said, and the cheap path"
     monkeypatch.setattr(attest, "FRESH_DAYS", -1)
     assert "is older than -1 days" in pull_request.same_inputs(root, head, base)(first[:7]), "past the bound, re-run"
 
@@ -872,6 +872,138 @@ def test_t4_says_when_the_head_has_no_record_yet(counting):
 
 
 
+def test_t4_lets_a_row_stand_at_a_commit_with_no_record_when_git_tells_the_head_s_inputs(counting):
+    """D295 (#548): a row at a commit nobody attested stands as a row at the head does, when what the
+    modules read, told from git at both, is the same — here the merge changed only module c. The head
+    holds no record either: a row at the head asks none."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert attest.latest(root, first) is None and attest.latest(root, head) is None
+    assert pull_request.same_inputs(root, head, base)(first[:7]) is None
+
+
+@pytest.mark.parametrize("path, said", [("contracts/doc.md", "contracts/doc.md"), ("uv.lock", "uv.lock")])
+def test_t4_names_what_changed_for_a_row_at_a_commit_with_no_record(counting, path, said):
+    """D295: the merge also changed a shared file — a row without a record is not kept, and T4 says what."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    main_moves(root, path)
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first) == \
+        f"what its modules read changed between {first} and the head {head[:7]}: {said}"
+
+
+def _unrecorded_refusal(first):
+    return (f"{first} has no passing record of its module checks: nstack attest with {first} checked out, and the row "
+            "stands while what its modules read is unchanged since")
+
+
+def test_t4_keeps_refusing_a_voided_commit(counting):
+    """D295's verifier: only a commit with no record at all is read from git. A voided one is refused as
+    before, though git tells the head's inputs."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    attest.run(root, base, None, "")
+    attest.void(root, first, "unsound run", base)
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first) == _unrecorded_refusal(first)
+
+
+def test_t4_keeps_refusing_a_commit_whose_module_checks_failed(counting, monkeypatch):
+    """D295's verifier: a record whose Module checks failed is refused as before, though git tells the
+    head's inputs."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    monkeypatch.setattr(attest, "CHECKS", (attest.Check("Passes", (attest.Step("e", "e", "true"),)),
+                                           attest.Check("Module checks", (attest.Step("f", "f", "false"),), kept=True)))
+    attest.run(root, base, None, "")
+    assert attest.latest(root, first) is not None
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first) == _unrecorded_refusal(first)
+
+
+def test_t4_asks_a_row_read_from_git_to_be_as_fresh_as_a_record(counting, monkeypatch):
+    """D295's verifier: past the bound, a row with no record is refused as a recorded one is."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first) is None
+    monkeypatch.setattr(attest, "FRESH_DAYS", -1)
+    assert pull_request.same_inputs(root, head, base)(first) == (
+        f"its run at {first} is older than -1 days, or than {attest.FRESH_COMMITS} commits of the default branch")
+
+
+def test_t4_asks_a_row_read_from_git_to_be_in_the_head_s_history(counting):
+    """D295's verifier: a commit on a side branch with equal inputs is not the head's past."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    git(root, "switch", "-q", "-c", "side", first)
+    git(root, "commit", "-q", "--allow-empty", "-m", "side\n\nAgent-Session: a-session")
+    side = git(root, "rev-parse", "HEAD")
+    git(root, "switch", "-q", "work")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(first) is None
+    assert pull_request.same_inputs(root, head, base)(side) == _unrecorded_refusal(side)
+
+
+def test_t4_refuses_with_the_old_message_when_a_module_folder_is_absent_at_the_commit(counting):
+    """D295: a digest that cannot be told at the commit — a module folder the head reads is not there — is
+    not compared."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    git(root, "switch", "-q", "main")
+    git(root, "rm", "-rq", "modules/b")
+    git(root, "commit", "-q", "-m", "no b\n\nAgent-Session: a-session")
+    nob = git(root, "rev-parse", "HEAD")
+    git(root, "switch", "-q", "work")
+    git(root, "merge", "-q", "--no-edit", "-s", "ours", "main")  # the head keeps b, main's commit does not
+    head = git(root, "rev-parse", "HEAD")
+    assert pull_request.same_inputs(root, head, base)(nob) == _unrecorded_refusal(nob)
+
+
+def test_t4_reads_the_head_s_digest_from_git_once(counting, monkeypatch):
+    """D295's verifier: one computation of the head's digest per run, not per row."""
+    from napkinstack import pull_request
+
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    main_moves(root, "modules/c/code.py")
+    head = git(root, "rev-parse", "HEAD")
+    seen: list[str] = []
+    monkeypatch.setattr(attest, "inputs", lambda root, base, identity="", commit="HEAD", real=attest.inputs:
+                        seen.append(commit) or real(root, base, identity, commit))
+    same = pull_request.same_inputs(root, head, base)
+    assert same(first) is None and same(first[:7]) is None
+    assert seen.count(head) == 1
+
+
 def test_the_forge_s_run_leaves_a_row_waiting_for_the_head_s_record_to_the_required_status(counting, monkeypatch):
     """#495: the forge's run starts at the push, before nstack attest writes the head's record. Where the
     ruleset requires attest's status, T4 does not fail for want of that record, as A1 does not: the row
@@ -894,8 +1026,8 @@ def test_the_forge_s_run_leaves_a_row_waiting_for_the_head_s_record_to_the_requi
     assert len(said) == 1 and said[0].startswith(f"[T4] automated rows run at {first[:7]} wait for the record of the "
                                                  f"head {head[:7]}: the required status '{attest.CONTEXT}' judges them"), said
     assert f"Action: nstack attest on the head {head[:7]}" in said[0]
-    assert same(main[:7]).startswith(f"{main[:7]} has no passing record of its module checks"), \
-        "the row's commit has no record: attest at the head would not keep it"
+    assert same(main[:7]).startswith(f"what its modules read changed between {main[:7]} and the head {head[:7]}"), \
+        "the row's commit has no record and git tells another digest: attest at the head would not keep it"
     monkeypatch.setattr(pull_request, "status_required", lambda root: False)
     assert pull_request.same_inputs(root, head, base)(first[:7]).startswith(f"the head {head[:7]} has no passing record"), \
         "the status not required: the run judges, as before"

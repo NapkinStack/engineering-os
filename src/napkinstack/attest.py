@@ -414,24 +414,27 @@ SHARED_MODULES = ("contracts", "platform")  # read by every module: counted as s
 RECORDS = ("docs/project/", "docs/adr/", "docs/pdr/")
 
 
-def inputs(root: Path, base: str, identity: str = "") -> str | None:
-    """The digest of what `Module checks` reads at HEAD (ADR-0006 decision 2, D223): the folders of
+def inputs(root: Path, base: str, identity: str = "", commit: str = "HEAD") -> str | None:
+    """The digest of what `Module checks` reads at `commit`, HEAD by default (ADR-0006 decision 2, D223): the folders of
     the modules it runs, of those they consume from or assemble, every tracked path outside the
     module folders — `contracts/` and `platform/` included, which every module reads — but the
     project's records, `docs/project/`, `docs/adr/` and `docs/pdr/` (D242), and who runs it with which
     engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
+    # The scope is the working tree's: the head locally and under nstack attest; on the forge the checkout
+    # is the test merge, which can only widen it — conservative (D295). Read at `commit`, a manifest that
+    # moved in between is a folder read whole, and so a difference.
     scope = input_scope(root, base)
     if scope is None:
         return None
     names, folders, inside = scope
     lines = [f"ran {' '.join(names)}", f"identity {identity}"]
     for folder in sorted(folders):
-        tree = _git(root, "rev-parse", "--verify", "--quiet", f"HEAD:{folder}", check=False).stdout.strip()
+        tree = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}:{folder}", check=False).stdout.strip()
         if not tree:
             return None
         lines.append(f"{folder} {tree}")
     # -z: a path git would quote — a record whose name is not ASCII, `résumé.md` — is read as it is.
-    listed = _git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD", check=False)
+    listed = _git(root, "ls-tree", "-r", "-z", "--full-tree", commit, check=False)
     if listed.returncode:
         return None
     lines += [line for line in listed.stdout.split("\0")
