@@ -364,8 +364,11 @@ acceptance criteria of its deliverable.
     person — and the run is at most 7 days old, the default branch moved by 20 commits at most. A
     module that reads something it does not declare is the risk: declare it in `consumes` — a
     record cannot be declared: a check never reads one —, and the default branch's own `Module
-    checks` run catches what was missed once it runs that module. A commit with no passing record
-    of its own is the case to know: `pr-check`'s T4 says so — `nstack attest` with that commit checked out, and
+    checks` run catches what was missed once it runs that module. A commit with no record at all stands
+    when git gives the same inputs digest at that commit and at the head, the commit is in the head's
+    history, and it is as fresh as a record would have to be (the bounds above); otherwise T4 says what
+    changed. A commit whose record exists and passed nothing, or that cannot be read from git, is the case
+    to know: `pr-check`'s T4 says so — `nstack attest` with that commit checked out, and
     its rows stand without running them again —, as it says a digest that differs, with what
     changed — a module consumed, a shared file; or, when no file did, the modules run or the
     engine —, or a run past its bound. The forge's run, made at the push, comes before the head's record: where the

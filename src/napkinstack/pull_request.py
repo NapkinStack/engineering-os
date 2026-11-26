@@ -931,8 +931,9 @@ def same_inputs(root: Path, head: str, base: str,
                 warn: Callable[[str], None] = lambda message: None) -> Callable[[str], str | None]:
     """T4's relief for an automated row (D223): the record of the row's commit and the head's hold
     the same inputs digest, and the row's run is fresh. While nstack attest makes the head's record,
-    the digest it computed stands in for it. The callable returns None when the row stands, else why
-    it does not — the cheap path first (#491). The forge's run starts at the push, before that record:
+    the digest it computed stands in for it; a commit with no record at all stands as the head does,
+    when git tells the same digest at both, it is in the head's history and fresh (D295). The
+    callable returns None when the row stands, else why it does not — the cheap path first (#491). The forge's run starts at the push, before that record:
     where the ruleset requires attest's status, a row waiting for it is left to that status, as A1 is,
     and said (#495)."""
     from napkinstack import attest
@@ -964,10 +965,31 @@ def same_inputs(root: Path, head: str, base: str,
     def same(commit: str) -> str | None:
         digest = head_digest()  # first: it fetches the remote's records, the row's commit's among them
         full = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").stdout.strip()
-        found = _module_inputs(attest.latest(root, full), root, full) if full else None
+        record = attest.latest(root, full) if full else None
+        found = _module_inputs(record, root, full) if full else None
         if not found:
-            return (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
-                    "the row stands while what its modules read is unchanged since")
+            unrecorded = (f"{commit} has no passing record of its module checks: nstack attest with {commit} checked out, and "
+                          "the row stands while what its modules read is unchanged since")
+            # No record at all (D295): what its modules read, told from git at the commit and at the head, as
+            # for a row at the head, which asks none. A record that exists and passes nothing is refused.
+            if not full or record is not None \
+                    or _git(root, "merge-base", "--is-ancestor", full, head).returncode != 0:
+                return unrecorded
+            if "git" not in cache:  # once per run, not per row
+                cache["git"] = attest.inputs(root, base, "-", head)
+            then = attest.inputs(root, base, "-", full)
+            if not then or not cache["git"]:
+                return unrecorded
+            if then != cache["git"]:
+                return f"what its modules read changed between {commit} and the head {head[:7]}" + \
+                    _what_changed(root, base, full, head)
+            base_commit = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").stdout.strip() or None
+            made = _git(root, "log", "-1", "--format=%cI", full).stdout.strip()
+            run_base = _git(root, "merge-base", full, base_commit).stdout.strip() if base_commit else None
+            if not attest._fresh(root, made, run_base or None, base_commit):
+                return (f"its run at {commit} is older than {attest.FRESH_DAYS} days, or than "
+                        f"{attest.FRESH_COMMITS} commits of the default branch")
+            return None
         if not digest:
             if cache.get("waits"):
                 if commit not in waiting:
