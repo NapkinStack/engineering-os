@@ -220,7 +220,7 @@ to break.
 ```mermaid
 stateDiagram-v2
     [*] --> proposed
-    proposed --> active : creation ADR<br/>manifest + owner + contract v1
+    proposed --> active : its ADR decides it<br/>contract v1, when it provides one
 
     active --> maintenance : no further evolution planned<br/>owner kept
     maintenance --> active : a new need
@@ -250,14 +250,17 @@ stateDiagram-v2
     end note
 ```
 
-The status lives in the manifest, so it is checkable:
+The status lives in the manifest, so it is checkable. A module's manifest and its owner are
+checked from `proposed` on (M1, M2). Going `active` is a decision: the ADR that creates the
+module, read by whoever verifies the pull request. A module that provides no contract, such as a
+shell or an installer, goes `active` with none. What CI holds:
 
 | Situation | CI result |
 |---|---|
 | A frozen contract version of a `maintenance` module changed | **Red** (V1): a version consumed or stable changes only with the merged proof |
 | A `deprecated` module with a consumer | Reported (B8), and **red** once its removal date has passed (M5) |
 | A `deprecated` module whose removal date has passed | **Red** (M5) |
-| An `active` module with no declared owner | **Red** (M2) |
+| A module with no declared owner, whatever its status | **Red** (M2) |
 
 This is what avoids **permanent intermediate states**: a deprecated path that never
 disappears because nobody is responsible for removing it.
