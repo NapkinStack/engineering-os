@@ -22,6 +22,35 @@ a patch.
 
 ---
 
+## v0.34.13 — 2026-11-26
+
+D295 and D296: a verified row survives a merge that touches nothing its modules read. Both were
+measured on a consumer project with attested checks, where each such merge cost an end-to-end
+replay of up to an hour.
+
+This is a patch version: nothing green turns red. T4 keeps more rows than before, and refuses
+none it kept.
+
+**In the engine**
+
+- **An automated row stands at a commit with no record** (D295, #548). T4's relief (D223) needed a
+  passing attest record of the row's commit; a project attests after verifying, so there was
+  usually none. When the commit has no record at all, pr-check reads the inputs digest from git at
+  that commit and at the head. The row stands when they are equal, the commit is in the head's
+  history, and it is as fresh as a record must be. A record that exists but was voided or failed
+  is refused as before. When the digests differ, T4 names what changed.
+- **The Markdown files at the repository's root are records** (D296, #550): `README.md`,
+  `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md` and the like leave the inputs digest, as
+  `docs/project/`, `docs/adr/` and `docs/pdr/` did in D242. A root README change no longer costs
+  open pull requests their runs. The root `docs/`, `.nstack/`, `contracts/`, `platform/`,
+  lockfiles, Markdown under a folder and symbolic links stay inputs. ADR-0006 is amended.
+
+**In your project** — 2 files
+
+- **`.nstack/handbook/05-workflow.md`** §7: when a row at a commit with no record stands, and the
+  root's Markdown files among the records left out.
+- **`.nstack/handbook/07-governance.md`**: the same records, in what a kept check reads.
+
 ## v0.34.12 — 2026-11-26
 
 D291, D293 and D294: what a rehearsal with an outside contributor found. An outsider has a path,
