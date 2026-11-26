@@ -360,7 +360,8 @@ acceptance criteria of its deliverable.
     attested, it stands when nothing its modules read moved since its run: the records of its
     commit and of the head hold the same `inputs` digest — the modules run, those they consume
     from or assemble, the files outside the modules, `contracts/` and `platform/` included, the
-    project's records (`docs/project/`, `docs/adr/`, `docs/pdr/`) left out, the engine and the
+    project's records (`docs/project/`, `docs/adr/`, `docs/pdr/`) and the Markdown files at the
+    repository's root (`README.md`, `CHANGELOG.md`…) left out, the engine and the
     person — and the run is at most 7 days old, the default branch moved by 20 commits at most. A
     module that reads something it does not declare is the risk: declare it in `consumes` — a
     record cannot be declared: a check never reads one —, and the default branch's own `Module

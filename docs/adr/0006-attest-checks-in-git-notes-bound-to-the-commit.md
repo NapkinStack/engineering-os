@@ -8,7 +8,9 @@
   unchanged — the digest of its inputs, not the commit and base — for seven days and twenty
   commits of the default branch at most; an automated sheet row stands on the same digest —
   decisions 2, 3 and 7. **Amended 2026-11-18 (D242, #441)**: the project's records
-  (`docs/project/`, `docs/adr/`, `docs/pdr/`) are left out of that digest — decision 2
+  (`docs/project/`, `docs/adr/`, `docs/pdr/`) are left out of that digest — decision 2.
+  **Amended 2026-11-26 (D296, #550)**: so are the Markdown files at the repository's root —
+  decision 2
 - **Date**: 2026-10-20
 - **Decision makers**: NapkinStack maintainers (`@NapkinStack/maintainers`)
 - **Scope**: project — the engine (`nstack attest`, `pr-check`, `doctor`), the Copier
@@ -96,7 +98,10 @@ the workflows, and without a forge being required.
      a rules document merged on the default branch cost every open pull request its end-to-end runs
      again. The rest of the root `docs/` stays an input: downstream, an end-to-end run checks that
      the privacy page states the paths the package leaves. A check that does read a record is an
-     undeclared input, bounded as below;
+     undeclared input, bounded as below; *amended (D296, #550)*: the Markdown files at the
+     repository's root — `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`… — are
+     records too: a line of the root README cost an open pull request an hour of end-to-end runs.
+     A file under a folder stays an input, and so does a symbolic link: its target is what is read;
    - the engine and the person, as before.
 
    Their digest, SHA-256 over those ids in a fixed order, is kept in the record. The check is kept

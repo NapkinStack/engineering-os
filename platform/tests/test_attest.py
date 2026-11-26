@@ -729,8 +729,10 @@ def main_moves(root: Path, path: str) -> None:
     """Another change lands on main, and the branch merges main in."""
     git(root, "switch", "-q", "main")
     target = root / path
-    target.write_text(target.read_text(encoding="utf-8") + "more\n", encoding="utf-8")
-    git(root, "commit", "-q", "-am", f"{path} moves")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text((target.read_text(encoding="utf-8") if target.exists() else "") + "more\n", encoding="utf-8")
+    git(root, "add", path)
+    git(root, "commit", "-q", "-m", f"{path} moves")
     git(root, "switch", "-q", "work")
     git(root, "merge", "-q", "--no-edit", "main")
 
@@ -744,7 +746,8 @@ def counting(tmp_path, monkeypatch):
     return root
 
 
-@pytest.mark.parametrize("path", ["modules/c/code.py", "docs/project/rules.md", "docs/project/résumé.md"])
+@pytest.mark.parametrize("path", ["modules/c/code.py", "docs/project/rules.md", "docs/project/résumé.md", "README.md",
+                                  "CHANGELOG.md", "NOTES.MD"])
 def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counting, capsys, path):
     """#441 (D242): the project's records under the root `docs/` are read by no module check; a line
     of a rules document merged on main cost every open pull request its end-to-end runs again."""
@@ -762,7 +765,7 @@ def test_a_merge_in_that_touches_nothing_the_module_reads_keeps_its_check(counti
 
 
 @pytest.mark.parametrize("path", ["modules/b/code.py", "uv.lock", "modules/a/code.py", "contracts/doc.md",
-                                  "platform/doc.md", "docs/privacy.md"])
+                                  "platform/doc.md", "docs/privacy.md", ".nstack/handbook/x.md", "README.txt"])
 def test_a_merge_in_that_touches_what_the_module_reads_runs_it_again(counting, path):
     root = counting
     base = modular(root)
@@ -1633,3 +1636,29 @@ def test_a_temporary_folder_that_cannot_be_removed_never_costs_the_run(tmp_path,
     monkeypatch.setattr(os, "rmdir", refused)
     assert attest.run(tmp_path, "HEAD", None, "") == 0, capsys.readouterr().out
     assert "Record of" in capsys.readouterr().out
+
+
+def test_t4_does_not_name_a_root_markdown_file_among_what_changed(counting):
+    """#550 (D296): a root README is a record; what T4 names as changed leaves it out."""
+    root = counting
+    base = modular(root)
+    first = git(root, "rev-parse", "HEAD")
+    main_moves(root, "README.md")
+    main_moves(root, "uv.lock")
+    named = pull_request._what_changed(root, base, first, git(root, "rev-parse", "HEAD"))
+    assert "uv.lock" in named and "README" not in named, named
+
+
+def test_a_root_markdown_symbolic_link_stays_an_input(tmp_path):
+    """#550 (D296): a root `x.md` that links elsewhere is read through its target: retargeting it moves the digest."""
+    root = tmp_path / "p"
+    root.mkdir()
+    base = modular(root)
+    os.symlink("contracts/doc.md", root / "x.md")
+    git(root, "add", "x.md")
+    git(root, "commit", "-q", "-m", "link")
+    before = attest.inputs(root, base)
+    (root / "x.md").unlink()
+    os.symlink("uv.lock", root / "x.md")
+    git(root, "commit", "-q", "-am", "relink")
+    assert before and attest.inputs(root, base) != before
