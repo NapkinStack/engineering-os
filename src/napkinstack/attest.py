@@ -414,11 +414,18 @@ SHARED_MODULES = ("contracts", "platform")  # read by every module: counted as s
 RECORDS = ("docs/project/", "docs/adr/", "docs/pdr/")
 
 
+def is_record(path: str) -> bool:
+    """A path no module check is meant to read (ADR-0006 decision 2): the project's records (D242), and
+    the Markdown files at the repository's root — README, CHANGELOG, CONTRIBUTING… (D296, #550)."""
+    return path.startswith(RECORDS) or ("/" not in path and path.lower().endswith(".md"))
+
+
 def inputs(root: Path, base: str, identity: str = "", commit: str = "HEAD") -> str | None:
     """The digest of what `Module checks` reads at `commit`, HEAD by default (ADR-0006 decision 2, D223): the folders of
     the modules it runs, of those they consume from or assemble, every tracked path outside the
     module folders — `contracts/` and `platform/` included, which every module reads — but the
-    project's records, `docs/project/`, `docs/adr/` and `docs/pdr/` (D242), and who runs it with which
+    project's records, `docs/project/`, `docs/adr/` and `docs/pdr/` (D242), and the root's Markdown
+    files (D296) — a symbolic link stays an input: its target is what is read —, and who runs it with which
     engine; git's ids, never hashed by hand. None when it cannot be told: no key."""
     # The scope is the working tree's: the head locally and under nstack attest; on the forge the checkout
     # is the test merge, which can only widen it — conservative (D295). Read at `commit`, a manifest that
@@ -438,7 +445,8 @@ def inputs(root: Path, base: str, identity: str = "", commit: str = "HEAD") -> s
     if listed.returncode:
         return None
     lines += [line for line in listed.stdout.split("\0")
-              if line and not line.split("\t", 1)[-1].startswith((*inside, *RECORDS))]
+              if line and not line.split("\t", 1)[-1].startswith(inside)
+              and (line.startswith("120000") or not is_record(line.split("\t", 1)[-1]))]
     return hashlib.sha256("\n".join(lines).encode("utf-8", "surrogateescape")).hexdigest()
 
 

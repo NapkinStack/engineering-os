@@ -1029,7 +1029,7 @@ def _what_changed(root: Path, base: str, commit: str, head: str) -> str:
         folder = next((one for one in folders if path.startswith(f"{one}/")), None)
         if folder:
             counted[folder] = counted.get(folder, 0) + 1
-        elif not path.startswith((*inside, *attest.RECORDS)):
+        elif not path.startswith(inside) and not attest.is_record(path):
             counted[path] = 0
     if not counted:
         return nothing
