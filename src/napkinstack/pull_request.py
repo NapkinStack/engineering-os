@@ -589,6 +589,35 @@ def check_sheet(body: str, head: str, reasons: list[str], fail: Fail,
     return human_only
 
 
+def _planned_work(root: Path, reason: str, warn: Callable[[str], None]) -> None:
+    """K3, said and never refused (#555): a reason that names a deliverable of a cycle file is planned
+    work, and its path is a re-framing, not the label."""
+    running = plan.accepted_cycle(root)
+    if running is None:  # unframed, or between two cycles: there is no cycle to re-frame
+        return
+    owners: dict[str, Path] = {}  # deliverable id -> the latest cycle file that lists it, the running one first
+    states: dict[str, object] = {}
+    for path in [p for p in plan.cycle_files(root) if p != running[0]] + [running[0]]:
+        try:
+            items = (plan.read_front_matter(path)[0] or {}).get("deliverables")
+        except OSError:
+            continue
+        for item in items if isinstance(items, list) else []:
+            if isinstance(item, dict):
+                owners[str(item.get("id"))], states[str(item.get("id"))] = path, item.get("state")
+    named = next((i for i in re.findall(r"\bD\d+\b", reason) if i in owners), None)
+    if named and owners[named] == running[0] and not plan.one_of(states[named], {"ready", "in-progress", "proposed"}):
+        return  # accepted, deferred or dropped in the running cycle: a fix to it may well be out of cycle
+    if named and owners[named] == running[0]:
+        warn(f"[K3] 'Out of cycle: {reason}' names {named}, a deliverable of the running cycle {running[0].stem}: "
+             f"it is delivery work.\n      Action: write 'Deliverable: {named}' and remove the label.")
+    elif named:
+        warn(f"[K3] 'Out of cycle: {reason}' names {named}, a deliverable of {owners[named].stem}: planned work "
+             "comes back by re-framing — the decider adds it to the running cycle "
+             "(.nstack/playbooks/framing.md §4), then nstack deliver records it. Out of cycle is for an "
+             "incident or a production defect.")
+
+
 def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, fail: Fail,
                 warn: Callable[[str], None] = lambda message: None) -> None:
     """K1 to K4, for delivery work."""
@@ -596,6 +625,8 @@ def check_cycle(root: Path, body: str, labels: set[str], today: datetime.date, f
         if not JUSTIFICATION.search(body):
             fail("K4", f"label {LABEL} without its justification.\n      Action: add "
                        "\"Out of cycle: <reason>\" to the description — an incident, a production defect.")
+        else:
+            _planned_work(root, JUSTIFICATION.search(body)[1], warn)
         return
     stage = plan.stage(root)
     if stage == plan.UNREADABLE:

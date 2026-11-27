@@ -479,6 +479,47 @@ CYCLE_CASES = {
 }
 
 
+def deferred_in_a_closed_cycle(root):
+    framed(root, cycles={"01-first.md": cycle(status="closed", deliverables=[deliverable(id="D108", state="deferred")]),
+                         "02-next.md": cycle(deliverables=[deliverable(id="D120")])})
+
+
+@pytest.mark.parametrize(("body", "warned"), [
+    ("Out of cycle: D108", True),  # #555: planned work, said to come back by re-framing
+    ("Out of cycle: production crash on start", False),
+    ("Out of cycle: D999", False),  # an id no cycle file lists
+], ids=["a deliverable of a closed cycle", "an incident", "an id of no cycle"])
+def test_out_of_cycle_naming_planned_work_points_to_reframing(tmp_path, capsys, monkeypatch, body, warned):
+    base, head = change(tmp_path, frame=False)
+    deferred_in_a_closed_cycle(tmp_path)
+    result = check(tmp_path, base, head, body, monkeypatch, "out-of-cycle", deliverable_line=None)
+    output = capsys.readouterr().out
+    assert result == 0, output
+    assert "Pull request rules: compliant." in output, output
+    assert ("names D108, a deliverable of 01-first: planned work comes back by re-framing" in output) is warned, output
+    assert ("WARNING [K3]" in output) is warned, output
+
+
+def test_out_of_cycle_reads_the_running_cycle_first_and_stays_silent_unframed(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, frame=False)
+    framed(tmp_path, cycles={"01-first.md": cycle(deliverables=[deliverable(id="D108")]),
+                             "02-later.md": cycle(status="proposed", deliverables=[deliverable(id="D108")])})
+    check(tmp_path, base, head, "Out of cycle: D108", monkeypatch, "out-of-cycle", deliverable_line=None)
+    assert "a deliverable of the running cycle 01-first" in capsys.readouterr().out
+    framed(tmp_path, cycles={"01-first.md": cycle(status="closed", deliverables=[deliverable(id="D108")])})
+    check(tmp_path, base, head, "Out of cycle: D108", monkeypatch, "out-of-cycle", deliverable_line=None)
+    assert "WARNING [K3]" not in capsys.readouterr().out
+
+
+def test_out_of_cycle_naming_a_deliverable_of_the_running_cycle_says_write_its_line(tmp_path, capsys, monkeypatch):
+    base, head = change(tmp_path, frame=False)
+    deferred_in_a_closed_cycle(tmp_path)
+    assert check(tmp_path, base, head, "Out of cycle: D120", monkeypatch, "out-of-cycle", deliverable_line=None) == 0
+    output = capsys.readouterr().out
+    assert "a deliverable of the running cycle 02-next: it is delivery work" in output, output
+    assert "Deliverable: D120" in output and "re-framing" not in output, output
+
+
 @pytest.mark.parametrize(("prepare", "body", "labels", "expected", "code"), CYCLE_CASES.values(), ids=CYCLE_CASES.keys())
 def test_cycle(tmp_path, capsys, monkeypatch, prepare, body, labels, expected, code):
     base, head = change(tmp_path, frame=False)
