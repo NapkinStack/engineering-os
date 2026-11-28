@@ -71,6 +71,18 @@ class Forge(http.server.BaseHTTPRequestHandler):
             return self._send(200, {"login": "acme", "type": self.owner_type})
         if self.path == "/users/demo-scout%5Bbot%5D":
             return self._send(200, {"login": "demo-scout[bot]", "id": 9001})
+        if self.path in ("/repos/acme/formerly", "/repos/acme/given"):  # renamed, or transferred: redirected (#559)
+            self.send_response(301)
+            self.send_header("Location", "/repos/acme/demo" if self.path.endswith("formerly") else "/repos/other/demo")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+        if self.path == "/repos/acme/demo":
+            if self.headers.get("Authorization") != "Bearer ghs_installation-token":
+                return self._send(401, {"message": "Bad credentials"})
+            return self._send(200, {"full_name": "acme/demo", "id": 5})
+        if self.path == "/repos/other/demo":
+            return self._send(200, {"full_name": "other/demo", "id": 6})
         if self.path == "/repos/acme/demo/installation":
             if not self._app_jwt():
                 return self._send(401, {"message": "Bad credentials"})
@@ -88,6 +100,8 @@ class Forge(http.server.BaseHTTPRequestHandler):
             if not self._app_jwt():
                 return self._send(401, {"message": "Bad credentials"})
             Forge.token_bodies.append(body)
+            if body.get("repositories") not in (None, ["demo"]):  # a name the installation does not hold
+                return self._send(422, {"message": "There is at least one repository that does not exist"})
             return self._send(201, {"token": "ghs_installation-token", "expires_at": "2099-01-01T00:00:00Z"})
         self._send(404, {"message": "Not Found"})
 
@@ -609,6 +623,48 @@ def test_uv_and_pre_commit_keep_the_person_s_warm_caches(forge, project, monkeyp
     assert env["UV_CACHE_DIR"] == str(tmp_path / "uv-of-the-person")
     assert env["PRE_COMMIT_HOME"] == str(tmp_path / "xdg" / "pre-commit")
     assert env["XDG_CACHE_HOME"] == str(Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "cache")
+
+
+def test_an_agent_made_before_a_rename_follows_it(forge, project, capsys):
+    """#559: the stored name is refused once the repository is renamed; the forge redirects it, so
+    the agent follows, says so, stores the new name, and its token is still for that repository alone."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    path = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "app.json"
+    app = json.loads(path.read_text())
+    path.write_text(json.dumps({**app, "repo": "acme/formerly"}))
+    Forge.token_bodies.clear()
+    capsys.readouterr()
+    assert agent.mint("scout") == "ghs_installation-token"
+    assert "acme/formerly is now acme/demo" in capsys.readouterr().out
+    assert json.loads(path.read_text())["repo"] == "acme/demo"
+    assert Forge.token_bodies == [{"repositories": ["formerly"]}, {}, {"repositories": ["demo"]}]
+    Forge.token_bodies.clear()
+    assert agent.mint("scout") == "ghs_installation-token" and Forge.token_bodies == [{"repositories": ["demo"]}]
+
+
+def test_a_name_the_forge_does_not_know_names_the_clone_s_origin(forge, project, capsys):
+    """#559: nothing redirects: the message says the stored name and the clone's origin, not only the App."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    path = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "app.json"
+    app = json.loads(path.read_text())
+    path.write_text(json.dumps({**app, "repo": "acme/gone"}))
+    capsys.readouterr()
+    assert agent.mint("scout") is None
+    said = capsys.readouterr().out
+    assert "on acme/gone (HTTP 422)" in said and "This clone's origin is" in said, said
+    assert json.loads(path.read_text())["repo"] == "acme/gone"
+
+
+def test_a_repository_given_to_another_owner_is_not_followed(forge, project, capsys):
+    """#559: another owner is another installation: nothing stored, the person remakes the agent."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    path = Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "app.json"
+    app = json.loads(path.read_text())
+    path.write_text(json.dumps({**app, "repo": "acme/given"}))
+    capsys.readouterr()
+    assert agent.mint("scout") is None
+    assert "is now" not in capsys.readouterr().out
+    assert json.loads(path.read_text())["repo"] == "acme/given"
 
 
 def _answer_on_main(project: Path, text: str) -> None:

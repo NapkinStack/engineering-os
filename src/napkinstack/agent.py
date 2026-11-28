@@ -140,14 +140,52 @@ def mint(name: str, out=None) -> str | None:
             return None
         app["installation"] = installation
         _save(app)
-    status, data = _call("POST", f"/app/installations/{app['installation']}/access_tokens", _app_token(app),
-                         {"repositories": [app["repo"].split("/", 1)[1]]})
-    if status != 201 or not isinstance(data, dict) or not data.get("token"):
-        _say(f"FAIL [agent] the forge minted no token for {app['slug']} (HTTP {status}).\n"
-             f"      Action: check the App is still installed on {app['repo']}: nstack agent add {name} says so.",
+    status, token = _scoped(app)
+    if not token and status in (404, 422) and (moved := _renamed(app)):
+        status, token = _scoped({**app, "repo": moved})
+        if token:  # stored only once the forge mints for it: never a name the installation does not hold
+            _say(f"  - agent: {app['repo']} is now {moved} on the forge, renamed: followed, and written in "
+                 f"{home() / name / 'app.json'}.", out)
+            app["repo"] = moved
+            _save(app)
+    if not token:
+        origin = ""
+        if app.get("clone"):
+            try:
+                origin = subprocess.run(["git", "-C", str(app["clone"]), "remote", "get-url", "origin"],
+                                        capture_output=True, text=True).stdout.strip()
+            except OSError:
+                pass
+        _say(f"FAIL [agent] the forge minted no token for {app['slug']} on {app['repo']} (HTTP {status}).\n"
+             + (f"      This clone's origin is {origin}: if the repository was renamed or moved, a person runs "
+                f"nstack agent add {name} from it.\n" if origin else "")
+             + f"      Action: check the App is still installed on {app['repo']}: nstack agent add {name} says so.",
              out)
         return None
-    return str(data["token"])
+    return token
+
+
+def _scoped(app: dict) -> tuple[int, str | None]:
+    """(status, token) of the installation for the agent's repository alone, named as stored."""
+    status, data = _call("POST", f"/app/installations/{app['installation']}/access_tokens", _app_token(app),
+                         {"repositories": [app["repo"].split("/", 1)[1]]})
+    return status, str(data["token"]) if status == 201 and isinstance(data, dict) and data.get("token") else None
+
+
+def _renamed(app: dict) -> str | None:
+    """The repository's full name now, when the forge redirects the stored one to another of the same
+    owner (#559): the token request takes names and refuses a renamed one, the repository endpoint
+    follows the rename. Read with a token of the installation used for that read alone, then revoked."""
+    status, data = _call("POST", f"/app/installations/{app['installation']}/access_tokens", _app_token(app), {})
+    if status != 201 or not isinstance(data, dict) or not data.get("token"):
+        return None
+    status, found = _call("GET", f"/repos/{app['repo']}", str(data["token"]))
+    _call("DELETE", "/installation/token", str(data["token"]))  # revoked: it served that read alone
+    name = found.get("full_name") if status == 200 and isinstance(found, dict) else None
+    owner = app["repo"].split("/", 1)[0].lower()
+    # a transfer to another owner is another installation: nstack agent add, not followed here
+    return name if isinstance(name, str) and name.lower() != app["repo"].lower() \
+        and name.split("/", 1)[0].lower() == owner and "/" in name else None
 
 
 def credential(name: str, action: str) -> int:
