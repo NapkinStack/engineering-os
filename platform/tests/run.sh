@@ -531,6 +531,27 @@ Co-Authored-By: An Assistant <noreply@example.com>" \
   || { echo "FAIL: the accepted message's session is not read by git."; exit 1; }
 git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "A change with no session" -m "Body." -m "More body." \
   || { echo "FAIL: a message without a session refused."; exit 1; }
+# D301, #557: in an agent's session a message with no session is refused — a merge's too, since
+# git merge runs the hook and pr-check reads no merge; the refusal names the merge's form.
+printf 'A change with no session\n' > "$T/said.txt"
+OUT=$(cd "$T" && NSTACK_AGENT=scout pre-commit run agent-session-trailer --hook-stage commit-msg \
+  --commit-msg-filename said.txt 2>&1) \
+  && { echo "FAIL: an agent's message with no session accepted."; echo "$OUT"; exit 1; }
+echo "$OUT" | grep -qF 'git merge origin/main -m "Merge origin/main" -m "Agent-Session:' \
+  && echo "$OUT" | grep -qF 'git commit -m "Merge origin/main" -m' \
+  || { echo "FAIL: the refusal does not name the merge's forms."; echo "$OUT"; exit 1; }
+git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "Base" -m "Agent-Session: s-1"
+git -C "$T" switch -q -c side
+git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "Side" -m "Agent-Session: s-1"
+git -C "$T" switch -q -
+git "${GIT_ID[@]}" -C "$T" commit -q --allow-empty -m "Ahead" -m "Agent-Session: s-1"
+NSTACK_AGENT=scout git "${GIT_ID[@]}" -C "$T" merge -q --no-edit side >/dev/null 2>&1 \
+  && { echo "FAIL: an agent's merge with git's default message accepted."; exit 1; }
+git -C "$T" merge --abort 2>/dev/null || true
+NSTACK_AGENT=scout git "${GIT_ID[@]}" -C "$T" merge -q side -m "Merge side" -m "Agent-Session: s-1" \
+  || { echo "FAIL: an agent's merge naming its session refused."; exit 1; }
+[ "$(git -C "$T" log -1 --format='%(trailers:key=Agent-Session,valueonly)' | head -1)" = "s-1" ] \
+  || { echo "FAIL: the merge's session is not read by git."; exit 1; }
 # Git judges, not a pattern: each message below is refused exactly when git reads no session.
 judged() {  # $1 = expected (pass|refuse), $2 = the case; the message is in said.txt
   local got=refuse
