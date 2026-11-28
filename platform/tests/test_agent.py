@@ -611,6 +611,34 @@ def test_uv_and_pre_commit_keep_the_person_s_warm_caches(forge, project, monkeyp
     assert env["XDG_CACHE_HOME"] == str(Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "cache")
 
 
+def test_the_person_s_keys_in_the_agent_s_settings_survive_a_run(forge, project, capsys):
+    """D299, #561: run lays its own keys again and keeps the person's — model and effort set in the
+    agent's file were lost at each start, and the agents ran on the person's own for a night."""
+    assert agent.add(project, "scout", browser=Browser()) == 0
+    path = agent._claude_settings("scout")
+    settings = json.loads(path.read_text())
+    settings.update(model="sonnet", effortLevel="medium")
+    settings["env"]["MINE"] = "1"
+    settings["env"]["XDG_CACHE_HOME"] = "/elsewhere"  # its own: laid again
+    settings["sandbox"]["enabled"] = True
+    settings["sandbox"]["filesystem"]["denyRead"] = ["secrets/"]
+    settings["sandbox"]["filesystem"]["allowWrite"] = ["/anywhere"]  # its own: laid again
+    settings["sandbox"]["network"]["allowAllUnixSockets"] = True  # its own, whole: dropped
+    path.write_text(json.dumps(settings))
+    again = json.loads(agent._claude_settings("scout").read_text())
+    assert (again["model"], again["effortLevel"], again["env"]["MINE"]) == ("sonnet", "medium", "1")
+    assert again["sandbox"]["enabled"] is True and again["sandbox"]["filesystem"]["denyRead"] == ["secrets/"]
+    assert again["env"]["XDG_CACHE_HOME"] == str(Path(os.environ["NSTACK_AGENTS_HOME"]) / "scout" / "cache")
+    assert "/anywhere" not in again["sandbox"]["filesystem"]["allowWrite"]
+    assert "allowAllUnixSockets" not in again["sandbox"]["network"]
+    for broken in ("{not json", "[1, 2]", '{"sandbox": [], "env": "x"}'):
+        path.write_text(broken)
+        assert json.loads(agent._claude_settings("scout").read_text())["env"]["GIT_HTTP_PROXY_AUTHMETHOD"] == "basic"
+        if not broken.startswith('{"'):
+            assert path.with_name("claude-settings.json.bak").read_text() == broken, "kept beside, not lost"
+            assert "claude-settings.json.bak" in capsys.readouterr().err
+
+
 def _answer_on_main(project: Path, text: str) -> None:
     """The project's answers file changed on the remote's main, as a merged pull request would."""
     (project / ".copier-answers.yml").write_text(text, encoding="utf-8")
