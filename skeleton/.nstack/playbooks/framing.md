@@ -158,8 +158,8 @@ from then on the plan check refuses an accepted charter over a form left as it c
   the end date does not move — or closing the cycle early. An added deliverable takes its
   criteria like the others, and its section says on whose word and on what it entered.
   A deliverable a closed cycle deferred comes back the same way, under its id. `nstack deliver`
-  counts the merges that name it — a title opening `D<n> —` or ending `(D<n>)`, or a
-  `Deliverable:` line; one merged before the cycle started is carried over, and only a person's
+  counts the merges that name it — a title opening `D<n> —` or ending `(D<n>)`, a part
+  letter allowed after the id (`D<n>a —`, `(D<n>b)`), or a `Deliverable:` line; one merged before the cycle started is carried over, and only a person's
   answer can then be cited for its criteria. `out-of-cycle` is not its path, and its hold ended
   with the closed cycle (`nstack unclaim` says so).
 - **An urgent fix** outside the cycle — an incident, a production defect — goes in a pull

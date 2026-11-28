@@ -926,8 +926,11 @@ def _empty_start_branches(root: Path, name: str | None, items: list) -> dict[str
 
 
 _ID = r"D[1-9][0-9]*"
-_TITLED = re.compile(rf"\(({_ID}(?:, *{_ID})*)(?:,[^()]*)?\)(?: *\(#[0-9]+\))?$")  # "… (D47, second of three) (#12)"
-_OPENED = re.compile(rf"^({_ID}) [—–-]")
+# A deliverable done in several pull requests may mark each part with one letter, "D125a —", "(D125b)":
+# an id never carries one, so the part is D125's (D300, #560)
+_PART = r"[a-z]?"
+_TITLED = re.compile(rf"\(({_ID}{_PART}(?:, *{_ID}{_PART})*)(?:,[^()]*)?\)(?: *\(#[0-9]+\))?$")  # "… (D47, second of three) (#12)"
+_OPENED = re.compile(rf"^({_ID}){_PART} [—–-]")
 _NAMED = re.compile(rf"^Deliverable:[ \t]*({_ID})\b", re.I | re.M)  # as pr-check K3 reads it
 _PULL = re.compile(r"\(#([0-9]+)\)$")
 _MERGED = re.compile(r"^Merge pull request #([0-9]+)\b")  # the forge's merge commit: the title is the body's first line
@@ -1321,7 +1324,7 @@ def _landed(root: Path, ident: str, ref: str, base: str) -> bool:
     `Deliverable:` line of a pull request, or its id in parentheses or opening a subject — a commit
     merely speaking of it is no delivery, and a live hold's branch is not named for it."""
     name = ident.upper()
-    pattern = rf"\({name}\)|^Deliverable:[ \t]*{name}([^0-9]|$)|^{name} [—–-]"
+    pattern = rf"\({name}[a-z]?\)|^Deliverable:[ \t]*{name}([^0-9]|$)|^{name}[a-z]? [—–-]"  # a part letter, as _delivers
     return bool(_git(root, "log", "-1", "--format=%H", "--extended-regexp", f"--grep={pattern}", f"{ref}~1..{base}").stdout.strip())
 
 

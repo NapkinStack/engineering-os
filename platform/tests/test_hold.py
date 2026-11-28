@@ -1294,11 +1294,14 @@ def land(alice: Path, message: str) -> None:
     git(alice, "push", "-q", "origin", "main")
 
 
-def test_plan_names_it_once_the_work_landed_though_the_state_is_unmoved(shared, capsys):
-    """A delivery never edits the cycle file (D183): at the kernel's Close the state is still ready."""
+@pytest.mark.parametrize("title", ["resume: nothing lost (D1) (#7)", "D1a — resume, first part (#7)",
+                                   "resume, second part (D1b) (#7)"])
+def test_plan_names_it_once_the_work_landed_though_the_state_is_unmoved(shared, capsys, title):
+    """A delivery never edits the cycle file (D183): at the kernel's Close the state is still ready.
+    A part's title lands as deliver counts it (D300, #560)."""
     alice = clone(shared, "alice")
     hold.claim(alice, "D1", session="s", person="@alice")
-    land(alice, "resume: nothing lost (D1) (#7)")
+    land(alice, title)
     capsys.readouterr()
     hold.show(alice)
     assert "d1-resume-an-interrupted-recording" in capsys.readouterr().out.split("Empty start branches left")[-1]
@@ -1436,7 +1439,8 @@ def merged_lines(root: Path, capsys) -> list[str]:
 
 
 @pytest.mark.parametrize("message", ["x (D1)", "x (D1) (#12)", "x (D1, second of three)", "x (D2, D1)",
-                                     "D1 — x", "Second part\n\nDeliverable: D1\n", "Second\n\ndeliverable: d1\n"])
+                                     "D1 — x", "Second part\n\nDeliverable: D1\n", "Second\n\ndeliverable: d1\n",
+                                     "D1a — x", "x (D1b)", "x (D1c) (#12)", "x (D2, D1b)"])
 def test_each_form_a_delivery_takes_is_counted(shared, capsys, message):
     alice = clone(shared, "alice")
     landed(alice, message)
@@ -1444,7 +1448,8 @@ def test_each_form_a_delivery_takes_is_counted(shared, capsys, message):
 
 
 @pytest.mark.parametrize("message", ["x (D12)", "Second\n\nDeliverable: D12\n", "D12 — x", "Start D1 — x",
-                                     "x\n\nD1 — capture\n", "x\n\n* part (D1)\n", "See (D1) for this", "x (see D1)"])
+                                     "x\n\nD1 — capture\n", "x\n\n* part (D1)\n", "See (D1) for this", "x (see D1)",
+                                     "D1ab — x", "D1A — x", "D12a — x", "x (D1ab)"])
 def test_another_id_or_a_mere_mention_counts_nothing(shared, capsys, message):
     alice = clone(shared, "alice")
     landed(alice, message)
