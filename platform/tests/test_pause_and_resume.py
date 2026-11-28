@@ -87,3 +87,14 @@ def test_tool_memories_are_extras_never_the_source():
 
 def test_a_hand_over_gives_the_note_and_the_hold_never_the_clone():
     assert "give the hold back (`nstack unclaim`)" in PLAYBOOK and "Never hand over a clone." in PLAYBOOK
+
+
+def test_the_playbook_says_when_to_restart_and_what_to_check_after():
+    """#563: a long session is restarted fresh from the note at a quiet point, never resumed; the
+    restarted one checks its settings and its holds before working (#561 was found only that way)."""
+    when = PLAYBOOK.split("## When to restart", 1)[1].split("\n## ", 1)[0]
+    assert "budget" in when and "docs/project/rules/" in when and "quiet point" in when
+    assert "--resume" in when and "compaction" in when
+    resume = PLAYBOOK.split("## Resume", 1)[1]
+    check = re.search(r"\*\*Check the session before the first gesture\.\*\*(.*?)\n[0-9]\.", resume, re.S)
+    assert check and "nstack agent status" in check.group(1) and "model and effort" in check.group(1)
