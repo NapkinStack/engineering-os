@@ -66,6 +66,18 @@ IMPORT_HINTS = re.compile(
     r"^\s*(import|from)\s", re.IGNORECASE
 )
 TOO_LARGE = 1_000_000  # bytes: a generated file or a data dump, not code
+# A line that is a comment from its first character on reads nothing (D302, #558): the markers of
+# each language B1 reads, as line counters such as tokei keep them. A string is still read (D259);
+# a comment after code on the same line is not told apart, which would need a lexer.
+SLASHED = {".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".kt", ".php", ".cs", ".swift", ".scala"}
+HASHED = {".py", ".rb", ".ex", ".exs", ".php"}
+SLASH_COMMENT = re.compile(r"\s*(//|/\*|\*/|\*(\s|$))")
+HASH_COMMENT = re.compile(r"\s*#(?![\[!])")
+
+
+def commented(suffix: str, line: str) -> bool:
+    """The line is a comment in the language its file's suffix names."""
+    return bool((suffix in SLASHED and SLASH_COMMENT.match(line)) or (suffix in HASHED and HASH_COMMENT.match(line)))
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -251,7 +263,10 @@ def check_contracts(root: Path, modules: dict[str, dict]) -> dict[str, dict[str,
         declared = {contract for contract, _ in consumed}
         seen: set[tuple[str, str | None]] = set()
         for relative, lines in read_files(mod):
+            suffix = Path(relative).suffix
             for lineno, line in enumerate(lines, 1):
+                if commented(suffix, line):
+                    continue
                 for contract, version, pattern, pieces in patterns:
                     if contract in own or not pattern.search(line):
                         continue

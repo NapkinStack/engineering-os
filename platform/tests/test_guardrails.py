@@ -519,6 +519,35 @@ def test_a_contract_s_bare_name_alone_is_no_undeclared_read(tmp_path, capsys, li
     assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
 
 
+@pytest.mark.parametrize("name, line", [("src/lib.rs", "/// the same shape as customers-api/v1's\n"),
+                                        ("src/lib.rs", "    //! see contracts/customers-api/v1/openapi.yaml\n"),
+                                        ("src/app.ts", "  // customers-api/v1 is read elsewhere\n"),
+                                        ("src/app.ts", "/* customers-api/v1\n"),
+                                        ("src/app.ts", "   * customers-api/v1, then\n"),
+                                        ("src/app.py", "    # customers-api/v1 is the other module's\n"),
+                                        ("src/app.rb", "# customers-api/v1\n")])
+def test_a_comment_naming_a_contract_reads_nothing(tmp_path, capsys, name, line):
+    """D302, #558: a line that is a comment is prose — B1 reads nothing in it."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", VALID, {name: line})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("name, line", [("src/app.ts", 'const SPEC = "customers-api/v1"; // its read\n'),
+                                        ("src/app.py", 'SPEC = "customers-api/v1"  # its read\n'),
+                                        ("src/App.php", '#[Uses("customers-api/v1")]\n'),
+                                        ("src/app.ts", "const area = w * load('customers-api/v1')\n"),
+                                        ("src/app.sh", "# customers-api/v1\n")])
+def test_code_beside_a_comment_or_a_file_of_no_known_language_still_reads(tmp_path, capsys, name, line):
+    """D302: only a line that is a comment from its first character on, in a language B1 knows."""
+    write_contract(tmp_path, "customers-api/v1")
+    write_module(tmp_path, "billing", VALID, {name: line})
+    write_module(tmp_path, "customers", PRODUCER)
+    assert boundaries.run(tmp_path) == 1
+    assert "[B1]" in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("line", ['SPEC = ROOT / "contracts" / "customers-api" / "openapi.yaml"\n',
                                   'SPEC = join("customers-api", "v1", "openapi.yaml")\n'])
 def test_a_contract_s_path_written_in_pieces_is_still_a_read(tmp_path, capsys, line):
