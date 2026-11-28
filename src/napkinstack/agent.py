@@ -572,24 +572,46 @@ def _skills_beside(name: str, clone: Path) -> tuple[list[str], str | None]:
         "a change there lasts one session and reaches no one.")
 
 
+def _mapping(value: object) -> dict:
+    """A JSON object read from a file a person may edit: anything else counts as empty."""
+    return dict(value) if isinstance(value, dict) else {}
+
+
 def _claude_settings(name: str, sockets: bool = False) -> Path:
     """Claude Code's settings of the agent's own, added to the person's (D199): their sandbox, when
     on, cuts the forge — the agent's git and gh go nowhere — and lets it write nowhere outside its
     clone, gh's folder included. This opens the agent's hosts, that folder and a cache of its own
     where builds and tests write (D212); Unix sockets only on the project's answer. It never turns
-    the sandbox off, nor touches a hook or a permission of theirs."""
+    the sandbox off, nor touches a hook or a permission of theirs. In the file, it owns
+    `sandbox.network`, `sandbox.filesystem.allowWrite` and the `env` keys it sets, laid again at
+    each run; any other key — `model`, `effortLevel`, a hook — is the person's and kept (D299, #561)."""
     folder = home() / name
     cache = folder / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     network = {"allowedDomains": _hosts(), **({"allowAllUnixSockets": True} if sockets else {})}
     # uv and pre-commit keep the person's warm caches: the sandbox opens no package index to fill new ones
     person = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
-    settings = {"sandbox": {"network": network, "filesystem": {"allowWrite": [str(folder / "gh"), str(cache)]}},
-                # git behind the sandbox's proxy fails "Proxy CONNECT aborted" without it
-                "env": {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(cache),
-                        "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR") or str(person / "uv"),
-                        "PRE_COMMIT_HOME": os.environ.get("PRE_COMMIT_HOME") or str(person / "pre-commit")}}
+    # git behind the sandbox's proxy fails "Proxy CONNECT aborted" without it
+    env = {"GIT_HTTP_PROXY_AUTHMETHOD": "basic", "XDG_CACHE_HOME": str(cache),
+           "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR") or str(person / "uv"),
+           "PRE_COMMIT_HOME": os.environ.get("PRE_COMMIT_HOME") or str(person / "pre-commit")}
     path = folder / "claude-settings.json"
+    try:
+        read = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        read = {}
+    except (OSError, ValueError):
+        read = None
+    if not isinstance(read, dict):  # the person's keys are not lost in silence: kept beside, and said
+        path.replace(path.with_name(path.name + ".bak"))
+        _say(f"  - claude: {path} was not a JSON object: written again from nstack's keys alone; "
+             f"yours are in {path.name}.bak, to copy back.", sys.stderr)
+        read = {}
+    settings = read
+    sandbox = settings["sandbox"] = _mapping(settings.get("sandbox"))
+    sandbox["network"] = network  # whole: a socket answer turned to no drops allowAllUnixSockets
+    sandbox["filesystem"] = {**_mapping(sandbox.get("filesystem")), "allowWrite": [str(folder / "gh"), str(cache)]}
+    settings["env"] = {**_mapping(settings.get("env")), **env}
     path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     return path
 
@@ -733,7 +755,9 @@ def run(name: str, command: list[str]) -> int:
             command = [command[0], "--settings", str(_claude_settings(name, sockets)), *command[1:]]
             _say(f"  - claude: --settings {home() / name / 'claude-settings.json'}, added to yours: your sandbox, "
                  "if on, lets it reach the forge and write its gh folder and its cache "
-                 f"({home() / name / 'cache'}), nothing more.", sys.stderr)
+                 f"({home() / name / 'cache'}), nothing more. Laid again at each run: sandbox.network, "
+                 "sandbox.filesystem.allowWrite and its env keys; your other keys there (model, effortLevel...) "
+                 "are kept.", sys.stderr)
             if sockets:
                 _say("  - Unix sockets: open (agent_sockets), for audio, display and bus tests: a socket such as "
                      "docker.sock grants the agent the host.", sys.stderr)
