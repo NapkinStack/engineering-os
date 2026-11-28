@@ -31,6 +31,19 @@ another tool and to another person. The source is the repository and the forge.
 
 ---
 
+## When to restart
+
+A long session costs more and reads worse: every turn resends its whole context, and a model
+recalls less of a full context than of a short one. Restart it — stop, then resume in a **new**
+session from the note — at a quiet point (nothing running, the last work pushed), when:
+
+- its context has passed the budget the project's rules set (`docs/project/rules/`), or the
+  person asks; with no budget written, at the end of a deliverable rather than in its middle;
+- or the next work is another deliverable than the one the context is full of.
+
+Never by resuming the old conversation (`--continue`, `--resume`): that brings its context
+back. Your tool's compaction is a safety net, not a restart: it keeps a summary you did not write.
+
 ## Stop
 
 Before you stop, or when you are told the session will end:
@@ -79,4 +92,9 @@ give the hold back (`nstack unclaim`) for them to claim. Never hand over a clone
    (`.nstack/handbook/project.md`, *Who holds a deliverable*).
 3. **`nstack plan`, once**: what changed while you were away — merges, holds, what turned stale.
    Where it disagrees with the note, the repository is right; the note was the past.
-4. **Continue at the noted gesture.** A gesture owed by someone else is not yours to redo.
+4. **Check the session before the first gesture.** `nstack agent status` says who it runs as;
+   your tool's own status says the model and effort it runs with — in Claude Code, `/status` —
+   and they are the ones the person set; `nstack plan` shows your holds under this session.
+   A difference is said to the person before any work: a session on other settings than
+   intended is found here, not on the bill.
+5. **Continue at the noted gesture.** A gesture owed by someone else is not yours to redo.
